@@ -408,8 +408,8 @@ export default function OperationCommandCenterPage() {
                     </span>
                   )}
 
-                  <span className="text-xs text-slate-500">
-                    OpsLeader: <strong className="text-slate-800 dark:text-slate-200">{operation.opsLeader.name} ({formatCodename(operation.opsLeader.codename, operation.opsLeader.name)})</strong>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    OpsLeader: <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{operation.opsLeader.name} ({formatCodename(operation.opsLeader.codename, operation.opsLeader.name)})</strong>
                   </span>
                 </div>
 
@@ -448,7 +448,7 @@ export default function OperationCommandCenterPage() {
                     navigator.clipboard.writeText(operation.code);
                     alert(`Copied Invite Code to clipboard: ${operation.code}`);
                   }}
-                  className={`px-5 py-3 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnPrimary}`}
+                  className={`px-5 py-3 rounded-2xl font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnPrimary}`}
                 >
                   <span>📋 Copy Invite Code ({operation.code})</span>
                 </button>
@@ -458,7 +458,7 @@ export default function OperationCommandCenterPage() {
             {/* 4-Stage Operational Timeline Cards */}
             <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 block">
                   📅 4-Stage Operational Timeline
                 </span>
                 {isOpsLeader && (
@@ -473,7 +473,7 @@ export default function OperationCommandCenterPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className="text-xs text-amber-600 dark:text-amber-400 uppercase font-mono font-bold block">
+                  <span className="text-xs text-amber-700 dark:text-amber-300 uppercase font-mono font-extrabold block">
                     STAGE 1
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Go/No-Go Date</span>
@@ -484,7 +484,7 @@ export default function OperationCommandCenterPage() {
                 </div>
 
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className="text-xs text-sky-600 dark:text-sky-400 uppercase font-mono font-bold block">
+                  <span className="text-xs text-sky-700 dark:text-sky-300 uppercase font-mono font-extrabold block">
                     STAGE 2
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Target Assignment</span>
@@ -495,7 +495,7 @@ export default function OperationCommandCenterPage() {
                 </div>
 
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className="text-xs text-purple-600 dark:text-purple-400 uppercase font-mono font-bold block">
+                  <span className="text-xs text-purple-700 dark:text-purple-300 uppercase font-mono font-extrabold block">
                     STAGE 3
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Gift Shipping Deadline</span>
@@ -506,7 +506,7 @@ export default function OperationCommandCenterPage() {
                 </div>
 
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 uppercase font-mono font-bold block">
+                  <span className="text-xs text-emerald-800 dark:text-emerald-300 uppercase font-mono font-extrabold block">
                     STAGE 4
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Exchange Execution</span>
@@ -531,7 +531,7 @@ export default function OperationCommandCenterPage() {
                     </p>
                   </div>
 
-                  <span className={`text-xs px-3.5 py-1 rounded-full ${theme.consoleBadge}`}>
+                  <span className={theme.consoleBadge}>
                     OpsLeader Clearance
                   </span>
                 </div>
@@ -562,7 +562,7 @@ export default function OperationCommandCenterPage() {
 
                   <button
                     onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
-                    className={theme.btnSecondary}
+                    className={theme.btnSky}
                   >
                     ✏️ Edit Operational Timeline Dates
                   </button>
