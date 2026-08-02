@@ -18,14 +18,18 @@ export function getThemeClasses(isDarkMode: boolean) {
       ? 'bg-slate-950 border-slate-800 text-slate-400'
       : 'bg-white border-stone-200 text-slate-600 shadow-inner',
 
-    // Cards & Containers
+    // Section Frames & Container Cards
+    sectionFrame: isDarkMode
+      ? 'bg-slate-900/90 border-2 border-slate-800 text-slate-100 shadow-xl'
+      : 'bg-white border-2 border-stone-200 text-slate-900 shadow-md',
+
     cardBg: isDarkMode
-      ? 'bg-slate-900 border-slate-800 text-slate-100 shadow-xl'
-      : 'bg-white border-stone-200 text-slate-900 shadow-md',
+      ? 'bg-slate-950 border border-slate-800 text-slate-100 shadow-md'
+      : 'bg-stone-50 border border-stone-300 text-slate-900 shadow-sm',
 
     cardInnerBg: isDarkMode
-      ? 'bg-slate-950 border-slate-800 text-slate-100'
-      : 'bg-stone-50 border-stone-200 text-slate-900',
+      ? 'bg-slate-900 border-slate-800 text-slate-100'
+      : 'bg-white border-stone-200 text-slate-900',
 
     modalBg: isDarkMode
       ? 'bg-slate-900 border-slate-800 text-white shadow-2xl'

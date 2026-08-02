@@ -284,8 +284,8 @@ export default function DashboardPage() {
             </div>
 
             {/* Section 1: Active Operations (Exchanges) */}
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <section className={`p-6 sm:p-8 rounded-3xl border space-y-6 ${theme.sectionFrame}`}>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-stone-200/80 dark:border-slate-800">
                 <div>
                   <h2 className="text-2xl font-black flex items-center gap-2">
                     🎯 Active Operations (Exchanges)
@@ -380,11 +380,11 @@ export default function DashboardPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </section>
 
             {/* Section 2: OpKits & OpTools Inventory (5 Most Recent Limit) */}
-            <div className="space-y-4 pt-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <section className={`p-6 sm:p-8 rounded-3xl border space-y-6 ${theme.sectionFrame}`}>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-stone-200/80 dark:border-slate-800">
                 <div>
                   <h2 className="text-2xl font-black flex items-center gap-2">
                     🧰 OpKits (Wish Lists)
@@ -498,7 +498,7 @@ export default function DashboardPage() {
                 ))}
               </div>
               )}
-            </div>
+            </section>
 
           </>
         ) : null}
