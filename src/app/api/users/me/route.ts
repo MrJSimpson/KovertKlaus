@@ -38,9 +38,13 @@ export async function GET(request: Request) {
                 id: true,
                 title: true,
                 code: true,
+                isWhiteElephant: true,
                 budgetMin: true,
                 budgetMax: true,
                 currency: true,
+                inviteCutoffDate: true,
+                assignmentDate: true,
+                shippingDate: true,
                 executionDate: true,
                 status: true,
                 opsLeader: {

@@ -329,74 +329,73 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {user.participations.map((p) => (
-                    <div
-                      key={p.id}
-                      className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all hover:shadow-xl ${theme.cardBg}`}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-mono font-bold ${theme.badgeCode}`}>
-                            CODE: {p.mission.code}
-                          </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                            p.mission.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
-                          }`}>
-                            ● {p.mission.status}
-                          </span>
+                  {user.participations.map((p) => {
+                    const countdown = getNextMilestoneCountdown(p.mission);
+                    return (
+                      <div
+                        key={p.id}
+                        className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all hover:shadow-xl ${theme.cardBg}`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-mono font-bold ${theme.badgeCode}`}>
+                              CODE: {p.mission.code}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
+                              p.mission.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
+                            }`}>
+                              ● {countdown.phaseStatusLabel}
+                            </span>
+                          </div>
+
+                          <h3 className="text-xl font-black mt-2">{p.mission.title}</h3>
+                          
+                          <div className={`mt-3 p-3.5 rounded-2xl border space-y-1.5 text-xs ${theme.cardInnerBg}`}>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-400">Budget Range:</span>
+                              <strong className={theme.textAccent}>
+                                ${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}
+                              </strong>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-400">Exchange Day:</span>
+                              <strong className={theme.textDate}>
+                                {formatDateString(p.mission.executionDate)}
+                              </strong>
+                            </div>
+
+                            <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 dark:border-slate-800/80">
+                              <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                                ⏳ {countdown.milestoneLabel}:
+                              </span>
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${
+                                countdown.isToday
+                                  ? theme.badgeCountdownToday
+                                  : countdown.daysLeft <= 7 && !countdown.isPast
+                                  ? theme.badgeCountdownUrgent
+                                  : theme.badgeCountdown
+                              }`}>
+                                {countdown.formattedText}
+                              </span>
+                            </div>
+                          </div>
                         </div>
 
-                        <h3 className="text-xl font-black mt-2">{p.mission.title}</h3>
-                        
-                        <div className={`mt-3 p-3.5 rounded-2xl border space-y-1.5 text-xs ${theme.cardInnerBg}`}>
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Budget Range:</span>
-                            <strong className={theme.textAccent}>
-                              ${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}
-                            </strong>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Exchange Day:</span>
-                            <strong className={theme.textDate}>
-                              {formatDateString(p.mission.executionDate)}
-                            </strong>
-                          </div>
-                          {(() => {
-                            const countdown = getNextMilestoneCountdown(p.mission);
-                            return (
-                              <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 dark:border-slate-800/80">
-                                <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
-                                  ⏳ Next Step ({countdown.label}):
-                                </span>
-                                <span className={`font-mono font-bold px-2 py-0.5 rounded-md text-[11px] ${
-                                  countdown.isPast
-                                    ? 'bg-stone-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                    : countdown.daysLeft <= 7
-                                    ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
-                                    : 'bg-sky-100 dark:bg-sky-950/80 text-sky-900 dark:text-sky-300 border border-sky-300 dark:border-sky-800'
-                                }`}>
-                                  {countdown.formattedText}
-                                </span>
-                              </div>
-                            );
-                          })()}
+                        <div className="mt-6 flex items-center justify-between pt-3 border-t border-stone-200 dark:border-slate-800">
+                          <span className="text-xs font-semibold text-slate-500">
+                            Role: <strong className="text-slate-900 dark:text-slate-100 font-bold">{p.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}</strong>
+                          </span>
+
+                          <Link
+                            href={`/exchange/${p.mission.code}`}
+                            className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
+                          >
+                            Open Command Center →
+                          </Link>
                         </div>
                       </div>
-
-                      <div className="mt-6 flex items-center justify-between pt-3 border-t border-stone-200 dark:border-slate-800">
-                        <span className="text-xs font-semibold text-slate-500">
-                          Role: <strong className="text-slate-900 dark:text-slate-100 font-bold">{p.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}</strong>
-                        </span>
-
-                        <Link
-                          href={`/exchange/${p.mission.code}`}
-                          className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
-                        >
-                          Open Command Center →
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>

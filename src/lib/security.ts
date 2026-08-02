@@ -62,8 +62,17 @@ export function formatDateString(dateInput?: string | Date | null): string {
   }
 }
 
+export interface OperationPhaseInfo {
+  phaseStatusLabel: string; // "Recruiting", "Waiting Assignment", "Acquire OpKit", "Awaiting Execution...", "Completed" (or Day-Of variations)
+  milestoneLabel: string;   // "RSVP Cutoff", "Target Draw", "Ship Deadline", "Exchange Day"
+  daysLeft: number;
+  formattedText: string;
+  isPast: boolean;
+  isToday: boolean;
+}
+
 /**
- * Calculates countdown days to the next upcoming milestone in an operation lifecycle.
+ * Calculates countdown days and determines phase status label for operation lifecycle stages.
  */
 export function getNextMilestoneCountdown(mission?: {
   status?: string;
@@ -71,56 +80,119 @@ export function getNextMilestoneCountdown(mission?: {
   assignmentDate?: string | Date | null;
   shippingDate?: string | Date | null;
   executionDate?: string | Date | null;
-} | null): { label: string; daysLeft: number; formattedText: string; isPast: boolean } {
+} | null): OperationPhaseInfo {
   if (!mission) {
-    return { label: 'Milestone', daysLeft: 0, formattedText: 'N/A', isPast: false };
+    return {
+      phaseStatusLabel: 'Active',
+      milestoneLabel: 'Milestone',
+      daysLeft: 0,
+      formattedText: 'N/A',
+      isPast: false,
+      isToday: false,
+    };
   }
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-
-  let targetDate: Date | null = null;
-  let label = 'Next Milestone';
 
   const cutoff = mission.inviteCutoffDate ? new Date(mission.inviteCutoffDate) : null;
   const assign = mission.assignmentDate ? new Date(mission.assignmentDate) : null;
   const ship = mission.shippingDate ? new Date(mission.shippingDate) : null;
   const exec = mission.executionDate ? new Date(mission.executionDate) : null;
 
-  if (cutoff && cutoff > now && mission.status === 'RECRUITING') {
-    label = 'RSVP Cutoff';
-    targetDate = cutoff;
-  } else if (assign && assign > now && (mission.status === 'RECRUITING' || mission.status === 'SETUP')) {
-    label = 'Target Draw';
-    targetDate = assign;
-  } else if (ship && ship > now && mission.status === 'ASSIGNED') {
-    label = 'Ship Deadline';
-    targetDate = ship;
-  } else if (exec && exec > now) {
-    label = 'Exchange Day';
+  if (cutoff) cutoff.setHours(0, 0, 0, 0);
+  if (assign) assign.setHours(0, 0, 0, 0);
+  if (ship) ship.setHours(0, 0, 0, 0);
+  if (exec) exec.setHours(0, 0, 0, 0);
+
+  const rawStatus = mission.status ? mission.status.toUpperCase() : 'RECRUITING';
+
+  let phaseStatusLabel = 'Recruiting';
+  let milestoneLabel = 'RSVP Cutoff';
+  let targetDate: Date | null = cutoff;
+
+  if (rawStatus === 'COMPLETED' || rawStatus === 'EXECUTED' || (exec && now > exec)) {
+    // Phase 5: Completed
+    return {
+      phaseStatusLabel: 'Completed',
+      milestoneLabel: 'Exchange Day',
+      daysLeft: 0,
+      formattedText: 'Operation Completed',
+      isPast: true,
+      isToday: false,
+    };
+  } else if (rawStatus === 'SHIPPED' || (ship && now > ship && (!exec || now <= exec))) {
+    // Phase 4: Awaiting Execution (Pre-Exchange)
     targetDate = exec;
-  } else if (exec) {
-    label = 'Execution';
-    targetDate = exec;
+    milestoneLabel = 'Exchange Day';
+    if (exec && exec.getTime() === now.getTime()) {
+      phaseStatusLabel = 'Exchange Day! 🎉';
+    } else {
+      phaseStatusLabel = 'Awaiting Execution...';
+    }
+  } else if (rawStatus === 'ASSIGNED' || (assign && now > assign && (!ship || now <= ship))) {
+    // Phase 3: Acquiring OpKit Items / Shipping
+    targetDate = ship || exec;
+    milestoneLabel = ship ? 'Ship Deadline' : 'Exchange Day';
+    if (ship && ship.getTime() === now.getTime()) {
+      phaseStatusLabel = 'Shipping Deadline Day';
+    } else {
+      phaseStatusLabel = 'Acquire OpKit';
+    }
+  } else if (rawStatus === 'SETUP' || (cutoff && now > cutoff && (!assign || now <= assign))) {
+    // Phase 2: Waiting Target Assignment
+    targetDate = assign || ship || exec;
+    milestoneLabel = assign ? 'Target Draw' : 'Ship Deadline';
+    if (assign && assign.getTime() === now.getTime()) {
+      phaseStatusLabel = 'Target Draw Day';
+    } else {
+      phaseStatusLabel = 'Waiting Assignment';
+    }
+  } else {
+    // Phase 1: Recruiting / Joining (Default)
+    targetDate = cutoff || assign || ship || exec;
+    milestoneLabel = cutoff ? 'RSVP Cutoff' : assign ? 'Target Draw' : 'Exchange Day';
+    if (cutoff && cutoff.getTime() === now.getTime()) {
+      phaseStatusLabel = 'RSVP Cutoff Day';
+    } else {
+      phaseStatusLabel = 'Recruiting';
+    }
   }
 
   if (!targetDate) {
-    return { label: 'Complete', daysLeft: 0, formattedText: 'Completed', isPast: true };
+    return {
+      phaseStatusLabel: 'Active',
+      milestoneLabel: 'Milestone',
+      daysLeft: 0,
+      formattedText: 'N/A',
+      isPast: false,
+      isToday: false,
+    };
   }
 
-  targetDate.setHours(0, 0, 0, 0);
   const diffTime = targetDate.getTime() - now.getTime();
   const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const isToday = daysLeft === 0;
 
+  let formattedText = '';
   if (daysLeft < 0) {
-    return { label, daysLeft, formattedText: `${Math.abs(daysLeft)} days ago`, isPast: true };
+    formattedText = `${Math.abs(daysLeft)} days ago`;
   } else if (daysLeft === 0) {
-    return { label, daysLeft: 0, formattedText: 'Today! 🎉', isPast: false };
+    formattedText = 'Today! 🎉';
   } else if (daysLeft === 1) {
-    return { label, daysLeft: 1, formattedText: 'Tomorrow ⏳', isPast: false };
+    formattedText = 'Tomorrow ⏳';
   } else {
-    return { label, daysLeft, formattedText: `In ${daysLeft} days`, isPast: false };
+    formattedText = `In ${daysLeft} days`;
   }
+
+  return {
+    phaseStatusLabel,
+    milestoneLabel,
+    daysLeft,
+    formattedText,
+    isPast: daysLeft < 0,
+    isToday,
+  };
 }
 
 /**

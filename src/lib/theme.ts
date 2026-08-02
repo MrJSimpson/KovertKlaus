@@ -103,6 +103,19 @@ export function getThemeClasses(isDarkMode: boolean) {
       ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold'
       : 'bg-amber-100 text-amber-900 border border-amber-300 font-bold',
 
+    // Themed Countdown Badges & Milestone Containers
+    badgeCountdown: isDarkMode
+      ? 'bg-sky-500/15 text-sky-300 border border-sky-500/40 font-mono font-bold shadow-sm'
+      : 'bg-red-50 text-red-700 border border-red-200 font-mono font-bold shadow-sm',
+
+    badgeCountdownUrgent: isDarkMode
+      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono font-bold shadow-sm'
+      : 'bg-amber-50 text-amber-900 border border-amber-300 font-mono font-bold shadow-sm',
+
+    badgeCountdownToday: isDarkMode
+      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-bold shadow-sm animate-pulse'
+      : 'bg-emerald-100 text-emerald-950 border border-emerald-300 font-mono font-bold shadow-sm animate-pulse',
+
     // Alerts & Notifications
     alertError: isDarkMode
       ? 'bg-red-950/80 border-2 border-red-800 text-red-200'

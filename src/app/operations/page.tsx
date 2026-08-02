@@ -229,80 +229,74 @@ export default function OperationCenterPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredOperations.map((p) => (
-              <div
-                key={p.id}
-                className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all hover:shadow-xl ${theme.cardBg}`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800">
-                      CODE: {p.mission.code}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
-                      p.mission.status === 'RECRUITING'
-                        ? theme.badgeSecretSanta
-                        : p.mission.status === 'ASSIGNED'
-                        ? theme.badgeWhiteElephant
-                        : theme.badgeAmber
-                    }`}>
-                      ● {p.mission.status}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{p.mission.isWhiteElephant ? '🐘' : '🎁'}</span>
-                    <h3 className="text-xl font-black">{p.mission.title}</h3>
-                  </div>
-
-                  <p className="text-xs text-slate-500 mb-4">
-                    Type: <strong>{p.mission.isWhiteElephant ? 'White Elephant (Single Brought Gift)' : 'Secret Santa Gifting'}</strong>
-                  </p>
-
-                  <div className={`p-4 rounded-2xl border space-y-2 text-xs mb-6 ${theme.cardInnerBg}`}>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Budget Range:</span>
-                      <strong className={theme.textAccent}>
-                        ${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}
-                      </strong>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Your Assigned Role:</span>
-                      <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
-                        p.role === 'OPS_LEADER'
-                          ? theme.badgeAmber
-                          : 'bg-stone-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
+            {filteredOperations.map((p) => {
+              const countdown = getNextMilestoneCountdown(p.mission);
+              return (
+                <div
+                  key={p.id}
+                  className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all hover:shadow-xl ${theme.cardBg}`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800">
+                        CODE: {p.mission.code}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
+                        p.mission.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
                       }`}>
-                        {p.role === 'OPS_LEADER' ? 'OpsLeader (Organizer)' : 'Agent (Participant)'}
+                        ● {countdown.phaseStatusLabel}
                       </span>
                     </div>
 
-                    {(() => {
-                      const countdown = getNextMilestoneCountdown(p.mission);
-                      return (
-                        <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 dark:border-slate-800/80">
-                          <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
-                            ⏳ Next Step ({countdown.label}):
-                          </span>
-                          <span className={`font-mono font-bold px-2 py-0.5 rounded-md text-[11px] ${
-                            countdown.isPast
-                              ? 'bg-stone-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                              : countdown.daysLeft <= 7
-                              ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
-                              : 'bg-sky-100 dark:bg-sky-950/80 text-sky-900 dark:text-sky-300 border border-sky-300 dark:border-sky-800'
-                          }`}>
-                            {countdown.formattedText}
-                          </span>
-                        </div>
-                      );
-                    })()}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{p.mission.isWhiteElephant ? '🐘' : '🎁'}</span>
+                      <h3 className="text-xl font-black">{p.mission.title}</h3>
+                    </div>
 
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Exchange Execution Date:</span>
-                      <strong className={theme.textDate}>
-                        {formatDateString(p.mission.executionDate)}
-                      </strong>
+                    <p className="text-xs text-slate-500 mb-4">
+                      Type: <strong>{p.mission.isWhiteElephant ? 'White Elephant (Single Brought Gift)' : 'Secret Santa Gifting'}</strong>
+                    </p>
+
+                    <div className={`p-4 rounded-2xl border space-y-2 text-xs mb-6 ${theme.cardInnerBg}`}>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Budget Range:</span>
+                        <strong className={theme.textAccent}>
+                          ${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}
+                        </strong>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Your Assigned Role:</span>
+                        <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
+                          p.role === 'OPS_LEADER'
+                            ? theme.badgeAmber
+                            : 'bg-stone-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
+                        }`}>
+                          {p.role === 'OPS_LEADER' ? 'OpsLeader (Organizer)' : 'Agent (Participant)'}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 dark:border-slate-800/80">
+                        <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                          ⏳ {countdown.milestoneLabel}:
+                        </span>
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${
+                          countdown.isToday
+                            ? theme.badgeCountdownToday
+                            : countdown.daysLeft <= 7 && !countdown.isPast
+                            ? theme.badgeCountdownUrgent
+                            : theme.badgeCountdown
+                        }`}>
+                          {countdown.formattedText}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Exchange Execution Date:</span>
+                        <strong className={theme.textDate}>
+                          {formatDateString(p.mission.executionDate)}
+                        </strong>
+                      </div>
                     </div>
 
                     {p.mission.shippingDate && (
@@ -314,7 +308,6 @@ export default function OperationCenterPage() {
                       </div>
                     )}
                   </div>
-                </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-stone-200 dark:border-slate-800">
                   <span className="text-xs text-slate-400 font-mono">
@@ -329,7 +322,8 @@ export default function OperationCenterPage() {
                   </Link>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
         )}
 
