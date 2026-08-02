@@ -78,7 +78,7 @@ export default function Home() {
                   : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
               }`}
             >
-              <span>{isDarkMode ? '☀️ Light' : '❄️ Dark (Icy)'}</span>
+              <span>{isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}</span>
             </button>
 
             <button

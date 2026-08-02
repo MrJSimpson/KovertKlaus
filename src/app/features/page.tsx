@@ -37,13 +37,13 @@ export default function FeaturesPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2 rounded-xl text-xs font-medium border transition-colors flex items-center gap-2 cursor-pointer ${
+              className={`p-2 rounded-xl text-xs font-semibold border transition-colors flex items-center gap-2 cursor-pointer ${
                 isDarkMode
                   ? 'bg-slate-900 border-slate-700 text-sky-300 hover:bg-slate-800'
                   : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
               }`}
             >
-              <span>{isDarkMode ? '☀️ Light' : '❄️ Dark (Icy)'}</span>
+              <span>{isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}</span>
             </button>
 
             <Link
