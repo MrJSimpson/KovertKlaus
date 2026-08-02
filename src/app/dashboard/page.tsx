@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { formatCodename } from '@/lib/security';
 
 interface UserData {
   id: string;
@@ -290,7 +291,7 @@ export default function UserDashboardPage() {
                 </div>
                 <h1 className="text-3xl font-black">Welcome back, {user.name}!</h1>
                 <p className="text-xs text-slate-500 mt-1">
-                  Codename: <strong className={isDarkMode ? 'text-sky-400' : 'text-red-600'}>{user.codename || 'Agent'}</strong> | Email: <strong>{user.email}</strong>
+                  Codename: <strong className={isDarkMode ? 'text-sky-400' : 'text-red-600'}>{formatCodename(user.codename, user.name)}</strong> | Email: <strong>{user.email}</strong>
                 </p>
               </div>
 
@@ -363,7 +364,7 @@ export default function UserDashboardPage() {
 
                           <div className="mt-4 flex items-center justify-between">
                             <span className="text-xs text-slate-400">
-                              Role: <strong className="text-slate-700 dark:text-slate-200">{p.role === 'OPS_LEADER' ? 'Organizer' : 'Field Agent'}</strong>
+                              Role: <strong className="text-slate-700 dark:text-slate-200">{p.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}</strong>
                             </span>
                             <Link
                               href={`/exchange/${p.mission.code}`}
@@ -503,7 +504,7 @@ export default function UserDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-500 mb-1">Secret Codename / Handle</label>
+                  <label className="block text-slate-500 mb-1">Secret Codename / Handle (Will be prefixed with Agent-)</label>
                   <input
                     type="text"
                     value={editCodename}

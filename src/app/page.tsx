@@ -174,7 +174,7 @@ export default function Home() {
           body: JSON.stringify({
             name: name.trim(),
             email: email.trim(),
-            codename: codename.trim() || undefined,
+            codename: codename.trim() ? (codename.trim().startsWith('Agent-') ? codename.trim() : `Agent-${codename.trim()}`) : undefined,
             password,
           }),
         });
@@ -263,7 +263,7 @@ export default function Home() {
           body: JSON.stringify({
             name: name.trim(),
             email: email.trim(),
-            codename: codename.trim() || undefined,
+            codename: codename.trim() ? (codename.trim().startsWith('Agent-') ? codename.trim() : `Agent-${codename.trim()}`) : undefined,
             password,
           }),
         });
@@ -515,7 +515,7 @@ export default function Home() {
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div>
-                      <span className={`text-lg font-bold block ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Sarah Simpson</span>
+                      <span className={`text-lg font-bold block ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Agent-Sarah</span>
                       <span className="text-xs text-slate-500">Wishlist: 3 Items Attached</span>
                     </div>
                     <span className={`text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm ${
@@ -688,10 +688,10 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Secret Codename / Handle (Optional)</label>
+                      <label className="block text-slate-500 mb-1">Secret Codename / Handle (Will be prefixed with Agent-)</label>
                       <input
                         type="text"
-                        placeholder="e.g. KovertKlaus-1"
+                        placeholder="e.g. Agent-KovertKlaus"
                         value={codename}
                         onChange={(e) => setCodename(e.target.value)}
                         className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
@@ -903,7 +903,7 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Secret Codename / Handle (Optional)</label>
+                      <label className="block text-slate-500 mb-1">Secret Codename / Handle (Will be prefixed with Agent-)</label>
                       <input
                         type="text"
                         placeholder="e.g. Agent-Alex"

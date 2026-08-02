@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { formatCodename } from '@/lib/security';
 
 interface OperationData {
   id: string;
@@ -202,7 +203,7 @@ export default function ExchangeDashboardPage() {
                     CODE: {operation.code}
                   </span>
                   <span className="text-xs text-slate-500">
-                    Organizer: <strong>{operation.opsLeader.name}</strong>
+                    OpsLeader: <strong>{operation.opsLeader.name} ({formatCodename(operation.opsLeader.codename, operation.opsLeader.name)})</strong>
                   </span>
                 </div>
                 <h1 className="text-3xl font-black">{operation.title}</h1>
@@ -308,7 +309,7 @@ export default function ExchangeDashboardPage() {
                 }`}>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold flex items-center gap-2">
-                      👥 Participants ({operation.agents?.length || 0})
+                      👥 Agents ({operation.agents?.length || 0})
                     </h2>
                     <span className="text-xs text-slate-500 font-mono">Status: {operation.status}</span>
                   </div>
@@ -320,10 +321,14 @@ export default function ExchangeDashboardPage() {
                       }`}>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-slate-400">#{i + 1}</span>
-                          <span className="font-bold">{agent.user?.codename || agent.user?.name || `Participant ${i + 1}`}</span>
-                          {agent.role === 'OPS_LEADER' && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold">Organizer</span>
-                          )}
+                          <span className="font-bold">{formatCodename(agent.user?.codename, agent.user?.name)}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                            agent.role === 'OPS_LEADER'
+                              ? 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300'
+                              : 'bg-emerald-100 text-emerald-900 dark:bg-sky-500/20 dark:text-sky-300'
+                          }`}>
+                            {agent.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}
+                          </span>
                         </div>
                         <span className="text-slate-400 font-mono">{agent.shippingStatus}</span>
                       </div>

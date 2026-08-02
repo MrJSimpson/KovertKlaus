@@ -13,6 +13,24 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const CODE_REGEX = /^[A-Z0-9-]{3,16}$/;
 
 /**
+ * Formats a Codename to strictly enforce the "Agent-" prefix rule across the app.
+ * Example: "Alex" -> "Agent-Alex", "Agent-9867" -> "Agent-9867"
+ */
+export function formatCodename(codename?: string | null, fallbackName?: string | null): string {
+  if (!codename || !codename.trim()) {
+    if (fallbackName && fallbackName.trim()) {
+      const cleanFallback = fallbackName.trim();
+      return cleanFallback.toLowerCase().startsWith('agent-')
+        ? cleanFallback
+        : `Agent-${cleanFallback}`;
+    }
+    return 'Agent-Unknown';
+  }
+  const clean = codename.trim();
+  return clean.toLowerCase().startsWith('agent-') ? clean : `Agent-${clean}`;
+}
+
+/**
  * Validates Password Complexity (Minimum 10 Characters):
  * - Must be at least 10 characters in length.
  * - Must contain at least 1 uppercase letter (A-Z).
