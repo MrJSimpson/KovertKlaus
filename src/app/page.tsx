@@ -3,34 +3,37 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-// Charlie Brown Retro Christmas Lights Strand
+// Charlie Brown Retro Glowing Christmas Lights Strand
 function ChristmasLightsStrand() {
   const bulbs = [
-    { color: 'bg-red-500 shadow-red-500/90', delay: '0s' },
-    { color: 'bg-emerald-500 shadow-emerald-500/90', delay: '0.4s' },
-    { color: 'bg-amber-400 shadow-amber-400/90', delay: '0.8s' },
-    { color: 'bg-sky-400 shadow-sky-400/90', delay: '0.2s' },
-    { color: 'bg-pink-500 shadow-pink-500/90', delay: '0.6s' },
-    { color: 'bg-emerald-400 shadow-emerald-400/90', delay: '1s' },
-    { color: 'bg-red-600 shadow-red-600/90', delay: '0.3s' },
-    { color: 'bg-amber-300 shadow-amber-300/90', delay: '0.7s' },
-    { color: 'bg-blue-500 shadow-blue-500/90', delay: '0.5s' },
-    { color: 'bg-rose-500 shadow-rose-500/90', delay: '0.9s' },
+    { color: 'bg-red-500 shadow-red-500/90 ring-red-400/50', delay: '0s' },
+    { color: 'bg-emerald-500 shadow-emerald-500/90 ring-emerald-400/50', delay: '0.4s' },
+    { color: 'bg-amber-400 shadow-amber-400/90 ring-amber-300/50', delay: '0.8s' },
+    { color: 'bg-sky-400 shadow-sky-400/90 ring-sky-300/50', delay: '0.2s' },
+    { color: 'bg-purple-500 shadow-purple-500/90 ring-purple-400/50', delay: '0.6s' },
+    { color: 'bg-yellow-300 shadow-yellow-300/90 ring-yellow-200/50', delay: '1s' },
+    { color: 'bg-rose-600 shadow-rose-600/90 ring-rose-400/50', delay: '0.3s' },
+    { color: 'bg-emerald-400 shadow-emerald-400/90 ring-emerald-300/50', delay: '0.7s' },
+    { color: 'bg-blue-500 shadow-blue-500/90 ring-blue-400/50', delay: '0.5s' },
+    { color: 'bg-orange-500 shadow-orange-500/90 ring-orange-400/50', delay: '0.9s' },
   ];
 
   return (
-    <div className="w-full bg-slate-950/90 border-b border-slate-800/80 py-1 overflow-hidden select-none">
-      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center gap-2">
-        {Array.from({ length: 28 }).map((_, i) => {
+    <div className="w-full bg-slate-900 py-2.5 relative z-50 border-b border-slate-800 shadow-lg overflow-hidden select-none">
+      {/* Wire Strand */}
+      <div className="absolute top-3 left-0 right-0 h-0.5 bg-slate-700 pointer-events-none"></div>
+
+      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center relative z-10">
+        {Array.from({ length: 24 }).map((_, i) => {
           const bulb = bulbs[i % bulbs.length];
           return (
-            <div key={i} className="flex flex-col items-center">
-              {/* String socket */}
-              <div className="w-1.5 h-1.5 bg-slate-700 rounded-t-sm"></div>
-              {/* Teardrop Bulb */}
+            <div key={i} className="flex flex-col items-center group cursor-pointer">
+              {/* Wire socket */}
+              <div className="w-2 h-2 bg-slate-800 border border-slate-600 rounded-t-sm z-10"></div>
+              {/* Glowing Teardrop Bulb */}
               <div
-                className={`w-2.5 h-3.5 rounded-b-full shadow-md animate-pulse transition-all ${bulb.color}`}
-                style={{ animationDelay: bulb.delay, animationDuration: '1.8s' }}
+                className={`w-3.5 h-5 rounded-b-full shadow-lg ring-1 transition-all animate-pulse transform group-hover:scale-125 ${bulb.color}`}
+                style={{ animationDelay: bulb.delay, animationDuration: '1.6s' }}
               ></div>
             </div>
           );
@@ -45,7 +48,7 @@ function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
   return (
     <div className="relative inline-flex flex-col items-center group cursor-pointer">
       {/* Shining Star */}
-      <div className="text-amber-400 animate-bounce text-lg leading-none filter drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+      <div className="text-amber-400 animate-bounce text-xl leading-none filter drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
         ⭐
       </div>
       {/* Tree Branches (slightly leaning, charmingly simple) */}
