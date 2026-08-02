@@ -46,6 +46,9 @@ interface OperationData {
   executionDate: string;    // Exchange Execution Date
   status: string;
   isWhiteElephant: boolean;
+  isLocalOnly: boolean;
+  eventLocation?: string;
+  maxParticipants?: number;
   opsLeaderId: string;
   opsLeader: {
     id: string;
@@ -82,6 +85,18 @@ export default function OperationCommandCenterPage() {
   const [savingDates, setSavingDates] = useState(false);
   const [dateError, setDateError] = useState('');
 
+  // OpsLeader Settings Editor Modal State
+  const [editSettingsModalOpen, setEditSettingsModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editBudgetMin, setEditBudgetMin] = useState(0);
+  const [editBudgetMax, setEditBudgetMax] = useState(50);
+  const [editMaxParticipants, setEditMaxParticipants] = useState<number | undefined>(undefined);
+  const [editIsLocalOnly, setEditIsLocalOnly] = useState(false);
+  const [editEventLocation, setEditEventLocation] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsError, setSettingsError] = useState('');
+
   // OpKit & OpTools Scraper State
   const [opToolUrl, setOpToolUrl] = useState('');
   const [scraping, setScraping] = useState(false);
@@ -115,7 +130,7 @@ export default function OperationCommandCenterPage() {
         setError(json.error || 'Operation not found');
       } else {
         setOperation(json.data);
-        populateDateForm(json.data);
+        populateForms(json.data);
       }
     } catch {
       setError('Failed to load operation details');
@@ -124,11 +139,61 @@ export default function OperationCommandCenterPage() {
     }
   }
 
-  function populateDateForm(op: OperationData) {
+  function populateForms(op: OperationData) {
     setEditCutoffDate(new Date(op.inviteCutoffDate).toISOString().split('T')[0]);
     setEditAssignDate(new Date(op.assignmentDate).toISOString().split('T')[0]);
     setEditShipDate(op.shippingDate ? new Date(op.shippingDate).toISOString().split('T')[0] : '');
     setEditExecDate(new Date(op.executionDate).toISOString().split('T')[0]);
+
+    setEditTitle(op.title);
+    setEditDescription(op.description || '');
+    setEditBudgetMin(op.budgetMin || 0);
+    setEditBudgetMax(op.budgetMax);
+    setEditMaxParticipants(op.maxParticipants);
+    setEditIsLocalOnly(op.isLocalOnly);
+    setEditEventLocation(op.eventLocation || '');
+  }
+
+  // Handle Save Operation Settings (OpsLeader Only)
+  async function handleSaveSettings(e: React.FormEvent) {
+    e.preventDefault();
+    if (!operation || !userId) return;
+
+    setSavingSettings(true);
+    setSettingsError('');
+
+    try {
+      const res = await fetch('/api/operations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          operationId: operation.id,
+          action: 'update_settings',
+          settings: {
+            title: editTitle,
+            description: editDescription,
+            budgetMin: Number(editBudgetMin),
+            budgetMax: Number(editBudgetMax),
+            maxParticipants: editMaxParticipants ? Number(editMaxParticipants) : undefined,
+            isLocalOnly: editIsLocalOnly,
+            eventLocation: editEventLocation,
+          },
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Failed to update operation settings');
+      }
+
+      setEditSettingsModalOpen(false);
+      fetchExchangeDetails();
+    } catch (err: any) {
+      setSettingsError(err.message || 'Update failed');
+    } finally {
+      setSavingSettings(false);
+    }
   }
 
   // Handle Save Dates (OpsLeader Only)
@@ -146,6 +211,7 @@ export default function OperationCommandCenterPage() {
         body: JSON.stringify({
           userId,
           operationId: operation.id,
+          action: 'update_dates',
           dates: {
             inviteCutoffDate: editCutoffDate,
             assignmentDate: editAssignDate,
@@ -347,18 +413,49 @@ export default function OperationCommandCenterPage() {
                     {operation.isWhiteElephant ? '🐘 White Elephant' : '🎁 Secret Santa'}
                   </span>
 
+                  {operation.isLocalOnly && (
+                    <span className="text-xs px-3 py-1 rounded-full font-bold bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300">
+                      📍 Local In-Person Event
+                    </span>
+                  )}
+
                   <span className="text-xs text-slate-500">
                     OpsLeader: <strong>{operation.opsLeader.name} ({formatCodename(operation.opsLeader.codename, operation.opsLeader.name)})</strong>
                   </span>
                 </div>
 
                 <h1 className="text-3xl font-black">{operation.title}</h1>
-                <p className="text-xs text-slate-500 mt-1">
-                  Budget Limit: <strong className={isDarkMode ? 'text-sky-400 font-bold' : 'text-red-600 font-bold'}>${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong>
-                </p>
+                
+                {operation.description && (
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">
+                    "{operation.description}"
+                  </p>
+                )}
+
+                <div className="text-xs text-slate-500 mt-2 space-y-0.5">
+                  <p>
+                    Budget Limit: <strong className={isDarkMode ? 'text-sky-400 font-bold' : 'text-red-600 font-bold'}>${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong>
+                  </p>
+                  {operation.isLocalOnly && operation.eventLocation && (
+                    <p className="text-slate-700 dark:text-slate-300 font-bold">
+                      📍 Event Location: {operation.eventLocation}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
+                {isOpsLeader && (
+                  <button
+                    onClick={() => { setSettingsError(''); setEditSettingsModalOpen(true); }}
+                    className={`px-4 py-3 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${
+                      isDarkMode ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-stone-200 text-slate-900 hover:bg-stone-300'
+                    }`}
+                  >
+                    ⚙️ Edit Operation Options
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(operation.code);
@@ -373,7 +470,7 @@ export default function OperationCommandCenterPage() {
               </div>
             </div>
 
-            {/* 4-Stage Operational Timeline Cards (EXACT ACCURATE LOCAL DATES) */}
+            {/* 4-Stage Operational Timeline Cards */}
             <div className={`p-6 rounded-3xl border shadow-md ${
               isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
             }`}>
@@ -465,7 +562,7 @@ export default function OperationCommandCenterPage() {
                       🎖️ OpsLeader Administrative Console
                     </span>
                     <p className="text-xs text-slate-600 dark:text-slate-400">
-                      As the designated OpsLeader, you control enrollment deadlines, target draws, and compliance logs.
+                      As the designated OpsLeader, you control enrollment deadlines, operation options, target draws, and compliance logs.
                     </p>
                   </div>
 
@@ -490,6 +587,13 @@ export default function OperationCommandCenterPage() {
                       {drawingTargets ? 'Executing Draw...' : '🎯 Trigger Target Assignment Draw'}
                     </button>
                   )}
+
+                  <button
+                    onClick={() => { setSettingsError(''); setEditSettingsModalOpen(true); }}
+                    className="px-4 py-2.5 rounded-xl font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-md cursor-pointer"
+                  >
+                    ⚙️ Edit Operation Options & Local Event
+                  </button>
 
                   <button
                     onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
@@ -747,6 +851,171 @@ export default function OperationCommandCenterPage() {
         ) : null}
 
       </main>
+
+      {/* MODAL: OPSLEADER EDIT OPERATION OPTIONS & LOCAL EVENT */}
+      {editSettingsModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-lg w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
+            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-black flex items-center gap-2">
+                <span>⚙️ Edit Operation Options</span>
+              </h3>
+              <button onClick={() => setEditSettingsModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            {settingsError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-xs font-bold">
+                ⚠️ {settingsError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveSettings} className="space-y-4 text-xs font-semibold">
+              
+              {/* Read-Only Locked Gifting Type Badge */}
+              <div className="p-3 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800">
+                <span className="text-[11px] text-slate-400 block mb-1 uppercase font-bold">
+                  🔒 Locked Gifting Type (Immutable)
+                </span>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase inline-block ${
+                  operation?.isWhiteElephant
+                    ? 'bg-purple-100 text-purple-900 dark:bg-purple-500/20 dark:text-purple-300'
+                    : 'bg-emerald-100 text-emerald-900 dark:bg-sky-500/20 dark:text-sky-300'
+                }`}>
+                  {operation?.isWhiteElephant ? '🐘 White Elephant' : '🎁 Secret Santa'}
+                </span>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Operation gifting type cannot be converted once created.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 mb-1">Operation Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 mb-1">Mission Instructions / Description</label>
+                <textarea
+                  rows={2}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Optional mission notes or guidelines..."
+                  className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-500 mb-1">Min Budget ($)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editBudgetMin}
+                    onChange={(e) => setEditBudgetMin(Number(e.target.value))}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
+                      isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-500 mb-1">Max Budget ($) *</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={editBudgetMax}
+                    onChange={(e) => setEditBudgetMax(Number(e.target.value))}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
+                      isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 mb-1">Max Participant Limit (Optional)</label>
+                <input
+                  type="number"
+                  min={2}
+                  placeholder="Leave empty for unlimited"
+                  value={editMaxParticipants || ''}
+                  onChange={(e) => setEditMaxParticipants(e.target.value ? Number(e.target.value) : undefined)}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  }`}
+                />
+              </div>
+
+              {/* Local In-Person Event Configuration Toggle */}
+              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
+                <div className="flex items-center justify-between cursor-pointer" onClick={() => setEditIsLocalOnly(!editIsLocalOnly)}>
+                  <div>
+                    <span className="font-bold text-sm block">📍 Local In-Person Event</span>
+                    <span className="text-[11px] text-slate-500 block">
+                      Enable if this exchange is taking place at a physical party or location.
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editIsLocalOnly}
+                    onChange={(e) => setEditIsLocalOnly(e.target.checked)}
+                    className="h-5 w-5 rounded accent-red-600 dark:accent-sky-400 cursor-pointer"
+                  />
+                </div>
+
+                {editIsLocalOnly && (
+                  <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
+                    <label className="block text-slate-500 mb-1">Event Location Address *</label>
+                    <input
+                      type="text"
+                      required={editIsLocalOnly}
+                      placeholder="e.g. 123 Holly Lane, Tacoma, WA 98402"
+                      value={editEventLocation}
+                      onChange={(e) => setEditEventLocation(e.target.value)}
+                      className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none ${
+                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-stone-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditSettingsModalOpen(false)}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
+                    isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
+                    isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  {savingSettings ? 'Saving...' : 'Save Settings'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: OPSLEADER EDIT TIMELINE DATES */}
       {editDatesModalOpen && (

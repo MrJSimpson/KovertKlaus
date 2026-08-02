@@ -241,21 +241,38 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const sessionUserId = await getSessionUserId();
 
-    const { userId: bodyUserId, operationId, dates } = body as {
+    const {
+      userId: bodyUserId,
+      operationId,
+      action,
+      dates,
+      settings,
+    } = body as {
       userId?: string;
       operationId: string;
-      dates: {
+      action?: 'update_dates' | 'update_settings';
+      dates?: {
         inviteCutoffDate: string;
         assignmentDate: string;
         shippingDate: string;
         executionDate: string;
       };
+      settings?: {
+        title?: string;
+        description?: string;
+        budgetMin?: number;
+        budgetMax?: number;
+        maxParticipants?: number;
+        isLocalOnly?: boolean;
+        eventLocation?: string;
+        isWhiteElephant?: boolean; // Must be checked for immutability!
+      };
     };
 
     const activeUserId = sessionUserId || bodyUserId;
 
-    if (!activeUserId || !operationId || !dates) {
-      return NextResponse.json({ error: 'Authentication, operationId, and dates are required' }, { status: 400 });
+    if (!activeUserId || !operationId) {
+      return NextResponse.json({ error: 'Authentication and operationId are required' }, { status: 400 });
     }
 
     const op = await db.mission.findUnique({
@@ -267,35 +284,83 @@ export async function PATCH(request: Request) {
     }
 
     if (op.opsLeaderId !== activeUserId) {
-      return NextResponse.json({ error: 'Only the OpsLeader can update operational dates' }, { status: 403 });
+      return NextResponse.json({ error: 'Only the OpsLeader can update operation settings' }, { status: 403 });
     }
 
-    // Validate Date Sequence and Range Limits
-    const validation = validateOperationConfig({
-      title: op.title,
-      giftingType: op.giftingType as any,
-      isLocalOnly: op.isLocalOnly,
-      isWhiteElephant: op.isWhiteElephant,
-      budgetMax: Number(op.budgetMax),
-      ...dates,
-    });
+    // Branch 1: Update Operation Settings & Options
+    if (action === 'update_settings' || settings) {
+      if (!settings) {
+        return NextResponse.json({ error: 'Settings payload is required' }, { status: 400 });
+      }
 
-    if (!validation.isValid) {
-      return NextResponse.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
+      // IMMUTABILITY GUARD: Gifting Type cannot be changed after creation
+      if (settings.isWhiteElephant !== undefined && settings.isWhiteElephant !== op.isWhiteElephant) {
+        return NextResponse.json({
+          error: 'Operation Gifting Type (Secret Santa vs White Elephant) is fixed upon creation and cannot be changed.',
+        }, { status: 400 });
+      }
+
+      // Local Event Rule: Location required when isLocalOnly is true
+      if (settings.isLocalOnly && (!settings.eventLocation || !settings.eventLocation.trim())) {
+        return NextResponse.json({
+          error: 'Local events require an in-person event location address.',
+        }, { status: 400 });
+      }
+
+      // Budget Validation
+      if (settings.budgetMax !== undefined && settings.budgetMax <= 0) {
+        return NextResponse.json({ error: 'Maximum budget must be greater than $0' }, { status: 400 });
+      }
+      if (settings.budgetMin !== undefined && settings.budgetMax !== undefined && settings.budgetMin > settings.budgetMax) {
+        return NextResponse.json({ error: 'Minimum budget cannot exceed maximum budget' }, { status: 400 });
+      }
+
+      const updatedOperation = await db.mission.update({
+        where: { id: operationId },
+        data: {
+          title: settings.title !== undefined ? settings.title.trim() : op.title,
+          description: settings.description !== undefined ? settings.description.trim() : op.description,
+          budgetMin: settings.budgetMin !== undefined ? Number(settings.budgetMin) : op.budgetMin,
+          budgetMax: settings.budgetMax !== undefined ? Number(settings.budgetMax) : op.budgetMax,
+          maxParticipants: settings.maxParticipants !== undefined ? (settings.maxParticipants ? Number(settings.maxParticipants) : null) : op.maxParticipants,
+          isLocalOnly: settings.isLocalOnly !== undefined ? settings.isLocalOnly : op.isLocalOnly,
+          eventLocation: settings.eventLocation !== undefined ? settings.eventLocation.trim() : op.eventLocation,
+        },
+      });
+
+      return NextResponse.json({ success: true, data: updatedOperation });
     }
 
-    const updatedOperation = await db.mission.update({
-      where: { id: operationId },
-      data: {
-        inviteCutoffDate: new Date(dates.inviteCutoffDate),
-        assignmentDate: new Date(dates.assignmentDate),
-        shippingDate: new Date(dates.shippingDate),
-        executionDate: new Date(dates.executionDate),
-      },
-    });
+    // Branch 2: Update Timeline Dates
+    if (dates) {
+      const validation = validateOperationConfig({
+        title: op.title,
+        giftingType: op.giftingType as any,
+        isLocalOnly: op.isLocalOnly,
+        isWhiteElephant: op.isWhiteElephant,
+        budgetMax: Number(op.budgetMax),
+        ...dates,
+      });
 
-    return NextResponse.json({ success: true, data: updatedOperation });
+      if (!validation.isValid) {
+        return NextResponse.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
+      }
+
+      const updatedOperation = await db.mission.update({
+        where: { id: operationId },
+        data: {
+          inviteCutoffDate: new Date(dates.inviteCutoffDate),
+          assignmentDate: new Date(dates.assignmentDate),
+          shippingDate: new Date(dates.shippingDate),
+          executionDate: new Date(dates.executionDate),
+        },
+      });
+
+      return NextResponse.json({ success: true, data: updatedOperation });
+    }
+
+    return NextResponse.json({ error: 'No valid action or update payload provided' }, { status: 400 });
   } catch {
-    return NextResponse.json({ error: 'Failed to update operation dates' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update operation' }, { status: 500 });
   }
 }
