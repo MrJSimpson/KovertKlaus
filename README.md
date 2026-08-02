@@ -2,7 +2,16 @@
 
 **Stealth Intelligence Gift Exchange Network for Families, Friends & Communities**
 
-KovertKlaus turns standard Secret Santa exchanges into engaging, covert stealth operations. Featuring account reliability tracking (Demerits), reusable Ops Kit wishlists, automated product metadata scraping, in-person White Elephant support, and cyclic linked-list target assignments.
+KovertKlaus turns standard Secret Santa exchanges into engaging, covert stealth operations. Featuring account reliability tracking (Demerits), reusable OpKit wishlists, automated product metadata scraping, in-person White Elephant support, and cyclic linked-list target assignments.
+
+---
+
+## 🤖 AI Agent Guidelines & Architecture Rules
+
+Working on this repository as an AI assistant, subagent, or pair programmer? Please read **[`AGENTS.md`](./AGENTS.md)** before writing code! All AI agents MUST adhere to:
+* **Nomenclature:** `OpsLeader`, `Agent`, `Agent-` codename prefixes, `OpKit`, `OpTool`, and `Active Operations (Exchanges)`.
+* **Dual OpKits:** `WISHLIST` (unlimited requested items) vs `WHITE_ELEPHANT` (strictly 1 brought gift item).
+* **Security:** OWASP password complexity, `bcryptjs` hashing (12 rounds), and 24h HTTP-only sessions.
 
 ---
 
@@ -10,7 +19,7 @@ KovertKlaus turns standard Secret Santa exchanges into engaging, covert stealth 
 
 KovertKlaus is container-native and ready to run on Docker out of the box.
 
-```powershell
+```bash
 # 1. Clone repository
 git clone https://github.com/MrJSimpson/KovertKlaus.git
 cd KovertKlaus
