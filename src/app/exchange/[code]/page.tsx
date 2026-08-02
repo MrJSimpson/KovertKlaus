@@ -40,10 +40,10 @@ interface OperationData {
   budgetMin?: number;
   budgetMax: number;
   currency: string;
-  inviteCutoffDate: string;
-  assignmentDate: string;
-  shippingDate?: string;
-  executionDate: string;
+  inviteCutoffDate: string; // Go/No-Go Date
+  assignmentDate: string;   // Target Assignment Date
+  shippingDate: string;     // Gift Shipping Deadline
+  executionDate: string;    // Exchange Execution Date
   status: string;
   isWhiteElephant: boolean;
   opsLeaderId: string;
@@ -297,7 +297,7 @@ export default function OperationCommandCenterPage() {
 
                 <h1 className="text-3xl font-black">{operation.title}</h1>
                 <p className="text-xs text-slate-500 mt-1">
-                  Budget Limit: <strong className={isDarkMode ? 'text-sky-400 font-bold' : 'text-red-600 font-bold'}>${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong> | Exchange Execution: <strong>{new Date(operation.executionDate).toLocaleDateString()}</strong>
+                  Budget Limit: <strong className={isDarkMode ? 'text-sky-400 font-bold' : 'text-red-600 font-bold'}>${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong>
                 </p>
               </div>
 
@@ -313,6 +313,69 @@ export default function OperationCommandCenterPage() {
                 >
                   <span>📋 Copy Invite Code ({operation.code})</span>
                 </button>
+              </div>
+            </div>
+
+            {/* 4-Stage Operational Timeline Cards */}
+            <div className={`p-6 rounded-3xl border shadow-md ${
+              isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
+            }`}>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-4">
+                📅 4-Stage Required Operational Timeline
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
+                <div className={`p-4 rounded-2xl border ${
+                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
+                }`}>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-mono font-bold block">
+                    STAGE 1 (25%)
+                  </span>
+                  <span className="font-bold block text-sm mt-0.5">Go/No-Go Date</span>
+                  <span className="text-slate-500 text-[11px] block mt-0.5">(Invite Cutoff)</span>
+                  <strong className="text-sm block mt-2 text-slate-800 dark:text-slate-200">
+                    {new Date(operation.inviteCutoffDate).toLocaleDateString()}
+                  </strong>
+                </div>
+
+                <div className={`p-4 rounded-2xl border ${
+                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
+                }`}>
+                  <span className="text-[10px] text-sky-600 dark:text-sky-400 uppercase font-mono font-bold block">
+                    STAGE 2 (50%)
+                  </span>
+                  <span className="font-bold block text-sm mt-0.5">Target Assignment</span>
+                  <span className="text-slate-500 text-[11px] block mt-0.5">(Sattolo Draw)</span>
+                  <strong className="text-sm block mt-2 text-slate-800 dark:text-slate-200">
+                    {new Date(operation.assignmentDate).toLocaleDateString()}
+                  </strong>
+                </div>
+
+                <div className={`p-4 rounded-2xl border ${
+                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
+                }`}>
+                  <span className="text-[10px] text-purple-600 dark:text-purple-400 uppercase font-mono font-bold block">
+                    STAGE 3 (75%)
+                  </span>
+                  <span className="font-bold block text-sm mt-0.5">Gift Shipping Deadline</span>
+                  <span className="text-slate-500 text-[11px] block mt-0.5">(Tracking Required)</span>
+                  <strong className="text-sm block mt-2 text-slate-800 dark:text-slate-200">
+                    {operation.shippingDate ? new Date(operation.shippingDate).toLocaleDateString() : 'N/A'}
+                  </strong>
+                </div>
+
+                <div className={`p-4 rounded-2xl border ${
+                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
+                }`}>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-mono font-bold block">
+                    STAGE 4 (100%)
+                  </span>
+                  <span className="font-bold block text-sm mt-0.5">Exchange Execution</span>
+                  <span className="text-slate-500 text-[11px] block mt-0.5">(Event Day)</span>
+                  <strong className="text-sm block mt-2 text-emerald-700 dark:text-sky-400 font-black">
+                    {new Date(operation.executionDate).toLocaleDateString()}
+                  </strong>
+                </div>
               </div>
             </div>
 

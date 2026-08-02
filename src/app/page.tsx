@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { calculateAutomaticOperationDates } from '@/lib/validations/operation';
 
 // Charlie Brown Retro Glowing Christmas Lights Strand
 function ChristmasLightsStrand({ isDarkMode }: { isDarkMode: boolean }) {
@@ -185,15 +186,8 @@ export default function Home() {
         userId = regData.data.id;
       }
 
-      // Calculate Valid Sequential Dates Based on Execution Date
-      const execDateObj = new Date(executionDate);
-      const shipDateObj = new Date(execDateObj.getTime() - 5 * 24 * 60 * 60 * 1000);
-      const assignDateObj = new Date(execDateObj.getTime() - 10 * 24 * 60 * 60 * 1000);
-      const cutoffDateObj = new Date(execDateObj.getTime() - 12 * 24 * 60 * 60 * 1000);
-
-      const shippingDateStr = shipDateObj.toISOString().split('T')[0];
-      const assignmentDateStr = assignDateObj.toISOString().split('T')[0];
-      const inviteCutoffDateStr = cutoffDateObj.toISOString().split('T')[0];
+      // Calculate Automatic Operational Percentage Dates (25%, 50%, 75%, 100%)
+      const calculatedDates = calculateAutomaticOperationDates(executionDate);
 
       const opRes = await fetch('/api/operations', {
         method: 'POST',
@@ -208,10 +202,10 @@ export default function Home() {
             giftingType: 'SINGLE',
             isLocalOnly: false,
             isWhiteElephant: false,
-            inviteCutoffDate: inviteCutoffDateStr,
-            assignmentDate: assignmentDateStr,
-            shippingDate: shippingDateStr,
-            executionDate,
+            inviteCutoffDate: calculatedDates.inviteCutoffDate,
+            assignmentDate: calculatedDates.assignmentDate,
+            shippingDate: calculatedDates.shippingDate,
+            executionDate: calculatedDates.executionDate,
           },
         }),
       });
@@ -722,7 +716,7 @@ export default function Home() {
 
               <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
                 <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
-                  Step 2: Exchange Settings
+                  Step 2: Exchange Settings & Automated Timeline
                 </span>
                 <div>
                   <label className="block text-slate-500 mb-1">Exchange Title *</label>
@@ -768,7 +762,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1">Exchange Date *</label>
+                  <label className="block text-slate-500 mb-1">Execution / Event Date *</label>
                   <input
                     type="date"
                     required
@@ -778,6 +772,9 @@ export default function Home() {
                       isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
                     }`}
                   />
+                  <p className="text-[11px] text-slate-500 mt-1.5 font-normal">
+                    ⚡ <strong>Automated Timeline:</strong> Go/No-Go (25%), Target Assignment (50%), Shipping Deadline (75%) are automatically set.
+                  </p>
                 </div>
               </div>
 
