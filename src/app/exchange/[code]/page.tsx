@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename, formatDateString } from '@/lib/security';
+import { getThemeClasses } from '@/lib/theme';
 
 interface OperationAgent {
   id: string;
@@ -109,6 +110,8 @@ export default function OperationCommandCenterPage() {
   const [intelLogs, setIntelLogs] = useState<Array<{ id: string; sender: string; text: string; time: string }>>([
     { id: '1', sender: 'Agent-KovertKlaus', text: 'Operation initialized. All agents stand by for target assignment.', time: '10:00 AM' },
   ]);
+
+  const theme = getThemeClasses(isDarkMode);
 
   useEffect(() => {
     const savedUserId = localStorage.getItem('kovertklaus_user_id');
@@ -328,16 +331,10 @@ export default function OperationCommandCenterPage() {
   const todayStr = new Date().toISOString().split('T')[0];
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 font-sans ${
-      isDarkMode
-        ? 'bg-slate-950 text-slate-100 selection:bg-sky-500 selection:text-slate-950'
-        : 'bg-stone-50 text-slate-900 selection:bg-red-600 selection:text-white'
-    }`}>
+    <div className={`min-h-screen transition-colors duration-300 font-sans ${theme.pageBg}`}>
       
       {/* Top Header Navigation */}
-      <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${
-        isDarkMode ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-stone-200 shadow-sm'
-      }`}>
+      <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
           <Link href="/operations" className="flex items-center gap-3">
             <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md ${
@@ -347,7 +344,7 @@ export default function OperationCommandCenterPage() {
             </div>
             <div>
               <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-xs font-bold ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
+              <span className={`text-xs font-bold ${theme.textBrand}`}>
                 Operation Command Center
               </span>
             </div>
@@ -356,18 +353,14 @@ export default function OperationCommandCenterPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                isDarkMode ? 'bg-slate-900 border-slate-700 text-sky-300' : 'bg-stone-100 border-stone-300 text-slate-700'
-              }`}
+              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
               {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
             </button>
 
             <Link
               href="/operations"
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${
-                isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-              }`}
+              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
             >
               ← Operations Center
             </Link>
@@ -388,7 +381,7 @@ export default function OperationCommandCenterPage() {
             <div className="text-4xl mb-3">⚠️</div>
             <h2 className="text-xl font-bold mb-2">Operation Access Denied</h2>
             <p className="text-xs text-slate-500 mb-6">{error}</p>
-            <Link href="/operations" className="px-6 py-3 bg-red-600 text-white font-bold text-xs rounded-xl">
+            <Link href="/operations" className={`px-6 py-3 font-bold text-xs rounded-xl ${theme.btnPrimary}`}>
               Return to Operations Center
             </Link>
           </div>
@@ -396,31 +389,27 @@ export default function OperationCommandCenterPage() {
           <div className="space-y-8">
             
             {/* Primary Operation Banner */}
-            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 ${
-              isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-            }`}>
+            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 ${theme.cardBg}`}>
               <div>
                 <div className="flex items-center gap-3 mb-2 flex-wrap">
-                  <span className={`text-xs px-3 py-1 rounded-full font-mono font-bold ${
-                    isDarkMode ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' : 'bg-emerald-100 text-emerald-900'
-                  }`}>
+                  <span className={`text-xs px-3 py-1 rounded-full font-mono font-bold ${theme.badgeCode}`}>
                     CODE: {operation.code}
                   </span>
 
                   <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase ${
-                    operation.isWhiteElephant ? 'bg-purple-100 text-purple-900 dark:bg-purple-500/20 dark:text-purple-300' : 'bg-emerald-100 text-emerald-900 dark:bg-sky-500/20 dark:text-sky-300'
+                    operation.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
                   }`}>
                     {operation.isWhiteElephant ? '🐘 White Elephant' : '🎁 Secret Santa'}
                   </span>
 
                   {operation.isLocalOnly && (
-                    <span className="text-xs px-3 py-1 rounded-full font-bold bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300">
+                    <span className={`text-xs px-3 py-1 rounded-full font-bold ${theme.badgeAmber}`}>
                       📍 Local In-Person Event
                     </span>
                   )}
 
                   <span className="text-xs text-slate-500">
-                    OpsLeader: <strong>{operation.opsLeader.name} ({formatCodename(operation.opsLeader.codename, operation.opsLeader.name)})</strong>
+                    OpsLeader: <strong className="text-slate-800 dark:text-slate-200">{operation.opsLeader.name} ({formatCodename(operation.opsLeader.codename, operation.opsLeader.name)})</strong>
                   </span>
                 </div>
 
@@ -434,10 +423,10 @@ export default function OperationCommandCenterPage() {
 
                 <div className="text-xs text-slate-500 mt-2 space-y-0.5">
                   <p>
-                    Budget Limit: <strong className={isDarkMode ? 'text-sky-400 font-bold' : 'text-red-600 font-bold'}>${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong>
+                    Budget Limit: <strong className={theme.textAccent}>${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong>
                   </p>
                   {operation.isLocalOnly && operation.eventLocation && (
-                    <p className="text-slate-700 dark:text-slate-300 font-bold">
+                    <p className="text-slate-800 dark:text-slate-200 font-bold">
                       📍 Event Location: {operation.eventLocation}
                     </p>
                   )}
@@ -448,9 +437,7 @@ export default function OperationCommandCenterPage() {
                 {isOpsLeader && (
                   <button
                     onClick={() => { setSettingsError(''); setEditSettingsModalOpen(true); }}
-                    className={`px-4 py-3 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${
-                      isDarkMode ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-stone-200 text-slate-900 hover:bg-stone-300'
-                    }`}
+                    className={`px-4 py-3 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnSecondary}`}
                   >
                     ⚙️ Edit Operation Options
                   </button>
@@ -461,9 +448,7 @@ export default function OperationCommandCenterPage() {
                     navigator.clipboard.writeText(operation.code);
                     alert(`Copied Invite Code to clipboard: ${operation.code}`);
                   }}
-                  className={`px-5 py-3 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${
-                    isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-                  }`}
+                  className={`px-5 py-3 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnPrimary}`}
                 >
                   <span>📋 Copy Invite Code ({operation.code})</span>
                 </button>
@@ -471,9 +456,7 @@ export default function OperationCommandCenterPage() {
             </div>
 
             {/* 4-Stage Operational Timeline Cards */}
-            <div className={`p-6 rounded-3xl border shadow-md ${
-              isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-            }`}>
+            <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
                   📅 4-Stage Operational Timeline
@@ -481,9 +464,7 @@ export default function OperationCommandCenterPage() {
                 {isOpsLeader && (
                   <button
                     onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
-                    className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                      isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 hover:border-sky-500/40' : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
-                    }`}
+                    className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer ${theme.btnToggle}`}
                   >
                     ✏️ Adjust Timeline Dates
                   </button>
@@ -491,98 +472,82 @@ export default function OperationCommandCenterPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
-                <div className={`p-4 rounded-2xl border ${
-                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                }`}>
+                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
                   <span className="text-xs text-amber-600 dark:text-amber-400 uppercase font-mono font-bold block">
                     STAGE 1
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Go/No-Go Date</span>
                   <span className="text-slate-500 text-[11px] block mt-0.5">(Invite Cutoff)</span>
-                  <strong className={`text-base font-black block mt-2 ${
-                    isDarkMode ? 'text-sky-300' : 'text-slate-950'
-                  }`}>
+                  <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.inviteCutoffDate)}
                   </strong>
                 </div>
 
-                <div className={`p-4 rounded-2xl border ${
-                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                }`}>
+                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
                   <span className="text-xs text-sky-600 dark:text-sky-400 uppercase font-mono font-bold block">
                     STAGE 2
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Target Assignment</span>
                   <span className="text-slate-500 text-[11px] block mt-0.5">(Sattolo Draw)</span>
-                  <strong className={`text-base font-black block mt-2 ${
-                    isDarkMode ? 'text-sky-300' : 'text-slate-950'
-                  }`}>
+                  <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.assignmentDate)}
                   </strong>
                 </div>
 
-                <div className={`p-4 rounded-2xl border ${
-                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                }`}>
+                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
                   <span className="text-xs text-purple-600 dark:text-purple-400 uppercase font-mono font-bold block">
                     STAGE 3
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Gift Shipping Deadline</span>
                   <span className="text-slate-500 text-[11px] block mt-0.5">(Tracking Required)</span>
-                  <strong className={`text-base font-black block mt-2 ${
-                    isDarkMode ? 'text-sky-300' : 'text-slate-950'
-                  }`}>
+                  <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.shippingDate)}
                   </strong>
                 </div>
 
-                <div className={`p-4 rounded-2xl border ${
-                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                }`}>
+                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
                   <span className="text-xs text-emerald-600 dark:text-emerald-400 uppercase font-mono font-bold block">
                     STAGE 4
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Exchange Execution</span>
                   <span className="text-slate-500 text-[11px] block mt-0.5">(Event Day)</span>
-                  <strong className={`text-base font-black block mt-2 ${
-                    isDarkMode ? 'text-sky-400' : 'text-red-700'
-                  }`}>
+                  <strong className={`text-base font-black block mt-2 ${theme.textAccent}`}>
                     {formatDateString(operation.executionDate)}
                   </strong>
                 </div>
               </div>
             </div>
 
-            {/* OpsLeader Administrative Control Console */}
+            {/* OpsLeader Administrative Control Console (Clean High-Contrast Theme) */}
             {isOpsLeader && (
-              <div className="p-6 rounded-3xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 shadow-md space-y-4">
+              <div className={`p-6 rounded-3xl ${theme.consoleCard}`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300 block">
+                    <span className={theme.consoleHeading}>
                       🎖️ OpsLeader Administrative Console
                     </span>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                    <p className={theme.consoleText}>
                       As the designated OpsLeader, you control enrollment deadlines, operation options, target draws, and compliance logs.
                     </p>
                   </div>
 
-                  <span className="text-xs font-mono font-bold px-3 py-1 bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 rounded-full">
+                  <span className={`text-xs px-3.5 py-1 rounded-full ${theme.consoleBadge}`}>
                     OpsLeader Clearance
                   </span>
                 </div>
 
                 {drawSuccessMessage && (
-                  <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                  <div className={`mt-3 p-3 rounded-xl text-xs font-bold border ${theme.alertSuccess}`}>
                     ✓ {drawSuccessMessage}
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-3 pt-2">
+                <div className="flex flex-wrap gap-3 pt-4">
                   {!operation.isWhiteElephant && operation.status === 'RECRUITING' && (
                     <button
                       onClick={handleTriggerDraw}
                       disabled={drawingTargets}
-                      className="px-5 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md cursor-pointer"
+                      className={theme.btnEmerald}
                     >
                       {drawingTargets ? 'Executing Draw...' : '🎯 Trigger Target Assignment Draw'}
                     </button>
@@ -590,21 +555,21 @@ export default function OperationCommandCenterPage() {
 
                   <button
                     onClick={() => { setSettingsError(''); setEditSettingsModalOpen(true); }}
-                    className="px-4 py-2.5 rounded-xl font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-md cursor-pointer"
+                    className={theme.btnAmber}
                   >
                     ⚙️ Edit Operation Options & Local Event
                   </button>
 
                   <button
                     onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
-                    className="px-4 py-2.5 rounded-xl font-bold text-xs bg-stone-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-stone-300 cursor-pointer"
+                    className={theme.btnSecondary}
                   >
                     ✏️ Edit Operational Timeline Dates
                   </button>
 
                   <button
                     onClick={() => alert(`Operation Code: ${operation.code}\nAgents Enrolled: ${operation.agents.length}`)}
-                    className="px-4 py-2.5 rounded-xl font-bold text-xs bg-stone-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-stone-300 cursor-pointer"
+                    className={theme.btnSecondary}
                   >
                     📊 View Enrollment Stats
                   </button>
@@ -620,24 +585,20 @@ export default function OperationCommandCenterPage() {
                 
                 {/* Secret Santa Target Assignment Card */}
                 {!operation.isWhiteElephant && (
-                  <div className={`p-6 rounded-3xl border shadow-md ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-                  }`}>
+                  <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                     <div className="flex items-center justify-between mb-3">
                       <h2 className="text-xl font-bold flex items-center gap-2">
                         🎯 Your Secret Assignment
                       </h2>
                       <span className={`text-xs px-3 py-1 rounded-full font-mono font-bold ${
-                        assignedTarget
-                          ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-300'
-                          : 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300'
+                        assignedTarget ? theme.badgeSecretSanta : theme.badgeAmber
                       }`}>
                         {assignedTarget ? 'TARGET ASSIGNED' : 'AWAITING DRAW'}
                       </span>
                     </div>
 
                     {assignedTarget ? (
-                      <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-slate-950 border border-emerald-200 dark:border-slate-800 space-y-2">
+                      <div className={`p-4 rounded-2xl border space-y-2 ${theme.cardInnerBg}`}>
                         <div className="flex items-center justify-between">
                           <div>
                             <span className="text-xs text-slate-500 block">Assigned Target Operative:</span>
@@ -649,7 +610,7 @@ export default function OperationCommandCenterPage() {
                         </div>
 
                         {assignedTarget.streetAddress && (
-                          <div className="text-xs text-slate-600 dark:text-slate-400 border-t border-emerald-200 dark:border-slate-800 pt-2">
+                          <div className="text-xs text-slate-600 dark:text-slate-400 border-t border-stone-200 dark:border-slate-800 pt-2">
                             <span>Courier Address: </span>
                             <strong>{assignedTarget.streetAddress}, {assignedTarget.city}, {assignedTarget.state} {assignedTarget.zipCode}</strong>
                           </div>
@@ -666,13 +627,11 @@ export default function OperationCommandCenterPage() {
                 )}
 
                 {/* OpKit & OpTools Scraper Section */}
-                <div className={`p-6 rounded-3xl border shadow-md ${
-                  isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-                }`}>
+                <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                   <h2 className="text-xl font-bold mb-0.5 flex items-center gap-2">
                     {operation.isWhiteElephant ? '🐘 White Elephant Brought Gift OpKit' : '🎁 My OpKit'}
                   </h2>
-                  <p className="text-xs font-semibold text-red-600 dark:text-sky-400 mb-1">
+                  <p className={`text-xs font-semibold mb-1 ${theme.textAccent}`}>
                     (OpKit = {operation.isWhiteElephant ? 'Single Brought Gift' : 'Your Secret Santa Wishlist'} | OpTools = Wished-for Gift Items)
                   </p>
                   <p className="text-xs text-slate-500 mb-4">
@@ -682,7 +641,7 @@ export default function OperationCommandCenterPage() {
                   </p>
 
                   {validationError && (
-                    <div className="mb-4 p-3 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-300 text-xs font-bold">
+                    <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertWarning}`}>
                       ⚠️ {validationError}
                     </div>
                   )}
@@ -695,11 +654,7 @@ export default function OperationCommandCenterPage() {
                       onChange={(e) => setOpToolUrl(e.target.value)}
                       required
                       disabled={operation.isWhiteElephant && userOpKit.length >= 1}
-                      className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none focus:ring-2 ${
-                        isDarkMode
-                          ? 'bg-slate-950 border-slate-800 text-slate-100 focus:ring-sky-400'
-                          : 'bg-stone-50 border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
+                      className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none ${theme.inputBg}`}
                     />
                     <button
                       type="submit"
@@ -707,9 +662,7 @@ export default function OperationCommandCenterPage() {
                       className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
                         operation.isWhiteElephant && userOpKit.length >= 1
                           ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
-                          : isDarkMode
-                          ? 'bg-sky-500 text-slate-950 hover:bg-sky-400'
-                          : 'bg-red-600 text-white hover:bg-red-700'
+                          : theme.btnPrimary
                       }`}
                     >
                       {scraping ? 'Scraping...' : '+ Add OpTool'}
@@ -724,9 +677,7 @@ export default function OperationCommandCenterPage() {
                   ) : (
                     <div className="space-y-3">
                       {userOpKit.map((item) => (
-                        <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between ${
-                          isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                        }`}>
+                        <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between ${theme.cardInnerBg}`}>
                           <div className="flex items-center gap-3">
                             {item.thumbnail ? (
                               <img src={item.thumbnail} alt={item.title} className="h-10 w-10 object-cover rounded-xl border" />
@@ -737,7 +688,7 @@ export default function OperationCommandCenterPage() {
                               <a href={item.url} target="_blank" rel="noreferrer" className="text-sm font-bold hover:underline block max-w-xs truncate">
                                 {item.title}
                               </a>
-                              {item.price && <span className="text-xs font-mono text-emerald-600 dark:text-sky-400 font-bold">${item.price}</span>}
+                              {item.price && <span className={`text-xs font-mono font-bold ${theme.textAccent}`}>${item.price}</span>}
                             </div>
                           </div>
                           <button
@@ -754,9 +705,7 @@ export default function OperationCommandCenterPage() {
                 </div>
 
                 {/* Anonymous Intel Chat / Log Stream */}
-                <div className={`p-6 rounded-3xl border shadow-md ${
-                  isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-                }`}>
+                <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       💬 Anonymous Intel Messaging Stream
@@ -764,13 +713,11 @@ export default function OperationCommandCenterPage() {
                     <span className="text-xs text-slate-400 font-mono">Encrypted Channel</span>
                   </div>
 
-                  <div className={`p-4 rounded-2xl border max-h-48 overflow-y-auto space-y-3 mb-4 ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                  }`}>
+                  <div className={`p-4 rounded-2xl border max-h-48 overflow-y-auto space-y-3 mb-4 ${theme.cardInnerBg}`}>
                     {intelLogs.map((log) => (
                       <div key={log.id} className="text-xs">
                         <div className="flex items-center justify-between">
-                          <strong className={isDarkMode ? 'text-sky-400' : 'text-red-600'}>{log.sender}</strong>
+                          <strong className={theme.textAccent}>{log.sender}</strong>
                           <span className="text-[10px] text-slate-500">{log.time}</span>
                         </div>
                         <p className="text-slate-700 dark:text-slate-300 mt-0.5">{log.text}</p>
@@ -785,16 +732,12 @@ export default function OperationCommandCenterPage() {
                       value={intelMessageText}
                       onChange={(e) => setIntelMessageText(e.target.value)}
                       required
-                      className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 ${
-                        isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:ring-sky-400' : 'bg-stone-50 border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
+                      className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
                     />
                     <button
                       type="submit"
                       disabled={sendingIntel}
-                      className={`px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-sm ${
-                        isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-                      }`}
+                      className={`px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-sm ${theme.btnPrimary}`}
                     >
                       Send Intel
                     </button>
@@ -805,9 +748,7 @@ export default function OperationCommandCenterPage() {
 
               {/* Right Column: Participant Roster & Shipping Status */}
               <div className="lg:col-span-5 space-y-6">
-                <div className={`p-6 rounded-3xl border shadow-md ${
-                  isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-                }`}>
+                <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       👥 Enrolled Agents ({operation.agents?.length || 0})
@@ -817,9 +758,7 @@ export default function OperationCommandCenterPage() {
 
                   <div className="space-y-2">
                     {operation.agents?.map((agent, i) => (
-                      <div key={agent.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs ${
-                        isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                      }`}>
+                      <div key={agent.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs ${theme.cardInnerBg}`}>
                         <div className="flex items-center gap-2.5">
                           <span className="font-mono text-slate-400 text-xs">#{i + 1}</span>
                           <div>
@@ -827,9 +766,7 @@ export default function OperationCommandCenterPage() {
                               {formatCodename(agent.user?.codename, agent.user?.name)}
                             </span>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block mt-0.5 ${
-                              agent.role === 'OPS_LEADER'
-                                ? 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300'
-                                : 'bg-emerald-100 text-emerald-900 dark:bg-sky-500/20 dark:text-sky-300'
+                              agent.role === 'OPS_LEADER' ? theme.badgeAmber : theme.badgeSecretSanta
                             }`}>
                               {agent.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}
                             </span>
@@ -855,9 +792,7 @@ export default function OperationCommandCenterPage() {
       {/* MODAL: OPSLEADER EDIT OPERATION OPTIONS & LOCAL EVENT */}
       {editSettingsModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-lg w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
-            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
-          }`}>
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-lg w-full transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>⚙️ Edit Operation Options</span>
@@ -866,7 +801,7 @@ export default function OperationCommandCenterPage() {
             </div>
 
             {settingsError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold">
+              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
                 ⚠️ {settingsError}
               </div>
             )}
@@ -874,14 +809,12 @@ export default function OperationCommandCenterPage() {
             <form onSubmit={handleSaveSettings} className="space-y-4 text-xs font-semibold">
               
               {/* Read-Only Locked Gifting Type Badge */}
-              <div className="p-3 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800">
+              <div className={`p-3 rounded-2xl border ${theme.cardInnerBg}`}>
                 <span className="text-[11px] text-slate-400 block mb-1 uppercase font-bold">
                   🔒 Locked Gifting Type (Immutable)
                 </span>
-                <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase inline-block ${
-                  operation?.isWhiteElephant
-                    ? 'bg-purple-100 text-purple-900 dark:bg-purple-500/20 dark:text-purple-300'
-                    : 'bg-emerald-100 text-emerald-900 dark:bg-sky-500/20 dark:text-sky-300'
+                <span className={`text-xs px-3 py-1 rounded-full uppercase inline-block ${
+                  operation?.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
                 }`}>
                   {operation?.isWhiteElephant ? '🐘 White Elephant' : '🎁 Secret Santa'}
                 </span>
@@ -897,9 +830,7 @@ export default function OperationCommandCenterPage() {
                   required
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
 
@@ -910,9 +841,7 @@ export default function OperationCommandCenterPage() {
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   placeholder="Optional mission notes or guidelines..."
-                  className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
 
@@ -924,9 +853,7 @@ export default function OperationCommandCenterPage() {
                     min={0}
                     value={editBudgetMin}
                     onChange={(e) => setEditBudgetMin(Number(e.target.value))}
-                    className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
-                      isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
                   />
                 </div>
                 <div>
@@ -937,9 +864,7 @@ export default function OperationCommandCenterPage() {
                     min={1}
                     value={editBudgetMax}
                     onChange={(e) => setEditBudgetMax(Number(e.target.value))}
-                    className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
-                      isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
                   />
                 </div>
               </div>
@@ -952,14 +877,12 @@ export default function OperationCommandCenterPage() {
                   placeholder="Leave empty for unlimited"
                   value={editMaxParticipants || ''}
                   onChange={(e) => setEditMaxParticipants(e.target.value ? Number(e.target.value) : undefined)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
 
               {/* Local In-Person Event Configuration Toggle */}
-              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
+              <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
                 <div className="flex items-center justify-between cursor-pointer" onClick={() => setEditIsLocalOnly(!editIsLocalOnly)}>
                   <div>
                     <span className="font-bold text-sm block">📍 Local In-Person Event</span>
@@ -984,9 +907,7 @@ export default function OperationCommandCenterPage() {
                       placeholder="e.g. 123 Holly Lane, Tacoma, WA 98402"
                       value={editEventLocation}
                       onChange={(e) => setEditEventLocation(e.target.value)}
-                      className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none ${
-                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-stone-300 text-slate-900'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none ${theme.inputModalBg}`}
                     />
                   </div>
                 )}
@@ -996,18 +917,14 @@ export default function OperationCommandCenterPage() {
                 <button
                   type="button"
                   onClick={() => setEditSettingsModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
-                    isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
-                  }`}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingSettings}
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
-                    isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
                 >
                   {savingSettings ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -1020,9 +937,7 @@ export default function OperationCommandCenterPage() {
       {/* MODAL: OPSLEADER EDIT TIMELINE DATES */}
       {editDatesModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
-            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
-          }`}>
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>✏️ Adjust Operational Timeline</span>
@@ -1035,7 +950,7 @@ export default function OperationCommandCenterPage() {
             </p>
 
             {dateError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold">
+              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
                 ⚠️ {dateError}
               </div>
             )}
@@ -1050,9 +965,7 @@ export default function OperationCommandCenterPage() {
                   max={editExecDate || undefined}
                   value={editCutoffDate}
                   onChange={(e) => setEditCutoffDate(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-950'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
 
@@ -1065,9 +978,7 @@ export default function OperationCommandCenterPage() {
                   max={editExecDate || undefined}
                   value={editAssignDate}
                   onChange={(e) => setEditAssignDate(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-950'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
 
@@ -1080,9 +991,7 @@ export default function OperationCommandCenterPage() {
                   max={editExecDate || undefined}
                   value={editShipDate}
                   onChange={(e) => setEditShipDate(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-950'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
 
@@ -1094,9 +1003,7 @@ export default function OperationCommandCenterPage() {
                   min={editShipDate || todayStr}
                   value={editExecDate}
                   onChange={(e) => setEditExecDate(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-950'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
 
@@ -1104,18 +1011,14 @@ export default function OperationCommandCenterPage() {
                 <button
                   type="button"
                   onClick={() => setEditDatesModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
-                    isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
-                  }`}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingDates}
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
-                    isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
                 >
                   {savingDates ? 'Saving...' : 'Save Timeline'}
                 </button>

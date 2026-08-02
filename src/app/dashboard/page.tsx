@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename, formatDateString } from '@/lib/security';
+import { getThemeClasses } from '@/lib/theme';
 
 interface OpKit {
   id: string;
   name: string;
   isMaster: boolean;
+  type: 'WISHLIST' | 'WHITE_ELEPHANT';
   createdAt: string;
   opTools: Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>;
 }
@@ -22,121 +24,82 @@ interface UserData {
   city?: string;
   state?: string;
   zipCode?: string;
-  country?: string;
-  emailNotifications?: boolean;
   demerits: number;
   accountStatus: string;
+  wishlists: OpKit[];
   participations: Array<{
     id: string;
     role: string;
-    shippingStatus: string;
     mission: {
       id: string;
       title: string;
       code: string;
+      status: string;
+      giftingType: string;
+      isWhiteElephant: boolean;
       budgetMin?: number;
       budgetMax: number;
       currency: string;
       executionDate: string;
-      status: string;
-      opsLeader: {
-        name: string;
-        codename?: string;
-      };
     };
   }>;
 }
 
-export default function UserDashboardPage() {
+export default function DashboardPage() {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserData | null>(null);
 
-  // Preferences Modal State
+  // Edit Preferences Modal
   const [prefModalOpen, setPrefModalOpen] = useState(false);
-  const [prefLoading, setPrefLoading] = useState(false);
-  const [prefMessage, setPrefMessage] = useState('');
-  const [prefError, setPrefError] = useState('');
-
-  // Form Fields for Account Preferences
-  const [editName, setEditName] = useState('');
-  const [editCodename, setEditCodename] = useState('');
-  const [editNotifications, setEditNotifications] = useState(true);
   const [streetAddress, setStreetAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [codename, setCodename] = useState('');
+  const [prefMessage, setPrefMessage] = useState('');
+  const [prefError, setPrefError] = useState('');
 
-  // OpKits Management State
+  // OpKit Creation Modal
+  const [createOpKitModalOpen, setCreateOpKitModalOpen] = useState(false);
+  const [newOpKitName, setNewOpKitName] = useState('');
+  const [newOpKitType, setNewOpKitType] = useState<'WISHLIST' | 'WHITE_ELEPHANT'>('WISHLIST');
+
+  // Inline OpKit Rename State
   const [editingOpKitId, setEditingOpKitId] = useState<string | null>(null);
-  const [editOpKitTitle, setEditOpKitTitle] = useState('');
+  const [editingOpKitName, setEditingOpKitName] = useState('');
 
-  // Default Master OpKit & Recent OpKits
-  const [opKits, setOpKits] = useState<OpKit[]>([
-    {
-      id: 'master-1',
-      name: 'Master OpKit',
-      isMaster: true,
-      createdAt: new Date().toISOString(),
-      opTools: [],
-    },
-    {
-      id: 'holiday-2026',
-      name: 'Holiday 2026 Secret Santa OpKit',
-      isMaster: false,
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      opTools: [],
-    },
-    {
-      id: 'office-party',
-      name: 'Office White Elephant OpKit',
-      isMaster: false,
-      createdAt: new Date(Date.now() - 172800000).toISOString(),
-      opTools: [],
-    },
-  ]);
-
-  const [activeOpKitId, setActiveOpKitId] = useState<string>('master-1');
-
-  // Scraper Form State
-  const [opToolUrl, setOpToolUrl] = useState('');
-  const [scraping, setScraping] = useState(false);
+  const theme = getThemeClasses(isDarkMode);
 
   useEffect(() => {
-    fetchUserProfile();
+    fetchUserData();
   }, []);
 
-  async function fetchUserProfile() {
+  async function fetchUserData() {
     setLoading(true);
+    const userId = localStorage.getItem('kovertklaus_user_id');
+
+    if (!userId) {
+      router.push('/');
+      return;
+    }
+
     try {
-      const res = await fetch('/api/users/me');
+      const res = await fetch(`/api/users/me?userId=${userId}`);
       const json = await res.json();
-      if (!res.ok || !json.authenticated) {
-        const savedId = localStorage.getItem('kovertklaus_user_id');
-        const savedName = localStorage.getItem('kovertklaus_user_name');
-        if (savedId) {
-          const fallbackUser = {
-            id: savedId,
-            email: 'joshua@example.com',
-            name: savedName || 'Agent',
-            codename: 'Agent-9867',
-            demerits: 0,
-            accountStatus: 'ACTIVE',
-            emailNotifications: true,
-            participations: [],
-          };
-          setUser(fallbackUser);
-          populateForm(fallbackUser);
-        } else {
-          router.push('/');
-        }
-      } else {
-        setUser(json.user);
-        populateForm(json.user);
+      if (!res.ok || !json.success || !json.user) {
+        localStorage.removeItem('kovertklaus_user_id');
+        router.push('/');
+        return;
       }
+
+      setUser(json.user);
+      setStreetAddress(json.user.streetAddress || '');
+      setCity(json.user.city || '');
+      setState(json.user.state || '');
+      setZipCode(json.user.zipCode || '');
+      setCodename(json.user.codename || '');
     } catch {
       router.push('/');
     } finally {
@@ -144,19 +107,10 @@ export default function UserDashboardPage() {
     }
   }
 
-  function populateForm(u: UserData) {
-    setEditName(u.name || '');
-    setEditCodename(u.codename || '');
-    setEditNotifications(u.emailNotifications ?? true);
-    setStreetAddress(u.streetAddress || '');
-    setCity(u.city || '');
-    setState(u.state || '');
-    setZipCode(u.zipCode || '');
-  }
-
+  // Update Account & Address Preferences
   async function handleUpdatePreferences(e: React.FormEvent) {
     e.preventDefault();
-    setPrefLoading(true);
+    if (!user) return;
     setPrefMessage('');
     setPrefError('');
 
@@ -165,15 +119,12 @@ export default function UserDashboardPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: editName,
-          codename: editCodename,
-          emailNotifications: editNotifications,
+          userId: user.id,
           streetAddress,
           city,
           state,
           zipCode,
-          oldPassword: oldPassword || undefined,
-          newPassword: newPassword || undefined,
+          codename,
         }),
       });
 
@@ -182,113 +133,59 @@ export default function UserDashboardPage() {
         throw new Error(json.error || 'Failed to update preferences');
       }
 
-      setUser((prev) => (prev ? { ...prev, ...json.user } : json.user));
-      setPrefMessage('Account preferences saved successfully!');
-      setOldPassword('');
-      setNewPassword('');
+      setPrefMessage('Preferences updated successfully!');
+      fetchUserData();
     } catch (err: any) {
       setPrefError(err.message || 'Update failed');
-    } finally {
-      setPrefLoading(false);
     }
   }
 
-  async function handleLogout() {
-    await fetch('/api/users/me', { method: 'DELETE' });
-    localStorage.removeItem('kovertklaus_user_id');
-    localStorage.removeItem('kovertklaus_user_name');
-    router.push('/');
-  }
-
-  // Save Renamed OpKit
-  function handleRenameOpKit(id: string) {
-    if (!editOpKitTitle.trim()) return;
-    setOpKits((prev) =>
-      prev.map((kit) => (kit.id === id ? { ...kit, name: editOpKitTitle.trim() } : kit))
-    );
-    setEditingOpKitId(null);
-    setEditOpKitTitle('');
-  }
-
-  // Scrape URL into Selected OpKit
-  async function handleScrapeUrl(e: React.FormEvent) {
+  // Create Quick OpKit
+  async function handleCreateQuickOpKit(e: React.FormEvent) {
     e.preventDefault();
-    if (!opToolUrl.trim()) return;
+    if (!user || !newOpKitName.trim()) return;
 
-    setScraping(true);
-    try {
-      const res = await fetch('/api/scraper', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: opToolUrl.trim() }),
-      });
-      const json = await res.json();
+    const newKit: OpKit = {
+      id: Math.random().toString(36).substring(2, 9),
+      name: newOpKitName.trim(),
+      isMaster: false,
+      type: newOpKitType,
+      createdAt: new Date().toISOString(),
+      opTools: [],
+    };
 
-      const newItem = {
-        id: Math.random().toString(36).substring(2, 9),
-        title: json.success && json.metadata?.title ? json.metadata.title : opToolUrl.trim(),
-        price: json.metadata?.price,
-        thumbnail: json.metadata?.thumbnail,
-        url: opToolUrl.trim(),
-      };
-
-      setOpKits((prev) =>
-        prev.map((kit) =>
-          kit.id === activeOpKitId ? { ...kit, opTools: [...kit.opTools, newItem] } : kit
-        )
-      );
-      setOpToolUrl('');
-    } catch {
-      const newItem = {
-        id: Math.random().toString(36).substring(2, 9),
-        title: opToolUrl.trim(),
-        url: opToolUrl.trim(),
-      };
-      setOpKits((prev) =>
-        prev.map((kit) =>
-          kit.id === activeOpKitId ? { ...kit, opTools: [...kit.opTools, newItem] } : kit
-        )
-      );
-      setOpToolUrl('');
-    } finally {
-      setScraping(false);
-    }
+    setUser((prev) => (prev ? { ...prev, wishlists: [...prev.wishlists, newKit] } : prev));
+    setNewOpKitName('');
+    setCreateOpKitModalOpen(false);
   }
 
-  // Remove OpTool from active OpKit
-  function handleRemoveOpTool(toolId: string) {
-    setOpKits((prev) =>
-      prev.map((kit) =>
-        kit.id === activeOpKitId
-          ? { ...kit, opTools: kit.opTools.filter((t) => t.id !== toolId) }
-          : kit
-      )
-    );
+  // Handle Quick Inline OpKit Rename
+  function handleRenameQuickOpKit(id: string) {
+    if (!editingOpKitName.trim() || !user) return;
+    setUser({
+      ...user,
+      wishlists: user.wishlists.map((k) =>
+        k.id === id ? { ...k, name: editingOpKitName.trim() } : k
+      ),
+    });
+    setEditingOpKitId(null);
+    setEditingOpKitName('');
   }
 
-  // Get 5 Most Recent OpKits (Master Pinned First)
-  const masterKit = opKits.find((k) => k.isMaster);
-  const otherKits = opKits
-    .filter((k) => !k.isMaster)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  
-  const recent5OpKits = masterKit ? [masterKit, ...otherKits.slice(0, 4)] : otherKits.slice(0, 5);
-
-  const currentOpKit = opKits.find((k) => k.id === activeOpKitId) || opKits[0];
+  // Capped OpKits (Max 5 items, Master Pinned First)
+  const recentOpKits = user?.wishlists
+    ? [...user.wishlists]
+        .sort((a, b) => (b.isMaster ? 1 : 0) - (a.isMaster ? 1 : 0))
+        .slice(0, 5)
+    : [];
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 font-sans ${
-      isDarkMode
-        ? 'bg-slate-950 text-slate-100 selection:bg-sky-500 selection:text-slate-950'
-        : 'bg-stone-50 text-slate-900 selection:bg-red-600 selection:text-white'
-    }`}>
+    <div className={`min-h-screen transition-colors duration-300 font-sans ${theme.pageBg}`}>
       
-      {/* Header */}
-      <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${
-        isDarkMode ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-stone-200 shadow-sm'
-      }`}>
+      {/* Top Header Navigation */}
+      <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/dashboard" className="flex items-center gap-3">
             <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md ${
               isDarkMode ? 'bg-gradient-to-br from-sky-400 to-slate-700' : 'bg-gradient-to-br from-red-600 to-emerald-800'
             }`}>
@@ -296,37 +193,26 @@ export default function UserDashboardPage() {
             </div>
             <div>
               <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-xs font-bold ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>Agent Command Center</span>
+              <span className={`text-xs font-bold ${theme.textBrand}`}>
+                Operative Dashboard
+              </span>
             </div>
           </Link>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                isDarkMode ? 'bg-slate-900 border-slate-700 text-sky-300' : 'bg-stone-100 border-stone-300 text-slate-700'
-              }`}
+              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
               {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
             </button>
 
-            {/* Account Preferences Button */}
             <button
-              onClick={() => { setPrefError(''); setPrefMessage(''); setPrefModalOpen(true); }}
-              className={`text-xs font-bold px-3.5 py-2 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 ${
-                isDarkMode
-                  ? 'border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-500/40 hover:text-sky-300'
-                  : 'border-stone-300 bg-stone-100 text-slate-700 hover:bg-stone-200'
-              }`}
-            >
-              <span>⚙️ Preferences</span>
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className={`text-xs font-bold px-3.5 py-2 rounded-xl border transition-colors cursor-pointer ${
-                isDarkMode ? 'border-slate-700 bg-slate-900 text-slate-400 hover:text-white' : 'border-stone-300 bg-stone-100 text-slate-600 hover:bg-stone-200'
-              }`}
+              onClick={() => {
+                localStorage.removeItem('kovertklaus_user_id');
+                router.push('/');
+              }}
+              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnNeutral}`}
             >
               Sign Out
             </button>
@@ -334,319 +220,256 @@ export default function UserDashboardPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10">
+      {/* Main Dashboard Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10 space-y-8">
         
         {loading ? (
           <div className="text-center py-20">
             <div className="text-4xl animate-bounce mb-3">🎁</div>
-            <p className="text-sm font-semibold">Loading Agent Profile...</p>
+            <p className="text-sm font-semibold">Loading Operative Profile Data...</p>
           </div>
         ) : user ? (
-          <div className="space-y-8">
-            
-            {/* User Profile Welcome Banner */}
-            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 ${
-              isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-            }`}>
+          <>
+            {/* Operative Welcome Banner */}
+            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 ${theme.cardBg}`}>
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${
-                    user.accountStatus === 'ACTIVE'
-                      ? 'bg-emerald-100 text-emerald-900 dark:bg-sky-500/20 dark:text-sky-300'
-                      : 'bg-amber-100 text-amber-900'
-                  }`}>
-                    ● {user.accountStatus} ACCOUNT
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeCode}`}>
+                    OPERATIVE STATUS: ACTIVE
                   </span>
                   <span className="text-xs text-slate-500 font-mono">
-                    Demerits: <strong>{user.demerits}/3</strong>
+                    Demerits: <strong className={user.demerits > 0 ? 'text-red-500' : 'text-emerald-600 dark:text-sky-400'}>{user.demerits}/3</strong>
                   </span>
                 </div>
-                <h1 className="text-3xl font-black">Welcome back, {user.name}!</h1>
+
+                <h1 className="text-3xl font-black">
+                  Welcome Back, {formatCodename(user.codename, user.name)}
+                </h1>
                 <p className="text-xs text-slate-500 mt-1">
-                  Codename: <strong className={isDarkMode ? 'text-sky-400' : 'text-red-600'}>{formatCodename(user.codename, user.name)}</strong> | Email: <strong>{user.email}</strong>
+                  Logged in as: <strong>{user.email}</strong> | Full Name: <strong>{user.name}</strong>
                 </p>
               </div>
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => { setPrefError(''); setPrefMessage(''); setPrefModalOpen(true); }}
-                  className={`px-4 py-2.5 rounded-2xl font-bold text-xs border transition-all cursor-pointer flex items-center gap-1.5 ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 hover:border-sky-500/40' : 'bg-stone-50 border-stone-300 text-slate-700 hover:bg-stone-100'
-                  }`}
+                  onClick={() => setPrefModalOpen(true)}
+                  className={`px-5 py-3 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnSecondary}`}
                 >
                   ⚙️ Account Preferences
                 </button>
               </div>
             </div>
 
-            {/* Grid Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
-              {/* Left Column: Active Operations (Exchanges) */}
-              <div className="lg:col-span-7 space-y-6">
-                <div className={`p-6 rounded-3xl border shadow-md ${
-                  isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-                }`}>
-                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      🎄 Active Operations (Exchanges) ({user.participations?.length || 0})
-                    </h2>
+            {/* Section 1: Active Operations (Exchanges) */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-black flex items-center gap-2">
+                    🎯 Active Operations (Exchanges)
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Gift exchanges you are currently organizing or participating in as an assigned Field Agent.
+                  </p>
+                </div>
 
-                    <div className="flex items-center gap-2">
-                      {/* Manage All Operations Button */}
-                      <Link
-                        href="/operations"
-                        className={`text-xs font-bold px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
-                          isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 hover:border-sky-500/40' : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
-                        }`}
-                      >
-                        <span>⚙️ Manage All Operations →</span>
-                      </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/operations"
+                    className={`text-xs font-bold px-4 py-2.5 rounded-xl border transition-all ${theme.btnToggle}`}
+                  >
+                    ⚙️ Manage All Operations →
+                  </Link>
 
-                      {/* New Exchange Button */}
-                      <Link
-                        href="/"
-                        className={`px-3.5 py-2 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${
-                          isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-                        }`}
-                      >
-                        + New Exchange
-                      </Link>
-                    </div>
-                  </div>
-
-                  {user.participations?.length === 0 ? (
-                    <div className="text-center py-10 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-2xl">
-                      <p className="text-xs text-slate-500 mb-4">You are not enrolled in any active operations yet.</p>
-                      <Link
-                        href="/"
-                        className={`px-5 py-2.5 rounded-xl font-bold text-xs ${
-                          isDarkMode ? 'bg-sky-500 text-slate-950' : 'bg-red-600 text-white'
-                        }`}
-                      >
-                        Organize or Join One Now
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {user.participations.map((p) => (
-                        <div key={p.id} className={`p-5 rounded-2xl border transition-all ${
-                          isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                        }`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-mono font-bold ${
-                              isDarkMode ? 'bg-sky-500/20 text-sky-300' : 'bg-emerald-100 text-emerald-900'
-                            }`}>
-                              CODE: {p.mission.code}
-                            </span>
-                            <span className="text-xs text-slate-400 font-mono">{p.mission.status}</span>
-                          </div>
-
-                          <h3 className="text-lg font-bold">{p.mission.title}</h3>
-                          <p className="text-xs text-slate-500 mt-1">
-                            Budget: <strong>${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}</strong> | Exchange: <strong>{formatDateString(p.mission.executionDate)}</strong>
-                          </p>
-
-                          <div className="mt-4 flex items-center justify-between">
-                            <span className="text-xs text-slate-400">
-                              Role: <strong className="text-slate-700 dark:text-slate-200">{p.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}</strong>
-                            </span>
-                            <Link
-                              href={`/exchange/${p.mission.code}`}
-                              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${
-                                isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-                              }`}
-                            >
-                              Open Command Center →
-                            </Link>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
+                  <Link
+                    href="/"
+                    className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnPrimary}`}
+                  >
+                    + New Exchange
+                  </Link>
                 </div>
               </div>
 
-              {/* Right Column: OpKits Section (Limited to 5 Most Recent) */}
-              <div className="lg:col-span-5 space-y-6">
-                <div className={`p-6 rounded-3xl border shadow-md ${
-                  isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-                }`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      🧰 OpKits
-                    </h2>
-                    
-                    {/* Top Action Button: Direct Link to Dedicated /opkits Page */}
-                    <Link
-                      href="/opkits"
-                      className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
-                        isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 hover:border-sky-500/40' : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
-                      }`}
-                    >
-                      <span>⚙️ Manage All OpKits →</span>
-                    </Link>
-                  </div>
-
-                  <p className="text-xs font-semibold text-red-600 dark:text-sky-400 mb-4">
-                    (OpKit = Your Secret Santa Wishlist | OpTools = Wished-for Gift Items)
+              {/* Operations Cards Grid */}
+              {user.participations.length === 0 ? (
+                <div className={`p-8 text-center rounded-3xl border ${theme.cardBg}`}>
+                  <div className="text-3xl mb-2">🎁</div>
+                  <h3 className="text-base font-bold mb-1">No Active Operations</h3>
+                  <p className="text-xs text-slate-500 mb-4">
+                    You haven't joined or created any secret santa gift exchanges yet.
                   </p>
+                  <Link
+                    href="/"
+                    className={`px-5 py-2.5 text-xs font-bold rounded-xl shadow-md ${theme.btnPrimary}`}
+                  >
+                    Organize or Join an Exchange
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {user.participations.map((p) => (
+                    <div
+                      key={p.id}
+                      className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all hover:shadow-xl ${theme.cardBg}`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-mono font-bold ${theme.badgeCode}`}>
+                            CODE: {p.mission.code}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                            p.mission.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
+                          }`}>
+                            ● {p.mission.status}
+                          </span>
+                        </div>
 
-                  {/* OpKits List (Limited to 5 Recent, Master Pinned First) */}
-                  <div className="space-y-2 mb-6">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Recent 5 OpKits:
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">Master Pinned First</span>
+                        <h3 className="text-xl font-black mt-2">{p.mission.title}</h3>
+                        
+                        <div className={`mt-3 p-3.5 rounded-2xl border space-y-1.5 text-xs ${theme.cardInnerBg}`}>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Budget Range:</span>
+                            <strong className={theme.textAccent}>
+                              ${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}
+                            </strong>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Exchange Day:</span>
+                            <strong className={theme.textDate}>
+                              {formatDateString(p.mission.executionDate)}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex items-center justify-between pt-3 border-t border-stone-200 dark:border-slate-800">
+                        <span className="text-xs text-slate-400">
+                          Role: <strong className="text-slate-700 dark:text-slate-200">{p.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}</strong>
+                        </span>
+
+                        <Link
+                          href={`/exchange/${p.mission.code}`}
+                          className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
+                        >
+                          Open Command Center →
+                        </Link>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                    {recent5OpKits.map((kit) => (
-                      <div
-                        key={kit.id}
-                        onClick={() => setActiveOpKitId(kit.id)}
-                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                          activeOpKitId === kit.id
-                            ? isDarkMode
-                              ? 'bg-sky-500/20 border-sky-500 text-white shadow-md'
-                              : 'bg-red-50 border-red-500 text-red-900 shadow-sm'
-                            : isDarkMode
-                            ? 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                            : 'bg-stone-50 border-stone-200 text-slate-700 hover:bg-stone-100'
-                        }`}
-                      >
+            {/* Section 2: OpKits & OpTools Inventory (5 Most Recent Limit) */}
+            <div className="space-y-4 pt-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-black flex items-center gap-2">
+                    🧰 OpKits (Wish Lists)
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    (OpKit = Wish List | OpTool = Gift Item) — Showing 5 most recent OpKits.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setCreateOpKitModalOpen(true)}
+                    className={`text-xs font-bold px-4 py-2.5 rounded-xl border transition-all ${theme.btnToggle}`}
+                  >
+                    + Quick OpKit
+                  </button>
+
+                  <Link
+                    href="/opkits"
+                    className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnPrimary}`}
+                  >
+                    ⚙️ Manage All OpKits →
+                  </Link>
+                </div>
+              </div>
+
+              {/* OpKits Display Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {recentOpKits.map((kit) => (
+                  <div
+                    key={kit.id}
+                    className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all ${theme.cardBg}`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-base">{kit.isMaster ? '⭐' : '📦'}</span>
-                          {editingOpKitId === kit.id ? (
-                            <input
-                              type="text"
-                              autoFocus
-                              value={editOpKitTitle}
-                              onChange={(e) => setEditOpKitTitle(e.target.value)}
-                              onBlur={() => handleRenameOpKit(kit.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleRenameOpKit(kit.id);
-                              }}
-                              className={`border rounded-lg px-2 py-0.5 text-xs focus:outline-none ${
-                                isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-stone-300 text-slate-900'
-                              }`}
-                            />
-                          ) : (
-                            <span className="font-bold text-xs">
-                              {kit.name} {kit.isMaster && <span className="text-[10px] opacity-75">(Master)</span>}
+                          <span className="text-xl">{kit.isMaster ? '⭐' : kit.type === 'WHITE_ELEPHANT' ? '🐘' : '🎁'}</span>
+                          {kit.isMaster && (
+                            <span className="text-[10px] bg-amber-200 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 font-bold px-2 py-0.5 rounded-full">
+                              Master OpKit
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono text-slate-400">
-                            {kit.opTools.length} {kit.opTools.length === 1 ? 'OpTool' : 'OpTools'}
-                          </span>
-
-                          {/* Small Edit Button */}
+                        <div className="flex items-center gap-1">
                           <button
-                            type="button"
-                            title="Edit OpKit Name"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() => {
                               setEditingOpKitId(kit.id);
-                              setEditOpKitTitle(kit.name);
+                              setEditingOpKitName(kit.name);
                             }}
-                            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer text-xs"
+                            title="Quick Edit OpKit Name"
+                            className="p-1 text-xs hover:bg-stone-100 dark:hover:bg-slate-800 rounded-md"
                           >
                             ✏️
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
 
-                  {/* Active OpKit Content & OpTools Scraper */}
-                  <div className={`p-4 rounded-2xl border ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                  }`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-bold flex items-center gap-1.5">
-                        <span>{currentOpKit.isMaster ? '⭐' : '📦'}</span>
-                        <span>{currentOpKit.name}</span>
-                      </h3>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Active View</span>
+                      {editingOpKitId === kit.id ? (
+                        <input
+                          type="text"
+                          value={editingOpKitName}
+                          onChange={(e) => setEditingOpKitName(e.target.value)}
+                          onBlur={() => handleRenameQuickOpKit(kit.id)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleRenameQuickOpKit(kit.id)}
+                          autoFocus
+                          className={`w-full border rounded-xl px-3 py-1.5 text-sm font-bold ${theme.inputModalBg}`}
+                        />
+                      ) : (
+                        <h3 className="text-lg font-black">{kit.name}</h3>
+                      )}
+
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase inline-block mt-1 ${
+                        kit.type === 'WHITE_ELEPHANT' ? theme.badgeWhiteElephant : theme.badgeSecretSanta
+                      }`}>
+                        {kit.type === 'WHITE_ELEPHANT' ? '🐘 White Elephant' : '🎁 Secret Santa'}
+                      </span>
+
+                      <div className={`mt-4 p-4 rounded-2xl border space-y-2 ${theme.cardInnerBg}`}>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Attached OpTools:</span>
+                          <strong className={theme.textAccent}>{kit.opTools?.length || 0} Items</strong>
+                        </div>
+                      </div>
                     </div>
 
-                    <form onSubmit={handleScrapeUrl} className="flex gap-2 mb-4">
-                      <input
-                        type="url"
-                        placeholder="Paste OpTool link (Amazon, Target, Etsy, etc.)"
-                        value={opToolUrl}
-                        onChange={(e) => setOpToolUrl(e.target.value)}
-                        required
-                        className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 ${
-                          isDarkMode
-                            ? 'bg-slate-900 border-slate-800 text-slate-100 focus:ring-sky-400'
-                            : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                        }`}
-                      />
-                      <button
-                        type="submit"
-                        disabled={scraping}
-                        className={`px-3.5 py-2 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer ${
-                          isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-                        }`}
+                    <div className="mt-6 flex items-center justify-end pt-3 border-t border-stone-200 dark:border-slate-800">
+                      <Link
+                        href="/opkits"
+                        className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
                       >
-                        {scraping ? '...' : '+ Add OpTool'}
-                      </button>
-                    </form>
-
-                    {currentOpKit.opTools.length === 0 ? (
-                      <div className="text-center py-6 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-xl">
-                        <p className="text-xs text-slate-500">No OpTools inside {currentOpKit.name} yet.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {currentOpKit.opTools.map((item) => (
-                          <div key={item.id} className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${
-                            isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-                          }`}>
-                            <div className="flex items-center gap-2.5">
-                              {item.thumbnail ? (
-                                <img src={item.thumbnail} alt={item.title} className="h-7 w-7 object-cover rounded-md border" />
-                              ) : (
-                                <div className="h-7 w-7 rounded-md bg-stone-100 dark:bg-slate-800 flex items-center justify-center text-xs">🛍️</div>
-                              )}
-                              <a href={item.url} target="_blank" rel="noreferrer" className="font-bold hover:underline max-w-[170px] truncate block">
-                                {item.title}
-                              </a>
-                            </div>
-                            <button
-                              onClick={() => handleRemoveOpTool(item.id)}
-                              className="text-red-500 font-bold hover:underline text-[11px]"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                        Manage OpTools →
+                      </Link>
+                    </div>
                   </div>
-
-                </div>
+                ))}
               </div>
-
             </div>
 
-          </div>
+          </>
         ) : null}
 
       </main>
 
-      {/* ACCOUNT PREFERENCES MODAL */}
+      {/* MODAL: ACCOUNT PREFERENCES */}
       {prefModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-lg w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
-            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
-          }`}>
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>⚙️ Account Preferences</span>
@@ -655,142 +478,78 @@ export default function UserDashboardPage() {
             </div>
 
             {prefMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertSuccess}`}>
                 ✓ {prefMessage}
               </div>
             )}
 
             {prefError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold">
+              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
                 ⚠️ {prefError}
               </div>
             )}
 
             <form onSubmit={handleUpdatePreferences} className="space-y-4 text-xs font-semibold">
-              
-              {/* Profile Details */}
-              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
-                <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-red-600'}`}>
-                  Profile & Codename
-                </span>
-                <div>
-                  <label className="block text-slate-500 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-500 mb-1">Secret Codename / Handle (Will be prefixed with Agent-)</label>
-                  <input
-                    type="text"
-                    value={editCodename}
-                    onChange={(e) => setEditCodename(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
-                  />
-                </div>
-                <div className="flex items-center justify-between pt-1">
-                  <label className="text-slate-500">Email Notifications</label>
-                  <input
-                    type="checkbox"
-                    checked={editNotifications}
-                    onChange={(e) => setEditNotifications(e.target.checked)}
-                    className="h-4 w-4 rounded accent-red-600"
-                  />
-                </div>
+              <div>
+                <label className="block text-slate-500 mb-1">Codename / Handle (Will be prefixed with Agent-)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Agent-KovertKlaus"
+                  value={codename}
+                  onChange={(e) => setCodename(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                />
               </div>
 
-              {/* Physical Shipping Address */}
-              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
-                <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
-                  Physical Shipping Address (Optional)
+              <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
+                <span className={`text-xs font-bold block mb-2 ${theme.textAccent}`}>
+                  📦 Default Courier Shipping Address
                 </span>
-                <div>
-                  <label className="block text-slate-500 mb-1">Street Address</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 123 Holiday Lane"
-                    value={streetAddress}
-                    onChange={(e) => setStreetAddress(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
+                
+                <div className="space-y-3">
                   <div>
-                    <label className="block text-slate-500 mb-1">City</label>
+                    <label className="block text-slate-500 mb-1">Street Address</label>
                     <input
                       type="text"
-                      placeholder="Seattle"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      className={`w-full border rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
+                      placeholder="123 Holly Lane"
+                      value={streetAddress}
+                      onChange={(e) => setStreetAddress(e.target.value)}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                     />
                   </div>
-                  <div>
-                    <label className="block text-slate-500 mb-1">State</label>
-                    <input
-                      type="text"
-                      placeholder="WA"
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      className={`w-full border rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-500 mb-1">Zip Code</label>
-                    <input
-                      type="text"
-                      placeholder="98101"
-                      value={zipCode}
-                      onChange={(e) => setZipCode(e.target.value)}
-                      className={`w-full border rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
-                    />
-                  </div>
-                </div>
-              </div>
 
-              {/* Password Change Section */}
-              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
-                <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-red-600'}`}>
-                  Security & Password Update
-                </span>
-                <div>
-                  <label className="block text-slate-500 mb-1">Current Password</label>
-                  <input
-                    type="password"
-                    placeholder="Enter current password"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-500 mb-1">New Password (Min 10 Characters)</label>
-                  <input
-                    type="password"
-                    placeholder="New 10+ char complex password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
-                  />
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-1">
+                      <label className="block text-slate-500 mb-1">City</label>
+                      <input
+                        type="text"
+                        placeholder="Tacoma"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 mb-1">State</label>
+                      <input
+                        type="text"
+                        placeholder="WA"
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 mb-1">Zip Code</label>
+                      <input
+                        type="text"
+                        placeholder="98402"
+                        value={zipCode}
+                        onChange={(e) => setZipCode(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -798,20 +557,71 @@ export default function UserDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setPrefModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
-                    isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
-                  }`}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
                 >
                   Close
                 </button>
                 <button
                   type="submit"
-                  disabled={prefLoading}
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
-                    isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
                 >
-                  {prefLoading ? 'Saving...' : 'Save Preferences'}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CREATE QUICK OPKIT */}
+      {createOpKitModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full transition-all ${theme.modalBg}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-black flex items-center gap-2">
+                <span>🧰 Create Quick OpKit</span>
+              </h3>
+              <button onClick={() => setCreateOpKitModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <form onSubmit={handleCreateQuickOpKit} className="space-y-4 text-xs font-semibold">
+              <div>
+                <label className="block text-slate-500 mb-1">OpKit Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Office Holiday Exchange 2026"
+                  value={newOpKitName}
+                  onChange={(e) => setNewOpKitName(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 mb-1">Category Type *</label>
+                <select
+                  value={newOpKitType}
+                  onChange={(e) => setNewOpKitType(e.target.value as 'WISHLIST' | 'WHITE_ELEPHANT')}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold focus:outline-none ${theme.inputModalBg}`}
+                >
+                  <option value="WISHLIST">🎁 Secret Santa Wishlist (Unlimited OpTools)</option>
+                  <option value="WHITE_ELEPHANT">🐘 White Elephant Brought Gift (Strictly 1 OpTool)</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCreateOpKitModalOpen(false)}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
+                >
+                  Create OpKit
                 </button>
               </div>
             </form>

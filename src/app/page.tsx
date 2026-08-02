@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { calculateAutomaticOperationDates } from '@/lib/validations/operation';
+import { getThemeClasses } from '@/lib/theme';
 
 // Charlie Brown Retro Glowing Christmas Lights Strand
 function ChristmasLightsStrand({ isDarkMode }: { isDarkMode: boolean }) {
@@ -95,6 +96,8 @@ export default function Home() {
   const [budgetMax, setBudgetMax] = useState(50);
   const [executionDate, setExecutionDate] = useState('2026-12-25');
   const [joinCode, setJoinCode] = useState('');
+
+  const theme = getThemeClasses(isDarkMode);
 
   // Check Email to Detect Existing vs New User
   async function checkUserEmail(emailInput: string) {
@@ -305,11 +308,7 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 flex flex-col font-sans ${
-      isDarkMode
-        ? 'bg-slate-950 text-slate-100 selection:bg-sky-500 selection:text-slate-950'
-        : 'bg-stone-50 text-slate-900 selection:bg-red-600 selection:text-white'
-    }`}>
+    <div className={`min-h-screen transition-colors duration-300 flex flex-col font-sans ${theme.pageBg}`}>
       
       {/* Announcement Banner */}
       <div className={`text-xs py-2 px-4 text-center font-medium transition-colors ${
@@ -321,9 +320,7 @@ export default function Home() {
       </div>
 
       {/* Main Header */}
-      <header className={`border-b transition-colors sticky top-0 z-40 backdrop-blur-md ${
-        isDarkMode ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-stone-200 shadow-sm'
-      }`}>
+      <header className={`border-b transition-colors sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md group-hover:scale-105 transition-all ${
@@ -334,10 +331,10 @@ export default function Home() {
               🎁
             </div>
             <div>
-              <span className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              <span className="text-2xl font-black tracking-tight block">
                 KovertKlaus
               </span>
-              <span className={`text-xs block font-bold ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
+              <span className={`text-xs block font-bold ${theme.textBrand}`}>
                 {isDarkMode ? 'Stealth Winter Exchange' : 'Simple & Fun Gift Exchanges'}
               </span>
             </div>
@@ -359,11 +356,7 @@ export default function Home() {
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               title="Toggle Theme Mode"
-              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                isDarkMode
-                  ? 'bg-slate-900 border-sky-500/30 text-sky-300 hover:bg-slate-800'
-                  : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
-              }`}
+              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${theme.btnToggle}`}
             >
               <span>{isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}</span>
             </button>
@@ -371,11 +364,7 @@ export default function Home() {
             {/* Single Login / Sign In Button */}
             <button
               onClick={() => { resetAuthStates(); setLoginModalOpen(true); }}
-              className={`font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm transform hover:-translate-y-0.5 ${
-                isDarkMode
-                  ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-sky-950/60'
-                  : 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/25'
-              }`}
+              className={`font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
             >
               🔑 Sign In
             </button>
@@ -392,11 +381,7 @@ export default function Home() {
           
           <div className="lg:col-span-7 space-y-6 text-left relative">
             <div className="flex items-center justify-between">
-              <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                isDarkMode
-                  ? 'bg-slate-900 text-sky-400 border border-sky-500/30'
-                  : 'bg-emerald-100/80 text-emerald-900 border border-emerald-300'
-              }`}>
+              <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${theme.badgeCode}`}>
                 <span>{isDarkMode ? '❄️ Winter Night Stealth Mode Active' : '🎅 Secret Santa & Holiday Gift Exchanges Made Effortless'}</span>
               </div>
               <div className="hidden sm:block">
@@ -404,9 +389,7 @@ export default function Home() {
               </div>
             </div>
 
-            <h1 className={`text-4xl sm:text-6xl font-black tracking-tight leading-tight ${
-              isDarkMode ? 'text-white' : 'text-slate-900'
-            }`}>
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight">
               The Easiest, Funnest Way to Organize <br />
               <span className={
                 isDarkMode
@@ -417,31 +400,21 @@ export default function Home() {
               </span>
             </h1>
 
-            <p className={`text-lg max-w-2xl leading-relaxed ${
-              isDarkMode ? 'text-slate-300' : 'text-slate-700'
-            }`}>
+            <p className={`text-lg max-w-2xl leading-relaxed ${theme.textMuted}`}>
               Bring your family, friends, or co-workers together! Create a gift exchange in 60 seconds, build your custom OpKit with OpTools, and enjoy a completely stress-free experience from start to delivery.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => { resetAuthStates(); setCreateModalOpen(true); }}
-                className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 text-base cursor-pointer transform hover:-translate-y-0.5 ${
-                  isDarkMode
-                    ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-sky-950/60'
-                    : 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/30'
-                }`}
+                className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 text-base cursor-pointer transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
               >
                 <span>🎅 Organize a Gift Exchange</span>
               </button>
 
               <button
                 onClick={() => { resetAuthStates(); setJoinModalOpen(true); }}
-                className={`font-bold px-6 py-4 rounded-2xl border transition-all flex items-center justify-center gap-2 text-base cursor-pointer ${
-                  isDarkMode
-                    ? 'bg-slate-900 border-slate-700 text-slate-200 hover:border-slate-500 hover:text-white shadow-md'
-                    : 'bg-emerald-800 text-white border-emerald-900 hover:bg-emerald-900 shadow-md'
-                }`}
+                className={`font-bold px-6 py-4 rounded-2xl border transition-all flex items-center justify-center gap-2 text-base cursor-pointer ${theme.btnSecondary}`}
               >
                 <span>🔑 Join an Exchange (Enter Code)</span>
               </button>
@@ -451,70 +424,56 @@ export default function Home() {
               isDarkMode ? 'border-slate-800 text-slate-400' : 'border-stone-200 text-slate-600'
             }`}>
               <div>
-                <span className={`block font-bold text-sm ${isDarkMode ? 'text-sky-400' : 'text-red-700'}`}>⚡ 60-Second Setup</span>
+                <span className={`block font-bold text-sm ${theme.textAccent}`}>⚡ 60-Second Setup</span>
                 <span>No complicated setup</span>
               </div>
               <div>
-                <span className={`block font-bold text-sm ${isDarkMode ? 'text-slate-200' : 'text-emerald-900'}`}>🧰 Easy OpKits</span>
+                <span className={`block font-bold text-sm ${theme.textBrand}`}>🧰 Easy OpKits</span>
                 <span>Add OpTools from any store</span>
               </div>
               <div>
-                <span className={`block font-bold text-sm ${isDarkMode ? 'text-sky-400' : 'text-red-700'}`}>🚚 Shipping Updates</span>
+                <span className={`block font-bold text-sm ${theme.textAccent}`}>🚚 Shipping Updates</span>
                 <span>Real-time tracking</span>
               </div>
             </div>
           </div>
 
           <div className="lg:col-span-5">
-            <div className={`rounded-3xl p-6 sm:p-8 border shadow-2xl transition-all relative overflow-hidden ${
-              isDarkMode
-                ? 'bg-slate-900/90 border-slate-800 shadow-slate-950/80'
-                : 'bg-white border-stone-200/80 shadow-stone-300/40'
-            }`}>
+            <div className={`rounded-3xl p-6 sm:p-8 border shadow-2xl transition-all relative overflow-hidden ${theme.cardBg}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-200 dark:border-slate-800">
-                <div className={`flex items-center gap-2 text-xs font-bold ${isDarkMode ? 'text-sky-400' : 'text-red-600'}`}>
+                <div className={`flex items-center gap-2 text-xs font-bold ${theme.textAccent}`}>
                   <span className={`h-2.5 w-2.5 rounded-full inline-block animate-pulse ${isDarkMode ? 'bg-sky-400' : 'bg-red-600'}`}></span>
                   <span>LIVE EXCHANGE PREVIEW</span>
                 </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
-                  isDarkMode
-                    ? 'bg-slate-950 text-sky-300 border-sky-500/30'
-                    : 'bg-emerald-100 text-emerald-900 border-emerald-200'
-                }`}>
+                <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${theme.badgeCode}`}>
                   Code: SIMPSON-2026
                 </span>
               </div>
 
               <div className="mt-6 space-y-4">
-                <div className={`p-4 rounded-2xl border ${
-                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                }`}>
-                  <div className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
+                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
+                  <div className={`text-xs font-bold uppercase tracking-wider ${theme.textBrand}`}>
                     ANNUAL HOLIDAY EXCHANGE
                   </div>
-                  <div className={`text-xl font-black mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  <div className="text-xl font-black mt-1">
                     Simpson Family Secret Santa
                   </div>
                   <div className="mt-3 flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
-                    <span>Budget: <strong className={isDarkMode ? 'text-sky-400 font-bold' : 'text-red-600 font-bold'}>$25 – $50</strong></span>
-                    <span>Exchange: <strong className="text-slate-800 dark:text-slate-200 font-bold">Dec 25, 2026</strong></span>
+                    <span>Budget: <strong className={theme.textAccent}>$25 – $50</strong></span>
+                    <span>Exchange: <strong className={theme.textDate}>Dec 25, 2026</strong></span>
                   </div>
                 </div>
 
-                <div className={`p-4 rounded-2xl border ${
-                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-emerald-50/60 border-emerald-200'
-                }`}>
-                  <div className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-300' : 'text-emerald-900'}`}>
+                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
+                  <div className={`text-xs font-bold uppercase tracking-wider ${theme.textBrand}`}>
                     YOUR ASSIGNED SECRET TARGET
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div>
-                      <span className={`text-lg font-bold block ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Agent-Sarah</span>
+                      <span className="text-lg font-bold block">Agent-Sarah</span>
                       <span className="text-xs text-slate-500">OpKit: 3 OpTools Attached</span>
                     </div>
-                    <span className={`text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm ${
-                      isDarkMode ? 'bg-sky-500 text-slate-950' : 'bg-red-600 text-white'
-                    }`}>
+                    <span className={`text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm ${theme.btnPrimary}`}>
                       View OpKit →
                     </span>
                   </div>
@@ -530,9 +489,7 @@ export default function Home() {
       {/* Modal: DIRECT SIGN IN / LOGIN */}
       {loginModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all ${
-            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
-          }`}>
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>🔑 Agent Sign In</span>
@@ -541,7 +498,7 @@ export default function Home() {
             </div>
 
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold">
+              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
                 ⚠️ {errorMessage}
               </div>
             )}
@@ -555,9 +512,7 @@ export default function Home() {
                   placeholder="e.g. joshua@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${
-                    isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
 
@@ -569,9 +524,7 @@ export default function Home() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${
-                    isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
 
@@ -579,18 +532,14 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setLoginModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
-                    isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
-                  }`}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
-                    isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
                 >
                   {loading ? 'Signing In...' : 'Sign In'}
                 </button>
@@ -603,9 +552,7 @@ export default function Home() {
       {/* Modal: ORGANIZE A GIFT EXCHANGE */}
       {createModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-lg w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
-            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
-          }`}>
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-lg w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>🎅 Create Your Gift Exchange</span>
@@ -614,14 +561,14 @@ export default function Home() {
             </div>
 
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold">
+              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
                 ⚠️ {errorMessage}
               </div>
             )}
 
             <form onSubmit={handleCreateExchange} className="space-y-4 text-xs font-semibold">
-              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
-                <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-red-600'}`}>
+              <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
+                <span className={`text-xs font-bold block uppercase tracking-wider ${theme.textAccent}`}>
                   Step 1: Security & Account Authentication
                 </span>
                 
@@ -636,16 +583,14 @@ export default function Home() {
                       setEmail(e.target.value);
                       checkUserEmail(e.target.value);
                     }}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                   />
                 </div>
 
                 {/* Existing User Recognition */}
                 {userIsExisting === true && (
-                  <div className="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-200 dark:border-sky-800">
-                    <span className="text-xs font-bold text-sky-800 dark:text-sky-300 block mb-1">
+                  <div className={`p-3 rounded-xl border ${theme.badgeCode}`}>
+                    <span className="text-xs font-bold block mb-1">
                       👋 Welcome back, {existingUserName}!
                     </span>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-2">
@@ -658,9 +603,7 @@ export default function Home() {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                        isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                     />
                   </div>
                 )}
@@ -676,9 +619,7 @@ export default function Home() {
                         placeholder="e.g. Joshua Simpson"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
                     </div>
                     <div>
@@ -688,9 +629,7 @@ export default function Home() {
                         placeholder="e.g. Agent-KovertKlaus"
                         value={codename}
                         onChange={(e) => setCodename(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
                     </div>
                     <div>
@@ -702,9 +641,7 @@ export default function Home() {
                         placeholder="At least 10 chars (A-Z, a-z, 0-9, special char)"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block">
                         Must contain uppercase, lowercase, number, and special character.
@@ -714,8 +651,8 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
-                <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
+              <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
+                <span className={`text-xs font-bold block uppercase tracking-wider ${theme.textBrand}`}>
                   Step 2: Exchange Settings & Automated Timeline
                 </span>
                 <div>
@@ -726,9 +663,7 @@ export default function Home() {
                     placeholder="e.g. Simpson Family Secret Santa 2026"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                   />
                 </div>
 
@@ -741,9 +676,7 @@ export default function Home() {
                       min={0}
                       value={budgetMin}
                       onChange={(e) => setBudgetMin(Number(e.target.value))}
-                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                     />
                   </div>
                   <div>
@@ -754,9 +687,7 @@ export default function Home() {
                       min={5}
                       value={budgetMax}
                       onChange={(e) => setBudgetMax(Number(e.target.value))}
-                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                     />
                   </div>
                 </div>
@@ -768,9 +699,7 @@ export default function Home() {
                     required
                     value={executionDate}
                     onChange={(e) => setExecutionDate(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                   />
                   <p className="text-[11px] text-slate-500 mt-1.5 font-normal">
                     ⚡ <strong>Automated Timeline:</strong> Go/No-Go (25%), Target Assignment (50%), Shipping Deadline (75%) are automatically set.
@@ -782,18 +711,14 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
-                    isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
-                  }`}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
-                    isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
                 >
                   {loading ? 'Processing...' : '🚀 Launch Exchange'}
                 </button>
@@ -806,9 +731,7 @@ export default function Home() {
       {/* Modal: JOIN AN EXCHANGE */}
       {joinModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
-            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
-          }`}>
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>🔑 Join a Gift Exchange</span>
@@ -817,7 +740,7 @@ export default function Home() {
             </div>
 
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold">
+              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
                 ⚠️ {errorMessage}
               </div>
             )}
@@ -831,15 +754,13 @@ export default function Home() {
                   placeholder="e.g. KOVERT-8492"
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  className={`w-full border rounded-2xl px-4 py-3 text-lg font-mono text-center tracking-widest uppercase focus:outline-none focus:ring-2 ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 focus:ring-sky-400' : 'bg-stone-50 border-stone-300 text-red-700 focus:ring-red-600'
-                  }`}
+                  className={`w-full border rounded-2xl px-4 py-3 text-lg font-mono text-center tracking-widest uppercase focus:outline-none ${theme.inputModalBg}`}
                   maxLength={16}
                 />
               </div>
 
-              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
-                <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
+              <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
+                <span className={`text-xs font-bold block uppercase tracking-wider ${theme.textBrand}`}>
                   Your Account Authentication
                 </span>
                 
@@ -854,16 +775,14 @@ export default function Home() {
                       setEmail(e.target.value);
                       checkUserEmail(e.target.value);
                     }}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                   />
                 </div>
 
                 {/* Returning User Recognition */}
                 {userIsExisting === true && (
-                  <div className="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-200 dark:border-sky-800">
-                    <span className="text-xs font-bold text-sky-800 dark:text-sky-300 block mb-1">
+                  <div className={`p-3 rounded-xl border ${theme.badgeCode}`}>
+                    <span className="text-xs font-bold block mb-1">
                       👋 Welcome back, {existingUserName}!
                     </span>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-2">
@@ -876,9 +795,7 @@ export default function Home() {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                        isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                     />
                   </div>
                 )}
@@ -894,9 +811,7 @@ export default function Home() {
                         placeholder="e.g. Alex Simpson"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
                     </div>
                     <div>
@@ -906,9 +821,7 @@ export default function Home() {
                         placeholder="e.g. Agent-Alex"
                         value={codename}
                         onChange={(e) => setCodename(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
                     </div>
                     <div>
@@ -920,9 +833,7 @@ export default function Home() {
                         placeholder="At least 10 chars (A-Z, a-z, 0-9, special char)"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
                     </div>
                   </>
@@ -934,18 +845,14 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setJoinModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
-                    isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
-                  }`}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
-                    isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
                 >
                   {loading ? 'Processing...' : '🔑 Join Exchange'}
                 </button>
@@ -956,9 +863,7 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className={`border-t py-8 text-xs font-medium transition-colors ${
-        isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-500' : 'bg-white border-stone-200 text-slate-500 shadow-inner'
-      }`}>
+      <footer className={`border-t py-8 text-xs font-medium transition-colors ${theme.footerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>
             © 2026 KovertKlaus by <span className="font-semibold text-slate-700 dark:text-slate-300">Joshua Simpson</span>. Made for families & friends.
