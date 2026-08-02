@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 // Charlie Brown Retro Glowing Christmas Lights Strand
@@ -55,17 +56,17 @@ function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
       <div className="text-amber-400 animate-bounce text-xl leading-none filter drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
         ⭐
       </div>
-      {/* Tree Branches (slightly leaning, charmingly simple) */}
+      {/* Tree Branches */}
       <div className="text-center font-black leading-none select-none text-2xl tracking-tighter filter drop-shadow-md">
         <div className="text-emerald-600 dark:text-emerald-400 hover:scale-110 transition-transform">▲</div>
         <div className="text-emerald-700 dark:text-emerald-500 hover:scale-110 transition-transform -mt-2">▲▲</div>
         <div className="text-emerald-800 dark:text-emerald-600 hover:scale-110 transition-transform -mt-2.5">▲▲▲</div>
       </div>
-      {/* Single Red Bauble Ornament hanging off the sparse branch */}
+      {/* Single Red Bauble Ornament */}
       <div className="absolute right-1 top-6 text-[10px] animate-pulse">
         🔴
       </div>
-      {/* Little Wooden Stand */}
+      {/* Wooden Stand */}
       <div className="w-3 h-2 bg-amber-900 rounded-b-sm border-t border-amber-950 mt-0.5"></div>
       <div className="w-6 h-1 bg-amber-950 rounded-full mt-0.5 opacity-60"></div>
     </div>
@@ -73,10 +74,152 @@ function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [missionCodeInput, setMissionCodeInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Form State: Organize Exchange
+  const [orgName, setOrgName] = useState('');
+  const [orgEmail, setOrgEmail] = useState('');
+  const [orgCodename, setOrgCodename] = useState('');
+  const [title, setTitle] = useState('');
+  const [budgetMin, setBudgetMin] = useState(25);
+  const [budgetMax, setBudgetMax] = useState(50);
+  const [executionDate, setExecutionDate] = useState('2026-12-25');
+
+  // Form State: Join Exchange
+  const [joinCode, setJoinCode] = useState('');
+  const [joinName, setJoinName] = useState('');
+  const [joinEmail, setJoinEmail] = useState('');
+  const [joinCodename, setJoinCodename] = useState('');
+
+  // Handle Organize Exchange Submission
+  async function handleCreateExchange(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      // 1. Create or fetch user account
+      const userRes = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: orgName.trim(),
+          email: orgEmail.trim(),
+          codename: orgCodename.trim() || undefined,
+        }),
+      });
+      const userData = await userRes.json();
+      if (!userRes.ok || !userData.success) {
+        throw new Error(userData.error || 'Failed to create user account');
+      }
+
+      const userId = userData.data.id;
+      localStorage.setItem('kovertklaus_user_id', userId);
+      localStorage.setItem('kovertklaus_user_name', userData.data.name);
+
+      // 2. Create Operation
+      const today = new Date();
+      const cutoff = new Date(today.setDate(today.getDate() + 14)).toISOString().split('T')[0];
+      const assign = new Date(today.setDate(today.getDate() + 15)).toISOString().split('T')[0];
+
+      const opRes = await fetch('/api/operations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          config: {
+            title: title.trim(),
+            budgetMin: Number(budgetMin),
+            budgetMax: Number(budgetMax),
+            currency: 'USD',
+            giftingType: 'SINGLE',
+            isLocalOnly: false,
+            isWhiteElephant: false,
+            inviteCutoffDate: cutoff,
+            assignmentDate: assign,
+            executionDate,
+          },
+        }),
+      });
+
+      const opData = await opRes.json();
+      if (!opRes.ok || !opData.success) {
+        throw new Error(opData.error || 'Failed to create exchange');
+      }
+
+      const createdCode = opData.data.code;
+      setCreateModalOpen(false);
+      router.push(`/exchange/${createdCode}`);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Handle Join Exchange Submission
+  async function handleJoinExchange(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const cleanCode = joinCode.trim().toUpperCase();
+      if (!cleanCode) throw new Error('Please enter a valid Exchange Code');
+
+      // 1. Create or fetch user account
+      const userRes = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: joinName.trim(),
+          email: joinEmail.trim(),
+          codename: joinCodename.trim() || undefined,
+        }),
+      });
+      const userData = await userRes.json();
+      if (!userRes.ok || !userData.success) {
+        throw new Error(userData.error || 'Failed to create user account');
+      }
+
+      const userId = userData.data.id;
+      localStorage.setItem('kovertklaus_user_id', userId);
+      localStorage.setItem('kovertklaus_user_name', userData.data.name);
+
+      // 2. Accept Invitation & Join Operation
+      const joinRes = await fetch('/api/invitations/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          operationCode: cleanCode,
+        }),
+      });
+
+      const joinData = await joinRes.json();
+      if (!joinRes.ok || !joinData.success) {
+        // If already enrolled, proceed to exchange dashboard!
+        if (joinData.error?.includes('already enrolled')) {
+          setJoinModalOpen(false);
+          router.push(`/exchange/${cleanCode}`);
+          return;
+        }
+        throw new Error(joinData.error || 'Failed to join exchange');
+      }
+
+      setJoinModalOpen(false);
+      router.push(`/exchange/${cleanCode}`);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className={`min-h-screen transition-colors duration-300 flex flex-col font-sans ${
@@ -85,7 +228,7 @@ export default function Home() {
         : 'bg-stone-50 text-slate-900 selection:bg-red-600 selection:text-white'
     }`}>
       
-      {/* Announcement / Welcome Banner */}
+      {/* Announcement Banner */}
       <div className={`text-xs py-2 px-4 text-center font-medium transition-colors ${
         isDarkMode
           ? 'bg-slate-900 text-sky-300 border-b border-sky-500/20 shadow-inner'
@@ -100,7 +243,6 @@ export default function Home() {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
           
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md group-hover:scale-105 transition-all ${
               isDarkMode
@@ -119,7 +261,6 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-semibold">
             <a href="#how-it-works" className={`transition-colors ${isDarkMode ? 'text-slate-300 hover:text-sky-400' : 'text-slate-700 hover:text-red-600'}`}>
               How It Works
@@ -132,10 +273,7 @@ export default function Home() {
             </Link>
           </nav>
 
-          {/* Controls & Action CTAs */}
           <div className="flex items-center gap-3">
-            
-            {/* Theme Toggle Button */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               title="Toggle Theme Mode"
@@ -149,7 +287,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => setJoinModalOpen(true)}
+              onClick={() => { setErrorMessage(''); setJoinModalOpen(true); }}
               className={`text-xs font-bold px-4 py-2.5 rounded-xl border transition-all cursor-pointer hidden sm:inline-flex items-center gap-1 ${
                 isDarkMode
                   ? 'border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-500/40 hover:text-sky-300'
@@ -160,7 +298,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => setCreateModalOpen(true)}
+              onClick={() => { setErrorMessage(''); setCreateModalOpen(true); }}
               className={`font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer transform hover:-translate-y-0.5 ${
                 isDarkMode
                   ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-950/60'
@@ -174,16 +312,14 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Charlie Brown Glowing Christmas Lights Strand - Dangling directly under Header into main page */}
+      {/* Christmas Lights Strand */}
       <ChristmasLightsStrand isDarkMode={isDarkMode} />
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-20 w-full flex-1 flex flex-col justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
-          {/* Left Column: Hero Copy + Joke-Sized Tree */}
           <div className="lg:col-span-7 space-y-6 text-left relative">
-            
             <div className="flex items-center justify-between">
               <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
                 isDarkMode
@@ -192,8 +328,6 @@ export default function Home() {
               }`}>
                 <span>{isDarkMode ? '❄️ Winter Night Stealth Mode Active' : '🎅 Secret Santa & Holiday Gift Exchanges Made Effortless'}</span>
               </div>
-
-              {/* Charlie Brown Joke-Sized Tree Artwork */}
               <div className="hidden sm:block">
                 <CharlieBrownTree isDarkMode={isDarkMode} />
               </div>
@@ -218,10 +352,9 @@ export default function Home() {
               Bring your family, friends, or co-workers together! Create a gift exchange in 60 seconds, share universal wishlists, and enjoy a completely stress-free experience from start to delivery.
             </p>
 
-            {/* CTAs */}
             <div className="pt-2 flex flex-col sm:flex-row gap-4">
               <button
-                onClick={() => setCreateModalOpen(true)}
+                onClick={() => { setErrorMessage(''); setCreateModalOpen(true); }}
                 className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 text-base cursor-pointer transform hover:-translate-y-0.5 ${
                   isDarkMode
                     ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-sky-950/60'
@@ -232,7 +365,7 @@ export default function Home() {
               </button>
 
               <button
-                onClick={() => setJoinModalOpen(true)}
+                onClick={() => { setErrorMessage(''); setJoinModalOpen(true); }}
                 className={`font-bold px-6 py-4 rounded-2xl border transition-all flex items-center justify-center gap-2 text-base cursor-pointer ${
                   isDarkMode
                     ? 'bg-slate-900 border-slate-700 text-slate-200 hover:border-slate-500 hover:text-white shadow-md'
@@ -243,7 +376,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Customer Trust Badges */}
             <div className={`pt-6 grid grid-cols-3 gap-4 border-t text-xs font-semibold ${
               isDarkMode ? 'border-slate-800 text-slate-400' : 'border-stone-200 text-slate-600'
             }`}>
@@ -260,10 +392,8 @@ export default function Home() {
                 <span>Real-time tracking</span>
               </div>
             </div>
-
           </div>
 
-          {/* Right Column: Preview Card */}
           <div className="lg:col-span-5">
             <div className={`rounded-3xl p-6 sm:p-8 border shadow-2xl transition-all relative overflow-hidden ${
               isDarkMode
@@ -284,7 +414,6 @@ export default function Home() {
                 </span>
               </div>
 
-              {/* Sample Mission Info */}
               <div className="mt-6 space-y-4">
                 <div className={`p-4 rounded-2xl border ${
                   isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
@@ -301,7 +430,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Sample Target Card */}
                 <div className={`p-4 rounded-2xl border ${
                   isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-emerald-50/60 border-emerald-200'
                 }`}>
@@ -328,180 +456,136 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works" className={`py-20 border-t transition-colors ${
-        isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-stone-200'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className={`text-xs font-bold uppercase tracking-widest block mb-2 ${isDarkMode ? 'text-sky-400' : 'text-red-600'}`}>
-              SIMPLE & EASY
-            </span>
-            <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              How KovertKlaus Works in 3 Easy Steps
-            </h2>
-            <p className={`mt-3 text-base ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              No confusing signups or complicated spreadsheets.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            {/* Step 1 */}
-            <div className={`p-8 rounded-3xl border transition-all ${
-              isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200 shadow-sm'
-            }`}>
-              <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-xl font-bold mb-6 shadow-md ${
-                isDarkMode ? 'bg-sky-500 text-slate-950 shadow-sky-950/40' : 'bg-red-600 text-white shadow-red-600/20'
-              }`}>
-                1
-              </div>
-              <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                Create Your Exchange
-              </h3>
-              <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                Set your budget limit, exchange date, and invite your group using a simple 8-character code or shareable link.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className={`p-8 rounded-3xl border transition-all ${
-              isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200 shadow-sm'
-            }`}>
-              <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-xl font-bold mb-6 shadow-md ${
-                isDarkMode ? 'bg-slate-700 text-sky-300 border border-slate-600' : 'bg-emerald-800 text-white shadow-emerald-800/20'
-              }`}>
-                2
-              </div>
-              <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                Build Your Wishlist
-              </h3>
-              <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                Add gift ideas from any online store! Paste item links and KovertKlaus automatically grabs titles, prices, and photos.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className={`p-8 rounded-3xl border transition-all ${
-              isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200 shadow-sm'
-            }`}>
-              <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-xl font-bold mb-6 shadow-md ${
-                isDarkMode ? 'bg-sky-500 text-slate-950 shadow-sky-950/40' : 'bg-red-600 text-white shadow-red-600/20'
-              }`}>
-                3
-              </div>
-              <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                Get Matched & Ship
-              </h3>
-              <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                Everyone gets their secret recipient assigned automatically. Ship your gift, enter tracking, and celebrate together!
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* Benefits / Why Us */}
-      <section id="benefits" className="py-20 max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className={`text-xs font-bold uppercase tracking-widest block mb-2 ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
-              WHY FAMILIES & FRIENDS LOVE US
-            </span>
-            <h2 className={`text-3xl sm:text-4xl font-black tracking-tight mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              Never Settle for Flakes or Mismatched Gifts Again
-            </h2>
-            <p className={`text-base leading-relaxed mb-6 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-              We built KovertKlaus so everyone actually gets a gift they love, on time, without awkward duplicate assignments or forgotten participants.
-            </p>
-            <div className="space-y-4 text-sm font-semibold">
-              <div className={`flex items-center gap-3 ${isDarkMode ? 'text-sky-400' : 'text-red-600'}`}>
-                <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  isDarkMode ? 'bg-slate-900 border border-sky-500/40' : 'bg-red-100'
-                }`}>✓</span>
-                <span className={isDarkMode ? 'text-slate-200' : 'text-slate-800'}>100% Fair 1-to-1 Target Assignments</span>
-              </div>
-              <div className={`flex items-center gap-3 ${isDarkMode ? 'text-slate-300' : 'text-emerald-800'}`}>
-                <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  isDarkMode ? 'bg-slate-900 border border-slate-700' : 'bg-emerald-100'
-                }`}>✓</span>
-                <span className={isDarkMode ? 'text-slate-200' : 'text-slate-800'}>Automatic Wishlist Scraper for Any Store</span>
-              </div>
-              <div className={`flex items-center gap-3 ${isDarkMode ? 'text-sky-400' : 'text-red-600'}`}>
-                <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  isDarkMode ? 'bg-slate-900 border border-sky-500/40' : 'bg-red-100'
-                }`}>✓</span>
-                <span className={isDarkMode ? 'text-slate-200' : 'text-slate-800'}>Reliability & Shipping Carrier Tracking Protection</span>
-              </div>
-            </div>
-            <div className="pt-6">
-              <Link
-                href="/features"
-                className={`text-xs font-bold underline flex items-center gap-1 ${
-                  isDarkMode ? 'text-sky-400 hover:text-sky-300' : 'text-emerald-800 hover:text-emerald-900'
-                }`}
-              >
-                <span>Curious about our underlying algorithms & security specs? Read Features →</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* CTA Card */}
-          <div className={`p-8 rounded-3xl border shadow-xl ${
-            isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-          }`}>
-            <h3 className={`text-2xl font-black mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              Ready to start your exchange?
-            </h3>
-            <p className={`text-sm mb-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              Organize your Secret Santa, Yankee Swap, or Holiday Exchange today. Free for all non-commercial groups!
-            </p>
-            <button
-              onClick={() => setCreateModalOpen(true)}
-              className={`w-full font-bold py-4 px-6 rounded-2xl transition-all shadow-lg text-center cursor-pointer text-base ${
-                isDarkMode
-                  ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-sky-950/50'
-                  : 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/25'
-              }`}
-            >
-              Start Your Gift Exchange Now 🎅
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Join Modal */}
-      {joinModalOpen && (
+      {/* Modal: ORGANIZE A GIFT EXCHANGE */}
+      {createModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 rounded-3xl max-w-md w-full shadow-2xl border ${
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-lg w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
             isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
           }`}>
-            <h3 className="text-xl font-bold mb-2">🔑 Join a Gift Exchange</h3>
-            <p className="text-xs text-slate-500 mb-6">
-              Enter the 8-character Exchange Code sent to you by your organizer.
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-black flex items-center gap-2">
+                <span>🎅 Create Your Gift Exchange</span>
+              </h3>
+              <button onClick={() => setCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
 
-            <form onSubmit={(e) => { e.preventDefault(); alert(`Exchange Code submitted: ${missionCodeInput}`); setJoinModalOpen(false); }}>
-              <input
-                type="text"
-                placeholder="e.g. SIMPSON-2026"
-                value={missionCodeInput}
-                onChange={(e) => setMissionCodeInput(e.target.value.toUpperCase())}
-                className={`w-full border rounded-2xl px-4 py-3 text-lg font-mono text-center tracking-widest uppercase mb-4 focus:outline-none focus:ring-2 ${
-                  isDarkMode
-                    ? 'bg-slate-950 border-slate-800 text-sky-400 focus:ring-sky-400'
-                    : 'bg-stone-50 border-stone-300 text-red-700 focus:ring-red-600'
-                }`}
-                maxLength={12}
-              />
-              <div className="flex gap-3">
+            {errorMessage && (
+              <div className="mb-4 p-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-xs font-bold">
+                ⚠️ {errorMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateExchange} className="space-y-4 text-xs font-semibold">
+              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
+                <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-red-600'}`}>
+                  Step 1: Your Account Profile
+                </span>
+                <div>
+                  <label className="block text-slate-500 mb-1">Your Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Joshua Simpson"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-500 mb-1">Your Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. joshua@example.com"
+                    value={orgEmail}
+                    onChange={(e) => setOrgEmail(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-500 mb-1">Secret Codename / Handle (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. KovertKlaus-1"
+                    value={orgCodename}
+                    onChange={(e) => setOrgCodename(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
+                <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
+                  Step 2: Exchange Settings
+                </span>
+                <div>
+                  <label className="block text-slate-500 mb-1">Exchange Title *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Simpson Family Secret Santa 2026"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                    }`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-500 mb-1">Min Budget ($)</label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={budgetMin}
+                      onChange={(e) => setBudgetMin(Number(e.target.value))}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Max Budget ($) *</label>
+                    <input
+                      type="number"
+                      required
+                      min={5}
+                      value={budgetMax}
+                      onChange={(e) => setBudgetMax(Number(e.target.value))}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                        isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 mb-1">Exchange Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={executionDate}
+                    onChange={(e) => setExecutionDate(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setJoinModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm transition-colors cursor-pointer ${
+                  onClick={() => setCreateModalOpen(false)}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
                     isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
                   }`}
                 >
@@ -509,11 +593,12 @@ export default function Home() {
                 </button>
                 <button
                   type="submit"
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-colors cursor-pointer shadow-md ${
+                  disabled={loading}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
                     isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
                   }`}
                 >
-                  Join Exchange
+                  {loading ? 'Creating...' : '🚀 Launch Exchange'}
                 </button>
               </div>
             </form>
@@ -521,44 +606,106 @@ export default function Home() {
         </div>
       )}
 
-      {/* Create Modal */}
-      {createModalOpen && (
+      {/* Modal: JOIN AN EXCHANGE (ENTER CODE) */}
+      {joinModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 rounded-3xl max-w-md w-full shadow-2xl border ${
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
             isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
           }`}>
-            <h3 className="text-xl font-bold mb-2">🎅 Create Your Gift Exchange</h3>
-            <p className="text-xs text-slate-500 mb-6">
-              Set up your exchange parameters in seconds.
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-black flex items-center gap-2">
+                <span>🔑 Join a Gift Exchange</span>
+              </h3>
+              <button onClick={() => setJoinModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
 
-            <div className="space-y-4 text-xs font-mono">
-              <div className={`p-4 rounded-2xl border ${
-                isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-emerald-50 border-emerald-200'
-              }`}>
-                <span className={`font-bold block mb-1 ${isDarkMode ? 'text-sky-400' : 'text-emerald-900'}`}>Quick Start Setup</span>
-                <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>You can test live algorithm simulations on the Test Bench or launch full exchange operations.</span>
+            {errorMessage && (
+              <div className="mb-4 p-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-xs font-bold">
+                ⚠️ {errorMessage}
               </div>
-              <div className="flex gap-3 font-sans">
+            )}
+
+            <form onSubmit={handleJoinExchange} className="space-y-4 text-xs font-semibold">
+              <div>
+                <label className="block text-slate-500 mb-1">Exchange Code *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. KOVERT-8492"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  className={`w-full border rounded-2xl px-4 py-3 text-lg font-mono text-center tracking-widest uppercase focus:outline-none focus:ring-2 ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 focus:ring-sky-400' : 'bg-stone-50 border-stone-300 text-red-700 focus:ring-red-600'
+                  }`}
+                  maxLength={16}
+                />
+              </div>
+
+              <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
+                <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
+                  Your Account Details
+                </span>
+                <div>
+                  <label className="block text-slate-500 mb-1">Your Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Alex Simpson"
+                    value={joinName}
+                    onChange={(e) => setJoinName(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-500 mb-1">Your Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. alex@example.com"
+                    value={joinEmail}
+                    onChange={(e) => setJoinEmail(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-500 mb-1">Secret Codename / Handle (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Agent-Alex"
+                    value={joinCodename}
+                    onChange={(e) => setJoinCodename(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => setCreateModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm transition-colors cursor-pointer ${
+                  type="button"
+                  onClick={() => setJoinModalOpen(false)}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
                     isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
                   }`}
                 >
-                  Close
+                  Cancel
                 </button>
-                <Link
-                  href="/tests"
-                  onClick={() => setCreateModalOpen(false)}
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm text-center transition-colors cursor-pointer shadow-md ${
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
                     isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
                   }`}
                 >
-                  Go to Test Bench
-                </Link>
+                  {loading ? 'Joining...' : '🔑 Join Exchange'}
+                </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
