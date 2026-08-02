@@ -74,6 +74,7 @@ export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -113,6 +114,34 @@ export default function Home() {
       }
     } catch {
       setUserIsExisting(false);
+    }
+  }
+
+  // Handle Direct Sign In
+  async function handleDirectLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Invalid email or password');
+      }
+
+      localStorage.setItem('kovertklaus_user_id', json.user.id);
+      localStorage.setItem('kovertklaus_user_name', json.user.name);
+      setLoginModalOpen(false);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -158,9 +187,9 @@ export default function Home() {
 
       // Calculate Valid Sequential Dates Based on Execution Date
       const execDateObj = new Date(executionDate);
-      const shipDateObj = new Date(execDateObj.getTime() - 5 * 24 * 60 * 60 * 1000); // 5 days prior
-      const assignDateObj = new Date(execDateObj.getTime() - 10 * 24 * 60 * 60 * 1000); // 10 days prior
-      const cutoffDateObj = new Date(execDateObj.getTime() - 12 * 24 * 60 * 60 * 1000); // 12 days prior
+      const shipDateObj = new Date(execDateObj.getTime() - 5 * 24 * 60 * 60 * 1000);
+      const assignDateObj = new Date(execDateObj.getTime() - 10 * 24 * 60 * 60 * 1000);
+      const cutoffDateObj = new Date(execDateObj.getTime() - 12 * 24 * 60 * 60 * 1000);
 
       const shippingDateStr = shipDateObj.toISOString().split('T')[0];
       const assignmentDateStr = assignDateObj.toISOString().split('T')[0];
@@ -345,26 +374,16 @@ export default function Home() {
               <span>{isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}</span>
             </button>
 
+            {/* Single Login / Sign In Button */}
             <button
-              onClick={() => { resetAuthStates(); setJoinModalOpen(true); }}
-              className={`text-xs font-bold px-4 py-2.5 rounded-xl border transition-all cursor-pointer hidden sm:inline-flex items-center gap-1 ${
+              onClick={() => { resetAuthStates(); setLoginModalOpen(true); }}
+              className={`font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm transform hover:-translate-y-0.5 ${
                 isDarkMode
-                  ? 'border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-500/40 hover:text-sky-300'
-                  : 'border-emerald-700/30 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 shadow-sm'
+                  ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-sky-950/60'
+                  : 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/25'
               }`}
             >
-              <span>🔑 Enter Code</span>
-            </button>
-
-            <button
-              onClick={() => { resetAuthStates(); setCreateModalOpen(true); }}
-              className={`font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer transform hover:-translate-y-0.5 ${
-                isDarkMode
-                  ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-950/60'
-                  : 'bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/25'
-              }`}
-            >
-              + Start Exchange
+              🔑 Sign In
             </button>
           </div>
         </div>
@@ -513,6 +532,79 @@ export default function Home() {
 
         </div>
       </section>
+
+      {/* Modal: DIRECT SIGN IN / LOGIN */}
+      {loginModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all ${
+            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-black flex items-center gap-2">
+                <span>🔑 Agent Sign In</span>
+              </h3>
+              <button onClick={() => setLoginModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            {errorMessage && (
+              <div className="mb-4 p-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-xs font-bold">
+                ⚠️ {errorMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleDirectLogin} className="space-y-4 text-xs font-semibold">
+              <div>
+                <label className="block text-slate-500 mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. joshua@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                    isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 mb-1">Password *</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                    isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setLoginModalOpen(false)}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
+                    isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
+                    isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  {loading ? 'Signing In...' : 'Sign In'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal: ORGANIZE A GIFT EXCHANGE */}
       {createModalOpen && (
