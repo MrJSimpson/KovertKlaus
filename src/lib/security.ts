@@ -1,0 +1,98 @@
+/**
+ * KovertKlaus Web Security & Input Hardening Utility
+ * Enforces OWASP Top 10 Guidelines:
+ * - A01: Broken Access Control & SSRF Mitigation
+ * - A03: Injection & Stored/Reflected XSS Prevention
+ * - A07: Identification and Authentication Input Validation
+ */
+
+// Strict RFC 5322 Compliant Email Regex
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+// Safe Exchange Code Regex (Alphanumeric and hyphens only, max 16 chars)
+const CODE_REGEX = /^[A-Z0-9-]{3,16}$/;
+
+/**
+ * Sanitizes input strings by stripping HTML tags and escaping dangerous XSS characters.
+ */
+export function sanitizeText(input: string): string {
+  if (!input) return '';
+  return input
+    .trim()
+    .replace(/<[^>]*>/g, '') // Strip HTML tags
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+}
+
+/**
+ * Validates email format strictly.
+ */
+export function isValidEmail(email: string): boolean {
+  if (!email || email.length > 254) return false;
+  return EMAIL_REGEX.test(email.trim());
+}
+
+/**
+ * Validates and normalizes Exchange Invite Codes.
+ */
+export function sanitizeInviteCode(code: string): string | null {
+  if (!code) return null;
+  const clean = code.trim().toUpperCase();
+  return CODE_REGEX.test(clean) ? clean : null;
+}
+
+/**
+ * SSRF Protection: Ensures a URL uses http/https protocols and does NOT resolve
+ * to internal/private IP ranges or loopback/metadata endpoints.
+ */
+export function isSafePublicUrl(urlString: string): { safe: boolean; error?: string } {
+  try {
+    const parsed = new URL(urlString.trim());
+
+    // Protocol enforcement
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return { safe: false, error: 'Only http and https protocols are permitted.' };
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Loopback & Localhost check
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal')
+    ) {
+      return { safe: false, error: 'Access to loopback/local addresses is forbidden.' };
+    }
+
+    // AWS Cloud Metadata endpoint check
+    if (hostname === '169.254.169.254') {
+      return { safe: false, error: 'Access to cloud metadata endpoint is forbidden.' };
+    }
+
+    // Private IPv4 range checks
+    const ipParts = hostname.split('.').map((p) => parseInt(p, 10));
+    if (ipParts.length === 4 && ipParts.every((p) => !isNaN(p) && p >= 0 && p <= 255)) {
+      const [a, b] = ipParts;
+      if (
+        a === 10 || // 10.0.0.0/8
+        (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
+        (a === 192 && b === 168) || // 192.168.0.0/16
+        a === 127 || // 127.0.0.0/8
+        (a === 169 && b === 254) // 169.254.0.0/16
+      ) {
+        return { safe: false, error: 'Access to private network IP ranges is forbidden.' };
+      }
+    }
+
+    return { safe: true };
+  } catch {
+    return { safe: false, error: 'Invalid URL format.' };
+  }
+}

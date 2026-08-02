@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
+import { isSafePublicUrl, sanitizeText } from '@/lib/security';
 
 export async function POST(request: Request) {
   try {
@@ -9,12 +10,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Valid product URL is required' }, { status: 400 });
     }
 
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
-    } catch {
-      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+    const formattedUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
+
+    // SSRF Security Validation (OWASP A01: SSRF Protection)
+    const ssrfCheck = isSafePublicUrl(formattedUrl);
+    if (!ssrfCheck.safe) {
+      return NextResponse.json({ error: ssrfCheck.error || 'Access to this URL is blocked for security reasons.' }, { status: 403 });
     }
+
+    const parsedUrl = new URL(formattedUrl);
 
     // 2.5 second AbortController timeout for fast failover
     const controller = new AbortController();
@@ -39,12 +43,13 @@ export async function POST(request: Request) {
       const html = await response.text();
       const $ = cheerio.load(html);
 
-      // Extract Open Graph & Meta Metadata
-      const title =
+      // Extract & Sanitize Open Graph & Meta Metadata (Stored XSS Prevention)
+      const title = sanitizeText(
         $('meta[property="og:title"]').attr('content') ||
         $('meta[name="title"]').attr('content') ||
-        $('title').text().trim() ||
-        parsedUrl.hostname;
+        $('title').text() ||
+        parsedUrl.hostname
+      );
 
       const image =
         $('meta[property="og:image"]').attr('content') ||
@@ -58,19 +63,20 @@ export async function POST(request: Request) {
         $('meta[name="price"]').attr('content') ||
         null;
 
-      const description =
+      const description = sanitizeText(
         $('meta[property="og:description"]').attr('content') ||
         $('meta[name="description"]').attr('content') ||
-        '';
+        ''
+      );
 
       return NextResponse.json({
         success: true,
-        data: {
-          name: title,
+        metadata: {
+          title,
           url: parsedUrl.toString(),
-          price: price ? parseFloat(price) : null,
+          price: price ? parseFloat(price) : undefined,
           description: description.substring(0, 300),
-          thumbnailUrl: image,
+          thumbnail: image,
           domain: parsedUrl.hostname,
         },
       });
@@ -80,8 +86,8 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: false,
         fallback: true,
-        data: {
-          name: '',
+        metadata: {
+          title: parsedUrl.hostname,
           url: parsedUrl.toString(),
           domain: parsedUrl.hostname,
         },
