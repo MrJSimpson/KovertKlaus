@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatCodename, formatDateString } from '@/lib/security';
+import { getThemeClasses } from '@/lib/theme';
 
 interface OperationItem {
   id: string;
@@ -38,6 +39,8 @@ export default function OperationCenterPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'OPS_LEADER' | 'AGENT'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RECRUITING' | 'ASSIGNED' | 'COMPLETED'>('ALL');
+
+  const theme = getThemeClasses(isDarkMode);
 
   useEffect(() => {
     fetchOperations();
@@ -82,16 +85,10 @@ export default function OperationCenterPage() {
   });
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 font-sans ${
-      isDarkMode
-        ? 'bg-slate-950 text-slate-100 selection:bg-sky-500 selection:text-slate-950'
-        : 'bg-stone-50 text-slate-900 selection:bg-red-600 selection:text-white'
-    }`}>
+    <div className={`min-h-screen transition-colors duration-300 font-sans ${theme.pageBg}`}>
       
       {/* Navigation Header */}
-      <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${
-        isDarkMode ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-stone-200 shadow-sm'
-      }`}>
+      <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-3">
             <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md ${
@@ -101,7 +98,7 @@ export default function OperationCenterPage() {
             </div>
             <div>
               <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-xs font-bold ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
+              <span className={`text-xs font-bold ${theme.textBrand}`}>
                 Operation Center (Exchanges Workspace)
               </span>
             </div>
@@ -110,18 +107,14 @@ export default function OperationCenterPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                isDarkMode ? 'bg-slate-900 border-slate-700 text-sky-300' : 'bg-stone-100 border-stone-300 text-slate-700'
-              }`}
+              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
               {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
             </button>
 
             <Link
               href="/dashboard"
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${
-                isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-              }`}
+              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
             >
               ← Back to Dashboard
             </Link>
@@ -133,14 +126,10 @@ export default function OperationCenterPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10 space-y-8">
         
         {/* Banner */}
-        <div className={`p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 ${
-          isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-        }`}>
+        <div className={`p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 ${theme.cardBg}`}>
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                isDarkMode ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' : 'bg-emerald-100 text-emerald-900'
-              }`}>
+              <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeCode}`}>
                 🗺️ Operation Control Center
               </span>
               <span className="text-xs text-slate-500">Active Operations & Secret Santa Exchanges</span>
@@ -153,27 +142,21 @@ export default function OperationCenterPage() {
 
           <Link
             href="/dashboard"
-            className={`px-6 py-3.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${
-              isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-            }`}
+            className={`px-6 py-3.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnPrimary}`}
           >
             <span>+ New Exchange</span>
           </Link>
         </div>
 
         {/* Filter Controls Bar */}
-        <div className={`p-4 rounded-2xl border shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between ${
-          isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-        }`}>
+        <div className={`p-4 rounded-2xl border shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between ${theme.cardBg}`}>
           <div className="w-full sm:w-72">
             <input
               type="text"
               placeholder="Search by operation name or code..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full border rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 ${
-                isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:ring-sky-400' : 'bg-stone-50 border-stone-300 text-slate-900 focus:ring-red-600'
-              }`}
+              className={`w-full border rounded-xl px-4 py-2 text-xs focus:outline-none ${theme.inputBg}`}
             />
           </div>
 
@@ -182,19 +165,19 @@ export default function OperationCenterPage() {
             <div className="flex items-center gap-1 bg-stone-100 dark:bg-slate-950 p-1 rounded-xl border border-stone-200 dark:border-slate-800">
               <button
                 onClick={() => setRoleFilter('ALL')}
-                className={`px-3 py-1 rounded-lg transition-all ${roleFilter === 'ALL' ? (isDarkMode ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-red-600 text-white font-bold') : 'text-slate-500'}`}
+                className={`px-3 py-1 rounded-lg transition-all ${roleFilter === 'ALL' ? theme.btnPrimary : 'text-slate-500'}`}
               >
                 All Roles
               </button>
               <button
                 onClick={() => setRoleFilter('OPS_LEADER')}
-                className={`px-3 py-1 rounded-lg transition-all ${roleFilter === 'OPS_LEADER' ? (isDarkMode ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-red-600 text-white font-bold') : 'text-slate-500'}`}
+                className={`px-3 py-1 rounded-lg transition-all ${roleFilter === 'OPS_LEADER' ? theme.btnPrimary : 'text-slate-500'}`}
               >
                 OpsLeader
               </button>
               <button
                 onClick={() => setRoleFilter('AGENT')}
-                className={`px-3 py-1 rounded-lg transition-all ${roleFilter === 'AGENT' ? (isDarkMode ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-red-600 text-white font-bold') : 'text-slate-500'}`}
+                className={`px-3 py-1 rounded-lg transition-all ${roleFilter === 'AGENT' ? theme.btnPrimary : 'text-slate-500'}`}
               >
                 Agent
               </button>
@@ -204,19 +187,19 @@ export default function OperationCenterPage() {
             <div className="flex items-center gap-1 bg-stone-100 dark:bg-slate-950 p-1 rounded-xl border border-stone-200 dark:border-slate-800">
               <button
                 onClick={() => setStatusFilter('ALL')}
-                className={`px-3 py-1 rounded-lg transition-all ${statusFilter === 'ALL' ? (isDarkMode ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-red-600 text-white font-bold') : 'text-slate-500'}`}
+                className={`px-3 py-1 rounded-lg transition-all ${statusFilter === 'ALL' ? theme.btnPrimary : 'text-slate-500'}`}
               >
                 All Statuses
               </button>
               <button
                 onClick={() => setStatusFilter('RECRUITING')}
-                className={`px-3 py-1 rounded-lg transition-all ${statusFilter === 'RECRUITING' ? (isDarkMode ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-red-600 text-white font-bold') : 'text-slate-500'}`}
+                className={`px-3 py-1 rounded-lg transition-all ${statusFilter === 'RECRUITING' ? theme.btnPrimary : 'text-slate-500'}`}
               >
                 Recruiting
               </button>
               <button
                 onClick={() => setStatusFilter('ASSIGNED')}
-                className={`px-3 py-1 rounded-lg transition-all ${statusFilter === 'ASSIGNED' ? (isDarkMode ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-red-600 text-white font-bold') : 'text-slate-500'}`}
+                className={`px-3 py-1 rounded-lg transition-all ${statusFilter === 'ASSIGNED' ? theme.btnPrimary : 'text-slate-500'}`}
               >
                 Assigned
               </button>
@@ -231,9 +214,7 @@ export default function OperationCenterPage() {
             <p className="text-sm font-semibold">Loading Operations Directory Stream...</p>
           </div>
         ) : filteredOperations.length === 0 ? (
-          <div className={`p-12 text-center rounded-3xl border ${
-            isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-          }`}>
+          <div className={`p-12 text-center rounded-3xl border ${theme.cardBg}`}>
             <div className="text-4xl mb-3">🔍</div>
             <h3 className="text-lg font-bold mb-1">No Active Operations Found</h3>
             <p className="text-xs text-slate-500 mb-6">
@@ -241,7 +222,7 @@ export default function OperationCenterPage() {
             </p>
             <Link
               href="/dashboard"
-              className="px-5 py-2.5 bg-red-600 text-white font-bold text-xs rounded-xl shadow-md"
+              className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md ${theme.btnPrimary}`}
             >
               Organize or Join an Exchange
             </Link>
@@ -251,9 +232,7 @@ export default function OperationCenterPage() {
             {filteredOperations.map((p) => (
               <div
                 key={p.id}
-                className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all hover:shadow-xl ${
-                  isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
-                }`}
+                className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all hover:shadow-xl ${theme.cardBg}`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -262,10 +241,10 @@ export default function OperationCenterPage() {
                     </span>
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
                       p.mission.status === 'RECRUITING'
-                        ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-300'
+                        ? theme.badgeSecretSanta
                         : p.mission.status === 'ASSIGNED'
-                        ? 'bg-purple-100 text-purple-900 dark:bg-purple-500/20 dark:text-purple-300'
-                        : 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300'
+                        ? theme.badgeWhiteElephant
+                        : theme.badgeAmber
                     }`}>
                       ● {p.mission.status}
                     </span>
@@ -280,12 +259,10 @@ export default function OperationCenterPage() {
                     Type: <strong>{p.mission.isWhiteElephant ? 'White Elephant (Single Brought Gift)' : 'Secret Santa Gifting'}</strong>
                   </p>
 
-                  <div className={`p-4 rounded-2xl border space-y-2 text-xs mb-6 ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                  }`}>
+                  <div className={`p-4 rounded-2xl border space-y-2 text-xs mb-6 ${theme.cardInnerBg}`}>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Budget Range:</span>
-                      <strong className={isDarkMode ? 'text-sky-400' : 'text-red-600'}>
+                      <strong className={theme.textAccent}>
                         ${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}
                       </strong>
                     </div>
@@ -294,7 +271,7 @@ export default function OperationCenterPage() {
                       <span className="text-slate-400">Your Assigned Role:</span>
                       <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
                         p.role === 'OPS_LEADER'
-                          ? 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300'
+                          ? theme.badgeAmber
                           : 'bg-stone-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
                       }`}>
                         {p.role === 'OPS_LEADER' ? 'OpsLeader (Organizer)' : 'Agent (Participant)'}
@@ -303,7 +280,7 @@ export default function OperationCenterPage() {
 
                     <div className="flex justify-between">
                       <span className="text-slate-400">Exchange Execution Date:</span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-bold">
+                      <strong className={theme.textDate}>
                         {formatDateString(p.mission.executionDate)}
                       </strong>
                     </div>
@@ -311,7 +288,7 @@ export default function OperationCenterPage() {
                     {p.mission.shippingDate && (
                       <div className="flex justify-between">
                         <span className="text-slate-400">Shipping Deadline:</span>
-                        <strong className="text-slate-800 dark:text-slate-200 font-bold">
+                        <strong className={theme.textDate}>
                           {formatDateString(p.mission.shippingDate)}
                         </strong>
                       </div>
@@ -326,9 +303,7 @@ export default function OperationCenterPage() {
 
                   <Link
                     href={`/exchange/${p.mission.code}`}
-                    className={`px-5 py-2.5 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${
-                      isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-                    }`}
+                    className={`px-5 py-2.5 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnPrimary}`}
                   >
                     Open Command Center →
                   </Link>
