@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename } from '@/lib/security';
 
+interface OpKit {
+  id: string;
+  name: string;
+  isMaster: boolean;
+  opTools: Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>;
+}
+
 interface UserData {
   id: string;
   email: string;
@@ -62,10 +69,33 @@ export default function UserDashboardPage() {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
-  // Scraper & Wishlist State (OpKit / OpTools)
+  // OpKits Management State
+  const [manageOpKitsModalOpen, setManageOpKitsModalOpen] = useState(false);
+  const [newOpKitName, setNewOpKitName] = useState('');
+  const [editingOpKitId, setEditingOpKitId] = useState<string | null>(null);
+  const [editOpKitTitle, setEditOpKitTitle] = useState('');
+
+  // Default Master OpKit & Custom OpKits
+  const [opKits, setOpKits] = useState<OpKit[]>([
+    {
+      id: 'master-1',
+      name: 'Master OpKit',
+      isMaster: true,
+      opTools: [],
+    },
+    {
+      id: 'holiday-2026',
+      name: 'Holiday 2026 Secret Santa OpKit',
+      isMaster: false,
+      opTools: [],
+    },
+  ]);
+
+  const [activeOpKitId, setActiveOpKitId] = useState<string>('master-1');
+
+  // Scraper Form State
   const [opToolUrl, setOpToolUrl] = useState('');
   const [scraping, setScraping] = useState(false);
-  const [opTools, setOpTools] = useState<Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>>([]);
 
   useEffect(() => {
     fetchUserProfile();
@@ -162,7 +192,33 @@ export default function UserDashboardPage() {
     router.push('/');
   }
 
-  // Handle Scraper for Master OpKit (Wishlist) & OpTools (Gift Items)
+  // Create New OpKit
+  function handleCreateOpKit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newOpKitName.trim()) return;
+
+    const newKit: OpKit = {
+      id: Math.random().toString(36).substring(2, 9),
+      name: newOpKitName.trim(),
+      isMaster: false,
+      opTools: [],
+    };
+
+    setOpKits((prev) => [...prev, newKit]);
+    setNewOpKitName('');
+  }
+
+  // Save Renamed OpKit
+  function handleRenameOpKit(id: string) {
+    if (!editOpKitTitle.trim()) return;
+    setOpKits((prev) =>
+      prev.map((kit) => (kit.id === id ? { ...kit, name: editOpKitTitle.trim() } : kit))
+    );
+    setEditingOpKitId(null);
+    setEditOpKitTitle('');
+  }
+
+  // Scrape URL into Selected OpKit
   async function handleScrapeUrl(e: React.FormEvent) {
     e.preventDefault();
     if (!opToolUrl.trim()) return;
@@ -175,33 +231,50 @@ export default function UserDashboardPage() {
         body: JSON.stringify({ url: opToolUrl.trim() }),
       });
       const json = await res.json();
-      if (json.success && json.metadata) {
-        const item = {
-          id: Math.random().toString(36).substring(2, 9),
-          title: json.metadata.title || 'OpTool Gift Item',
-          price: json.metadata.price,
-          thumbnail: json.metadata.thumbnail,
-          url: opToolUrl.trim(),
-        };
-        setOpTools((prev) => [...prev, item]);
-        setOpToolUrl('');
-      } else {
-        setOpTools((prev) => [
-          ...prev,
-          { id: Math.random().toString(36).substring(2, 9), title: opToolUrl, url: opToolUrl },
-        ]);
-        setOpToolUrl('');
-      }
+
+      const newItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        title: json.success && json.metadata?.title ? json.metadata.title : opToolUrl.trim(),
+        price: json.metadata?.price,
+        thumbnail: json.metadata?.thumbnail,
+        url: opToolUrl.trim(),
+      };
+
+      setOpKits((prev) =>
+        prev.map((kit) =>
+          kit.id === activeOpKitId ? { ...kit, opTools: [...kit.opTools, newItem] } : kit
+        )
+      );
+      setOpToolUrl('');
     } catch {
-      setOpTools((prev) => [
-        ...prev,
-        { id: Math.random().toString(36).substring(2, 9), title: opToolUrl, url: opToolUrl },
-      ]);
+      const newItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        title: opToolUrl.trim(),
+        url: opToolUrl.trim(),
+      };
+      setOpKits((prev) =>
+        prev.map((kit) =>
+          kit.id === activeOpKitId ? { ...kit, opTools: [...kit.opTools, newItem] } : kit
+        )
+      );
       setOpToolUrl('');
     } finally {
       setScraping(false);
     }
   }
+
+  // Remove OpTool from active OpKit
+  function handleRemoveOpTool(toolId: string) {
+    setOpKits((prev) =>
+      prev.map((kit) =>
+        kit.id === activeOpKitId
+          ? { ...kit, opTools: kit.opTools.filter((t) => t.id !== toolId) }
+          : kit
+      )
+    );
+  }
+
+  const currentOpKit = opKits.find((k) => k.id === activeOpKitId) || opKits[0];
 
   return (
     <div className={`min-h-screen transition-colors duration-300 font-sans ${
@@ -383,75 +456,164 @@ export default function UserDashboardPage() {
                 </div>
               </div>
 
-              {/* Right Column: Master OpKit (Wishlist) & OpTools */}
+              {/* Right Column: OpKits Section */}
               <div className="lg:col-span-5 space-y-6">
                 <div className={`p-6 rounded-3xl border shadow-md ${
                   isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
                 }`}>
-                  <h2 className="text-xl font-bold mb-0.5 flex items-center gap-2">
-                    🧰 Master OpKit
-                  </h2>
-                  <p className="text-xs font-semibold text-red-600 dark:text-sky-400 mb-1">
-                    (OpKit = Your Wishlist | OpTools = Wished-for Gift Items)
-                  </p>
-                  <p className="text-xs text-slate-500 mb-6">
-                    Add OpTools (gift items) to your master OpKit to share across all Secret Santa exchanges.
-                  </p>
-
-                  <form onSubmit={handleScrapeUrl} className="flex gap-2 mb-6">
-                    <input
-                      type="url"
-                      placeholder="Paste OpTool link (Amazon, Target, Etsy, etc.)"
-                      value={opToolUrl}
-                      onChange={(e) => setOpToolUrl(e.target.value)}
-                      required
-                      className={`flex-1 border rounded-2xl px-3 py-2 text-xs focus:outline-none focus:ring-2 ${
-                        isDarkMode
-                          ? 'bg-slate-950 border-slate-800 text-slate-100 focus:ring-sky-400'
-                          : 'bg-stone-50 border-stone-300 text-slate-900 focus:ring-red-600'
-                      }`}
-                    />
+                  <div className="flex items-center justify-between mb-1">
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                      🧰 OpKits
+                    </h2>
+                    
+                    {/* Top Action Button: Manage All OpKits */}
                     <button
-                      type="submit"
-                      disabled={scraping}
-                      className={`px-4 py-2 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
-                        isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
+                      onClick={() => setManageOpKitsModalOpen(true)}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
+                        isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 hover:border-sky-500/40' : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
                       }`}
                     >
-                      {scraping ? '...' : '+ Add OpTool'}
+                      <span>⚙️ Manage All OpKits</span>
                     </button>
-                  </form>
+                  </div>
 
-                  {opTools.length === 0 ? (
-                    <div className="text-center py-8 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-2xl">
-                      <p className="text-xs text-slate-500">No OpTools added to your OpKit yet.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {opTools.map((item) => (
-                        <div key={item.id} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${
-                          isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                        }`}>
-                          <div className="flex items-center gap-3">
-                            {item.thumbnail ? (
-                              <img src={item.thumbnail} alt={item.title} className="h-8 w-8 object-cover rounded-lg border" />
-                            ) : (
-                              <div className="h-8 w-8 rounded-lg bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-sm">🛍️</div>
-                            )}
-                            <a href={item.url} target="_blank" rel="noreferrer" className="font-bold hover:underline max-w-[180px] truncate block">
-                              {item.title}
-                            </a>
-                          </div>
+                  <p className="text-xs font-semibold text-red-600 dark:text-sky-400 mb-4">
+                    (OpKit = Your Secret Santa Wishlist | OpTools = Wished-for Gift Items)
+                  </p>
+
+                  {/* OpKits List (Master Pinned First) */}
+                  <div className="space-y-2 mb-6">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Select Active OpKit:
+                    </span>
+
+                    {opKits.map((kit) => (
+                      <div
+                        key={kit.id}
+                        onClick={() => setActiveOpKitId(kit.id)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                          activeOpKitId === kit.id
+                            ? isDarkMode
+                              ? 'bg-sky-500/20 border-sky-500 text-white shadow-md'
+                              : 'bg-red-50 border-red-500 text-red-900 shadow-sm'
+                            : isDarkMode
+                            ? 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                            : 'bg-stone-50 border-stone-200 text-slate-700 hover:bg-stone-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{kit.isMaster ? '⭐' : '📦'}</span>
+                          {editingOpKitId === kit.id ? (
+                            <input
+                              type="text"
+                              autoFocus
+                              value={editOpKitTitle}
+                              onChange={(e) => setEditOpKitTitle(e.target.value)}
+                              onBlur={() => handleRenameOpKit(kit.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRenameOpKit(kit.id);
+                              }}
+                              className={`border rounded-lg px-2 py-0.5 text-xs focus:outline-none ${
+                                isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-stone-300 text-slate-900'
+                              }`}
+                            />
+                          ) : (
+                            <span className="font-bold text-xs">
+                              {kit.name} {kit.isMaster && <span className="text-[10px] opacity-75">(Master)</span>}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono text-slate-400">
+                            {kit.opTools.length} {kit.opTools.length === 1 ? 'OpTool' : 'OpTools'}
+                          </span>
+
+                          {/* Small Edit Button */}
                           <button
-                            onClick={() => setOpTools((prev) => prev.filter((i) => i.id !== item.id))}
-                            className="text-red-500 font-bold hover:underline"
+                            type="button"
+                            title="Edit OpKit Name"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingOpKitId(kit.id);
+                              setEditOpKitTitle(kit.name);
+                            }}
+                            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer text-xs"
                           >
-                            Remove
+                            ✏️
                           </button>
                         </div>
-                      ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Active OpKit Content & OpTools Scraper */}
+                  <div className={`p-4 rounded-2xl border ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold flex items-center gap-1.5">
+                        <span>{currentOpKit.isMaster ? '⭐' : '📦'}</span>
+                        <span>{currentOpKit.name}</span>
+                      </h3>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Active View</span>
                     </div>
-                  )}
+
+                    <form onSubmit={handleScrapeUrl} className="flex gap-2 mb-4">
+                      <input
+                        type="url"
+                        placeholder="Paste OpTool link (Amazon, Target, Etsy, etc.)"
+                        value={opToolUrl}
+                        onChange={(e) => setOpToolUrl(e.target.value)}
+                        required
+                        className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 ${
+                          isDarkMode
+                            ? 'bg-slate-900 border-slate-800 text-slate-100 focus:ring-sky-400'
+                            : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                        }`}
+                      />
+                      <button
+                        type="submit"
+                        disabled={scraping}
+                        className={`px-3.5 py-2 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer ${
+                          isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
+                        }`}
+                      >
+                        {scraping ? '...' : '+ Add OpTool'}
+                      </button>
+                    </form>
+
+                    {currentOpKit.opTools.length === 0 ? (
+                      <div className="text-center py-6 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-xl">
+                        <p className="text-xs text-slate-500">No OpTools inside {currentOpKit.name} yet.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {currentOpKit.opTools.map((item) => (
+                          <div key={item.id} className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${
+                            isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
+                          }`}>
+                            <div className="flex items-center gap-2.5">
+                              {item.thumbnail ? (
+                                <img src={item.thumbnail} alt={item.title} className="h-7 w-7 object-cover rounded-md border" />
+                              ) : (
+                                <div className="h-7 w-7 rounded-md bg-stone-100 dark:bg-slate-800 flex items-center justify-center text-xs">🛍️</div>
+                              )}
+                              <a href={item.url} target="_blank" rel="noreferrer" className="font-bold hover:underline max-w-[170px] truncate block">
+                                {item.title}
+                              </a>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveOpTool(item.id)}
+                              className="text-red-500 font-bold hover:underline text-[11px]"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                 </div>
               </div>
@@ -462,6 +624,72 @@ export default function UserDashboardPage() {
         ) : null}
 
       </main>
+
+      {/* MANAGE ALL OPKITS MODAL */}
+      {manageOpKitsModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all ${
+            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-black flex items-center gap-2">
+                <span>⚙️ Manage All OpKits</span>
+              </h3>
+              <button onClick={() => setManageOpKitsModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-4">
+              Create and organize custom OpKits for different Secret Santa operations, family groups, or holiday parties.
+            </p>
+
+            <form onSubmit={handleCreateOpKit} className="flex gap-2 mb-6">
+              <input
+                type="text"
+                placeholder="New OpKit Name (e.g. Office OpKit)"
+                value={newOpKitName}
+                onChange={(e) => setNewOpKitName(e.target.value)}
+                required
+                className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 ${
+                  isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-stone-50 border-stone-300 text-slate-900 focus:ring-red-600'
+                }`}
+              />
+              <button
+                type="submit"
+                className={`px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-sm ${
+                  isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+              >
+                + Create
+              </button>
+            </form>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {opKits.map((kit) => (
+                <div key={kit.id} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${
+                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <span>{kit.isMaster ? '⭐' : '📦'}</span>
+                    <span className="font-bold">{kit.name} {kit.isMaster && '(Master)'}</span>
+                  </div>
+                  <span className="text-slate-400 font-mono">{kit.opTools.length} OpTools</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-4 text-right">
+              <button
+                onClick={() => setManageOpKitsModalOpen(false)}
+                className={`px-6 py-2.5 rounded-xl font-bold text-xs cursor-pointer ${
+                  isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
+                }`}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ACCOUNT PREFERENCES MODAL */}
       {prefModalOpen && (
