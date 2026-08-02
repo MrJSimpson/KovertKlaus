@@ -377,15 +377,6 @@ export default function UserDashboardPage() {
                 >
                   ⚙️ Account Preferences
                 </button>
-
-                <Link
-                  href="/"
-                  className={`px-5 py-2.5 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${
-                    isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-                  }`}
-                >
-                  + New Exchange
-                </Link>
               </div>
             </div>
 
@@ -401,6 +392,16 @@ export default function UserDashboardPage() {
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       🎄 Active Operations (Exchanges) ({user.participations?.length || 0})
                     </h2>
+
+                    {/* New Exchange Button Moved Here */}
+                    <Link
+                      href="/"
+                      className={`px-4 py-2 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${
+                        isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
+                      }`}
+                    >
+                      + New Exchange
+                    </Link>
                   </div>
 
                   {user.participations?.length === 0 ? (
