@@ -52,21 +52,17 @@ function ChristmasLightsStrand({ isDarkMode }: { isDarkMode: boolean }) {
 function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
   return (
     <div className="relative inline-flex flex-col items-center group cursor-pointer">
-      {/* Shining Star */}
       <div className="text-amber-400 animate-bounce text-xl leading-none filter drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
         ⭐
       </div>
-      {/* Tree Branches */}
       <div className="text-center font-black leading-none select-none text-2xl tracking-tighter filter drop-shadow-md">
         <div className="text-emerald-600 dark:text-emerald-400 hover:scale-110 transition-transform">▲</div>
         <div className="text-emerald-700 dark:text-emerald-500 hover:scale-110 transition-transform -mt-2">▲▲</div>
         <div className="text-emerald-800 dark:text-emerald-600 hover:scale-110 transition-transform -mt-2.5">▲▲▲</div>
       </div>
-      {/* Single Red Bauble Ornament */}
       <div className="absolute right-1 top-6 text-[10px] animate-pulse">
         🔴
       </div>
-      {/* Wooden Stand */}
       <div className="w-3 h-2 bg-amber-900 rounded-b-sm border-t border-amber-950 mt-0.5"></div>
       <div className="w-6 h-1 bg-amber-950 rounded-full mt-0.5 opacity-60"></div>
     </div>
@@ -81,20 +77,44 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Form State: Organize Exchange
-  const [orgName, setOrgName] = useState('');
-  const [orgEmail, setOrgEmail] = useState('');
-  const [orgCodename, setOrgCodename] = useState('');
+  // Returning User Detection State
+  const [userIsExisting, setUserIsExisting] = useState<boolean | null>(null);
+  const [existingUserName, setExistingUserName] = useState('');
+
+  // Shared Auth Form State
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [codename, setCodename] = useState('');
+
+  // Exchange Specific Inputs
   const [title, setTitle] = useState('');
   const [budgetMin, setBudgetMin] = useState(25);
   const [budgetMax, setBudgetMax] = useState(50);
   const [executionDate, setExecutionDate] = useState('2026-12-25');
-
-  // Form State: Join Exchange
   const [joinCode, setJoinCode] = useState('');
-  const [joinName, setJoinName] = useState('');
-  const [joinEmail, setJoinEmail] = useState('');
-  const [joinCodename, setJoinCodename] = useState('');
+
+  // Check Email to Detect Existing vs New User
+  async function checkUserEmail(emailInput: string) {
+    if (!emailInput || !emailInput.includes('@')) return;
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput.trim(), action: 'check' }),
+      });
+      const json = await res.json();
+      if (json.success && json.exists) {
+        setUserIsExisting(true);
+        setExistingUserName(json.user.name);
+      } else {
+        setUserIsExisting(false);
+        setExistingUserName('');
+      }
+    } catch {
+      setUserIsExisting(false);
+    }
+  }
 
   // Handle Organize Exchange Submission
   async function handleCreateExchange(e: React.FormEvent) {
@@ -103,26 +123,40 @@ export default function Home() {
     setErrorMessage('');
 
     try {
-      // 1. Create or fetch user account
-      const userRes = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: orgName.trim(),
-          email: orgEmail.trim(),
-          codename: orgCodename.trim() || undefined,
-        }),
-      });
-      const userData = await userRes.json();
-      if (!userRes.ok || !userData.success) {
-        throw new Error(userData.error || 'Failed to create user account');
+      let userId: string;
+
+      if (userIsExisting) {
+        // Authenticate Existing User
+        const loginRes = await fetch('/api/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const loginData = await loginRes.json();
+        if (!loginRes.ok || !loginData.success) {
+          throw new Error(loginData.error || 'Invalid password');
+        }
+        userId = loginData.user.id;
+      } else {
+        // Register New User with 10-Character Password
+        const regRes = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            codename: codename.trim() || undefined,
+            password,
+          }),
+        });
+        const regData = await regRes.json();
+        if (!regRes.ok || !regData.success) {
+          throw new Error(regData.error || 'Registration failed');
+        }
+        userId = regData.data.id;
       }
 
-      const userId = userData.data.id;
-      localStorage.setItem('kovertklaus_user_id', userId);
-      localStorage.setItem('kovertklaus_user_name', userData.data.name);
-
-      // 2. Create Operation
+      // Create Operation
       const today = new Date();
       const cutoff = new Date(today.setDate(today.getDate() + 14)).toISOString().split('T')[0];
       const assign = new Date(today.setDate(today.getDate() + 15)).toISOString().split('T')[0];
@@ -152,9 +186,8 @@ export default function Home() {
         throw new Error(opData.error || 'Failed to create exchange');
       }
 
-      const createdCode = opData.data.code;
       setCreateModalOpen(false);
-      router.push(`/exchange/${createdCode}`);
+      router.push(`/exchange/${opData.data.code}`);
     } catch (err: any) {
       setErrorMessage(err.message || 'An unexpected error occurred');
     } finally {
@@ -172,38 +205,48 @@ export default function Home() {
       const cleanCode = joinCode.trim().toUpperCase();
       if (!cleanCode) throw new Error('Please enter a valid Exchange Code');
 
-      // 1. Create or fetch user account
-      const userRes = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: joinName.trim(),
-          email: joinEmail.trim(),
-          codename: joinCodename.trim() || undefined,
-        }),
-      });
-      const userData = await userRes.json();
-      if (!userRes.ok || !userData.success) {
-        throw new Error(userData.error || 'Failed to create user account');
+      let userId: string;
+
+      if (userIsExisting) {
+        // Authenticate Existing User
+        const loginRes = await fetch('/api/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const loginData = await loginRes.json();
+        if (!loginRes.ok || !loginData.success) {
+          throw new Error(loginData.error || 'Invalid password');
+        }
+        userId = loginData.user.id;
+      } else {
+        // Register New User with 10-Character Password
+        const regRes = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            codename: codename.trim() || undefined,
+            password,
+          }),
+        });
+        const regData = await regRes.json();
+        if (!regRes.ok || !regData.success) {
+          throw new Error(regData.error || 'Registration failed');
+        }
+        userId = regData.data.id;
       }
 
-      const userId = userData.data.id;
-      localStorage.setItem('kovertklaus_user_id', userId);
-      localStorage.setItem('kovertklaus_user_name', userData.data.name);
-
-      // 2. Accept Invitation & Join Operation
+      // Enroll User into Operation
       const joinRes = await fetch('/api/invitations/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          operationCode: cleanCode,
-        }),
+        body: JSON.stringify({ userId, operationCode: cleanCode }),
       });
 
       const joinData = await joinRes.json();
       if (!joinRes.ok || !joinData.success) {
-        // If already enrolled, proceed to exchange dashboard!
         if (joinData.error?.includes('already enrolled')) {
           setJoinModalOpen(false);
           router.push(`/exchange/${cleanCode}`);
@@ -219,6 +262,16 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function resetAuthStates() {
+    setErrorMessage('');
+    setUserIsExisting(null);
+    setExistingUserName('');
+    setEmail('');
+    setPassword('');
+    setName('');
+    setCodename('');
   }
 
   return (
@@ -242,7 +295,6 @@ export default function Home() {
         isDarkMode ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-stone-200 shadow-sm'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
-          
           <Link href="/" className="flex items-center gap-3 group">
             <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md group-hover:scale-105 transition-all ${
               isDarkMode
@@ -287,7 +339,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => { setErrorMessage(''); setJoinModalOpen(true); }}
+              onClick={() => { resetAuthStates(); setJoinModalOpen(true); }}
               className={`text-xs font-bold px-4 py-2.5 rounded-xl border transition-all cursor-pointer hidden sm:inline-flex items-center gap-1 ${
                 isDarkMode
                   ? 'border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-500/40 hover:text-sky-300'
@@ -298,7 +350,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => { setErrorMessage(''); setCreateModalOpen(true); }}
+              onClick={() => { resetAuthStates(); setCreateModalOpen(true); }}
               className={`font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer transform hover:-translate-y-0.5 ${
                 isDarkMode
                   ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-950/60'
@@ -308,7 +360,6 @@ export default function Home() {
               + Start Exchange
             </button>
           </div>
-
         </div>
       </header>
 
@@ -354,7 +405,7 @@ export default function Home() {
 
             <div className="pt-2 flex flex-col sm:flex-row gap-4">
               <button
-                onClick={() => { setErrorMessage(''); setCreateModalOpen(true); }}
+                onClick={() => { resetAuthStates(); setCreateModalOpen(true); }}
                 className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 text-base cursor-pointer transform hover:-translate-y-0.5 ${
                   isDarkMode
                     ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-sky-950/60'
@@ -365,7 +416,7 @@ export default function Home() {
               </button>
 
               <button
-                onClick={() => { setErrorMessage(''); setJoinModalOpen(true); }}
+                onClick={() => { resetAuthStates(); setJoinModalOpen(true); }}
                 className={`font-bold px-6 py-4 rounded-2xl border transition-all flex items-center justify-center gap-2 text-base cursor-pointer ${
                   isDarkMode
                     ? 'bg-slate-900 border-slate-700 text-slate-200 hover:border-slate-500 hover:text-white shadow-md'
@@ -478,46 +529,96 @@ export default function Home() {
             <form onSubmit={handleCreateExchange} className="space-y-4 text-xs font-semibold">
               <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
                 <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-red-600'}`}>
-                  Step 1: Your Account Profile
+                  Step 1: Security & Account Authentication
                 </span>
-                <div>
-                  <label className="block text-slate-500 mb-1">Your Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Joshua Simpson"
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
-                  />
-                </div>
+                
                 <div>
                   <label className="block text-slate-500 mb-1">Your Email Address *</label>
                   <input
                     type="email"
                     required
                     placeholder="e.g. joshua@example.com"
-                    value={orgEmail}
-                    onChange={(e) => setOrgEmail(e.target.value)}
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      checkUserEmail(e.target.value);
+                    }}
                     className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
                       isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
                     }`}
                   />
                 </div>
-                <div>
-                  <label className="block text-slate-500 mb-1">Secret Codename / Handle (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. KovertKlaus-1"
-                    value={orgCodename}
-                    onChange={(e) => setOrgCodename(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
-                  />
-                </div>
+
+                {/* Existing User Recognition */}
+                {userIsExisting === true && (
+                  <div className="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-200 dark:border-sky-800">
+                    <span className="text-xs font-bold text-sky-800 dark:text-sky-300 block mb-1">
+                      👋 Welcome back, {existingUserName}!
+                    </span>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-2">
+                      Enter your password to authenticate and launch the exchange.
+                    </p>
+                    <label className="block text-slate-500 mb-1">Password *</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                        isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                      }`}
+                    />
+                  </div>
+                )}
+
+                {/* New User Registration Fields */}
+                {userIsExisting === false && (
+                  <>
+                    <div>
+                      <label className="block text-slate-500 mb-1">Your Full Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Joshua Simpson"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 mb-1">Secret Codename / Handle (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. KovertKlaus-1"
+                        value={codename}
+                        onChange={(e) => setCodename(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 mb-1">Create Password (Min 10 Characters) *</label>
+                      <input
+                        type="password"
+                        required
+                        minLength={10}
+                        placeholder="At least 10 chars (A-Z, a-z, 0-9, special char)"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                        }`}
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Must contain uppercase, lowercase, number, and special character.
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
@@ -598,7 +699,7 @@ export default function Home() {
                     isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
                   }`}
                 >
-                  {loading ? 'Creating...' : '🚀 Launch Exchange'}
+                  {loading ? 'Processing...' : '🚀 Launch Exchange'}
                 </button>
               </div>
             </form>
@@ -606,7 +707,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Modal: JOIN AN EXCHANGE (ENTER CODE) */}
+      {/* Modal: JOIN AN EXCHANGE */}
       {joinModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
@@ -643,46 +744,94 @@ export default function Home() {
 
               <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 space-y-3">
                 <span className={`text-xs font-bold block uppercase tracking-wider ${isDarkMode ? 'text-sky-400' : 'text-emerald-800'}`}>
-                  Your Account Details
+                  Your Account Authentication
                 </span>
-                <div>
-                  <label className="block text-slate-500 mb-1">Your Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Alex Simpson"
-                    value={joinName}
-                    onChange={(e) => setJoinName(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
-                  />
-                </div>
+                
                 <div>
                   <label className="block text-slate-500 mb-1">Your Email Address *</label>
                   <input
                     type="email"
                     required
                     placeholder="e.g. alex@example.com"
-                    value={joinEmail}
-                    onChange={(e) => setJoinEmail(e.target.value)}
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      checkUserEmail(e.target.value);
+                    }}
                     className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
                       isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
                     }`}
                   />
                 </div>
-                <div>
-                  <label className="block text-slate-500 mb-1">Secret Codename / Handle (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Agent-Alex"
-                    value={joinCodename}
-                    onChange={(e) => setJoinCodename(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
-                    }`}
-                  />
-                </div>
+
+                {/* Returning User Recognition */}
+                {userIsExisting === true && (
+                  <div className="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-200 dark:border-sky-800">
+                    <span className="text-xs font-bold text-sky-800 dark:text-sky-300 block mb-1">
+                      👋 Welcome back, {existingUserName}!
+                    </span>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-2">
+                      Enter your password to sign in and join the exchange.
+                    </p>
+                    <label className="block text-slate-500 mb-1">Password *</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                        isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                      }`}
+                    />
+                  </div>
+                )}
+
+                {/* New User Registration Fields */}
+                {userIsExisting === false && (
+                  <>
+                    <div>
+                      <label className="block text-slate-500 mb-1">Your Full Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Alex Simpson"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 mb-1">Secret Codename / Handle (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Agent-Alex"
+                        value={codename}
+                        onChange={(e) => setCodename(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 mb-1">Create Password (Min 10 Characters) *</label>
+                      <input
+                        type="password"
+                        required
+                        minLength={10}
+                        placeholder="At least 10 chars (A-Z, a-z, 0-9, special char)"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                          isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-sky-400' : 'bg-white border-stone-300 text-slate-900 focus:ring-red-600'
+                        }`}
+                      />
+                    </div>
+                  </>
+                )}
+
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -702,7 +851,7 @@ export default function Home() {
                     isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
                   }`}
                 >
-                  {loading ? 'Joining...' : '🔑 Join Exchange'}
+                  {loading ? 'Processing...' : '🔑 Join Exchange'}
                 </button>
               </div>
             </form>

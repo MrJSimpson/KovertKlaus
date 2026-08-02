@@ -13,6 +13,33 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const CODE_REGEX = /^[A-Z0-9-]{3,16}$/;
 
 /**
+ * Validates Password Complexity (Minimum 10 Characters):
+ * - Must be at least 10 characters in length.
+ * - Must contain at least 1 uppercase letter (A-Z).
+ * - Must contain at least 1 lowercase letter (a-z).
+ * - Must contain at least 1 number (0-9).
+ * - Must contain at least 1 special character (!@#$%^&*()_+-=[]{}|;:,.<>?).
+ */
+export function validatePassword(password: string): { isValid: boolean; error?: string } {
+  if (!password || password.length < 10) {
+    return { isValid: false, error: 'Password must be at least 10 characters long.' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { isValid: false, error: 'Password must contain at least 1 uppercase letter (A-Z).' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { isValid: false, error: 'Password must contain at least 1 lowercase letter (a-z).' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { isValid: false, error: 'Password must contain at least 1 number (0-9).' };
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) {
+    return { isValid: false, error: 'Password must contain at least 1 special character (e.g. !@#$%^&*).' };
+  }
+  return { isValid: true };
+}
+
+/**
  * Sanitizes input strings by stripping HTML tags and escaping dangerous XSS characters.
  */
 export function sanitizeText(input: string): string {

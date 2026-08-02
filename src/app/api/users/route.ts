@@ -1,57 +1,85 @@
 import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
-import { sanitizeText, isValidEmail } from '@/lib/security';
+import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
+import { setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, codename } = body as {
-      name: string;
+    const { name, email, codename, password, action } = body as {
+      name?: string;
       email: string;
       codename?: string;
+      password?: string;
+      action?: 'check' | 'register';
     };
 
-    if (!name || !email) {
-      return NextResponse.json(
-        { error: 'Name and email are required' },
-        { status: 400 }
-      );
+    if (!email) {
+      return NextResponse.json({ error: 'Email address is required' }, { status: 400 });
     }
 
-    // Strict Email Validation
     if (!isValidEmail(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email address format' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid email address format' }, { status: 400 });
     }
 
-    // Input Sanitization (XSS Prevention)
-    const cleanName = sanitizeText(name);
     const cleanEmail = email.trim().toLowerCase();
+
+    // Action 1: Email Existence Check for Returning Users
+    if (action === 'check') {
+      const existingUser = await db.user.findUnique({
+        where: { email: cleanEmail },
+        select: {
+          id: true,
+          name: true,
+          codename: true,
+          email: true,
+        },
+      });
+
+      if (existingUser) {
+        return NextResponse.json({
+          success: true,
+          exists: true,
+          user: {
+            name: existingUser.name,
+            codename: existingUser.codename,
+          },
+        });
+      } else {
+        return NextResponse.json({
+          success: true,
+          exists: false,
+        });
+      }
+    }
+
+    // Action 2: User Account Registration with 10-Character Password
+    if (!name || !password) {
+      return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
+    }
+
+    // Validate 10-Character Complex Password Policy
+    const passCheck = validatePassword(password);
+    if (!passCheck.isValid) {
+      return NextResponse.json({ error: passCheck.error }, { status: 400 });
+    }
+
+    const cleanName = sanitizeText(name);
     const cleanCodename = codename
       ? sanitizeText(codename)
       : `Agent-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    if (!cleanName || cleanName.length < 2) {
-      return NextResponse.json(
-        { error: 'Name must be at least 2 characters' },
-        { status: 400 }
-      );
-    }
+    // Hash Password with bcrypt salt rounds = 12
+    const passwordHash = await bcrypt.hash(password, 12);
 
-    // Upsert User by Email (SQL Injection safe via Prisma)
-    const user = await db.user.upsert({
-      where: { email: cleanEmail },
-      update: {
-        name: cleanName,
-        codename: cleanCodename,
-      },
-      create: {
+    // Create User in DB
+    const user = await db.user.create({
+      data: {
         email: cleanEmail,
         name: cleanName,
         codename: cleanCodename,
-        passwordHash: 'PASSTHROUGH_ANONYMOUS_SESSION',
+        passwordHash,
       },
       select: {
         id: true,
@@ -63,15 +91,21 @@ export async function POST(request: Request) {
       },
     });
 
+    // Set HTTP-Only Short-Lived Session Cookie
+    await setSessionCookie(user.id);
+
     return NextResponse.json({
       success: true,
       data: user,
     });
-  } catch (error) {
-    console.error('User creation security error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create or update user account' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'An account with this email already exists. Please sign in.' },
+        { status: 400 }
+      );
+    }
+    console.error('Registration error:', error);
+    return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });
   }
 }
