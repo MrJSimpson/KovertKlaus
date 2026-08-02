@@ -373,18 +373,18 @@ export default function OperationCommandCenterPage() {
               </div>
             </div>
 
-            {/* 4-Stage Operational Timeline Cards */}
+            {/* 4-Stage Operational Timeline Cards (HIGH CONTRAST DATES, NO PERCENTAGES) */}
             <div className={`p-6 rounded-3xl border shadow-md ${
               isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
             }`}>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-                  📅 4-Stage Required Operational Timeline
+                  📅 4-Stage Operational Timeline
                 </span>
                 {isOpsLeader && (
                   <button
                     onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                    className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
                       isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 hover:border-sky-500/40' : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
                     }`}
                   >
@@ -397,12 +397,14 @@ export default function OperationCommandCenterPage() {
                 <div className={`p-4 rounded-2xl border ${
                   isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
                 }`}>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-mono font-bold block">
-                    STAGE 1 (25%)
+                  <span className="text-xs text-amber-600 dark:text-amber-400 uppercase font-mono font-bold block">
+                    STAGE 1
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Go/No-Go Date</span>
                   <span className="text-slate-500 text-[11px] block mt-0.5">(Invite Cutoff)</span>
-                  <strong className="text-sm block mt-2 text-slate-800 dark:text-slate-200">
+                  <strong className={`text-base font-black block mt-2 ${
+                    isDarkMode ? 'text-sky-300' : 'text-slate-950'
+                  }`}>
                     {new Date(operation.inviteCutoffDate).toLocaleDateString()}
                   </strong>
                 </div>
@@ -410,12 +412,14 @@ export default function OperationCommandCenterPage() {
                 <div className={`p-4 rounded-2xl border ${
                   isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
                 }`}>
-                  <span className="text-[10px] text-sky-600 dark:text-sky-400 uppercase font-mono font-bold block">
-                    STAGE 2 (50%)
+                  <span className="text-xs text-sky-600 dark:text-sky-400 uppercase font-mono font-bold block">
+                    STAGE 2
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Target Assignment</span>
                   <span className="text-slate-500 text-[11px] block mt-0.5">(Sattolo Draw)</span>
-                  <strong className="text-sm block mt-2 text-slate-800 dark:text-slate-200">
+                  <strong className={`text-base font-black block mt-2 ${
+                    isDarkMode ? 'text-sky-300' : 'text-slate-950'
+                  }`}>
                     {new Date(operation.assignmentDate).toLocaleDateString()}
                   </strong>
                 </div>
@@ -423,12 +427,14 @@ export default function OperationCommandCenterPage() {
                 <div className={`p-4 rounded-2xl border ${
                   isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
                 }`}>
-                  <span className="text-[10px] text-purple-600 dark:text-purple-400 uppercase font-mono font-bold block">
-                    STAGE 3 (75%)
+                  <span className="text-xs text-purple-600 dark:text-purple-400 uppercase font-mono font-bold block">
+                    STAGE 3
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Gift Shipping Deadline</span>
                   <span className="text-slate-500 text-[11px] block mt-0.5">(Tracking Required)</span>
-                  <strong className="text-sm block mt-2 text-slate-800 dark:text-slate-200">
+                  <strong className={`text-base font-black block mt-2 ${
+                    isDarkMode ? 'text-sky-300' : 'text-slate-950'
+                  }`}>
                     {operation.shippingDate ? new Date(operation.shippingDate).toLocaleDateString() : 'N/A'}
                   </strong>
                 </div>
@@ -436,12 +442,14 @@ export default function OperationCommandCenterPage() {
                 <div className={`p-4 rounded-2xl border ${
                   isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
                 }`}>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-mono font-bold block">
-                    STAGE 4 (100%)
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 uppercase font-mono font-bold block">
+                    STAGE 4
                   </span>
                   <span className="font-bold block text-sm mt-0.5">Exchange Execution</span>
                   <span className="text-slate-500 text-[11px] block mt-0.5">(Event Day)</span>
-                  <strong className="text-sm block mt-2 text-emerald-700 dark:text-sky-400 font-black">
+                  <strong className={`text-base font-black block mt-2 ${
+                    isDarkMode ? 'text-sky-400' : 'text-red-700'
+                  }`}>
                     {new Date(operation.executionDate).toLocaleDateString()}
                   </strong>
                 </div>
@@ -773,8 +781,8 @@ export default function OperationCommandCenterPage() {
                   max={editExecDate || undefined}
                   value={editCutoffDate}
                   onChange={(e) => setEditCutoffDate(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-950'
                   }`}
                 />
               </div>
@@ -788,8 +796,8 @@ export default function OperationCommandCenterPage() {
                   max={editExecDate || undefined}
                   value={editAssignDate}
                   onChange={(e) => setEditAssignDate(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-950'
                   }`}
                 />
               </div>
@@ -803,8 +811,8 @@ export default function OperationCommandCenterPage() {
                   max={editExecDate || undefined}
                   value={editShipDate}
                   onChange={(e) => setEditShipDate(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-950'
                   }`}
                 />
               </div>
@@ -817,8 +825,8 @@ export default function OperationCommandCenterPage() {
                   min={editShipDate || todayStr}
                   value={editExecDate}
                   onChange={(e) => setEditExecDate(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-950'
                   }`}
                 />
               </div>
