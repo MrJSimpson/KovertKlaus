@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KovertKlaus 🕵️‍♂️🎄
 
-## Getting Started
+**Stealth Intelligence Gift Exchange Network for Families, Friends & Communities**
 
-First, run the development server:
+KovertKlaus turns standard Secret Santa exchanges into engaging, covert stealth operations. Featuring account reliability tracking (Demerits), reusable Ops Kit wishlists, automated product metadata scraping, in-person White Elephant support, and cyclic linked-list target assignments.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 🚀 Quick Start (Self-Hosting for Personal / Family Use)
+
+KovertKlaus is container-native and ready to run on Docker out of the box.
+
+```powershell
+# 1. Clone repository
+git clone https://github.com/MrJSimpson/KovertKlaus.git
+cd KovertKlaus
+
+# 2. Launch PostgreSQL database and App container
+docker compose up -d
+
+# 3. Open browser
+http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📜 Licensing & Commercial Rights
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Free Non-Commercial Self-Hosting**: Anyone can download, run, modify, and self-host KovertKlaus for personal, family, non-profit, or home-lab use for free.
+- **Commercial Reservation**: Exclusive rights to operate and monetize KovertKlaus as a paid commercial SaaS service are reserved exclusively by **Joshua Simpson** (and designated successors/acquiring entities). Third parties may not host or re-sell KovertKlaus as a commercial paid service.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🌅 Long-Term Open Source Sunset Plan
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Upon the eventual retirement of the original author (Joshua Simpson), unless KovertKlaus is acquired by a third-party purchaser:
+- The commercial SaaS service will transition into a 100% free community project.
+- The official domain will display a gratitude message to all participants and link directly to this open-source GitHub repository ([MrJSimpson/KovertKlaus](https://github.com/MrJSimpson/KovertKlaus)) so anyone can self-host KovertKlaus for free forever.

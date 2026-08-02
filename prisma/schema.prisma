@@ -1,0 +1,200 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum AccountStatus {
+  ACTIVE
+  REMOTE_RESTRICTED
+  DISABLED
+}
+
+enum MissionStatus {
+  SETUP
+  RECRUITING
+  ASSIGNED
+  SHIPPED
+  EXECUTED
+  COMPLETED
+}
+
+enum GiftingType {
+  SINGLE
+  MULTIPLE
+}
+
+enum PaymentStatus {
+  FREE_ANNUAL
+  PAID
+  EXEMPT_SELF_HOSTED
+}
+
+enum AgentRole {
+  OPS_LEADER
+  FIELD_AGENT
+}
+
+enum ShippingStatus {
+  PENDING
+  LOCAL_DELIVERY
+  SHIPPED
+}
+
+model User {
+  id                 String        @id @default(uuid())
+  email              String        @unique
+  name               String
+  codename           String?
+  passwordHash       String
+  streetAddress      String?
+  city               String?
+  state              String?
+  zipCode            String?
+  country            String?       @default("US")
+  demerits           Int           @default(0)
+  accountStatus      AccountStatus @default(ACTIVE)
+  emailNotifications Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  createdMissions        Mission[]        @relation("OpsLeaderMissions")
+  participations         MissionAgent[]   @relation("AgentUser")
+  targetedBy             MissionAgent[]   @relation("TargetUser")
+  items                  Item[]
+  wishlists              Wishlist[]
+  notifications          Notification[]
+  exclusionRulesAsAgent  ExclusionRule[]  @relation("ExclusionAgent")
+  exclusionRulesAsTarget ExclusionRule[]  @relation("ExclusionRestrictedAgent")
+  sentMessages           IntelMessage[]   @relation("MessageSender")
+  receivedMessages       IntelMessage[]   @relation("MessageRecipient")
+}
+
+model Mission {
+  id               String        @id @default(uuid())
+  title            String
+  description      String?
+  code             String        @unique
+  opsLeaderId      String
+  opsLeader        User          @relation("OpsLeaderMissions", fields: [opsLeaderId], references: [id])
+  maxParticipants  Int?
+  giftingType      GiftingType   @default(SINGLE)
+  isLocalOnly      Boolean       @default(false)
+  eventLocation    String?
+  isWhiteElephant  Boolean       @default(false)
+  budgetMin        Decimal?      @db.Decimal(10, 2)
+  budgetMax        Decimal       @db.Decimal(10, 2)
+  currency         String        @default("USD")
+  inviteCutoffDate DateTime
+  assignmentDate   DateTime
+  shippingDate     DateTime?
+  executionDate    DateTime
+  status           MissionStatus @default(RECRUITING)
+  isFreeAnnualOp   Boolean       @default(false)
+  paymentStatus    PaymentStatus @default(FREE_ANNUAL)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  agents         MissionAgent[]
+  exclusionRules ExclusionRule[]
+  intelMessages  IntelMessage[]
+}
+
+model Item {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  url          String
+  price        Decimal  @db.Decimal(10, 2)
+  description  String?
+  thumbnailUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  wishlistItems WishlistItem[]
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wishlistItems WishlistItem[]
+  missionAgents MissionAgent[]
+}
+
+model WishlistItem {
+  id         String   @id @default(uuid())
+  wishlistId String
+  itemId     String
+  quantity   Int      @default(1)
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  item       Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([wishlistId, itemId])
+}
+
+model MissionAgent {
+  id                 String         @id @default(uuid())
+  missionId          String
+  userId             String
+  wishlistId         String?
+  role               AgentRole      @default(FIELD_AGENT)
+  targetUserId       String?
+  shippingStatus     ShippingStatus @default(PENDING)
+  trackingNumber     String?
+  shippedAt          DateTime?
+  deliveredConfirmed Boolean        @default(false)
+  joinedAt           DateTime       @default(now())
+
+  mission    Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user       User      @relation("AgentUser", fields: [userId], references: [id], onDelete: Cascade)
+  targetUser User?     @relation("TargetUser", fields: [targetUserId], references: [id])
+  wishlist   Wishlist? @relation(fields: [wishlistId], references: [id])
+
+  @@unique([missionId, userId])
+}
+
+model ExclusionRule {
+  id                String @id @default(uuid())
+  missionId         String
+  agentId           String
+  restrictedAgentId String
+
+  mission         Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  agent           User    @relation("ExclusionAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  restrictedAgent User    @relation("ExclusionRestrictedAgent", fields: [restrictedAgentId], references: [id], onDelete: Cascade)
+
+  @@unique([missionId, agentId, restrictedAgentId])
+}
+
+model IntelMessage {
+  id          String   @id @default(uuid())
+  missionId   String
+  senderId    String
+  recipientId String
+  messageText String
+  isFromSanta Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  sender    User    @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User    @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  message        String
+  operationId    String?
+  isAcknowledged Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}

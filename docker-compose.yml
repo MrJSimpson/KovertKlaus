@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  kovertklaus-db:
+    image: postgres:16-alpine
+    container_name: kovertklaus-db
+    restart: always
+    environment:
+      POSTGRES_USER: kovert
+      POSTGRES_PASSWORD: kovertsecret
+      POSTGRES_DB: kovertklaus
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kovert -d kovertklaus"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kovertklaus-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kovertklaus-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public
+      - NODE_ENV=production
+    depends_on:
+      kovertklaus-db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
