@@ -4,7 +4,7 @@ Copyright (c) 2026 Joshua Simpson. All rights reserved.
 
 - **Licensor**: Joshua Simpson
 - **Licensed Work**: KovertKlaus (including source code, documentation, schema, and Docker configurations)
-- **Change Date**: August 1, 2030 (4 years from initial release)
+- **Change Date**: January 1, 2030
 - **Change License**: GNU General Public License v3.0 or later (GPL-3.0-or-later)
 
 ---
@@ -19,4 +19,4 @@ You may run, modify, and self-host the Licensed Work free of charge for **person
 You may NOT host, offer, operate, or monetize the Licensed Work as a paid commercial Software-as-a-Service (SaaS), hosted service, or commercial product without a separate commercial license granted by Licensor (Joshua Simpson).
 
 ## 4. Sunset Clause (Change License)
-On the Change Date specified above (or upon the retirement of Licensor), the Licensed Work automatically converts to and is licensed under the Change License (**GNU GPLv3** or later). From that date forward, the Licensed Work becomes 100% open source under GNU GPLv3 terms for all users.
+On the Change Date specified above (**January 1, 2030**), or upon the retirement of Licensor, the Licensed Work automatically converts to and is licensed under the Change License (**GNU GPLv3** or later). From that date forward, the Licensed Work becomes 100% open source under GNU GPLv3 terms for all users.
