@@ -1,18 +1,23 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSessionUserId } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, operationCode, wishlistId } = body as {
-      userId: string;
+    const sessionUserId = await getSessionUserId();
+
+    const { userId: bodyUserId, operationCode, wishlistId } = body as {
+      userId?: string;
       operationCode: string;
       wishlistId?: string;
     };
 
-    if (!userId || !operationCode) {
+    const activeUserId = sessionUserId || bodyUserId;
+
+    if (!activeUserId || !operationCode) {
       return NextResponse.json(
-        { error: 'userId and operationCode are required' },
+        { error: 'Authentication and operationCode are required' },
         { status: 400 }
       );
     }
@@ -36,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Verify user is not already enrolled
-    const existingAgent = operation.agents.find((a: { userId: string }) => a.userId === userId);
+    const existingAgent = operation.agents.find((a: { userId: string }) => a.userId === activeUserId);
     if (existingAgent) {
       return NextResponse.json(
         { error: 'You are already enrolled in this operation.' },
@@ -48,7 +53,7 @@ export async function POST(request: Request) {
     const newAgent = await db.missionAgent.create({
       data: {
         missionId: operation.id,
-        userId,
+        userId: activeUserId,
         wishlistId: wishlistId || null,
         role: 'FIELD_AGENT',
       },

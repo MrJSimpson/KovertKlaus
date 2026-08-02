@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSessionUserId } from '@/lib/auth';
 import { validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const code = searchParams.get('code');
+    const paramUserId = searchParams.get('userId');
+    const sessionUserId = await getSessionUserId();
+    const activeUserId = sessionUserId || paramUserId;
 
     // Case 1: Fetch single operation by unique invite code (e.g. KOVERT-87WZ)
     if (code) {
@@ -37,15 +40,15 @@ export async function GET(request: Request) {
     }
 
     // Case 2: Fetch all operations enrolled/owned by a user
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID or Operation Code is required' }, { status: 400 });
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Authentication or user ID is required' }, { status: 401 });
     }
 
     const operations = await db.mission.findMany({
       where: {
         OR: [
-          { opsLeaderId: userId },
-          { agents: { some: { userId } } },
+          { opsLeaderId: activeUserId },
+          { agents: { some: { userId: activeUserId } } },
         ],
       },
       include: {
@@ -68,15 +71,20 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, config, action, operationId } = body as {
-      userId: string;
+    const sessionUserId = await getSessionUserId();
+    
+    const { userId: bodyUserId, config, action, operationId, forceUnlock } = body as {
+      userId?: string;
       config?: CreateOperationInput;
       action?: string;
       operationId?: string;
+      forceUnlock?: boolean;
     };
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    const activeUserId = sessionUserId || bodyUserId;
+
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Action: Trigger Sattolo Target Draw for Secret Santa
@@ -90,8 +98,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
       }
 
-      if (op.opsLeaderId !== userId) {
+      if (op.opsLeaderId !== activeUserId) {
         return NextResponse.json({ error: 'Only the OpsLeader can trigger target draws' }, { status: 403 });
+      }
+
+      // Hardening D1: Lock Guard against accidental re-draws
+      if (op.status === 'ASSIGNED' && !forceUnlock) {
+        return NextResponse.json({
+          error: 'Target assignments have already been drawn for this operation. Re-drawing will overwrite existing targets.',
+          requiresConfirmation: true,
+        }, { status: 409 });
       }
 
       if (op.agents.length < 2) {
@@ -136,8 +152,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
     }
 
-    // Check SaaS Quota & Monetization Rule (1 free per calendar year)
-    const isSaasMode = process.env.NEXT_PUBLIC_SAAS_MODE === 'true';
+    // Hardening S2: SaaS Quota Server Environment Variable Check
+    const isSaasMode = process.env.SAAS_MODE === 'true' || process.env.NEXT_PUBLIC_SAAS_MODE === 'true';
     let paymentStatus: 'FREE_ANNUAL' | 'PAID' | 'EXEMPT_SELF_HOSTED' = 'EXEMPT_SELF_HOSTED';
     let isFreeAnnualOp = false;
 
@@ -148,7 +164,7 @@ export async function POST(request: Request) {
 
       const existingAnnualOp = await db.mission.findFirst({
         where: {
-          opsLeaderId: userId,
+          opsLeaderId: activeUserId,
           createdAt: {
             gte: startOfYear,
             lte: endOfYear,
@@ -175,7 +191,7 @@ export async function POST(request: Request) {
         title: config.title.trim(),
         description: config.description?.trim(),
         code: inviteCode,
-        opsLeaderId: userId,
+        opsLeaderId: activeUserId,
         maxParticipants: config.maxParticipants,
         giftingType: config.giftingType,
         isLocalOnly: config.isLocalOnly,
@@ -192,7 +208,7 @@ export async function POST(request: Request) {
         paymentStatus,
         agents: {
           create: {
-            userId,
+            userId: activeUserId,
             role: 'OPS_LEADER',
           },
         },
@@ -223,8 +239,10 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { userId, operationId, dates } = body as {
-      userId: string;
+    const sessionUserId = await getSessionUserId();
+
+    const { userId: bodyUserId, operationId, dates } = body as {
+      userId?: string;
       operationId: string;
       dates: {
         inviteCutoffDate: string;
@@ -234,8 +252,10 @@ export async function PATCH(request: Request) {
       };
     };
 
-    if (!userId || !operationId || !dates) {
-      return NextResponse.json({ error: 'userId, operationId, and dates are required' }, { status: 400 });
+    const activeUserId = sessionUserId || bodyUserId;
+
+    if (!activeUserId || !operationId || !dates) {
+      return NextResponse.json({ error: 'Authentication, operationId, and dates are required' }, { status: 400 });
     }
 
     const op = await db.mission.findUnique({
@@ -246,7 +266,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
     }
 
-    if (op.opsLeaderId !== userId) {
+    if (op.opsLeaderId !== activeUserId) {
       return NextResponse.json({ error: 'Only the OpsLeader can update operational dates' }, { status: 403 });
     }
 
