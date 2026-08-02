@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { getSessionUserId, clearSessionCookie } from '@/lib/auth';
+import { sanitizeText, validatePassword } from '@/lib/security';
 
 export async function GET() {
   try {
@@ -17,6 +19,12 @@ export async function GET() {
         email: true,
         name: true,
         codename: true,
+        streetAddress: true,
+        city: true,
+        state: true,
+        zipCode: true,
+        country: true,
+        emailNotifications: true,
         demerits: true,
         accountStatus: true,
         createdAt: true,
@@ -64,6 +72,106 @@ export async function GET() {
   } catch (error) {
     console.error('Session retrieval error:', error);
     return NextResponse.json({ error: 'Failed to retrieve session' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const userId = await getSessionUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized session' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const {
+      name,
+      codename,
+      streetAddress,
+      city,
+      state,
+      zipCode,
+      country,
+      emailNotifications,
+      oldPassword,
+      newPassword,
+    } = body as {
+      name?: string;
+      codename?: string;
+      streetAddress?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      country?: string;
+      emailNotifications?: boolean;
+      oldPassword?: string;
+      newPassword?: string;
+    };
+
+    const updateData: Record<string, any> = {};
+
+    if (name) updateData.name = sanitizeText(name);
+    if (codename) updateData.codename = sanitizeText(codename);
+    if (streetAddress !== undefined) updateData.streetAddress = sanitizeText(streetAddress);
+    if (city !== undefined) updateData.city = sanitizeText(city);
+    if (state !== undefined) updateData.state = sanitizeText(state);
+    if (zipCode !== undefined) updateData.zipCode = sanitizeText(zipCode);
+    if (country !== undefined) updateData.country = sanitizeText(country);
+    if (emailNotifications !== undefined) updateData.emailNotifications = Boolean(emailNotifications);
+
+    // Password Update Flow
+    if (newPassword) {
+      if (!oldPassword) {
+        return NextResponse.json({ error: 'Current password is required to set a new password' }, { status: 400 });
+      }
+
+      // Verify current password
+      const user = await db.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      const match = await bcrypt.compare(oldPassword, user.passwordHash);
+      if (!match) {
+        return NextResponse.json({ error: 'Incorrect current password' }, { status: 400 });
+      }
+
+      // Validate 10-char complexity
+      const passCheck = validatePassword(newPassword);
+      if (!passCheck.isValid) {
+        return NextResponse.json({ error: passCheck.error }, { status: 400 });
+      }
+
+      updateData.passwordHash = await bcrypt.hash(newPassword, 12);
+    }
+
+    // Execute Database Update
+    const updatedUser = await db.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        codename: true,
+        streetAddress: true,
+        city: true,
+        state: true,
+        zipCode: true,
+        country: true,
+        emailNotifications: true,
+        demerits: true,
+        accountStatus: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Account preferences updated successfully',
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error('Account preferences update error:', error);
+    return NextResponse.json({ error: 'Failed to update preferences' }, { status: 500 });
   }
 }
 
