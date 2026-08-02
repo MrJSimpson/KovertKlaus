@@ -13,6 +13,7 @@ interface OperationAgent {
   trackingNumber?: string;
   targetUserId?: string;
   user?: {
+    id: string;
     name: string;
     codename?: string;
     streetAddress?: string;
@@ -21,6 +22,7 @@ interface OperationAgent {
     zipCode?: string;
   };
   targetUser?: {
+    id: string;
     name: string;
     codename?: string;
     streetAddress?: string;
@@ -94,12 +96,13 @@ export default function OperationCommandCenterPage() {
   }, [code]);
 
   async function fetchExchangeDetails() {
+    if (!code) return;
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/invitations?code=${code}`);
+      const res = await fetch(`/api/operations?code=${code}`);
       const json = await res.json();
-      if (!res.ok || !json.success) {
+      if (!res.ok || !json.success || !json.data) {
         setError(json.error || 'Operation not found');
       } else {
         setOperation(json.data);

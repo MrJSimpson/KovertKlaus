@@ -6,9 +6,39 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const code = searchParams.get('code');
 
+    // Case 1: Fetch single operation by unique invite code (e.g. KOVERT-87WZ)
+    if (code) {
+      const operation = await db.mission.findUnique({
+        where: { code: code.trim().toUpperCase() },
+        include: {
+          opsLeader: {
+            select: { id: true, name: true, codename: true },
+          },
+          agents: {
+            include: {
+              user: {
+                select: { id: true, name: true, codename: true, streetAddress: true, city: true, state: true, zipCode: true },
+              },
+              targetUser: {
+                select: { id: true, name: true, codename: true, streetAddress: true, city: true, state: true, zipCode: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (!operation) {
+        return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({ success: true, data: operation });
+    }
+
+    // Case 2: Fetch all operations enrolled/owned by a user
     if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'User ID or Operation Code is required' }, { status: 400 });
     }
 
     const operations = await db.mission.findMany({
@@ -38,10 +68,66 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, config } = body as { userId: string; config: CreateOperationInput };
+    const { userId, config, action, operationId } = body as {
+      userId: string;
+      config?: CreateOperationInput;
+      action?: string;
+      operationId?: string;
+    };
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    // Action: Trigger Sattolo Target Draw for Secret Santa
+    if (action === 'draw' && operationId) {
+      const op = await db.mission.findUnique({
+        where: { id: operationId },
+        include: { agents: true },
+      });
+
+      if (!op) {
+        return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+      }
+
+      if (op.opsLeaderId !== userId) {
+        return NextResponse.json({ error: 'Only the OpsLeader can trigger target draws' }, { status: 403 });
+      }
+
+      if (op.agents.length < 2) {
+        return NextResponse.json({ error: 'At least 2 agents are required to execute a target draw' }, { status: 400 });
+      }
+
+      // Execute Sattolo's Derangement Algorithm
+      const agentIds = op.agents.map((a: { id: string; userId: string }) => a.userId);
+      const shuffled = [...agentIds];
+      
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * i);
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      // Update Target Assignments in DB
+      for (let i = 0; i < op.agents.length; i++) {
+        const agent = op.agents[i];
+        const targetUserId = shuffled[i];
+        await db.missionAgent.update({
+          where: { id: agent.id },
+          data: { targetUserId },
+        });
+      }
+
+      // Update Operation Status to ASSIGNED
+      await db.mission.update({
+        where: { id: operationId },
+        data: { status: 'ASSIGNED' },
+      });
+
+      return NextResponse.json({ success: true, message: 'Target assignments completed via Sattolo algorithm' });
+    }
+
+    if (!config) {
+      return NextResponse.json({ error: 'Configuration input is required' }, { status: 400 });
     }
 
     // Validate Configuration
@@ -72,11 +158,9 @@ export async function POST(request: Request) {
       });
 
       if (!existingAnnualOp) {
-        // First Operation of the year is FREE!
         paymentStatus = 'FREE_ANNUAL';
         isFreeAnnualOp = true;
       } else {
-        // Subsequent Operations in the same year require $5 payment
         paymentStatus = 'PAID';
         isFreeAnnualOp = false;
       }
