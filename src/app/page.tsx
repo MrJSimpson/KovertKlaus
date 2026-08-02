@@ -3,9 +3,69 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+// Charlie Brown Retro Christmas Lights Strand
+function ChristmasLightsStrand() {
+  const bulbs = [
+    { color: 'bg-red-500 shadow-red-500/90', delay: '0s' },
+    { color: 'bg-emerald-500 shadow-emerald-500/90', delay: '0.4s' },
+    { color: 'bg-amber-400 shadow-amber-400/90', delay: '0.8s' },
+    { color: 'bg-sky-400 shadow-sky-400/90', delay: '0.2s' },
+    { color: 'bg-pink-500 shadow-pink-500/90', delay: '0.6s' },
+    { color: 'bg-emerald-400 shadow-emerald-400/90', delay: '1s' },
+    { color: 'bg-red-600 shadow-red-600/90', delay: '0.3s' },
+    { color: 'bg-amber-300 shadow-amber-300/90', delay: '0.7s' },
+    { color: 'bg-blue-500 shadow-blue-500/90', delay: '0.5s' },
+    { color: 'bg-rose-500 shadow-rose-500/90', delay: '0.9s' },
+  ];
+
+  return (
+    <div className="w-full bg-slate-950/90 border-b border-slate-800/80 py-1 overflow-hidden select-none">
+      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center gap-2">
+        {Array.from({ length: 28 }).map((_, i) => {
+          const bulb = bulbs[i % bulbs.length];
+          return (
+            <div key={i} className="flex flex-col items-center">
+              {/* String socket */}
+              <div className="w-1.5 h-1.5 bg-slate-700 rounded-t-sm"></div>
+              {/* Teardrop Bulb */}
+              <div
+                className={`w-2.5 h-3.5 rounded-b-full shadow-md animate-pulse transition-all ${bulb.color}`}
+                style={{ animationDelay: bulb.delay, animationDuration: '1.8s' }}
+              ></div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Playful / "Charlie Brown" Cute Christmas Tree Artwork
+function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
+  return (
+    <div className="relative inline-flex flex-col items-center group cursor-pointer">
+      {/* Shining Star */}
+      <div className="text-amber-400 animate-bounce text-lg leading-none filter drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+        ⭐
+      </div>
+      {/* Tree Branches (slightly leaning, charmingly simple) */}
+      <div className="text-center font-black leading-none select-none text-2xl tracking-tighter filter drop-shadow-md">
+        <div className="text-emerald-600 dark:text-emerald-400 hover:scale-110 transition-transform">▲</div>
+        <div className="text-emerald-700 dark:text-emerald-500 hover:scale-110 transition-transform -mt-2">▲▲</div>
+        <div className="text-emerald-800 dark:text-emerald-600 hover:scale-110 transition-transform -mt-2.5">▲▲▲</div>
+      </div>
+      {/* Single Red Bauble Ornament hanging off the sparse branch */}
+      <div className="absolute right-1 top-6 text-[10px] animate-pulse">
+        🔴
+      </div>
+      {/* Little Wooden Stand */}
+      <div className="w-3 h-2 bg-amber-900 rounded-b-sm border-t border-amber-950 mt-0.5"></div>
+      <div className="w-6 h-1 bg-amber-950 rounded-full mt-0.5 opacity-60"></div>
+    </div>
+  );
+}
+
 export default function Home() {
-  // Light Mode by default (Christmas Red & Evergreen).
-  // Dark Mode switches to Icy Winter Night (Light Blue & Silver).
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -18,6 +78,9 @@ export default function Home() {
         : 'bg-stone-50 text-slate-900 selection:bg-red-600 selection:text-white'
     }`}>
       
+      {/* Charlie Brown Glowing Christmas Lights Strand */}
+      <ChristmasLightsStrand />
+
       {/* Announcement / Welcome Banner */}
       <div className={`text-xs py-2 px-4 text-center font-medium transition-colors ${
         isDarkMode
@@ -108,17 +171,25 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 pt-12 pb-20 w-full flex-1 flex flex-col justify-center">
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 pt-10 pb-20 w-full flex-1 flex flex-col justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
-          {/* Left Column: Hero Copy */}
-          <div className="lg:col-span-7 space-y-6 text-left">
-            <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
-              isDarkMode
-                ? 'bg-slate-900 text-sky-400 border border-sky-500/30'
-                : 'bg-emerald-100/80 text-emerald-900 border border-emerald-300'
-            }`}>
-              <span>{isDarkMode ? '❄️ Winter Night Stealth Mode Active' : '🎅 Secret Santa & Holiday Gift Exchanges Made Effortless'}</span>
+          {/* Left Column: Hero Copy + Joke-Sized Tree */}
+          <div className="lg:col-span-7 space-y-6 text-left relative">
+            
+            <div className="flex items-center justify-between">
+              <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                isDarkMode
+                  ? 'bg-slate-900 text-sky-400 border border-sky-500/30'
+                  : 'bg-emerald-100/80 text-emerald-900 border border-emerald-300'
+              }`}>
+                <span>{isDarkMode ? '❄️ Winter Night Stealth Mode Active' : '🎅 Secret Santa & Holiday Gift Exchanges Made Effortless'}</span>
+              </div>
+
+              {/* Charlie Brown Joke-Sized Tree Artwork */}
+              <div className="hidden sm:block">
+                <CharlieBrownTree isDarkMode={isDarkMode} />
+              </div>
             </div>
 
             <h1 className={`text-4xl sm:text-6xl font-black tracking-tight leading-tight ${
