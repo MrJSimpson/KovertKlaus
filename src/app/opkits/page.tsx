@@ -59,13 +59,12 @@ export default function OpKitsPage() {
     }
 
     try {
-      const res = await fetch(`/api/users/me?userId=${userId}`);
+      const res = await fetch(`/api/opkits?userId=${userId}`);
       const json = await res.json();
-      if (json.success && json.user) {
-        const wishlists: OpKit[] = json.user.wishlists || [];
-        setOpKits(wishlists);
-        if (wishlists.length > 0 && !selectedOpKitId) {
-          setSelectedOpKitId(wishlists[0].id);
+      if (json.success && json.opKits) {
+        setOpKits(json.opKits);
+        if (json.opKits.length > 0 && !selectedOpKitId) {
+          setSelectedOpKitId(json.opKits[0].id);
         }
       }
     } catch {
@@ -85,43 +84,71 @@ export default function OpKitsPage() {
     const userId = localStorage.getItem('kovertklaus_user_id');
     if (!userId) return;
 
-    const newKit: OpKit = {
-      id: Math.random().toString(36).substring(2, 9),
-      name: newOpKitName.trim(),
-      isMaster: false,
-      type: newOpKitType,
-      createdAt: new Date().toISOString(),
-      opTools: [],
-    };
-
-    setOpKits((prev) => [...prev, newKit]);
-    setSelectedOpKitId(newKit.id);
-    setNewOpKitName('');
-    setCreateModalOpen(false);
+    try {
+      const res = await fetch('/api/opkits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          name: newOpKitName.trim(),
+          type: newOpKitType,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.opKit) {
+        setOpKits((prev) => [...prev, json.opKit]);
+        setSelectedOpKitId(json.opKit.id);
+      }
+    } catch {
+      console.error('Failed to create OpKit');
+    } finally {
+      setNewOpKitName('');
+      setCreateModalOpen(false);
+    }
   }
 
   // Handle OpKit Renaming
-  function handleRenameOpKit(id: string) {
+  async function handleRenameOpKit(id: string) {
     if (!editingName.trim()) return;
-    setOpKits((prev) =>
-      prev.map((k) => (k.id === id ? { ...k, name: editingName.trim() } : k))
-    );
+    const cleanName = editingName.trim();
+    const userId = localStorage.getItem('kovertklaus_user_id');
     setEditingOpKitId(null);
     setEditingName('');
+
+    try {
+      await fetch('/api/opkits', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, wishlistId: id, name: cleanName }),
+      });
+      setOpKits((prev) =>
+        prev.map((k) => (k.id === id ? { ...k, name: cleanName } : k))
+      );
+    } catch {
+      console.error('Failed to rename OpKit');
+    }
   }
 
   // Handle OpKit Deletion
-  function handleDeleteOpKit(id: string) {
+  async function handleDeleteOpKit(id: string) {
     const kit = opKits.find((k) => k.id === id);
     if (kit?.isMaster) {
       alert('The Master OpKit cannot be deleted as it serves as your default inventory!');
       return;
     }
     if (confirm(`Are you sure you want to delete "${kit?.name}"?`)) {
-      const remaining = opKits.filter((k) => k.id !== id);
-      setOpKits(remaining);
-      if (selectedOpKitId === id && remaining.length > 0) {
-        setSelectedOpKitId(remaining[0].id);
+      const userId = localStorage.getItem('kovertklaus_user_id');
+      try {
+        await fetch(`/api/opkits?wishlistId=${id}&userId=${userId}`, {
+          method: 'DELETE',
+        });
+        const remaining = opKits.filter((k) => k.id !== id);
+        setOpKits(remaining);
+        if (selectedOpKitId === id && remaining.length > 0) {
+          setSelectedOpKitId(remaining[0].id);
+        }
+      } catch {
+        console.error('Failed to delete OpKit');
       }
     }
   }
@@ -138,61 +165,73 @@ export default function OpKitsPage() {
       return;
     }
 
+    const userId = localStorage.getItem('kovertklaus_user_id');
     setScraping(true);
+
     try {
-      const res = await fetch('/api/scraper', {
+      const scraperRes = await fetch('/api/scraper', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: opToolUrl.trim() }),
       });
+      const scraperJson = await scraperRes.json();
+
+      const title = scraperJson.success && scraperJson.metadata?.title ? scraperJson.metadata.title : opToolUrl.trim();
+      const price = scraperJson.metadata?.price;
+      const thumbnail = scraperJson.metadata?.thumbnail;
+
+      const res = await fetch('/api/opkits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_optool',
+          userId,
+          wishlistId: selectedOpKit.id,
+          url: opToolUrl.trim(),
+          title,
+          price,
+          thumbnail,
+        }),
+      });
       const json = await res.json();
 
-      const newItem: OpTool = {
-        id: Math.random().toString(36).substring(2, 9),
-        title: json.success && json.metadata?.title ? json.metadata.title : opToolUrl.trim(),
-        price: json.metadata?.price,
-        thumbnail: json.metadata?.thumbnail,
-        url: opToolUrl.trim(),
-      };
-
-      setOpKits((prev) =>
-        prev.map((k) =>
-          k.id === selectedOpKit.id
-            ? { ...k, opTools: [...k.opTools, newItem] }
-            : k
-        )
-      );
+      if (json.success && json.opTool) {
+        setOpKits((prev) =>
+          prev.map((k) =>
+            k.id === selectedOpKit.id
+              ? { ...k, opTools: [...k.opTools, json.opTool] }
+              : k
+          )
+        );
+      }
       setOpToolUrl('');
     } catch {
-      const fallbackItem: OpTool = {
-        id: Math.random().toString(36).substring(2, 9),
-        title: opToolUrl.trim(),
-        url: opToolUrl.trim(),
-      };
-      setOpKits((prev) =>
-        prev.map((k) =>
-          k.id === selectedOpKit.id
-            ? { ...k, opTools: [...k.opTools, fallbackItem] }
-            : k
-        )
-      );
-      setOpToolUrl('');
+      setValidationError('Failed to add OpTool item');
     } finally {
       setScraping(false);
     }
   }
 
   // Remove OpTool
-  function handleRemoveOpTool(opToolId: string) {
+  async function handleRemoveOpTool(opToolId: string) {
     if (!selectedOpKit) return;
+    const userId = localStorage.getItem('kovertklaus_user_id');
     setValidationError('');
-    setOpKits((prev) =>
-      prev.map((k) =>
-        k.id === selectedOpKit.id
-          ? { ...k, opTools: k.opTools.filter((t) => t.id !== opToolId) }
-          : k
-      )
-    );
+
+    try {
+      await fetch(`/api/opkits?itemId=${opToolId}&userId=${userId}`, {
+        method: 'DELETE',
+      });
+      setOpKits((prev) =>
+        prev.map((k) =>
+          k.id === selectedOpKit.id
+            ? { ...k, opTools: k.opTools.filter((t) => t.id !== opToolId) }
+            : k
+        )
+      );
+    } catch {
+      console.error('Failed to remove OpTool');
+    }
   }
 
   const filteredOpKits = opKits.filter((k) =>

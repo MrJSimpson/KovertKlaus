@@ -88,7 +88,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch(`/api/users/me?userId=${userId}`);
       const json = await res.json();
-      if (!res.ok || !json.success || !json.user) {
+      if (!res.ok || (!json.success && !json.authenticated) || !json.user) {
         localStorage.removeItem('kovertklaus_user_id');
         router.push('/');
         return;
@@ -145,31 +145,54 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!user || !newOpKitName.trim()) return;
 
-    const newKit: OpKit = {
-      id: Math.random().toString(36).substring(2, 9),
-      name: newOpKitName.trim(),
-      isMaster: false,
-      type: newOpKitType,
-      createdAt: new Date().toISOString(),
-      opTools: [],
-    };
-
-    setUser((prev) => (prev ? { ...prev, wishlists: [...prev.wishlists, newKit] } : prev));
-    setNewOpKitName('');
-    setCreateOpKitModalOpen(false);
+    try {
+      const res = await fetch('/api/opkits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          name: newOpKitName.trim(),
+          type: newOpKitType,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.opKit) {
+        setUser((prev) => (prev ? { ...prev, wishlists: [...prev.wishlists, json.opKit] } : prev));
+      }
+    } catch {
+      console.error('Failed to create OpKit');
+    } finally {
+      setNewOpKitName('');
+      setCreateOpKitModalOpen(false);
+    }
   }
 
   // Handle Quick Inline OpKit Rename
-  function handleRenameQuickOpKit(id: string) {
+  async function handleRenameQuickOpKit(id: string) {
     if (!editingOpKitName.trim() || !user) return;
-    setUser({
-      ...user,
-      wishlists: user.wishlists.map((k) =>
-        k.id === id ? { ...k, name: editingOpKitName.trim() } : k
-      ),
-    });
+    const cleanName = editingOpKitName.trim();
     setEditingOpKitId(null);
     setEditingOpKitName('');
+
+    try {
+      await fetch('/api/opkits', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          wishlistId: id,
+          name: cleanName,
+        }),
+      });
+      setUser({
+        ...user,
+        wishlists: user.wishlists.map((k) =>
+          k.id === id ? { ...k, name: cleanName } : k
+        ),
+      });
+    } catch {
+      console.error('Failed to rename OpKit');
+    }
   }
 
   // Capped OpKits (Max 5 items, Master Pinned First)
@@ -342,8 +365,8 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="mt-6 flex items-center justify-between pt-3 border-t border-stone-200 dark:border-slate-800">
-                        <span className="text-xs text-slate-400">
-                          Role: <strong className="text-slate-700 dark:text-slate-200">{p.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}</strong>
+                        <span className="text-xs font-semibold text-slate-500">
+                          Role: <strong className="text-slate-900 dark:text-slate-100 font-bold">{p.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}</strong>
                         </span>
 
                         <Link
@@ -389,8 +412,23 @@ export default function DashboardPage() {
               </div>
 
               {/* OpKits Display Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recentOpKits.map((kit) => (
+              {recentOpKits.length === 0 ? (
+                <div className={`p-8 text-center rounded-3xl border ${theme.cardBg}`}>
+                  <div className="text-3xl mb-2">🧰</div>
+                  <h3 className="text-base font-bold mb-1">No OpKits Created Yet</h3>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Create your first OpKit wishlist to add wished-for gift items for your Secret Santa.
+                  </p>
+                  <button
+                    onClick={() => setCreateOpKitModalOpen(true)}
+                    className={`px-5 py-2.5 text-xs font-bold rounded-xl shadow-md ${theme.btnPrimary}`}
+                  >
+                    + Create OpKit Wish List
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {recentOpKits.map((kit) => (
                   <div
                     key={kit.id}
                     className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all ${theme.cardBg}`}
@@ -459,6 +497,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
 
           </>
