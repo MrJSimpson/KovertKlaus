@@ -186,7 +186,7 @@ export async function POST(request: Request) {
         currency: config.currency || 'USD',
         inviteCutoffDate: new Date(config.inviteCutoffDate),
         assignmentDate: new Date(config.assignmentDate),
-        shippingDate: config.shippingDate ? new Date(config.shippingDate) : null,
+        shippingDate: new Date(config.shippingDate),
         executionDate: new Date(config.executionDate),
         isFreeAnnualOp,
         paymentStatus,
@@ -217,5 +217,65 @@ export async function POST(request: Request) {
     });
   } catch {
     return NextResponse.json({ error: 'Failed to create operation' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { userId, operationId, dates } = body as {
+      userId: string;
+      operationId: string;
+      dates: {
+        inviteCutoffDate: string;
+        assignmentDate: string;
+        shippingDate: string;
+        executionDate: string;
+      };
+    };
+
+    if (!userId || !operationId || !dates) {
+      return NextResponse.json({ error: 'userId, operationId, and dates are required' }, { status: 400 });
+    }
+
+    const op = await db.mission.findUnique({
+      where: { id: operationId },
+    });
+
+    if (!op) {
+      return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+    }
+
+    if (op.opsLeaderId !== userId) {
+      return NextResponse.json({ error: 'Only the OpsLeader can update operational dates' }, { status: 403 });
+    }
+
+    // Validate Date Sequence and Range Limits
+    const validation = validateOperationConfig({
+      title: op.title,
+      giftingType: op.giftingType as any,
+      isLocalOnly: op.isLocalOnly,
+      isWhiteElephant: op.isWhiteElephant,
+      budgetMax: Number(op.budgetMax),
+      ...dates,
+    });
+
+    if (!validation.isValid) {
+      return NextResponse.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
+    }
+
+    const updatedOperation = await db.mission.update({
+      where: { id: operationId },
+      data: {
+        inviteCutoffDate: new Date(dates.inviteCutoffDate),
+        assignmentDate: new Date(dates.assignmentDate),
+        shippingDate: new Date(dates.shippingDate),
+        executionDate: new Date(dates.executionDate),
+      },
+    });
+
+    return NextResponse.json({ success: true, data: updatedOperation });
+  } catch {
+    return NextResponse.json({ error: 'Failed to update operation dates' }, { status: 500 });
   }
 }

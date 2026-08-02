@@ -15,7 +15,7 @@ export interface CreateOperationInput {
   currency?: string;
   inviteCutoffDate: string | Date; // Go/No-Go Date
   assignmentDate: string | Date;   // Target Assignment Date
-  shippingDate: string | Date;     // Gift Shipping Deadline (Required for all operations)
+  shippingDate: string | Date;     // Gift Shipping Deadline
   executionDate: string | Date;    // Exchange Execution Date
 }
 
@@ -37,7 +37,7 @@ export function calculateAutomaticOperationDates(executionDateInput: string | Da
 
   const totalTimeMs = execDate.getTime() - now.getTime();
   
-  // If execution date is in the past or today, fallback to 1-day offsets
+  // If execution date is in the past or today, fallback to today
   if (totalTimeMs <= 0) {
     const execIso = execDate.toISOString().split('T')[0];
     return {
@@ -91,27 +91,39 @@ export function validateOperationConfig(input: CreateOperationInput): { isValid:
   if (!input.shippingDate) errors.push('Gift Shipping Deadline is required.');
   if (!input.executionDate) errors.push('Execution Date is required.');
 
-  // Date Parsing & Sequence Validations
+  // Date Parsing
   const cutoff = new Date(input.inviteCutoffDate);
   const assignment = new Date(input.assignmentDate);
   const shipping = new Date(input.shippingDate);
   const execution = new Date(input.executionDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   if (isNaN(cutoff.getTime())) errors.push('Invalid Go/No-Go Date (Invite Cutoff).');
   if (isNaN(assignment.getTime())) errors.push('Invalid Assignment Date.');
   if (isNaN(shipping.getTime())) errors.push('Invalid Shipping Date.');
   if (isNaN(execution.getTime())) errors.push('Invalid Execution Date.');
 
+  // Strict Range Enforcement: Dates cannot be before current day or after execution day
+  if (cutoff < today) {
+    errors.push('Go/No-Go Date cannot be set prior to today.');
+  }
+
+  if (cutoff > execution || assignment > execution || shipping > execution) {
+    errors.push('Operational timeline dates cannot be scheduled after the Execution Date.');
+  }
+
+  // Sequence Order Validation
   if (cutoff > assignment) {
-    errors.push('Go/No-Go Date (Invite Cutoff) cannot be after Assignment Date.');
+    errors.push('Go/No-Go Date (Invite Cutoff) cannot be set after Target Assignment Date.');
   }
 
-  if (assignment >= shipping) {
-    errors.push('Assignment Date must be before Shipping Date.');
+  if (assignment > shipping) {
+    errors.push('Target Assignment Date cannot be set after Gift Shipping Deadline.');
   }
 
-  if (shipping >= execution) {
-    errors.push('Shipping Date must be before Execution Date.');
+  if (shipping > execution) {
+    errors.push('Gift Shipping Deadline cannot be set after Exchange Execution Date.');
   }
 
   return {

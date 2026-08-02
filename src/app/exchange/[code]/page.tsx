@@ -73,6 +73,15 @@ export default function OperationCommandCenterPage() {
   const [drawingTargets, setDrawingTargets] = useState(false);
   const [drawSuccessMessage, setDrawSuccessMessage] = useState('');
 
+  // OpsLeader Date Editor Modal State
+  const [editDatesModalOpen, setEditDatesModalOpen] = useState(false);
+  const [editCutoffDate, setEditCutoffDate] = useState('');
+  const [editAssignDate, setEditAssignDate] = useState('');
+  const [editShipDate, setEditShipDate] = useState('');
+  const [editExecDate, setEditExecDate] = useState('');
+  const [savingDates, setSavingDates] = useState(false);
+  const [dateError, setDateError] = useState('');
+
   // OpKit & OpTools Scraper State
   const [opToolUrl, setOpToolUrl] = useState('');
   const [scraping, setScraping] = useState(false);
@@ -106,11 +115,58 @@ export default function OperationCommandCenterPage() {
         setError(json.error || 'Operation not found');
       } else {
         setOperation(json.data);
+        populateDateForm(json.data);
       }
     } catch {
       setError('Failed to load operation details');
     } finally {
       setLoading(false);
+    }
+  }
+
+  function populateDateForm(op: OperationData) {
+    setEditCutoffDate(new Date(op.inviteCutoffDate).toISOString().split('T')[0]);
+    setEditAssignDate(new Date(op.assignmentDate).toISOString().split('T')[0]);
+    setEditShipDate(op.shippingDate ? new Date(op.shippingDate).toISOString().split('T')[0] : '');
+    setEditExecDate(new Date(op.executionDate).toISOString().split('T')[0]);
+  }
+
+  // Handle Save Dates (OpsLeader Only)
+  async function handleSaveDates(e: React.FormEvent) {
+    e.preventDefault();
+    if (!operation || !userId) return;
+
+    setSavingDates(true);
+    setDateError('');
+
+    try {
+      const res = await fetch('/api/operations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          operationId: operation.id,
+          dates: {
+            inviteCutoffDate: editCutoffDate,
+            assignmentDate: editAssignDate,
+            shippingDate: editShipDate,
+            executionDate: editExecDate,
+          },
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        const detailMsg = json.details?.join(' ') || json.error;
+        throw new Error(detailMsg || 'Failed to update timeline dates');
+      }
+
+      setEditDatesModalOpen(false);
+      fetchExchangeDetails();
+    } catch (err: any) {
+      setDateError(err.message || 'Update failed');
+    } finally {
+      setSavingDates(false);
     }
   }
 
@@ -203,6 +259,7 @@ export default function OperationCommandCenterPage() {
   const currentAgent = operation?.agents.find((a) => a.userId === userId);
   const isOpsLeader = operation?.opsLeaderId === userId || currentAgent?.role === 'OPS_LEADER';
   const assignedTarget = currentAgent?.targetUser;
+  const todayStr = new Date().toISOString().split('T')[0];
 
   return (
     <div className={`min-h-screen transition-colors duration-300 font-sans ${
@@ -320,9 +377,21 @@ export default function OperationCommandCenterPage() {
             <div className={`p-6 rounded-3xl border shadow-md ${
               isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
             }`}>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-4">
-                📅 4-Stage Required Operational Timeline
-              </span>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                  📅 4-Stage Required Operational Timeline
+                </span>
+                {isOpsLeader && (
+                  <button
+                    onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                      isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 hover:border-sky-500/40' : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
+                    }`}
+                  >
+                    ✏️ Adjust Timeline Dates
+                  </button>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
                 <div className={`p-4 rounded-2xl border ${
@@ -413,6 +482,13 @@ export default function OperationCommandCenterPage() {
                       {drawingTargets ? 'Executing Draw...' : '🎯 Trigger Target Assignment Draw'}
                     </button>
                   )}
+
+                  <button
+                    onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
+                    className="px-4 py-2.5 rounded-xl font-bold text-xs bg-stone-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-stone-300 cursor-pointer"
+                  >
+                    ✏️ Edit Operational Timeline Dates
+                  </button>
 
                   <button
                     onClick={() => alert(`Operation Code: ${operation.code}\nAgents Enrolled: ${operation.agents.length}`)}
@@ -663,6 +739,114 @@ export default function OperationCommandCenterPage() {
         ) : null}
 
       </main>
+
+      {/* MODAL: OPSLEADER EDIT TIMELINE DATES */}
+      {editDatesModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
+            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-black flex items-center gap-2">
+                <span>✏️ Adjust Operational Timeline</span>
+              </h3>
+              <button onClick={() => setEditDatesModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-4">
+              As OpsLeader, customize timeline dates for this operation. All dates MUST fall between current day and Execution Date.
+            </p>
+
+            {dateError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-xs font-bold">
+                ⚠️ {dateError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveDates} className="space-y-4 text-xs font-semibold">
+              <div>
+                <label className="block text-slate-500 mb-1">Stage 1: Go/No-Go Date (Invite Cutoff) *</label>
+                <input
+                  type="date"
+                  required
+                  min={todayStr}
+                  max={editExecDate || undefined}
+                  value={editCutoffDate}
+                  onChange={(e) => setEditCutoffDate(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 mb-1">Stage 2: Target Assignment Date (Sattolo Draw) *</label>
+                <input
+                  type="date"
+                  required
+                  min={editCutoffDate || todayStr}
+                  max={editExecDate || undefined}
+                  value={editAssignDate}
+                  onChange={(e) => setEditAssignDate(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 mb-1">Stage 3: Gift Shipping Deadline *</label>
+                <input
+                  type="date"
+                  required
+                  min={editAssignDate || todayStr}
+                  max={editExecDate || undefined}
+                  value={editShipDate}
+                  onChange={(e) => setEditShipDate(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 mb-1">Stage 4: Exchange Execution Date (Event Day) *</label>
+                <input
+                  type="date"
+                  required
+                  min={editShipDate || todayStr}
+                  value={editExecDate}
+                  onChange={(e) => setEditExecDate(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${
+                    isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-stone-50 border-stone-300 text-slate-900'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditDatesModalOpen(false)}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${
+                    isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingDates}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${
+                    isDarkMode ? 'bg-sky-500 hover:bg-sky-400 text-slate-950' : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  {savingDates ? 'Saving...' : 'Save Timeline'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
