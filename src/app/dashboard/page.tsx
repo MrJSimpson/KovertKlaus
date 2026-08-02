@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatCodename, formatDateString } from '@/lib/security';
+import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
 import { getThemeClasses } from '@/lib/theme';
 
 interface OpKit {
@@ -349,18 +349,37 @@ export default function DashboardPage() {
                         <h3 className="text-xl font-black mt-2">{p.mission.title}</h3>
                         
                         <div className={`mt-3 p-3.5 rounded-2xl border space-y-1.5 text-xs ${theme.cardInnerBg}`}>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between items-center">
                             <span className="text-slate-400">Budget Range:</span>
                             <strong className={theme.textAccent}>
                               ${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}
                             </strong>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between items-center">
                             <span className="text-slate-400">Exchange Day:</span>
                             <strong className={theme.textDate}>
                               {formatDateString(p.mission.executionDate)}
                             </strong>
                           </div>
+                          {(() => {
+                            const countdown = getNextMilestoneCountdown(p.mission);
+                            return (
+                              <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 dark:border-slate-800/80">
+                                <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                                  ⏳ Next Step ({countdown.label}):
+                                </span>
+                                <span className={`font-mono font-bold px-2 py-0.5 rounded-md text-[11px] ${
+                                  countdown.isPast
+                                    ? 'bg-stone-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                    : countdown.daysLeft <= 7
+                                    ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                                    : 'bg-sky-100 dark:bg-sky-950/80 text-sky-900 dark:text-sky-300 border border-sky-300 dark:border-sky-800'
+                                }`}>
+                                  {countdown.formattedText}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
 
