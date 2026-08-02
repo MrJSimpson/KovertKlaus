@@ -156,10 +156,15 @@ export default function Home() {
         userId = regData.data.id;
       }
 
-      // Create Operation
-      const today = new Date();
-      const cutoff = new Date(today.setDate(today.getDate() + 14)).toISOString().split('T')[0];
-      const assign = new Date(today.setDate(today.getDate() + 15)).toISOString().split('T')[0];
+      // Calculate Valid Sequential Dates Based on Execution Date
+      const execDateObj = new Date(executionDate);
+      const shipDateObj = new Date(execDateObj.getTime() - 5 * 24 * 60 * 60 * 1000); // 5 days prior
+      const assignDateObj = new Date(execDateObj.getTime() - 10 * 24 * 60 * 60 * 1000); // 10 days prior
+      const cutoffDateObj = new Date(execDateObj.getTime() - 12 * 24 * 60 * 60 * 1000); // 12 days prior
+
+      const shippingDateStr = shipDateObj.toISOString().split('T')[0];
+      const assignmentDateStr = assignDateObj.toISOString().split('T')[0];
+      const inviteCutoffDateStr = cutoffDateObj.toISOString().split('T')[0];
 
       const opRes = await fetch('/api/operations', {
         method: 'POST',
@@ -174,8 +179,9 @@ export default function Home() {
             giftingType: 'SINGLE',
             isLocalOnly: false,
             isWhiteElephant: false,
-            inviteCutoffDate: cutoff,
-            assignmentDate: assign,
+            inviteCutoffDate: inviteCutoffDateStr,
+            assignmentDate: assignmentDateStr,
+            shippingDate: shippingDateStr,
             executionDate,
           },
         }),
@@ -183,7 +189,8 @@ export default function Home() {
 
       const opData = await opRes.json();
       if (!opRes.ok || !opData.success) {
-        throw new Error(opData.error || 'Failed to create exchange');
+        const detailMsg = opData.details?.join(' ') || opData.error;
+        throw new Error(detailMsg || 'Failed to create exchange');
       }
 
       setCreateModalOpen(false);
