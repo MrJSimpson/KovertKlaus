@@ -62,10 +62,10 @@ export default function UserDashboardPage() {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
-  // Scraper & Wishlist State
-  const [wishlistUrl, setWishlistUrl] = useState('');
+  // Scraper & Wishlist State (OpKit / OpTools)
+  const [opToolUrl, setOpToolUrl] = useState('');
   const [scraping, setScraping] = useState(false);
-  const [wishlistItems, setWishlistItems] = useState<Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>>([]);
+  const [opTools, setOpTools] = useState<Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>>([]);
 
   useEffect(() => {
     fetchUserProfile();
@@ -162,42 +162,42 @@ export default function UserDashboardPage() {
     router.push('/');
   }
 
-  // Handle Scraper for Master Wishlist
+  // Handle Scraper for Master OpKit (Wishlist) & OpTools (Gift Items)
   async function handleScrapeUrl(e: React.FormEvent) {
     e.preventDefault();
-    if (!wishlistUrl.trim()) return;
+    if (!opToolUrl.trim()) return;
 
     setScraping(true);
     try {
       const res = await fetch('/api/scraper', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: wishlistUrl.trim() }),
+        body: JSON.stringify({ url: opToolUrl.trim() }),
       });
       const json = await res.json();
       if (json.success && json.metadata) {
         const item = {
           id: Math.random().toString(36).substring(2, 9),
-          title: json.metadata.title || 'Wishlist Item',
+          title: json.metadata.title || 'OpTool Gift Item',
           price: json.metadata.price,
           thumbnail: json.metadata.thumbnail,
-          url: wishlistUrl.trim(),
+          url: opToolUrl.trim(),
         };
-        setWishlistItems((prev) => [...prev, item]);
-        setWishlistUrl('');
+        setOpTools((prev) => [...prev, item]);
+        setOpToolUrl('');
       } else {
-        setWishlistItems((prev) => [
+        setOpTools((prev) => [
           ...prev,
-          { id: Math.random().toString(36).substring(2, 9), title: wishlistUrl, url: wishlistUrl },
+          { id: Math.random().toString(36).substring(2, 9), title: opToolUrl, url: opToolUrl },
         ]);
-        setWishlistUrl('');
+        setOpToolUrl('');
       }
     } catch {
-      setWishlistItems((prev) => [
+      setOpTools((prev) => [
         ...prev,
-        { id: Math.random().toString(36).substring(2, 9), title: wishlistUrl, url: wishlistUrl },
+        { id: Math.random().toString(36).substring(2, 9), title: opToolUrl, url: opToolUrl },
       ]);
-      setWishlistUrl('');
+      setOpToolUrl('');
     } finally {
       setScraping(false);
     }
@@ -383,24 +383,27 @@ export default function UserDashboardPage() {
                 </div>
               </div>
 
-              {/* Right Column: Master Wishlist */}
+              {/* Right Column: Master OpKit (Wishlist) & OpTools */}
               <div className="lg:col-span-5 space-y-6">
                 <div className={`p-6 rounded-3xl border shadow-md ${
                   isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
                 }`}>
-                  <h2 className="text-xl font-bold mb-1 flex items-center gap-2">
-                    🛍️ My Master Wishlist
+                  <h2 className="text-xl font-bold mb-0.5 flex items-center gap-2">
+                    🧰 Master OpKit
                   </h2>
+                  <p className="text-xs font-semibold text-red-600 dark:text-sky-400 mb-1">
+                    (OpKit = Your Wishlist | OpTools = Wished-for Gift Items)
+                  </p>
                   <p className="text-xs text-slate-500 mb-6">
-                    Items added here can be shared across all your Secret Santa exchanges.
+                    Add OpTools (gift items) to your master OpKit to share across all Secret Santa exchanges.
                   </p>
 
                   <form onSubmit={handleScrapeUrl} className="flex gap-2 mb-6">
                     <input
                       type="url"
-                      placeholder="Paste product link (Amazon, Target, Etsy, etc.)"
-                      value={wishlistUrl}
-                      onChange={(e) => setWishlistUrl(e.target.value)}
+                      placeholder="Paste OpTool link (Amazon, Target, Etsy, etc.)"
+                      value={opToolUrl}
+                      onChange={(e) => setOpToolUrl(e.target.value)}
                       required
                       className={`flex-1 border rounded-2xl px-3 py-2 text-xs focus:outline-none focus:ring-2 ${
                         isDarkMode
@@ -415,17 +418,17 @@ export default function UserDashboardPage() {
                         isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
                       }`}
                     >
-                      {scraping ? '...' : '+ Add'}
+                      {scraping ? '...' : '+ Add OpTool'}
                     </button>
                   </form>
 
-                  {wishlistItems.length === 0 ? (
+                  {opTools.length === 0 ? (
                     <div className="text-center py-8 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-2xl">
-                      <p className="text-xs text-slate-500">No master wishlist items saved yet.</p>
+                      <p className="text-xs text-slate-500">No OpTools added to your OpKit yet.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {wishlistItems.map((item) => (
+                      {opTools.map((item) => (
                         <div key={item.id} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${
                           isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
                         }`}>
@@ -440,7 +443,7 @@ export default function UserDashboardPage() {
                             </a>
                           </div>
                           <button
-                            onClick={() => setWishlistItems((prev) => prev.filter((i) => i.id !== item.id))}
+                            onClick={() => setOpTools((prev) => prev.filter((i) => i.id !== item.id))}
                             className="text-red-500 font-bold hover:underline"
                           >
                             Remove

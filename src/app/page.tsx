@@ -426,7 +426,7 @@ export default function Home() {
             <p className={`text-lg max-w-2xl leading-relaxed ${
               isDarkMode ? 'text-slate-300' : 'text-slate-700'
             }`}>
-              Bring your family, friends, or co-workers together! Create a gift exchange in 60 seconds, share universal wishlists, and enjoy a completely stress-free experience from start to delivery.
+              Bring your family, friends, or co-workers together! Create a gift exchange in 60 seconds, build your custom OpKit with OpTools, and enjoy a completely stress-free experience from start to delivery.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-4">
@@ -461,8 +461,8 @@ export default function Home() {
                 <span>No complicated setup</span>
               </div>
               <div>
-                <span className={`block font-bold text-sm ${isDarkMode ? 'text-slate-200' : 'text-emerald-900'}`}>🎁 Easy Wishlists</span>
-                <span>Add items from any site</span>
+                <span className={`block font-bold text-sm ${isDarkMode ? 'text-slate-200' : 'text-emerald-900'}`}>🧰 Easy OpKits</span>
+                <span>Add OpTools from any store</span>
               </div>
               <div>
                 <span className={`block font-bold text-sm ${isDarkMode ? 'text-sky-400' : 'text-red-700'}`}>🚚 Shipping Updates</span>
@@ -516,12 +516,12 @@ export default function Home() {
                   <div className="mt-2 flex items-center justify-between">
                     <div>
                       <span className={`text-lg font-bold block ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Agent-Sarah</span>
-                      <span className="text-xs text-slate-500">Wishlist: 3 Items Attached</span>
+                      <span className="text-xs text-slate-500">OpKit: 3 OpTools Attached</span>
                     </div>
                     <span className={`text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm ${
                       isDarkMode ? 'bg-sky-500 text-slate-950' : 'bg-red-600 text-white'
                     }`}>
-                      View Wishlist →
+                      View OpKit →
                     </span>
                   </div>
                 </div>
