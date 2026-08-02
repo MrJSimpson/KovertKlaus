@@ -1,17 +1,22 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSessionUserId } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const sessionUserId = await getSessionUserId();
+
     const { operationId, requesterUserId } = body as {
       operationId: string;
-      requesterUserId: string;
+      requesterUserId?: string;
     };
 
-    if (!operationId || !requesterUserId) {
+    const activeUserId = sessionUserId || requesterUserId;
+
+    if (!operationId || !activeUserId) {
       return NextResponse.json(
-        { error: 'operationId and requesterUserId are required' },
+        { error: 'Authentication and operationId are required' },
         { status: 400 }
       );
     }
@@ -32,7 +37,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
     }
 
-    if (operation.opsLeaderId !== requesterUserId) {
+    if (operation.opsLeaderId !== activeUserId) {
       return NextResponse.json(
         { error: 'Only the designated OpsLeader can execute the audit engine.' },
         { status: 403 }

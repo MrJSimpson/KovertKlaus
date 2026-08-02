@@ -1,18 +1,23 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSessionUserId } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { operationId, userId, isLocalDelivery, trackingNumber } = body as {
+    const sessionUserId = await getSessionUserId();
+
+    const { operationId, userId: bodyUserId, isLocalDelivery, trackingNumber } = body as {
       operationId: string;
-      userId: string;
+      userId?: string;
       isLocalDelivery?: boolean;
       trackingNumber?: string;
     };
 
-    if (!operationId || !userId) {
-      return NextResponse.json({ error: 'operationId and userId are required' }, { status: 400 });
+    const activeUserId = sessionUserId || bodyUserId;
+
+    if (!operationId || !activeUserId) {
+      return NextResponse.json({ error: 'Authentication and operationId are required' }, { status: 400 });
     }
 
     // Find agent participation
@@ -20,7 +25,7 @@ export async function POST(request: Request) {
       where: {
         missionId_userId: {
           missionId: operationId,
-          userId,
+          userId: activeUserId,
         },
       },
     });
