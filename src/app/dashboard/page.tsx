@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatCodename } from '@/lib/security';
+import { formatCodename, formatDateString } from '@/lib/security';
 
 interface OpKit {
   id: string;
@@ -445,7 +445,7 @@ export default function UserDashboardPage() {
 
                           <h3 className="text-lg font-bold">{p.mission.title}</h3>
                           <p className="text-xs text-slate-500 mt-1">
-                            Budget: <strong>${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}</strong> | Exchange: <strong>{new Date(p.mission.executionDate).toLocaleDateString()}</strong>
+                            Budget: <strong>${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}</strong> | Exchange: <strong>{formatDateString(p.mission.executionDate)}</strong>
                           </p>
 
                           <div className="mt-4 flex items-center justify-between">

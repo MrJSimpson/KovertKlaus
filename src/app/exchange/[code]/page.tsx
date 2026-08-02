@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatCodename } from '@/lib/security';
+import { formatCodename, formatDateString } from '@/lib/security';
 
 interface OperationAgent {
   id: string;
@@ -373,7 +373,7 @@ export default function OperationCommandCenterPage() {
               </div>
             </div>
 
-            {/* 4-Stage Operational Timeline Cards (HIGH CONTRAST DATES, NO PERCENTAGES) */}
+            {/* 4-Stage Operational Timeline Cards (EXACT ACCURATE LOCAL DATES) */}
             <div className={`p-6 rounded-3xl border shadow-md ${
               isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
             }`}>
@@ -405,7 +405,7 @@ export default function OperationCommandCenterPage() {
                   <strong className={`text-base font-black block mt-2 ${
                     isDarkMode ? 'text-sky-300' : 'text-slate-950'
                   }`}>
-                    {new Date(operation.inviteCutoffDate).toLocaleDateString()}
+                    {formatDateString(operation.inviteCutoffDate)}
                   </strong>
                 </div>
 
@@ -420,7 +420,7 @@ export default function OperationCommandCenterPage() {
                   <strong className={`text-base font-black block mt-2 ${
                     isDarkMode ? 'text-sky-300' : 'text-slate-950'
                   }`}>
-                    {new Date(operation.assignmentDate).toLocaleDateString()}
+                    {formatDateString(operation.assignmentDate)}
                   </strong>
                 </div>
 
@@ -435,7 +435,7 @@ export default function OperationCommandCenterPage() {
                   <strong className={`text-base font-black block mt-2 ${
                     isDarkMode ? 'text-sky-300' : 'text-slate-950'
                   }`}>
-                    {operation.shippingDate ? new Date(operation.shippingDate).toLocaleDateString() : 'N/A'}
+                    {formatDateString(operation.shippingDate)}
                   </strong>
                 </div>
 
@@ -450,7 +450,7 @@ export default function OperationCommandCenterPage() {
                   <strong className={`text-base font-black block mt-2 ${
                     isDarkMode ? 'text-sky-400' : 'text-red-700'
                   }`}>
-                    {new Date(operation.executionDate).toLocaleDateString()}
+                    {formatDateString(operation.executionDate)}
                   </strong>
                 </div>
               </div>

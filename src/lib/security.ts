@@ -31,6 +31,24 @@ export function formatCodename(codename?: string | null, fallbackName?: string |
 }
 
 /**
+ * Formats a Date or ISO string safely in local time without UTC 1-day backward shift.
+ * Example: "2026-12-25" -> "Dec 25, 2026"
+ */
+export function formatDateString(dateInput?: string | Date | null): string {
+  if (!dateInput) return 'N/A';
+  const str = typeof dateInput === 'string' ? dateInput : dateInput.toISOString();
+  const dateOnly = str.split('T')[0];
+  const [year, month, day] = dateOnly.split('-').map(Number);
+  if (!year || !month || !day) return new Date(dateInput).toLocaleDateString();
+  const localDate = new Date(year, month - 1, day);
+  return localDate.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+/**
  * Validates Password Complexity (Minimum 10 Characters):
  * - Must be at least 10 characters in length.
  * - Must contain at least 1 uppercase letter (A-Z).
