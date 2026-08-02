@@ -9,6 +9,7 @@ interface OpKit {
   id: string;
   name: string;
   isMaster: boolean;
+  createdAt: string;
   opTools: Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>;
 }
 
@@ -70,23 +71,30 @@ export default function UserDashboardPage() {
   const [newPassword, setNewPassword] = useState('');
 
   // OpKits Management State
-  const [manageOpKitsModalOpen, setManageOpKitsModalOpen] = useState(false);
-  const [newOpKitName, setNewOpKitName] = useState('');
   const [editingOpKitId, setEditingOpKitId] = useState<string | null>(null);
   const [editOpKitTitle, setEditOpKitTitle] = useState('');
 
-  // Default Master OpKit & Custom OpKits
+  // Default Master OpKit & Recent OpKits
   const [opKits, setOpKits] = useState<OpKit[]>([
     {
       id: 'master-1',
       name: 'Master OpKit',
       isMaster: true,
+      createdAt: new Date().toISOString(),
       opTools: [],
     },
     {
       id: 'holiday-2026',
       name: 'Holiday 2026 Secret Santa OpKit',
       isMaster: false,
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      opTools: [],
+    },
+    {
+      id: 'office-party',
+      name: 'Office White Elephant OpKit',
+      isMaster: false,
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
       opTools: [],
     },
   ]);
@@ -192,22 +200,6 @@ export default function UserDashboardPage() {
     router.push('/');
   }
 
-  // Create New OpKit
-  function handleCreateOpKit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newOpKitName.trim()) return;
-
-    const newKit: OpKit = {
-      id: Math.random().toString(36).substring(2, 9),
-      name: newOpKitName.trim(),
-      isMaster: false,
-      opTools: [],
-    };
-
-    setOpKits((prev) => [...prev, newKit]);
-    setNewOpKitName('');
-  }
-
   // Save Renamed OpKit
   function handleRenameOpKit(id: string) {
     if (!editOpKitTitle.trim()) return;
@@ -273,6 +265,14 @@ export default function UserDashboardPage() {
       )
     );
   }
+
+  // Get 5 Most Recent OpKits (Master Pinned First)
+  const masterKit = opKits.find((k) => k.isMaster);
+  const otherKits = opKits
+    .filter((k) => !k.isMaster)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  
+  const recent5OpKits = masterKit ? [masterKit, ...otherKits.slice(0, 4)] : otherKits.slice(0, 5);
 
   const currentOpKit = opKits.find((k) => k.id === activeOpKitId) || opKits[0];
 
@@ -456,7 +456,7 @@ export default function UserDashboardPage() {
                 </div>
               </div>
 
-              {/* Right Column: OpKits Section */}
+              {/* Right Column: OpKits Section (Limited to 5 Most Recent) */}
               <div className="lg:col-span-5 space-y-6">
                 <div className={`p-6 rounded-3xl border shadow-md ${
                   isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
@@ -466,28 +466,31 @@ export default function UserDashboardPage() {
                       🧰 OpKits
                     </h2>
                     
-                    {/* Top Action Button: Manage All OpKits */}
-                    <button
-                      onClick={() => setManageOpKitsModalOpen(true)}
+                    {/* Top Action Button: Direct Link to Dedicated /opkits Page */}
+                    <Link
+                      href="/opkits"
                       className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
                         isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 hover:border-sky-500/40' : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
                       }`}
                     >
-                      <span>⚙️ Manage All OpKits</span>
-                    </button>
+                      <span>⚙️ Manage All OpKits →</span>
+                    </Link>
                   </div>
 
                   <p className="text-xs font-semibold text-red-600 dark:text-sky-400 mb-4">
                     (OpKit = Your Secret Santa Wishlist | OpTools = Wished-for Gift Items)
                   </p>
 
-                  {/* OpKits List (Master Pinned First) */}
+                  {/* OpKits List (Limited to 5 Recent, Master Pinned First) */}
                   <div className="space-y-2 mb-6">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Select Active OpKit:
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Recent 5 OpKits:
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">Master Pinned First</span>
+                    </div>
 
-                    {opKits.map((kit) => (
+                    {recent5OpKits.map((kit) => (
                       <div
                         key={kit.id}
                         onClick={() => setActiveOpKitId(kit.id)}
@@ -624,72 +627,6 @@ export default function UserDashboardPage() {
         ) : null}
 
       </main>
-
-      {/* MANAGE ALL OPKITS MODAL */}
-      {manageOpKitsModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all ${
-            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-slate-900'
-          }`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-black flex items-center gap-2">
-                <span>⚙️ Manage All OpKits</span>
-              </h3>
-              <button onClick={() => setManageOpKitsModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
-            </div>
-
-            <p className="text-xs text-slate-500 mb-4">
-              Create and organize custom OpKits for different Secret Santa operations, family groups, or holiday parties.
-            </p>
-
-            <form onSubmit={handleCreateOpKit} className="flex gap-2 mb-6">
-              <input
-                type="text"
-                placeholder="New OpKit Name (e.g. Office OpKit)"
-                value={newOpKitName}
-                onChange={(e) => setNewOpKitName(e.target.value)}
-                required
-                className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 ${
-                  isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-sky-400' : 'bg-stone-50 border-stone-300 text-slate-900 focus:ring-red-600'
-                }`}
-              />
-              <button
-                type="submit"
-                className={`px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-sm ${
-                  isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-                }`}
-              >
-                + Create
-              </button>
-            </form>
-
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {opKits.map((kit) => (
-                <div key={kit.id} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${
-                  isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-stone-50 border-stone-200'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <span>{kit.isMaster ? '⭐' : '📦'}</span>
-                    <span className="font-bold">{kit.name} {kit.isMaster && '(Master)'}</span>
-                  </div>
-                  <span className="text-slate-400 font-mono">{kit.opTools.length} OpTools</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-4 text-right">
-              <button
-                onClick={() => setManageOpKitsModalOpen(false)}
-                className={`px-6 py-2.5 rounded-xl font-bold text-xs cursor-pointer ${
-                  isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
-                }`}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ACCOUNT PREFERENCES MODAL */}
       {prefModalOpen && (
