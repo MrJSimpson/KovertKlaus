@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 // Charlie Brown Retro Glowing Christmas Lights Strand
-function ChristmasLightsStrand() {
+function ChristmasLightsStrand({ isDarkMode }: { isDarkMode: boolean }) {
   const bulbs = [
     { color: 'bg-red-500 shadow-red-500/90 ring-red-400/50', delay: '0s' },
     { color: 'bg-emerald-500 shadow-emerald-500/90 ring-emerald-400/50', delay: '0.4s' },
@@ -19,12 +19,16 @@ function ChristmasLightsStrand() {
   ];
 
   return (
-    <div className="w-full bg-slate-900 py-2.5 relative z-50 border-b border-slate-800 shadow-lg overflow-hidden select-none">
-      {/* Wire Strand */}
-      <div className="absolute top-3 left-0 right-0 h-0.5 bg-slate-700 pointer-events-none"></div>
+    <div className={`w-full py-1.5 relative z-30 overflow-hidden select-none transition-colors ${
+      isDarkMode ? 'bg-slate-950/80 border-b border-slate-800/80' : 'bg-transparent'
+    }`}>
+      {/* Hanging Wire Strand */}
+      <div className={`absolute top-2 left-0 right-0 h-0.5 pointer-events-none ${
+        isDarkMode ? 'bg-slate-700' : 'bg-slate-800'
+      }`}></div>
 
       <div className="max-w-7xl mx-auto px-4 flex justify-between items-center relative z-10">
-        {Array.from({ length: 24 }).map((_, i) => {
+        {Array.from({ length: 26 }).map((_, i) => {
           const bulb = bulbs[i % bulbs.length];
           return (
             <div key={i} className="flex flex-col items-center group cursor-pointer">
@@ -81,9 +85,6 @@ export default function Home() {
         : 'bg-stone-50 text-slate-900 selection:bg-red-600 selection:text-white'
     }`}>
       
-      {/* Charlie Brown Glowing Christmas Lights Strand */}
-      <ChristmasLightsStrand />
-
       {/* Announcement / Welcome Banner */}
       <div className={`text-xs py-2 px-4 text-center font-medium transition-colors ${
         isDarkMode
@@ -173,8 +174,11 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Charlie Brown Glowing Christmas Lights Strand - Dangling directly under Header into main page */}
+      <ChristmasLightsStrand isDarkMode={isDarkMode} />
+
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 pt-10 pb-20 w-full flex-1 flex flex-col justify-center">
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-20 w-full flex-1 flex flex-col justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
           {/* Left Column: Hero Copy + Joke-Sized Tree */}
