@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Check if recipient is already enrolled
-    if (targetUser && operation.agents.some((a) => a.userId === targetUser.id)) {
+    if (targetUser && operation.agents.some((a: { userId: string }) => a.userId === targetUser.id)) {
       return NextResponse.json(
         { error: 'User is already enrolled in this operation.' },
         { status: 400 }

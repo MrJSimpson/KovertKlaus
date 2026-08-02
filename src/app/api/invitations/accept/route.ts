@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Verify user is not already enrolled
-    const existingAgent = operation.agents.find((a) => a.userId === userId);
+    const existingAgent = operation.agents.find((a: { userId: string }) => a.userId === userId);
     if (existingAgent) {
       return NextResponse.json(
         { error: 'You are already enrolled in this operation.' },
