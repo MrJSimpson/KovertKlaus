@@ -541,7 +541,7 @@ export default function Home() {
             </div>
 
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-xs font-bold">
+              <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold">
                 ⚠️ {errorMessage}
               </div>
             )}
@@ -614,7 +614,7 @@ export default function Home() {
             </div>
 
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-xs font-bold">
+              <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold">
                 ⚠️ {errorMessage}
               </div>
             )}
@@ -817,7 +817,7 @@ export default function Home() {
             </div>
 
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-red-100 border border-red-300 text-red-700 text-xs font-bold">
+              <div className="mb-4 p-3 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold">
                 ⚠️ {errorMessage}
               </div>
             )}

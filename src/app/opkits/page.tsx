@@ -451,7 +451,7 @@ export default function DedicatedOpKitsPage() {
               </div>
 
               {validationError && (
-                <div className="mb-6 p-4 rounded-2xl bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold">
+                <div className="mb-6 p-4 rounded-2xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-300 text-xs font-bold">
                   ⚠️ {validationError}
                 </div>
               )}
