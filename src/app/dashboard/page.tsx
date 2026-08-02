@@ -392,20 +392,20 @@ export default function UserDashboardPage() {
             {/* Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
-              {/* Left Column: My Exchanges */}
+              {/* Left Column: Active Operations (Exchanges) */}
               <div className="lg:col-span-7 space-y-6">
                 <div className={`p-6 rounded-3xl border shadow-md ${
                   isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
                 }`}>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold flex items-center gap-2">
-                      🎄 My Active Gift Exchanges ({user.participations?.length || 0})
+                      🎄 Active Operations (Exchanges) ({user.participations?.length || 0})
                     </h2>
                   </div>
 
                   {user.participations?.length === 0 ? (
                     <div className="text-center py-10 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-2xl">
-                      <p className="text-xs text-slate-500 mb-4">You are not enrolled in any active exchanges yet.</p>
+                      <p className="text-xs text-slate-500 mb-4">You are not enrolled in any active operations yet.</p>
                       <Link
                         href="/"
                         className={`px-5 py-2.5 rounded-xl font-bold text-xs ${
