@@ -473,15 +473,6 @@ export default function OperationCommandCenterPage() {
               </div>
 
               <div className="flex gap-3 flex-wrap">
-                {isOpsLeader && (
-                  <button
-                    onClick={() => { setSettingsError(''); setEditSettingsModalOpen(true); }}
-                    className={`px-4 py-3 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnSecondary}`}
-                  >
-                    ⚙️ Edit Operation Options
-                  </button>
-                )}
-
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(operation.code);
@@ -500,14 +491,6 @@ export default function OperationCommandCenterPage() {
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 block">
                   📅 4-Stage Operational Timeline
                 </span>
-                {isOpsLeader && (
-                  <button
-                    onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
-                    className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer ${theme.btnToggle}`}
-                  >
-                    ✏️ Adjust Timeline Dates
-                  </button>
-                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
