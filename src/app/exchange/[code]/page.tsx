@@ -324,6 +324,45 @@ export default function OperationCommandCenterPage() {
     setSendingIntel(false);
   }
 
+  // Handle OpsLeader Agent Management Actions
+  async function handleAgentAction(
+    actionType: 'update_agent_role' | 'remove_agent' | 'issue_demerit' | 'nudge_agent',
+    agent: any,
+    extra?: any
+  ) {
+    if (!operation || !userId) return;
+
+    if (actionType === 'remove_agent') {
+      if (!confirm(`Are you sure you want to disenroll ${agent.user?.name || 'this agent'} from the operation?`)) return;
+    } else if (actionType === 'issue_demerit') {
+      if (!confirm(`Issue a 1-point Demerit citation to ${agent.user?.name || 'this agent'} for deadline non-compliance?`)) return;
+    }
+
+    try {
+      const res = await fetch('/api/operations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          operationId: operation.id,
+          action: actionType,
+          agentId: agent.id,
+          targetUserId: agent.userId,
+          newRole: extra?.newRole,
+          demeritPoints: 1,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Action failed');
+      }
+      alert(json.message || 'Agent action executed successfully!');
+      fetchExchangeDetails();
+    } catch (err: any) {
+      alert(err.message || 'Action failed');
+    }
+  }
+
   // Determine User Role & Target in this Operation
   const currentAgent = operation?.agents.find((a) => a.userId === userId);
   const isOpsLeader = operation?.opsLeaderId === userId || currentAgent?.role === 'OPS_LEADER';
@@ -566,13 +605,6 @@ export default function OperationCommandCenterPage() {
                   >
                     ✏️ Edit Operational Timeline Dates
                   </button>
-
-                  <button
-                    onClick={() => alert(`Operation Code: ${operation.code}\nAgents Enrolled: ${operation.agents.length}`)}
-                    className={theme.btnSecondary}
-                  >
-                    📊 View Enrollment Stats
-                  </button>
                 </div>
               </div>
             )}
@@ -756,26 +788,70 @@ export default function OperationCommandCenterPage() {
                     <span className="text-xs text-slate-500 font-mono">Status: {operation.status}</span>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {operation.agents?.map((agent, i) => (
-                      <div key={agent.id} className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs ${theme.cardInnerBg}`}>
-                        <div className="flex items-center gap-2.5">
-                          <span className="font-mono text-slate-400 text-xs">#{i + 1}</span>
-                          <div>
-                            <span className="font-bold block">
-                              {formatCodename(agent.user?.codename, agent.user?.name)}
-                            </span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-block mt-0.5 ${
-                              agent.role === 'OPS_LEADER' ? theme.badgeAmber : theme.badgeSecretSanta
-                            }`}>
-                              {agent.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}
-                            </span>
+                      <div key={agent.id} className={`p-4 rounded-2xl border space-y-2 text-xs ${theme.cardInnerBg}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="font-mono text-slate-400 text-xs">#{i + 1}</span>
+                            <div>
+                              <span className="font-bold block text-sm">
+                                {formatCodename(agent.user?.codename, agent.user?.name)}
+                              </span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                  agent.role === 'OPS_LEADER' ? theme.badgeAmber : theme.badgeSecretSanta
+                                }`}>
+                                  {agent.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}
+                                </span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">
+                                  Shipping: {agent.shippingStatus}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        <span className="text-slate-400 font-mono text-[11px] font-bold">
-                          {agent.shippingStatus}
-                        </span>
+                        {/* OpsLeader Agent Management Action Bar */}
+                        {isOpsLeader && (
+                          <div className="pt-2 border-t border-stone-200/80 dark:border-slate-800/80 flex items-center justify-between gap-1 flex-wrap">
+                            <button
+                              onClick={() => handleAgentAction('nudge_agent', agent)}
+                              title="Send encrypted alert reminder"
+                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 hover:bg-sky-200 transition-all cursor-pointer"
+                            >
+                              🔔 Nudge
+                            </button>
+
+                            <button
+                              onClick={() => handleAgentAction('issue_demerit', agent)}
+                              title="Issue 1-point Demerit citation"
+                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
+                            >
+                              ⚠️ Citation
+                            </button>
+
+                            <button
+                              onClick={() => handleAgentAction('update_agent_role', agent, {
+                                newRole: agent.role === 'OPS_LEADER' ? 'FIELD_AGENT' : 'OPS_LEADER'
+                              })}
+                              title="Toggle OpsLeader Clearance"
+                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-stone-300 dark:border-slate-700 hover:bg-stone-200 transition-all cursor-pointer"
+                            >
+                              {agent.role === 'OPS_LEADER' ? '🔻 Demote' : '⭐ Promote'}
+                            </button>
+
+                            {agent.userId !== operation.opsLeaderId && (
+                              <button
+                                onClick={() => handleAgentAction('remove_agent', agent)}
+                                title="Disenroll agent from operation"
+                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-800 hover:bg-red-200 transition-all cursor-pointer"
+                              >
+                                ❌ Disenroll
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

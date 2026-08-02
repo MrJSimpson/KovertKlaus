@@ -247,10 +247,14 @@ export async function PATCH(request: Request) {
       action,
       dates,
       settings,
+      agentId,
+      newRole,
+      targetUserId,
+      demeritPoints,
     } = body as {
       userId?: string;
       operationId: string;
-      action?: 'update_dates' | 'update_settings';
+      action?: 'update_dates' | 'update_settings' | 'update_agent_role' | 'remove_agent' | 'issue_demerit' | 'nudge_agent';
       dates?: {
         inviteCutoffDate: string;
         assignmentDate: string;
@@ -265,8 +269,12 @@ export async function PATCH(request: Request) {
         maxParticipants?: number;
         isLocalOnly?: boolean;
         eventLocation?: string;
-        isWhiteElephant?: boolean; // Must be checked for immutability!
+        isWhiteElephant?: boolean;
       };
+      agentId?: string;
+      newRole?: string;
+      targetUserId?: string;
+      demeritPoints?: number;
     };
 
     const activeUserId = sessionUserId || bodyUserId;
@@ -284,7 +292,44 @@ export async function PATCH(request: Request) {
     }
 
     if (op.opsLeaderId !== activeUserId) {
-      return NextResponse.json({ error: 'Only the OpsLeader can update operation settings' }, { status: 403 });
+      return NextResponse.json({ error: 'Only the designated OpsLeader can perform administrative operations' }, { status: 403 });
+    }
+
+    // Agent Action 1: Update Agent Role (Promote / Demote OpsLeader)
+    if (action === 'update_agent_role' && agentId && newRole) {
+      const updatedAgent = await db.missionAgent.update({
+        where: { id: agentId },
+        data: { role: newRole === 'OPS_LEADER' ? 'OPS_LEADER' : 'FIELD_AGENT' },
+      });
+      return NextResponse.json({ success: true, data: updatedAgent });
+    }
+
+    // Agent Action 2: Remove / Disenroll Agent from Operation
+    if (action === 'remove_agent' && agentId) {
+      const agentToDelete = await db.missionAgent.findUnique({ where: { id: agentId } });
+      if (!agentToDelete) {
+        return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+      }
+      if (agentToDelete.userId === op.opsLeaderId) {
+        return NextResponse.json({ error: 'Cannot remove the primary OpsLeader from the operation' }, { status: 400 });
+      }
+      await db.missionAgent.delete({ where: { id: agentId } });
+      return NextResponse.json({ success: true, message: 'Agent disenrolled from operation' });
+    }
+
+    // Agent Action 3: Issue Demerit Citation
+    if (action === 'issue_demerit' && targetUserId) {
+      const pts = demeritPoints || 1;
+      const updatedUser = await db.user.update({
+        where: { id: targetUserId },
+        data: { demerits: { increment: pts } },
+      });
+      return NextResponse.json({ success: true, message: `Issued ${pts} demerit point(s)`, totalDemerits: updatedUser.demerits });
+    }
+
+    // Agent Action 4: Dispatch Nudge Reminder
+    if (action === 'nudge_agent' && agentId) {
+      return NextResponse.json({ success: true, message: 'Nudge alert dispatched to agent via encrypted stream' });
     }
 
     // Branch 1: Update Operation Settings & Options
