@@ -388,20 +388,32 @@ export default function UserDashboardPage() {
                 <div className={`p-6 rounded-3xl border shadow-md ${
                   isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'
                 }`}>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       🎄 Active Operations (Exchanges) ({user.participations?.length || 0})
                     </h2>
 
-                    {/* New Exchange Button Moved Here */}
-                    <Link
-                      href="/"
-                      className={`px-4 py-2 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${
-                        isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-                      }`}
-                    >
-                      + New Exchange
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      {/* Manage All Operations Button */}
+                      <Link
+                        href="/operations"
+                        className={`text-xs font-bold px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
+                          isDarkMode ? 'bg-slate-950 border-slate-800 text-sky-400 hover:border-sky-500/40' : 'bg-stone-100 border-stone-300 text-slate-700 hover:bg-stone-200'
+                        }`}
+                      >
+                        <span>⚙️ Manage All Operations →</span>
+                      </Link>
+
+                      {/* New Exchange Button */}
+                      <Link
+                        href="/"
+                        className={`px-3.5 py-2 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${
+                          isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
+                        }`}
+                      >
+                        + New Exchange
+                      </Link>
+                    </div>
                   </div>
 
                   {user.participations?.length === 0 ? (
