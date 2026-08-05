@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { calculateAutomaticOperationDates } from '@/lib/validations/operation';
-import { getThemeClasses } from '@/lib/theme';
+import { useTheme } from '@/context/ThemeContext';
+import { generateRandomCodename } from '@/lib/codenameGenerator';
 
 // Charlie Brown Retro Glowing Christmas Lights Strand
 function ChristmasLightsStrand({ isDarkMode }: { isDarkMode: boolean }) {
@@ -73,16 +74,16 @@ function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
 
 export default function Home() {
   const router = useRouter();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme, theme } = useTheme();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Returning User Detection State
-  const [userIsExisting, setUserIsExisting] = useState<boolean | null>(null);
-  const [existingUserName, setExistingUserName] = useState('');
+  // Logged-in User State
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; codename?: string } | null>(null);
 
   // Shared Auth Form State
   const [email, setEmail] = useState('');
@@ -97,31 +98,40 @@ export default function Home() {
   const [executionDate, setExecutionDate] = useState('2026-12-25');
   const [joinCode, setJoinCode] = useState('');
 
-  const theme = getThemeClasses(isDarkMode);
+  useEffect(() => {
+    checkCurrentUser();
+  }, []);
 
-  // Check Email to Detect Existing vs New User
-  async function checkUserEmail(emailInput: string) {
-    if (!emailInput || !emailInput.includes('@')) return;
+  async function checkCurrentUser() {
     try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailInput.trim(), action: 'check' }),
-      });
+      const savedUserId = localStorage.getItem('kovertklaus_user_id');
+      const url = savedUserId ? `/api/users/me?userId=${savedUserId}` : '/api/users/me';
+      const res = await fetch(url);
       const json = await res.json();
-      if (json.success && json.exists) {
-        setUserIsExisting(true);
-        setExistingUserName(json.user.name);
+      if (json.authenticated && json.user) {
+        setCurrentUser({ id: json.user.id, name: json.user.name, codename: json.user.codename });
+        localStorage.setItem('kovertklaus_user_id', json.user.id);
+        localStorage.setItem('kovertklaus_user_name', json.user.name);
       } else {
-        setUserIsExisting(false);
-        setExistingUserName('');
+        setCurrentUser(null);
       }
     } catch {
-      setUserIsExisting(false);
+      setCurrentUser(null);
     }
   }
 
-  // Handle Direct Sign In
+  async function handleLogout() {
+    try {
+      await fetch('/api/users/me', { method: 'DELETE' });
+    } catch {
+      // Ignore network errors on logout
+    }
+    localStorage.removeItem('kovertklaus_user_id');
+    localStorage.removeItem('kovertklaus_user_name');
+    setCurrentUser(null);
+  }
+
+  // Handle Direct Sign In (Tab 1)
   async function handleDirectLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -131,7 +141,7 @@ export default function Home() {
       const res = await fetch('/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -140,10 +150,51 @@ export default function Home() {
 
       localStorage.setItem('kovertklaus_user_id', json.user.id);
       localStorage.setItem('kovertklaus_user_name', json.user.name);
+      setCurrentUser({ id: json.user.id, name: json.user.name, codename: json.user.codename });
       setLoginModalOpen(false);
       router.push('/dashboard');
     } catch (err: any) {
       setErrorMessage(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Handle Direct Registration (Tab 2)
+  async function handleDirectRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const cleanCodename = codename.trim()
+        ? codename.trim().replace(/^(agent[-:\s]+)/i, '')
+        : undefined;
+
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          codename: cleanCodename,
+          password,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Registration failed');
+      }
+
+      const user = json.data;
+      localStorage.setItem('kovertklaus_user_id', user.id);
+      localStorage.setItem('kovertklaus_user_name', user.name);
+      setCurrentUser({ id: user.id, name: user.name, codename: user.codename });
+      setLoginModalOpen(false);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -158,35 +209,38 @@ export default function Home() {
     try {
       let userId: string;
 
-      if (userIsExisting) {
-        // Authenticate Existing User
-        const loginRes = await fetch('/api/users/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const loginData = await loginRes.json();
-        if (!loginRes.ok || !loginData.success) {
-          throw new Error(loginData.error || 'Invalid password');
-        }
-        userId = loginData.user.id;
+      if (currentUser) {
+        userId = currentUser.id;
       } else {
-        // Register New User with 10-Character Password
-        const regRes = await fetch('/api/users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            codename: codename.trim() ? (codename.trim().startsWith('Agent-') ? codename.trim() : `Agent-${codename.trim()}`) : undefined,
-            password,
-          }),
-        });
-        const regData = await regRes.json();
-        if (!regRes.ok || !regData.success) {
-          throw new Error(regData.error || 'Registration failed');
+        // Authenticate or Register depending on filled fields
+        if (name && password) {
+          const regRes = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: name.trim(),
+              email: email.trim(),
+              codename: codename.trim() ? codename.trim().replace(/^(agent[-:\s]+)/i, '') : undefined,
+              password,
+            }),
+          });
+          const regData = await regRes.json();
+          if (!regRes.ok || !regData.success) {
+            throw new Error(regData.error || 'Registration failed');
+          }
+          userId = regData.data.id;
+        } else {
+          const loginRes = await fetch('/api/users/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim(), password }),
+          });
+          const loginData = await loginRes.json();
+          if (!loginRes.ok || !loginData.success) {
+            throw new Error(loginData.error || 'Invalid credentials');
+          }
+          userId = loginData.user.id;
         }
-        userId = regData.data.id;
       }
 
       // Calculate Automatic Operational Percentage Dates (25%, 50%, 75%, 100%)
@@ -240,35 +294,37 @@ export default function Home() {
 
       let userId: string;
 
-      if (userIsExisting) {
-        // Authenticate Existing User
-        const loginRes = await fetch('/api/users/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const loginData = await loginRes.json();
-        if (!loginRes.ok || !loginData.success) {
-          throw new Error(loginData.error || 'Invalid password');
-        }
-        userId = loginData.user.id;
+      if (currentUser) {
+        userId = currentUser.id;
       } else {
-        // Register New User with 10-Character Password
-        const regRes = await fetch('/api/users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            codename: codename.trim() ? (codename.trim().startsWith('Agent-') ? codename.trim() : `Agent-${codename.trim()}`) : undefined,
-            password,
-          }),
-        });
-        const regData = await regRes.json();
-        if (!regRes.ok || !regData.success) {
-          throw new Error(regData.error || 'Registration failed');
+        if (name && password) {
+          const regRes = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: name.trim(),
+              email: email.trim(),
+              codename: codename.trim() ? codename.trim().replace(/^(agent[-:\s]+)/i, '') : undefined,
+              password,
+            }),
+          });
+          const regData = await regRes.json();
+          if (!regRes.ok || !regData.success) {
+            throw new Error(regData.error || 'Registration failed');
+          }
+          userId = regData.data.id;
+        } else {
+          const loginRes = await fetch('/api/users/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim(), password }),
+          });
+          const loginData = await loginRes.json();
+          if (!loginRes.ok || !loginData.success) {
+            throw new Error(loginData.error || 'Invalid credentials');
+          }
+          userId = loginData.user.id;
         }
-        userId = regData.data.id;
       }
 
       // Enroll User into Operation
@@ -299,8 +355,6 @@ export default function Home() {
 
   function resetAuthStates() {
     setErrorMessage('');
-    setUserIsExisting(null);
-    setExistingUserName('');
     setEmail('');
     setPassword('');
     setName('');
@@ -334,40 +388,56 @@ export default function Home() {
               <span className="text-2xl font-black tracking-tight block">
                 KovertKlaus
               </span>
-              <span className={`text-xs block font-bold ${theme.textBrand}`}>
+              <span className={`text-xs block font-bold ${theme.textGoldOnDark}`}>
                 {isDarkMode ? 'Stealth Winter Exchange' : 'Simple & Fun Gift Exchanges'}
               </span>
             </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-semibold">
-            <a href="#how-it-works" className={`transition-colors ${isDarkMode ? 'text-slate-300 hover:text-sky-400' : 'text-slate-700 hover:text-red-600'}`}>
+            <a href="#how-it-works" className={`transition-colors ${theme.headerNav}`}>
               How It Works
             </a>
-            <a href="#benefits" className={`transition-colors ${isDarkMode ? 'text-slate-300 hover:text-sky-400' : 'text-slate-700 hover:text-red-600'}`}>
+            <a href="#benefits" className={`transition-colors ${theme.headerNav}`}>
               Why KovertKlaus
             </a>
-            <Link href="/features" className={`transition-colors ${isDarkMode ? 'text-slate-300 hover:text-sky-400' : 'text-slate-700 hover:text-red-600'}`}>
+            <Link href="/features" className={`transition-colors ${theme.headerNav}`}>
               Features & Specs
             </Link>
           </nav>
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={toggleTheme}
               title="Toggle Theme Mode"
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${theme.btnToggle}`}
             >
               <span>{isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}</span>
             </button>
 
-            {/* Single Login / Sign In Button */}
-            <button
-              onClick={() => { resetAuthStates(); setLoginModalOpen(true); }}
-              className={`font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
-            >
-              🔑 Sign In
-            </button>
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard"
+                  className={`font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm flex items-center gap-1.5 ${theme.badgeCode}`}
+                >
+                  <span>👤 Dashboard</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className={`font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer ${theme.btnSecondary}`}
+                >
+                  🚪 Sign Out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { resetAuthStates(); setAuthMode('login'); setLoginModalOpen(true); }}
+                className={`font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
+              >
+                🔑 Login / Sign Up
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -376,7 +446,7 @@ export default function Home() {
       <ChristmasLightsStrand isDarkMode={isDarkMode} />
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-20 w-full flex-1 flex flex-col justify-center">
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-16 w-full flex-1 flex flex-col justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
           <div className="lg:col-span-7 space-y-6 text-left relative">
@@ -391,17 +461,13 @@ export default function Home() {
 
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight">
               The Easiest, Funnest Way to Organize <br />
-              <span className={
-                isDarkMode
-                  ? 'bg-gradient-to-r from-sky-400 via-cyan-300 to-slate-200 bg-clip-text text-transparent'
-                  : 'bg-gradient-to-r from-red-600 via-rose-600 to-emerald-800 bg-clip-text text-transparent'
-              }>
+              <span className={theme.heroGradient}>
                 Secret Santa & Gift Exchanges
               </span>
             </h1>
 
-            <p className={`text-lg max-w-2xl leading-relaxed ${theme.textMuted}`}>
-              Bring your family, friends, or co-workers together! Create a gift exchange in 60 seconds, build your custom OpKit with OpTools, and enjoy a completely stress-free experience from start to delivery.
+            <p className={`text-lg max-w-2xl leading-relaxed ${theme.heroSubtext}`}>
+              Bring your family, friends, or co-workers together! Create a gift exchange in 60 seconds, build your custom wishlist, and enjoy a completely stress-free experience from start to delivery.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-4">
@@ -414,13 +480,13 @@ export default function Home() {
 
               <button
                 onClick={() => { resetAuthStates(); setJoinModalOpen(true); }}
-                className={`font-bold px-6 py-4 rounded-2xl border transition-all flex items-center justify-center gap-2 text-base cursor-pointer ${theme.btnSecondary}`}
+                className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 text-base cursor-pointer ${theme.btnSecondary}`}
               >
                 <span>🔑 Join an Exchange (Enter Code)</span>
               </button>
             </div>
 
-            <div className={`pt-6 grid grid-cols-3 gap-4 border-t text-xs font-semibold ${
+            <div className={`pt-4 grid grid-cols-3 gap-4 border-t text-xs font-medium ${
               isDarkMode ? 'border-slate-800 text-slate-400' : 'border-stone-200 text-slate-600'
             }`}>
               <div>
@@ -428,12 +494,12 @@ export default function Home() {
                 <span>No complicated setup</span>
               </div>
               <div>
-                <span className={`block font-bold text-sm ${theme.textBrand}`}>🧰 Easy OpKits</span>
-                <span>Add OpTools from any store</span>
+                <span className={`block font-bold text-sm ${theme.textBrand}`}>🧰 Easy Wishlists</span>
+                <span>Add items from any store</span>
               </div>
               <div>
-                <span className={`block font-bold text-sm ${theme.textAccent}`}>🚚 Shipping Updates</span>
-                <span>Real-time tracking</span>
+                <span className={`block font-bold text-sm ${theme.textAccent}`}>🚚 Delivery Tracking</span>
+                <span>Direct courier updates</span>
               </div>
             </div>
           </div>
@@ -470,11 +536,11 @@ export default function Home() {
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div>
-                      <span className="text-lg font-bold block">Agent-Sarah</span>
-                      <span className="text-xs text-slate-500">OpKit: 3 OpTools Attached</span>
+                      <span className="text-lg font-bold block">Agent: Sarah</span>
+                      <span className="text-xs text-slate-500">Wishlist: 3 Items Added</span>
                     </div>
                     <span className={`text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm ${theme.btnPrimary}`}>
-                      View OpKit →
+                      View Wishlist →
                     </span>
                   </div>
                 </div>
@@ -486,15 +552,187 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Modal: DIRECT SIGN IN / LOGIN */}
+      {/* SECTION 1: HOW IT WORKS */}
+      <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-8 py-16 w-full border-t border-stone-200 dark:border-slate-800">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-3 ${theme.badgeCode}`}>
+            ✨ Simple 4-Step Process
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">
+            How Remote Secret Santa Works
+          </h2>
+          <p className={`text-base ${theme.heroSubtext}`}>
+            Connect with family, friends, or co-workers near and far. We take care of matching, addresses, and tracking so you can focus on the fun!
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Step 1 */}
+          <div className={`p-6 rounded-3xl border flex flex-col justify-between transition-all hover:-translate-y-1 ${theme.cardBg}`}>
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-800 flex items-center justify-center text-2xl font-black text-red-700 dark:text-red-400 mb-4">
+                1
+              </div>
+              <h3 className="text-xl font-bold mb-2">Create Your Exchange</h3>
+              <p className={`text-xs leading-relaxed ${theme.textSubLabel}`}>
+                Set a gift budget ($25–$50) and exchange date in 60 seconds. Invite your group with a simple code or direct link.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-stone-200 dark:border-slate-800 text-[11px] font-bold text-red-700 dark:text-sky-400">
+              ⚡ Takes less than 1 minute
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className={`p-6 rounded-3xl border flex flex-col justify-between transition-all hover:-translate-y-1 ${theme.cardBg}`}>
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-2xl font-black text-emerald-800 dark:text-emerald-400 mb-4">
+                2
+              </div>
+              <h3 className="text-xl font-bold mb-2">Build Your Wishlist</h3>
+              <p className={`text-xs leading-relaxed ${theme.textSubLabel}`}>
+                Add gift ideas from any website or online store! Paste links or search items so your Secret Santa knows what brings you joy.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-stone-200 dark:border-slate-800 text-[11px] font-bold text-emerald-800 dark:text-emerald-400">
+              🎁 Works with any web store
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className={`p-6 rounded-3xl border flex flex-col justify-between transition-all hover:-translate-y-1 ${theme.cardBg}`}>
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-2xl font-black text-amber-800 dark:text-amber-400 mb-4">
+                3
+              </div>
+              <h3 className="text-xl font-bold mb-2">Get Secret Match</h3>
+              <p className={`text-xs leading-relaxed ${theme.textSubLabel}`}>
+                Our system randomly assigns everyone a secret target. View their wishlist, preferences, and size details in total secrecy!
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-stone-200 dark:border-slate-800 text-[11px] font-bold text-amber-800 dark:text-amber-400">
+              🕵️ 100% Confidential
+            </div>
+          </div>
+
+          {/* Step 4 */}
+          <div className={`p-6 rounded-3xl border flex flex-col justify-between transition-all hover:-translate-y-1 ${theme.cardBg}`}>
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 flex items-center justify-center text-2xl font-black text-sky-700 dark:text-sky-400 mb-4">
+                4
+              </div>
+              <h3 className="text-xl font-bold mb-2">Ship & Celebrate</h3>
+              <p className={`text-xs leading-relaxed ${theme.textSubLabel}`}>
+                Ship your gift directly to your target&apos;s shipping address before the cutoff date, then meet up or join a call to unwrap!
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-stone-200 dark:border-slate-800 text-[11px] font-bold text-sky-700 dark:text-sky-400">
+              📦 Automated Shipping Reminders
+            </div>
+          </div>
+        </div>
+
+        {/* Bonus Exchanges Banner */}
+        <div className={`mt-10 p-6 rounded-3xl border text-center flex flex-col sm:flex-row items-center justify-between gap-4 ${theme.cardInnerBg}`}>
+          <div className="text-left">
+            <h4 className="text-base font-extrabold flex items-center gap-2">
+              <span>🎉 Hosting an In-Person Party? We Do That Too!</span>
+            </h4>
+            <p className={`text-xs mt-1 ${theme.textSubLabel}`}>
+              Toggle your exchange settings to <strong>Local-Only</strong> for in-person handoffs, or try <strong>White Elephant</strong> for sneaky gift-stealing party games!
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${theme.badgeSecretSanta}`}>🏠 Local-Only</span>
+            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${theme.badgeWhiteElephant}`}>🐘 White Elephant</span>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 2: WHY KOVERTKLAUS */}
+      <section id="benefits" className="max-w-7xl mx-auto px-4 sm:px-8 py-16 w-full border-t border-stone-200 dark:border-slate-800">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-3 ${theme.badgeCode}`}>
+            💡 Stress-Free Holiday Gifting
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">
+            Why You&apos;ll Love KovertKlaus
+          </h2>
+          <p className={`text-base ${theme.heroSubtext}`}>
+            We solved all the classic Secret Santa headaches so your group can enjoy a fun, memorable exchange.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Benefit 1 */}
+          <div className={`p-8 rounded-3xl border transition-all hover:shadow-xl ${theme.cardBg}`}>
+            <div className="text-4xl mb-4">🛍️</div>
+            <h3 className="text-xl font-bold mb-2">Easy Wishlist Creation</h3>
+            <p className={`text-xs leading-relaxed ${theme.textSubLabel}`}>
+              Never guess what to buy! Simply paste links from Amazon, Target, Etsy, or any online store. Price checking and automatic product details ensure no duplicate buying or awkward returns.
+            </p>
+          </div>
+
+          {/* Benefit 2 */}
+          <div className={`p-8 rounded-3xl border transition-all hover:shadow-xl ${theme.cardBg}`}>
+            <div className="text-4xl mb-4">🎯</div>
+            <h3 className="text-xl font-bold mb-2">Verified Recipient Details</h3>
+            <p className={`text-xs leading-relaxed ${theme.textSubLabel}`}>
+              Know your recipient inside out! View their favorite hobbies, fandoms, color preferences, and optional apparel/footwear sizing in total privacy so your gift is guaranteed to impress.
+            </p>
+          </div>
+
+          {/* Benefit 3 */}
+          <div className={`p-8 rounded-3xl border transition-all hover:shadow-xl ${theme.cardBg}`}>
+            <div className="text-4xl mb-4">👑</div>
+            <h3 className="text-xl font-bold mb-2">Full Host Control</h3>
+            <p className={`text-xs leading-relaxed ${theme.textSubLabel}`}>
+              Organizers get complete control! Effortlessly manage invites, customize budgets, set automated shipping deadlines, add custom rules, and ensure everyone participates on time.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Modal: DIRECT SIGN IN / SIGN UP (TABBED SYSTEM) */}
       {loginModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all ${theme.modalBg}`}>
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
-                <span>🔑 Agent Sign In</span>
+                <span>{authMode === 'login' ? '🔑 Agent Sign In' : '✨ Create Agent Profile'}</span>
               </h3>
-              <button onClick={() => setLoginModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+              <button
+                onClick={() => setLoginModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex border-b border-stone-200 dark:border-slate-800 mb-5 font-bold text-xs">
+              <button
+                type="button"
+                onClick={() => { setAuthMode('login'); setErrorMessage(''); }}
+                className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                  authMode === 'login'
+                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                🔑 Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('register'); setErrorMessage(''); }}
+                className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                  authMode === 'register'
+                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                ✨ Sign Up (New Agent)
+              </button>
             </div>
 
             {errorMessage && (
@@ -503,48 +741,156 @@ export default function Home() {
               </div>
             )}
 
-            <form onSubmit={handleDirectLogin} className="space-y-4 text-xs font-semibold">
-              <div>
-                <label className="block text-slate-500 mb-1">Email Address *</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="e.g. joshua@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
-                />
-              </div>
+            {/* TAB 1: SIGN IN */}
+            {authMode === 'login' && (
+              <form onSubmit={handleDirectLogin} className="space-y-4 text-xs font-semibold">
+                <div>
+                  <label className="block text-slate-500 mb-1">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. joshua@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
+                  />
+                </div>
 
-              <div>
-                <label className="block text-slate-500 mb-1">Password *</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
-                />
-              </div>
+                <div>
+                  <label className="block text-slate-500 mb-1">Password *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
+                  />
+                </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setLoginModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
-                >
-                  {loading ? 'Signing In...' : 'Sign In'}
-                </button>
-              </div>
-            </form>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setLoginModalOpen(false)}
+                    className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
+                  >
+                    {loading ? 'Signing In...' : '🔑 Sign In'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 2: CREATE AGENT PROFILE (SIGN UP) */}
+            {authMode === 'register' && (
+              <form onSubmit={handleDirectRegister} className="space-y-4 text-xs font-semibold">
+                <div>
+                  <label className="block text-slate-500 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Joshua Simpson"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 mb-1">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. joshua@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-500">Operative Codename / Call Sign</label>
+                    <button
+                      type="button"
+                      onClick={() => setCodename(generateRandomCodename())}
+                      className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      🎲 Randomize Call Sign
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border ${theme.badgeCode}`}>
+                      Agent:
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="e.g. Viper, Phoenix, Sentinel"
+                      value={codename}
+                      onChange={(e) => setCodename(e.target.value)}
+                      className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 mb-1">Create Strong Password *</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={10}
+                    placeholder="Enter new strong password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
+                  />
+                </div>
+
+                {password.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-stone-100 dark:bg-slate-900 border border-stone-200 dark:border-slate-800 text-[11px] space-y-1.5 font-mono">
+                    <div className="font-bold mb-1 text-slate-700 dark:text-slate-300">Password Security Requirements:</div>
+                    <div className={password.length >= 10 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                      {password.length >= 10 ? '✓' : '○'} Minimum 10 characters long
+                    </div>
+                    <div className={/[A-Z]/.test(password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                      {/[A-Z]/.test(password) ? '✓' : '○'} At least 1 uppercase letter (A-Z)
+                    </div>
+                    <div className={/[a-z]/.test(password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                      {/[a-z]/.test(password) ? '✓' : '○'} At least 1 lowercase letter (a-z)
+                    </div>
+                    <div className={/[0-9]/.test(password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                      {/[0-9]/.test(password) ? '✓' : '○'} At least 1 number (0-9)
+                    </div>
+                    <div className={/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                      {/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? '✓' : '○'} At least 1 special character (!@#$%^&*)
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setLoginModalOpen(false)}
+                    className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
+                  >
+                    {loading ? 'Creating Profile...' : '🚀 Create Agent Profile'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
@@ -569,47 +915,24 @@ export default function Home() {
             <form onSubmit={handleCreateExchange} className="space-y-4 text-xs font-semibold">
               <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
                 <span className={`text-xs font-bold block uppercase tracking-wider ${theme.textAccent}`}>
-                  Step 1: Security & Account Authentication
+                  Step 1: OpsLeader Account Authentication
                 </span>
                 
-                <div>
-                  <label className="block text-slate-500 mb-1">Your Email Address *</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="e.g. joshua@example.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      checkUserEmail(e.target.value);
-                    }}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                  />
-                </div>
-
-                {/* Existing User Recognition */}
-                {userIsExisting === true && (
-                  <div className={`p-3 rounded-xl border ${theme.badgeCode}`}>
-                    <span className="text-xs font-bold block mb-1">
-                      👋 Welcome back, {existingUserName}!
+                {currentUser ? (
+                  <div className={`p-3 rounded-xl border flex items-center justify-between ${theme.badgeCode}`}>
+                    <div>
+                      <span className="text-xs font-bold block">
+                        👋 Authenticated as {currentUser.name}
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Operational Leader Clearance Active
+                      </span>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      ✓ Active
                     </span>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-2">
-                      Enter your password to authenticate and launch the exchange.
-                    </p>
-                    <label className="block text-slate-500 mb-1">Password *</label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                    />
                   </div>
-                )}
-
-                {/* New User Registration Fields */}
-                {userIsExisting === false && (
+                ) : (
                   <>
                     <div>
                       <label className="block text-slate-500 mb-1">Your Full Name *</label>
@@ -623,29 +946,51 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Secret Codename / Handle (Will be prefixed with Agent-)</label>
+                      <label className="block text-slate-500 mb-1">Your Email Address *</label>
                       <input
-                        type="text"
-                        placeholder="e.g. Agent-KovertKlaus"
-                        value={codename}
-                        onChange={(e) => setCodename(e.target.value)}
+                        type="email"
+                        required
+                        placeholder="e.g. joshua@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Create Password (Min 10 Characters) *</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-slate-500">Secret Codename / Call Sign</label>
+                        <button
+                          type="button"
+                          onClick={() => setCodename(generateRandomCodename())}
+                          className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          🎲 Randomize Call Sign
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border ${theme.badgeCode}`}>
+                          Agent:
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="e.g. Viper, Phoenix, Sentinel"
+                          value={codename}
+                          onChange={(e) => setCodename(e.target.value)}
+                          className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 mb-1">Password *</label>
                       <input
                         type="password"
                         required
                         minLength={10}
-                        placeholder="At least 10 chars (A-Z, a-z, 0-9, special char)"
+                        placeholder="Enter your account password (or set new)"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Must contain uppercase, lowercase, number, and special character.
-                      </span>
                     </div>
                   </>
                 )}
@@ -761,47 +1106,24 @@ export default function Home() {
 
               <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
                 <span className={`text-xs font-bold block uppercase tracking-wider ${theme.textBrand}`}>
-                  Your Account Authentication
+                  Operative Clearance & Account Authentication
                 </span>
                 
-                <div>
-                  <label className="block text-slate-500 mb-1">Your Email Address *</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="e.g. alex@example.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      checkUserEmail(e.target.value);
-                    }}
-                    className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                  />
-                </div>
-
-                {/* Returning User Recognition */}
-                {userIsExisting === true && (
-                  <div className={`p-3 rounded-xl border ${theme.badgeCode}`}>
-                    <span className="text-xs font-bold block mb-1">
-                      👋 Welcome back, {existingUserName}!
+                {currentUser ? (
+                  <div className={`p-3 rounded-xl border flex items-center justify-between ${theme.badgeCode}`}>
+                    <div>
+                      <span className="text-xs font-bold block">
+                        👋 Authenticated as {currentUser.name}
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Field Agent Clearance Active
+                      </span>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      ✓ Active
                     </span>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-2">
-                      Enter your password to sign in and join the exchange.
-                    </p>
-                    <label className="block text-slate-500 mb-1">Password *</label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                    />
                   </div>
-                )}
-
-                {/* New User Registration Fields */}
-                {userIsExisting === false && (
+                ) : (
                   <>
                     <div>
                       <label className="block text-slate-500 mb-1">Your Full Name *</label>
@@ -815,22 +1137,47 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Secret Codename / Handle (Will be prefixed with Agent-)</label>
+                      <label className="block text-slate-500 mb-1">Your Email Address *</label>
                       <input
-                        type="text"
-                        placeholder="e.g. Agent-Alex"
-                        value={codename}
-                        onChange={(e) => setCodename(e.target.value)}
+                        type="email"
+                        required
+                        placeholder="e.g. alex@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Create Password (Min 10 Characters) *</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-slate-500">Secret Codename / Call Sign</label>
+                        <button
+                          type="button"
+                          onClick={() => setCodename(generateRandomCodename())}
+                          className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          🎲 Randomize Call Sign
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border ${theme.badgeCode}`}>
+                          Agent:
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="e.g. Viper, Phoenix, Sentinel"
+                          value={codename}
+                          onChange={(e) => setCodename(e.target.value)}
+                          className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 mb-1">Password *</label>
                       <input
                         type="password"
                         required
                         minLength={10}
-                        placeholder="At least 10 chars (A-Z, a-z, 0-9, special char)"
+                        placeholder="Enter your account password (or set new)"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
@@ -838,7 +1185,6 @@ export default function Home() {
                     </div>
                   </>
                 )}
-
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -865,8 +1211,8 @@ export default function Home() {
       {/* Footer */}
       <footer className={`border-t py-8 text-xs font-medium transition-colors ${theme.footerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div>
-            © 2026 KovertKlaus by <span className="font-semibold text-slate-700 dark:text-slate-300">Joshua Simpson</span>. Made for families & friends.
+          <div className="pl-12 sm:pl-0">
+            © 2026 KovertKlaus by <span className="font-semibold text-amber-300/90 dark:text-slate-300">Joshua Simpson</span>. Made for families & friends.
           </div>
           <div className="flex gap-6 font-semibold">
             <Link href="/features" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>Features & Specs</Link>

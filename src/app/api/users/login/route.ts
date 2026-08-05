@@ -19,12 +19,16 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Dummy hash for constant-time comparison to prevent timing attacks
+    const DUMMY_HASH = '$2a$12$eImiTXuWVfxh02WpuU.2Te6/k6G4v0S0i56u.0B.y/0x3d.0x.0x';
+
     // Fetch User from DB
     const user = await db.user.findUnique({
       where: { email: cleanEmail },
     });
 
     if (!user) {
+      await bcrypt.compare(password, DUMMY_HASH);
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
-import { isSafePublicUrl, sanitizeText } from '@/lib/security';
+import { db } from '@/lib/db';
+import { isSafePublicUrl, sanitizeText, normalizeProductUrl } from '@/lib/security';
 
 export async function POST(request: Request) {
   try {
@@ -18,9 +19,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: ssrfCheck.error || 'Access to this URL is blocked for security reasons.' }, { status: 403 });
     }
 
-    const parsedUrl = new URL(formattedUrl);
+    // Normalize URL to remove tracking parameters
+    const normalizedUrl = normalizeProductUrl(formattedUrl);
+    const parsedUrl = new URL(normalizedUrl);
 
-    // 2.5 second AbortController timeout for fast failover
+    // Step 1: Check shared OpToolCatalog in Database (~10ms fast hit)
+    const existingCatalog = await db.opToolCatalog.findUnique({
+      where: { url: normalizedUrl },
+    });
+
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+    const isFresh = existingCatalog && (Date.now() - new Date(existingCatalog.scrapedAt).getTime() < TWENTY_FOUR_HOURS_MS);
+
+    if (existingCatalog && isFresh) {
+      return NextResponse.json({
+        success: true,
+        foundInCatalog: true,
+        metadata: {
+          id: existingCatalog.id,
+          title: existingCatalog.title,
+          url: existingCatalog.url,
+          price: existingCatalog.price ? Number(existingCatalog.price) : undefined,
+          description: existingCatalog.description || undefined,
+          thumbnail: existingCatalog.thumbnailUrl || undefined,
+          domain: existingCatalog.domain || parsedUrl.hostname,
+          properties: existingCatalog.properties || undefined,
+        },
+      });
+    }
+
+    // Step 2: 2.5 second AbortController timeout for fast failover scraping
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2500);
 
@@ -69,19 +97,63 @@ export async function POST(request: Request) {
         ''
       );
 
+      const parsedPrice = price ? parseFloat(price) : 0;
+      const cleanDesc = description.substring(0, 300);
+
+      // Upsert into shared OpToolCatalog database table
+      const catalogRecord = await db.opToolCatalog.upsert({
+        where: { url: normalizedUrl },
+        create: {
+          url: normalizedUrl,
+          title,
+          price: parsedPrice,
+          description: cleanDesc,
+          thumbnailUrl: image,
+          domain: parsedUrl.hostname,
+        },
+        update: {
+          title,
+          price: parsedPrice,
+          description: cleanDesc,
+          thumbnailUrl: image,
+          domain: parsedUrl.hostname,
+          scrapedAt: new Date(),
+        },
+      });
+
       return NextResponse.json({
         success: true,
+        foundInCatalog: false,
         metadata: {
-          title,
-          url: parsedUrl.toString(),
-          price: price ? parseFloat(price) : undefined,
-          description: description.substring(0, 300),
-          thumbnail: image,
+          id: catalogRecord.id,
+          title: catalogRecord.title,
+          url: catalogRecord.url,
+          price: parsedPrice > 0 ? parsedPrice : undefined,
+          description: cleanDesc || undefined,
+          thumbnail: image || undefined,
           domain: parsedUrl.hostname,
         },
       });
     } catch {
       clearTimeout(timeoutId);
+      
+      // If we had a stale catalog record, fallback to it
+      if (existingCatalog) {
+        return NextResponse.json({
+          success: true,
+          foundInCatalog: true,
+          metadata: {
+            id: existingCatalog.id,
+            title: existingCatalog.title,
+            url: existingCatalog.url,
+            price: existingCatalog.price ? Number(existingCatalog.price) : undefined,
+            description: existingCatalog.description || undefined,
+            thumbnail: existingCatalog.thumbnailUrl || undefined,
+            domain: existingCatalog.domain || parsedUrl.hostname,
+          },
+        });
+      }
+
       // Fast Failover: Return domain metadata so manual modal opens pre-filled
       return NextResponse.json({
         success: false,

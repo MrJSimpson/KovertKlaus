@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename, formatDateString } from '@/lib/security';
-import { getThemeClasses } from '@/lib/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface OperationAgent {
   id: string;
@@ -64,7 +64,7 @@ export default function OperationCommandCenterPage() {
   const router = useRouter();
   const code = (params?.code as string)?.toUpperCase() || '';
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [operation, setOperation] = useState<OperationData | null>(null);
@@ -111,15 +111,32 @@ export default function OperationCommandCenterPage() {
     { id: '1', sender: 'Agent-KovertKlaus', text: 'Operation initialized. All agents stand by for target assignment.', time: '10:00 AM' },
   ]);
 
-  const theme = getThemeClasses(isDarkMode);
-
   useEffect(() => {
-    const savedUserId = localStorage.getItem('kovertklaus_user_id');
-    const savedUserName = localStorage.getItem('kovertklaus_user_name');
-    if (savedUserId) setUserId(savedUserId);
-    if (savedUserName) setUserName(savedUserName);
+    async function initSession() {
+      try {
+        const res = await fetch('/api/users/me');
+        const json = await res.json();
+        if (res.ok && json.authenticated && json.user) {
+          setUserId(json.user.id);
+          setUserName(json.user.name);
+          localStorage.setItem('kovertklaus_user_id', json.user.id);
+          localStorage.setItem('kovertklaus_user_name', json.user.name);
+        } else {
+          const savedUserId = localStorage.getItem('kovertklaus_user_id');
+          const savedUserName = localStorage.getItem('kovertklaus_user_name');
+          if (savedUserId) setUserId(savedUserId);
+          if (savedUserName) setUserName(savedUserName);
+        }
+      } catch {
+        const savedUserId = localStorage.getItem('kovertklaus_user_id');
+        const savedUserName = localStorage.getItem('kovertklaus_user_name');
+        if (savedUserId) setUserId(savedUserId);
+        if (savedUserName) setUserName(savedUserName);
+      }
+      fetchExchangeDetails();
+    }
 
-    fetchExchangeDetails();
+    initSession();
   }, [code]);
 
   async function fetchExchangeDetails() {
@@ -391,7 +408,7 @@ export default function OperationCommandCenterPage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
               {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
@@ -447,25 +464,25 @@ export default function OperationCommandCenterPage() {
                     </span>
                   )}
 
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                    OpsLeader: <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{operation.opsLeader.name} ({formatCodename(operation.opsLeader.codename, operation.opsLeader.name)})</strong>
+                  <span className={`text-xs font-semibold ${theme.textSubLabel}`}>
+                    OpsLeader: <strong className={theme.textLabel}>{operation.opsLeader.name} ({formatCodename(operation.opsLeader.codename, operation.opsLeader.name)})</strong>
                   </span>
                 </div>
 
                 <h1 className="text-3xl font-black">{operation.title}</h1>
                 
                 {operation.description && (
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">
+                  <p className={`text-xs mt-1 italic ${theme.textSubLabel}`}>
                     "{operation.description}"
                   </p>
                 )}
 
-                <div className="text-xs text-slate-500 mt-2 space-y-0.5">
+                <div className={`text-xs mt-2 space-y-0.5 ${theme.textSubLabel}`}>
                   <p>
                     Budget Limit: <strong className={theme.textAccent}>${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong>
                   </p>
                   {operation.isLocalOnly && operation.eventLocation && (
-                    <p className="text-slate-800 dark:text-slate-200 font-bold">
+                    <p className={`font-bold ${theme.textLabel}`}>
                       📍 Event Location: {operation.eventLocation}
                     </p>
                   )}
@@ -488,51 +505,51 @@ export default function OperationCommandCenterPage() {
             {/* 4-Stage Operational Timeline Cards */}
             <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 block">
+                <span className={`text-xs font-bold uppercase tracking-wider block ${theme.textLabel}`}>
                   📅 4-Stage Operational Timeline
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className="text-xs text-amber-700 dark:text-amber-300 uppercase font-mono font-extrabold block">
+                  <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-amber-300' : 'text-amber-800'}`}>
                     STAGE 1
                   </span>
-                  <span className="font-bold block text-sm mt-0.5">Go/No-Go Date</span>
-                  <span className="text-slate-500 text-[11px] block mt-0.5">(Invite Cutoff)</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Go/No-Go Date</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Invite Cutoff)</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.inviteCutoffDate)}
                   </strong>
                 </div>
 
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className="text-xs text-sky-700 dark:text-sky-300 uppercase font-mono font-extrabold block">
+                  <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-sky-300' : 'text-sky-800'}`}>
                     STAGE 2
                   </span>
-                  <span className="font-bold block text-sm mt-0.5">Target Assignment</span>
-                  <span className="text-slate-500 text-[11px] block mt-0.5">(Sattolo Draw)</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Target Assignment</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Sattolo Draw)</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.assignmentDate)}
                   </strong>
                 </div>
 
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className="text-xs text-purple-700 dark:text-purple-300 uppercase font-mono font-extrabold block">
+                  <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-purple-300' : 'text-purple-800'}`}>
                     STAGE 3
                   </span>
-                  <span className="font-bold block text-sm mt-0.5">Gift Shipping Deadline</span>
-                  <span className="text-slate-500 text-[11px] block mt-0.5">(Tracking Required)</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Gift Shipping Deadline</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Tracking Required)</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.shippingDate)}
                   </strong>
                 </div>
 
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className="text-xs text-emerald-800 dark:text-emerald-300 uppercase font-mono font-extrabold block">
+                  <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>
                     STAGE 4
                   </span>
-                  <span className="font-bold block text-sm mt-0.5">Exchange Execution</span>
-                  <span className="text-slate-500 text-[11px] block mt-0.5">(Event Day)</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Exchange Execution</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Event Day)</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textAccent}`}>
                     {formatDateString(operation.executionDate)}
                   </strong>
@@ -616,8 +633,8 @@ export default function OperationCommandCenterPage() {
                       <div className={`p-4 rounded-2xl border space-y-2 ${theme.cardInnerBg}`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="text-xs text-slate-500 block">Assigned Target Operative:</span>
-                            <span className="text-xl font-black text-slate-900 dark:text-white">
+                            <span className={`text-xs block ${theme.textSubLabel}`}>Assigned Target Operative:</span>
+                            <span className={`text-xl font-black ${theme.textHeading}`}>
                               {formatCodename(assignedTarget.codename, assignedTarget.name)}
                             </span>
                           </div>
@@ -625,15 +642,15 @@ export default function OperationCommandCenterPage() {
                         </div>
 
                         {assignedTarget.streetAddress && (
-                          <div className="text-xs text-slate-600 dark:text-slate-400 border-t border-stone-200 dark:border-slate-800 pt-2">
+                          <div className={`text-xs border-t border-stone-200 dark:border-slate-800 pt-2 ${theme.textSubLabel}`}>
                             <span>Courier Address: </span>
-                            <strong>{assignedTarget.streetAddress}, {assignedTarget.city}, {assignedTarget.state} {assignedTarget.zipCode}</strong>
+                            <strong className={theme.textLabel}>{assignedTarget.streetAddress}, {assignedTarget.city}, {assignedTarget.state} {assignedTarget.zipCode}</strong>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="text-center py-6 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-2xl">
-                        <p className="text-xs text-slate-500">
+                      <div className="text-center py-6 border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl">
+                        <p className={`text-xs font-medium ${theme.textSubLabel}`}>
                           Target assignments have not been drawn yet. Stand by for your OpsLeader to initiate the draw!
                         </p>
                       </div>
@@ -649,7 +666,7 @@ export default function OperationCommandCenterPage() {
                   <p className={`text-xs font-semibold mb-1 ${theme.textAccent}`}>
                     (OpKit = {operation.isWhiteElephant ? 'Single Brought Gift' : 'Your Secret Santa Wishlist'} | OpTools = Wished-for Gift Items)
                   </p>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
                     {operation.isWhiteElephant
                       ? 'Add the 1 gift item you are bringing to the live White Elephant pool (Max 1 OpTool).'
                       : 'Paste store product links to populate your Secret Santa OpKit. We\'ll auto-scrape titles and prices!'}
@@ -686,8 +703,8 @@ export default function OperationCommandCenterPage() {
 
                   {/* OpTools List */}
                   {userOpKit.length === 0 ? (
-                    <div className="text-center py-8 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-2xl">
-                      <p className="text-xs text-slate-500">Your OpKit is empty. Add an OpTool link above!</p>
+                    <div className="text-center py-8 border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl">
+                      <p className={`text-xs font-medium ${theme.textSubLabel}`}>Your OpKit is empty. Add an OpTool link above!</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -768,7 +785,7 @@ export default function OperationCommandCenterPage() {
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       👥 Enrolled Agents ({operation.agents?.length || 0})
                     </h2>
-                    <span className="text-xs text-slate-500 font-mono">Status: {operation.status}</span>
+                    <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md ${theme.badgeCode}`}>Status: {operation.status}</span>
                   </div>
 
                   <div className="space-y-3">
@@ -776,9 +793,9 @@ export default function OperationCommandCenterPage() {
                       <div key={agent.id} className={`p-4 rounded-2xl border space-y-2 text-xs ${theme.cardInnerBg}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
-                            <span className="font-mono text-slate-400 text-xs">#{i + 1}</span>
+                            <span className={`font-mono text-xs ${theme.textSubLabel}`}>#{i + 1}</span>
                             <div>
-                              <span className="font-bold block text-sm">
+                              <span className={`font-bold block text-sm ${theme.textLabel}`}>
                                 {formatCodename(agent.user?.codename, agent.user?.name)}
                               </span>
                               <div className="flex items-center gap-2 mt-0.5">
@@ -787,7 +804,7 @@ export default function OperationCommandCenterPage() {
                                 }`}>
                                   {agent.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}
                                 </span>
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">
+                                <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
                                   Shipping: {agent.shippingStatus}
                                 </span>
                               </div>

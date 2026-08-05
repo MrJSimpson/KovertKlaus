@@ -38,6 +38,7 @@ export async function GET(request: Request) {
                 id: true,
                 title: true,
                 code: true,
+                isLocalOnly: true,
                 isWhiteElephant: true,
                 budgetMin: true,
                 budgetMax: true,

@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
-import { getThemeClasses } from '@/lib/theme';
+import { useTheme } from '@/context/ThemeContext';
+import { Card, SectionHeader, Button, Badge, DataRow } from '@/components/ui';
+import { AccountPreferencesModal } from '@/components/AccountPreferencesModal';
 
 interface OpKit {
   id: string;
@@ -36,6 +38,7 @@ interface UserData {
       code: string;
       status: string;
       giftingType: string;
+      isLocalOnly?: boolean;
       isWhiteElephant: boolean;
       budgetMin?: number;
       budgetMax: number;
@@ -47,7 +50,7 @@ interface UserData {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserData | null>(null);
 
@@ -70,30 +73,27 @@ export default function DashboardPage() {
   const [editingOpKitId, setEditingOpKitId] = useState<string | null>(null);
   const [editingOpKitName, setEditingOpKitName] = useState('');
 
-  const theme = getThemeClasses(isDarkMode);
-
   useEffect(() => {
     fetchUserData();
   }, []);
 
   async function fetchUserData() {
     setLoading(true);
-    const userId = localStorage.getItem('kovertklaus_user_id');
-
-    if (!userId) {
-      router.push('/');
-      return;
-    }
+    const savedUserId = localStorage.getItem('kovertklaus_user_id');
 
     try {
-      const res = await fetch(`/api/users/me?userId=${userId}`);
+      const url = savedUserId ? `/api/users/me?userId=${savedUserId}` : '/api/users/me';
+      const res = await fetch(url);
       const json = await res.json();
       if (!res.ok || (!json.success && !json.authenticated) || !json.user) {
         localStorage.removeItem('kovertklaus_user_id');
+        localStorage.removeItem('kovertklaus_user_name');
         router.push('/');
         return;
       }
 
+      localStorage.setItem('kovertklaus_user_id', json.user.id);
+      localStorage.setItem('kovertklaus_user_name', json.user.name);
       setUser(json.user);
       setStreetAddress(json.user.streetAddress || '');
       setCity(json.user.city || '');
@@ -224,7 +224,7 @@ export default function DashboardPage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
               {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
@@ -268,8 +268,8 @@ export default function DashboardPage() {
                 <h1 className="text-3xl font-black">
                   Welcome Back, {formatCodename(user.codename, user.name)}
                 </h1>
-                <p className="text-xs text-slate-500 mt-1">
-                  Logged in as: <strong>{user.email}</strong> | Full Name: <strong>{user.name}</strong>
+                <p className={`text-xs mt-1 ${theme.textSubLabel}`}>
+                  Logged in as: <strong className={theme.textLabel}>{user.email}</strong> | Full Name: <strong className={theme.textLabel}>{user.name}</strong>
                 </p>
               </div>
 
@@ -283,89 +283,82 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Courier Shipping Address Incomplete Warning Banner */}
+            {(!user.streetAddress || !user.city || !user.state || !user.zipCode) &&
+              user.participations?.some((p) => !p.mission.isLocalOnly && !p.mission.isWhiteElephant) && (
+                <div className={`p-5 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${theme.alertWarning}`}>
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">📦</span>
+                    <div>
+                      <h4 className="font-extrabold text-sm">Action Required: Courier Shipping Address Incomplete</h4>
+                      <p className="text-xs mt-0.5 opacity-90">
+                        You are enrolled in an active remote Secret Santa operation. Provide your Courier Shipping Address so your assigned Secret Santa can deliver your gifts!
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setPrefModalOpen(true)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-md cursor-pointer whitespace-nowrap transition-all ${theme.btnPrimary}`}
+                  >
+                    ⚙️ Complete Shipping Address
+                  </button>
+                </div>
+            )}
+
             {/* Section 1: Active Operations (Exchanges) */}
-            <section className={`p-6 sm:p-8 rounded-3xl border space-y-6 ${theme.sectionFrame}`}>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-stone-200/80 dark:border-slate-800">
-                <div>
-                  <h2 className="text-2xl font-black flex items-center gap-2">
-                    🎯 Active Operations (Exchanges)
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Gift exchanges you are currently organizing or participating in as an assigned Field Agent.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/operations"
-                    className={`text-xs font-bold px-4 py-2.5 rounded-xl border transition-all ${theme.btnToggle}`}
-                  >
-                    ⚙️ Manage All Operations →
-                  </Link>
-
-                  <Link
-                    href="/"
-                    className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnPrimary}`}
-                  >
-                    + New Exchange
-                  </Link>
-                </div>
-              </div>
+            <Card variant="section" className="space-y-6">
+              <SectionHeader
+                title="🎯 Active Operations (Exchanges)"
+                subtitle="Gift exchanges you are currently organizing or participating in as an assigned Field Agent."
+                primaryAction={<Button href="/" variant="primary">+ New Exchange</Button>}
+                secondaryAction={<Button href="/operations" variant="toggle">⚙️ Manage All Operations →</Button>}
+              />
 
               {/* Operations Cards Grid */}
               {user.participations.length === 0 ? (
-                <div className={`p-8 text-center rounded-3xl border ${theme.cardBg}`}>
+                <Card className="text-center py-8">
                   <div className="text-3xl mb-2">🎁</div>
                   <h3 className="text-base font-bold mb-1">No Active Operations</h3>
                   <p className="text-xs text-slate-500 mb-4">
                     You haven't joined or created any secret santa gift exchanges yet.
                   </p>
-                  <Link
-                    href="/"
-                    className={`px-5 py-2.5 text-xs font-bold rounded-xl shadow-md ${theme.btnPrimary}`}
-                  >
+                  <Button href="/" variant="primary">
                     Organize or Join an Exchange
-                  </Link>
-                </div>
+                  </Button>
+                </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {user.participations.map((p) => {
                     const countdown = getNextMilestoneCountdown(p.mission);
                     return (
-                      <div
+                      <Card
                         key={p.id}
-                        className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all hover:shadow-xl ${theme.cardBg}`}
+                        className="flex flex-col justify-between hover:shadow-xl"
                       >
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-mono font-bold ${theme.badgeCode}`}>
-                              CODE: {p.mission.code}
-                            </span>
-                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
-                              p.mission.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
-                            }`}>
+                            <Badge variant="code">CODE: {p.mission.code}</Badge>
+                            <Badge variant={p.mission.isWhiteElephant ? 'white-elephant' : 'secret-santa'}>
                               ● {countdown.phaseStatusLabel}
-                            </span>
+                            </Badge>
                           </div>
 
                           <h3 className="text-xl font-black mt-2">{p.mission.title}</h3>
                           
-                          <div className={`mt-3 p-3.5 rounded-2xl border space-y-1.5 text-xs ${theme.cardInnerBg}`}>
-                            <div className="flex justify-between items-center">
-                              <span className="text-slate-400">Budget Range:</span>
-                              <strong className={theme.textAccent}>
-                                ${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}
-                              </strong>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-slate-400">Exchange Day:</span>
-                              <strong className={theme.textDate}>
-                                {formatDateString(p.mission.executionDate)}
-                              </strong>
-                            </div>
+                          <Card variant="inner" className="mt-3 space-y-1.5 text-xs">
+                            <DataRow
+                              label="Budget Range"
+                              value={`$${p.mission.budgetMin || 0} – $${p.mission.budgetMax} ${p.mission.currency}`}
+                              valueVariant="accent"
+                            />
+                            <DataRow
+                              label="Exchange Day"
+                              value={formatDateString(p.mission.executionDate)}
+                              valueVariant="date"
+                            />
 
                             <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 dark:border-slate-800/80">
-                              <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                              <span className={`flex items-center gap-1 ${theme.textLabel}`}>
                                 ⏳ {countdown.milestoneLabel}:
                               </span>
                               <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${
@@ -378,56 +371,44 @@ export default function DashboardPage() {
                                 {countdown.formattedText}
                               </span>
                             </div>
-                          </div>
+                          </Card>
                         </div>
 
                         <div className="mt-6 flex items-center justify-between pt-3 border-t border-stone-200 dark:border-slate-800">
-                          <span className="text-xs font-semibold text-slate-500">
-                            Role: <strong className="text-slate-900 dark:text-slate-100 font-bold">{p.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}</strong>
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-xs ${theme.textLabel}`}>Role:</span>
+                            <Badge variant={p.role === 'OPS_LEADER' ? 'opsleader' : 'code'}>
+                              {p.role === 'OPS_LEADER' ? '⭐ OpsLeader' : '🕵️ Field Agent'}
+                            </Badge>
+                          </div>
 
-                          <Link
-                            href={`/exchange/${p.mission.code}`}
-                            className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
-                          >
+                          <Button href={`/exchange/${p.mission.code}`} variant="primary">
                             Open Command Center →
-                          </Link>
+                          </Button>
                         </div>
-                      </div>
+                      </Card>
                     );
                   })}
                 </div>
               )}
-            </section>
+            </Card>
 
             {/* Section 2: OpKits & OpTools Inventory (5 Most Recent Limit) */}
-            <section className={`p-6 sm:p-8 rounded-3xl border space-y-6 ${theme.sectionFrame}`}>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-stone-200/80 dark:border-slate-800">
-                <div>
-                  <h2 className="text-2xl font-black flex items-center gap-2">
-                    🧰 OpKits (Wish Lists)
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    (OpKit = Wish List | OpTool = Gift Item) — Showing 5 most recent OpKits.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setCreateOpKitModalOpen(true)}
-                    className={`text-xs font-bold px-4 py-2.5 rounded-xl border transition-all ${theme.btnToggle}`}
-                  >
-                    + Quick OpKit
-                  </button>
-
-                  <Link
-                    href="/opkits"
-                    className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnPrimary}`}
-                  >
+            <Card variant="section" className="space-y-6">
+              <SectionHeader
+                title="🧰 OpKits (Wish Lists)"
+                subtitle="(OpKit = Wish List | OpTool = Gift Item) — Showing 5 most recent OpKits."
+                primaryAction={
+                  <Button onClick={() => setCreateOpKitModalOpen(true)} variant="primary">
+                    + New OpKit
+                  </Button>
+                }
+                secondaryAction={
+                  <Button href="/opkits" variant="toggle">
                     ⚙️ Manage All OpKits →
-                  </Link>
-                </div>
-              </div>
+                  </Button>
+                }
+              />
 
               {/* OpKits Display Grid */}
               {recentOpKits.length === 0 ? (
@@ -468,10 +449,11 @@ export default function DashboardPage() {
                               setEditingOpKitId(kit.id);
                               setEditingOpKitName(kit.name);
                             }}
-                            title="Quick Edit OpKit Name"
-                            className="p-1 text-xs hover:bg-stone-100 dark:hover:bg-slate-800 rounded-md"
+                            title="Click to Rename OpKit"
+                            className={`px-2.5 py-1 text-xs rounded-lg flex items-center gap-1 font-semibold border transition-all cursor-pointer shadow-xs ${theme.btnNeutral}`}
                           >
-                            ✏️
+                            <span>✏️</span>
+                            <span className="text-[10px] font-bold">Rename</span>
                           </button>
                         </div>
                       </div>
@@ -498,7 +480,7 @@ export default function DashboardPage() {
 
                       <div className={`mt-4 p-4 rounded-2xl border space-y-2 ${theme.cardInnerBg}`}>
                         <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Attached OpTools:</span>
+                          <span className={theme.textLabel}>Attached OpTools:</span>
                           <strong className={theme.textAccent}>{kit.opTools?.length || 0} Items</strong>
                         </div>
                       </div>
@@ -516,7 +498,7 @@ export default function DashboardPage() {
                 ))}
               </div>
               )}
-            </section>
+            </Card>
 
           </>
         ) : null}
@@ -524,111 +506,11 @@ export default function DashboardPage() {
       </main>
 
       {/* MODAL: ACCOUNT PREFERENCES */}
-      {prefModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-black flex items-center gap-2">
-                <span>⚙️ Account Preferences</span>
-              </h3>
-              <button onClick={() => setPrefModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
-            </div>
-
-            {prefMessage && (
-              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertSuccess}`}>
-                ✓ {prefMessage}
-              </div>
-            )}
-
-            {prefError && (
-              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
-                ⚠️ {prefError}
-              </div>
-            )}
-
-            <form onSubmit={handleUpdatePreferences} className="space-y-4 text-xs font-semibold">
-              <div>
-                <label className="block text-slate-500 mb-1">Codename / Handle (Will be prefixed with Agent-)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Agent-KovertKlaus"
-                  value={codename}
-                  onChange={(e) => setCodename(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                />
-              </div>
-
-              <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
-                <span className={`text-xs font-bold block mb-2 ${theme.textAccent}`}>
-                  📦 Default Courier Shipping Address
-                </span>
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-slate-500 mb-1">Street Address</label>
-                    <input
-                      type="text"
-                      placeholder="123 Holly Lane"
-                      value={streetAddress}
-                      onChange={(e) => setStreetAddress(e.target.value)}
-                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-1">
-                      <label className="block text-slate-500 mb-1">City</label>
-                      <input
-                        type="text"
-                        placeholder="Tacoma"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-500 mb-1">State</label>
-                      <input
-                        type="text"
-                        placeholder="WA"
-                        value={state}
-                        onChange={(e) => setState(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-500 mb-1">Zip Code</label>
-                      <input
-                        type="text"
-                        placeholder="98402"
-                        value={zipCode}
-                        onChange={(e) => setZipCode(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setPrefModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
-                >
-                  Close
-                </button>
-                <button
-                  type="submit"
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AccountPreferencesModal
+        isOpen={prefModalOpen}
+        onClose={() => setPrefModalOpen(false)}
+        onProfileUpdated={fetchUserData}
+      />
 
       {/* MODAL: CREATE QUICK OPKIT */}
       {createOpKitModalOpen && (

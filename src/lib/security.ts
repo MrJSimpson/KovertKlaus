@@ -13,21 +13,13 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const CODE_REGEX = /^[A-Z0-9-]{3,16}$/;
 
 /**
- * Formats a Codename to strictly enforce the "Agent-" prefix rule across the app.
- * Example: "Alex" -> "Agent-Alex", "Agent-9867" -> "Agent-9867"
+ * Formats a Codename to enforce the "Agent: " display prefix rule across the app.
+ * Example: "Joshua" -> "Agent: Joshua", "Agent-Joshua" -> "Agent: Joshua"
  */
 export function formatCodename(codename?: string | null, fallbackName?: string | null): string {
-  if (!codename || !codename.trim()) {
-    if (fallbackName && fallbackName.trim()) {
-      const cleanFallback = fallbackName.trim();
-      return cleanFallback.toLowerCase().startsWith('agent-')
-        ? cleanFallback
-        : `Agent-${cleanFallback}`;
-    }
-    return 'Agent-Unknown';
-  }
-  const clean = codename.trim();
-  return clean.toLowerCase().startsWith('agent-') ? clean : `Agent-${clean}`;
+  let clean = codename?.trim() || fallbackName?.trim() || 'Unknown';
+  clean = clean.replace(/^(agent[-:\s]+)/i, '').trim();
+  return `Agent: ${clean}`;
 }
 
 /**
@@ -229,13 +221,7 @@ export function sanitizeText(input: string): string {
   if (!input) return '';
   return input
     .trim()
-    .replace(/<[^>]*>/g, '') // Strip HTML tags
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
+    .replace(/<[^>]*>/g, ''); // Strip HTML tags to prevent XSS while keeping plain text clean
 }
 
 /**
@@ -304,5 +290,32 @@ export function isSafePublicUrl(urlString: string): { safe: boolean; error?: str
     return { safe: true };
   } catch {
     return { safe: false, error: 'Invalid URL format.' };
+  }
+}
+
+/**
+ * Normalizes e-commerce product URLs by removing tracking query parameters
+ * (e.g. utm_source, ref, tag, qid, fbclid) for accurate catalog deduplication.
+ */
+export function normalizeProductUrl(urlString: string): string {
+  try {
+    const parsed = new URL(urlString.trim());
+    const TRACKING_PARAMS = [
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'ref', 'ref_', 'tag', 'qid', 'pf_rd_r', 'pf_rd_p', 'pd_rd_r', 'pd_rd_w',
+      'fbclid', 'gclid', 'msclkid', 'spm', '_encoding',
+    ];
+
+    TRACKING_PARAMS.forEach((param) => parsed.searchParams.delete(param));
+
+    let cleanPath = parsed.pathname;
+    if (cleanPath.length > 1 && cleanPath.endsWith('/')) {
+      cleanPath = cleanPath.slice(0, -1);
+    }
+
+    const cleanSearch = parsed.searchParams.toString();
+    return `${parsed.protocol}//${parsed.hostname.toLowerCase()}${cleanPath}${cleanSearch ? `?${cleanSearch}` : ''}`;
+  } catch {
+    return urlString.trim();
   }
 }

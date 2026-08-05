@@ -25,36 +25,7 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Action 1: Email Existence Check for Returning Users
-    if (action === 'check') {
-      const existingUser = await db.user.findUnique({
-        where: { email: cleanEmail },
-        select: {
-          id: true,
-          name: true,
-          codename: true,
-          email: true,
-        },
-      });
-
-      if (existingUser) {
-        return NextResponse.json({
-          success: true,
-          exists: true,
-          user: {
-            name: existingUser.name,
-            codename: existingUser.codename,
-          },
-        });
-      } else {
-        return NextResponse.json({
-          success: true,
-          exists: false,
-        });
-      }
-    }
-
-    // Action 2: User Account Registration with 10-Character Password
+    // Action: User Account Registration with 10-Character Password
     if (!name || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
     }

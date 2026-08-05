@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Organize Secret Santa, Yankee Swaps, and Holiday Gift Exchanges in 60 seconds with universal wishlists and guaranteed 1-to-1 fair matching.",
 };
 
+import { ThemeProvider } from "@/context/ThemeContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +29,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

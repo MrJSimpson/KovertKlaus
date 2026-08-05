@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatCodename } from '@/lib/security';
-import { getThemeClasses } from '@/lib/theme';
+import { useTheme } from '@/context/ThemeContext';
+import { Card, SectionHeader, Button, Badge } from '@/components/ui';
 
 interface OpTool {
   id: string;
@@ -24,7 +25,7 @@ interface OpKit {
 }
 
 export default function OpKitsPage() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [opKits, setOpKits] = useState<OpKit[]>([]);
   const [selectedOpKitId, setSelectedOpKitId] = useState<string | null>(null);
@@ -43,8 +44,6 @@ export default function OpKitsPage() {
   const [opToolUrl, setOpToolUrl] = useState('');
   const [scraping, setScraping] = useState(false);
   const [validationError, setValidationError] = useState('');
-
-  const theme = getThemeClasses(isDarkMode);
 
   useEffect(() => {
     fetchOpKits();
@@ -260,7 +259,7 @@ export default function OpKitsPage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
               {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
@@ -286,12 +285,12 @@ export default function OpKitsPage() {
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeCode}`}>
                 🧰 OpKit Management Hub
               </span>
-              <span className="text-xs text-slate-500">
+              <span className={`text-xs ${theme.textSubLabel}`}>
                 (OpKit = Wish List | OpTool = Gift Item)
               </span>
             </div>
             <h1 className="text-3xl font-black">Manage All OpKits & OpTools</h1>
-            <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+            <p className={`text-xs mt-1 max-w-2xl ${theme.textSubLabel}`}>
               Organize your Master OpKit and operation-specific wish lists. Add gift links (OpTools), manage White Elephant brought items, and keep your secret santa wishes updated.
             </p>
           </div>
@@ -312,7 +311,7 @@ export default function OpKitsPage() {
             <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold">Your OpKits ({opKits.length})</h2>
-                <span className="text-xs text-slate-400 font-mono">Inventory</span>
+                <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md ${theme.badgeCode}`}>Inventory</span>
               </div>
 
               {/* Search Bar */}
@@ -326,11 +325,11 @@ export default function OpKitsPage() {
 
               {/* Directory List */}
               {loading ? (
-                <div className="text-center py-8 text-xs font-semibold text-slate-400">
+                <div className={`text-center py-8 text-xs font-semibold ${theme.textSubLabel}`}>
                   Loading OpKits...
                 </div>
               ) : filteredOpKits.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-400 border-2 border-dashed rounded-2xl">
+                <div className={`text-center py-8 text-xs border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl ${theme.textSubLabel}`}>
                   No OpKits found matching "{searchQuery}"
                 </div>
               ) : (
@@ -450,23 +449,21 @@ export default function OpKitsPage() {
                 </div>
 
                 {/* Info Note based on Dual OpKit Type */}
-                <div className={`p-4 rounded-2xl text-xs ${
-                  selectedOpKit.type === 'WHITE_ELEPHANT'
-                    ? 'bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-950 dark:text-purple-200'
-                    : 'bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
-                }`}>
-                  {selectedOpKit.type === 'WHITE_ELEPHANT' ? (
-                    <div>
-                      <span className="font-bold block text-sm mb-0.5">🐘 White Elephant Brought Gift OpKit</span>
-                      <span>This OpKit holds the single physical/digital gift item you are bringing to the live stealing pool. <strong>Strictly limited to 1 OpTool gift item.</strong></span>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="font-bold block text-sm mb-0.5">🎁 Secret Santa Requested Wishlist OpKit</span>
-                      <span>This OpKit holds items you wish to receive from your assigned Secret Santa operative. <strong>Unlimited OpTools allowed.</strong></span>
-                    </div>
-                  )}
-                </div>
+                {selectedOpKit.type === 'WHITE_ELEPHANT' ? (
+                  <div className={`p-4 rounded-2xl text-xs border ${
+                    isDarkMode
+                      ? 'bg-purple-950/50 border-purple-800 text-purple-200'
+                      : 'bg-purple-50 border-purple-200 text-purple-950'
+                  }`}>
+                    <span className="font-bold block text-sm mb-0.5">🐘 White Elephant Brought Gift OpKit</span>
+                    <span className="text-xs opacity-90">This OpKit holds the single physical/digital gift item you are bringing to the live stealing pool. <strong>Strictly limited to 1 OpTool gift item.</strong></span>
+                  </div>
+                ) : (
+                  <Card variant="inner" className="space-y-1">
+                    <span className={`font-bold block text-sm mb-0.5 ${theme.textHeading}`}>🎁 Secret Santa Requested Wishlist OpKit</span>
+                    <p className={`text-xs ${theme.textSubLabel}`}>This OpKit holds items you wish to receive from your assigned Secret Santa operative. <strong className={theme.textLabel}>Unlimited OpTools allowed.</strong></p>
+                  </Card>
+                )}
 
                 {validationError && (
                   <div className={`p-4 rounded-2xl text-xs font-bold border ${theme.alertWarning}`}>
