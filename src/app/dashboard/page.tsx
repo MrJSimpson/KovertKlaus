@@ -7,6 +7,8 @@ import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/l
 import { useTheme } from '@/context/ThemeContext';
 import { Card, SectionHeader, Button, Badge, DataRow } from '@/components/ui';
 import { AccountPreferencesModal } from '@/components/AccountPreferencesModal';
+import { CreateOperationModal } from '@/components/CreateOperationModal';
+import { JoinOperationModal } from '@/components/JoinOperationModal';
 
 interface OpKit {
   id: string;
@@ -46,6 +48,13 @@ interface UserData {
       executionDate: string;
     };
   }>;
+  notifications?: Array<{
+    id: string;
+    title: string;
+    message: string;
+    operationId?: string;
+    createdAt: string;
+  }>;
 }
 
 export default function DashboardPage() {
@@ -68,6 +77,10 @@ export default function DashboardPage() {
   const [createOpKitModalOpen, setCreateOpKitModalOpen] = useState(false);
   const [newOpKitName, setNewOpKitName] = useState('');
   const [newOpKitType, setNewOpKitType] = useState<'WISHLIST' | 'WHITE_ELEPHANT'>('WISHLIST');
+
+  // Operation Creation & Join Modals
+  const [createOpModalOpen, setCreateOpModalOpen] = useState(false);
+  const [joinOpModalOpen, setJoinOpModalOpen] = useState(false);
 
   // Inline OpKit Rename State
   const [editingOpKitId, setEditingOpKitId] = useState<string | null>(null);
@@ -195,6 +208,27 @@ export default function DashboardPage() {
     }
   }
 
+  // Accept Operation Invitation Alert
+  async function handleAcceptInvite(code: string) {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/invitations/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, operationCode: code }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        fetchUserData();
+        router.push(`/exchange/${code}`);
+      } else {
+        alert(json.error || 'Failed to accept invitation');
+      }
+    } catch {
+      alert('Failed to accept invitation');
+    }
+  }
+
   // Capped OpKits (Max 5 items, Master Pinned First)
   const recentOpKits = user?.wishlists
     ? [...user.wishlists]
@@ -283,6 +317,41 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* In-App Operation Invitation Alerts */}
+            {user.notifications && user.notifications.length > 0 && (
+              <div className="space-y-3">
+                {user.notifications.map((notif) => {
+                  const codeMatch = notif.message.match(/Code:\s*([A-Z0-9-]{8,16})/i);
+                  const code = codeMatch ? codeMatch[1] : null;
+
+                  return (
+                    <div
+                      key={notif.id}
+                      className={`p-5 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${theme.cardBg} border-amber-500/50`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">📩</span>
+                        <div>
+                          <h4 className="font-extrabold text-sm">{notif.title}</h4>
+                          <p className={`text-xs mt-0.5 ${theme.textSubLabel}`}>
+                            {notif.message}
+                          </p>
+                        </div>
+                      </div>
+                      {code && (
+                        <button
+                          onClick={() => handleAcceptInvite(code)}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold shadow-md cursor-pointer whitespace-nowrap transition-all ${theme.btnPrimary}`}
+                        >
+                          🚀 Accept & Enlist
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Courier Shipping Address Incomplete Warning Banner */}
             {(!user.streetAddress || !user.city || !user.state || !user.zipCode) &&
               user.participations?.some((p) => !p.mission.isLocalOnly && !p.mission.isWhiteElephant) && (
@@ -310,7 +379,16 @@ export default function DashboardPage() {
               <SectionHeader
                 title="🎯 Active Operations (Exchanges)"
                 subtitle="Gift exchanges you are currently organizing or participating in as an assigned Field Agent."
-                primaryAction={<Button href="/" variant="primary">+ New Exchange</Button>}
+                primaryAction={
+                  <div className="flex items-center gap-2">
+                    <Button onClick={() => setJoinOpModalOpen(true)} variant="secondary">
+                      🕵️ Join Exchange
+                    </Button>
+                    <Button onClick={() => setCreateOpModalOpen(true)} variant="primary">
+                      + New Exchange
+                    </Button>
+                  </div>
+                }
                 secondaryAction={<Button href="/operations" variant="toggle">⚙️ Manage All Operations →</Button>}
               />
 
@@ -322,9 +400,14 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-500 mb-4">
                     You haven't joined or created any secret santa gift exchanges yet.
                   </p>
-                  <Button href="/" variant="primary">
-                    Organize or Join an Exchange
-                  </Button>
+                  <div className="flex items-center justify-center gap-3">
+                    <Button onClick={() => setCreateOpModalOpen(true)} variant="primary">
+                      + Organize New Exchange
+                    </Button>
+                    <Button onClick={() => setJoinOpModalOpen(true)} variant="secondary">
+                      🕵️ Join via Invite Code
+                    </Button>
+                  </div>
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -567,6 +650,22 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL: CREATE OPERATION */}
+      <CreateOperationModal
+        isOpen={createOpModalOpen}
+        onClose={() => setCreateOpModalOpen(false)}
+        userId={user?.id}
+        onSuccess={() => fetchUserData()}
+      />
+
+      {/* MODAL: JOIN OPERATION */}
+      <JoinOperationModal
+        isOpen={joinOpModalOpen}
+        onClose={() => setJoinOpModalOpen(false)}
+        userId={user?.id}
+        onSuccess={() => fetchUserData()}
+      />
 
     </div>
   );

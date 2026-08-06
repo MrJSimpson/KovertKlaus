@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename, formatDateString } from '@/lib/security';
 import { useTheme } from '@/context/ThemeContext';
+import { InviteAgentModal } from '@/components/InviteAgentModal';
 
 interface OperationAgent {
   id: string;
@@ -72,6 +73,9 @@ export default function OperationCommandCenterPage() {
   // Current User Session
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+
+  // Invite Agent Modal State
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   // OpsLeader Control Panel State
   const [drawingTargets, setDrawingTargets] = useState(false);
@@ -781,11 +785,23 @@ export default function OperationCommandCenterPage() {
               {/* Right Column: Participant Roster & Shipping Status */}
               <div className="lg:col-span-5 space-y-6">
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       👥 Enrolled Agents ({operation.agents?.length || 0})
                     </h2>
-                    <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md ${theme.badgeCode}`}>Status: {operation.status}</span>
+                    <div className="flex items-center gap-2">
+                      {isOpsLeader && (
+                        <button
+                          onClick={() => setInviteModalOpen(true)}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 ${theme.btnPrimary}`}
+                        >
+                          <span>✉️ + Invite Agent</span>
+                        </button>
+                      )}
+                      <span className={`text-xs font-mono font-bold px-2 py-1 rounded-md ${theme.badgeCode}`}>
+                        Status: {operation.status}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -1103,6 +1119,16 @@ export default function OperationCommandCenterPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL: RECRUIT FIELD AGENT */}
+      <InviteAgentModal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        operationId={operation?.id || ''}
+        operationTitle={operation?.title || ''}
+        opsLeaderUserId={userId || ''}
+        onSuccess={() => fetchExchangeDetails()}
+      />
 
     </div>
   );

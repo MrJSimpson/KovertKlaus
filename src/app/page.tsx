@@ -93,9 +93,9 @@ export default function Home() {
 
   // Exchange Specific Inputs
   const [title, setTitle] = useState('');
-  const [budgetMin, setBudgetMin] = useState(25);
+  const [budgetMin, setBudgetMin] = useState(0);
   const [budgetMax, setBudgetMax] = useState(50);
-  const [executionDate, setExecutionDate] = useState('2026-12-25');
+  const [executionDate, setExecutionDate] = useState(`${new Date().getFullYear()}-12-25`);
   const [joinCode, setJoinCode] = useState('');
 
   useEffect(() => {
@@ -259,6 +259,7 @@ export default function Home() {
             giftingType: 'SINGLE',
             isLocalOnly: false,
             isWhiteElephant: false,
+            maxParticipants: 5,
             inviteCutoffDate: calculatedDates.inviteCutoffDate,
             assignmentDate: calculatedDates.assignmentDate,
             shippingDate: calculatedDates.shippingDate,
@@ -1096,7 +1097,7 @@ export default function Home() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. KOVERT-8492"
+                  placeholder="e.g. K9X2-R7M4"
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                   className={`w-full border rounded-2xl px-4 py-3 text-lg font-mono text-center tracking-widest uppercase focus:outline-none ${theme.inputModalBg}`}

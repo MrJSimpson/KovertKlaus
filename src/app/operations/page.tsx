@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
 import { useTheme } from '@/context/ThemeContext';
+import { CreateOperationModal } from '@/components/CreateOperationModal';
+import { JoinOperationModal } from '@/components/JoinOperationModal';
 
 interface OperationItem {
   id: string;
@@ -34,6 +36,10 @@ export default function OperationCenterPage() {
   const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [operations, setOperations] = useState<OperationItem[]>([]);
+
+  // Modals
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -138,12 +144,21 @@ export default function OperationCenterPage() {
             </p>
           </div>
 
-          <Link
-            href="/dashboard"
-            className={`px-6 py-3.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnPrimary}`}
-          >
-            <span>+ New Exchange</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setJoinModalOpen(true)}
+              className={`px-5 py-3.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnSecondary}`}
+            >
+              <span>🕵️ Join Exchange</span>
+            </button>
+
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className={`px-6 py-3.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnPrimary}`}
+            >
+              <span>+ New Exchange</span>
+            </button>
+          </div>
         </div>
 
         {/* Filter Controls Bar */}
@@ -258,12 +273,20 @@ export default function OperationCenterPage() {
             <p className={`text-xs mb-6 ${theme.textSubLabel}`}>
               You aren't currently enrolled in any operations matching your filter criteria.
             </p>
-            <Link
-              href="/dashboard"
-              className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md ${theme.btnPrimary}`}
-            >
-              Organize or Join an Exchange
-            </Link>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setCreateModalOpen(true)}
+                className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md cursor-pointer ${theme.btnPrimary}`}
+              >
+                + Organize New Exchange
+              </button>
+              <button
+                onClick={() => setJoinModalOpen(true)}
+                className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md cursor-pointer ${theme.btnSecondary}`}
+              >
+                🕵️ Join via Invite Code
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -366,6 +389,20 @@ export default function OperationCenterPage() {
         )}
 
       </main>
+
+      {/* MODAL: CREATE OPERATION */}
+      <CreateOperationModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={() => fetchOperations()}
+      />
+
+      {/* MODAL: JOIN OPERATION */}
+      <JoinOperationModal
+        isOpen={joinModalOpen}
+        onClose={() => setJoinModalOpen(false)}
+        onSuccess={() => fetchOperations()}
+      />
 
     </div>
   );

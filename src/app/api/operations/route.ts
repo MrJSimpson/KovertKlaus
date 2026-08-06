@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
+import { generateInviteCode } from '@/lib/security';
 
 export async function GET(request: Request) {
   try {
@@ -182,8 +183,15 @@ export async function POST(request: Request) {
       }
     }
 
-    // Generate Unique Invite Code (e.g. KOVERT-9481)
-    const inviteCode = `KOVERT-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    // Generate Cryptographically Secure Unique Invite Code (e.g. K9X2-R7M4)
+    let inviteCode = generateInviteCode();
+    let attempts = 0;
+    while (attempts < 5) {
+      const existing = await db.mission.findUnique({ where: { code: inviteCode } });
+      if (!existing) break;
+      inviteCode = generateInviteCode();
+      attempts++;
+    }
 
     // Create Operation Transaction
     const newOperation = await db.mission.create({

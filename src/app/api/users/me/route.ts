@@ -56,6 +56,10 @@ export async function GET(request: Request) {
           },
           orderBy: { joinedAt: 'desc' },
         },
+        notifications: {
+          where: { isAcknowledged: false },
+          orderBy: { createdAt: 'desc' },
+        },
         wishlists: {
           include: {
             wishlistItems: {

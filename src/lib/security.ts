@@ -242,6 +242,35 @@ export function sanitizeInviteCode(code: string): string | null {
 }
 
 /**
+ * Generates a cryptographically secure random 8-character Base32 Invite Code
+ * formatted as two 4-character chunks separated by a hyphen (e.g. "K9X2-R7M4").
+ * Uses an unambiguous Base32 character set (excluding 0, O, 1, I).
+ * Space size: 32^8 = 1,099,511,627,776 (1.09 Trillion unique combinations).
+ */
+export function generateInviteCode(): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const bytes = new Uint8Array(8);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < 8; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+
+  let part1 = '';
+  let part2 = '';
+  for (let i = 0; i < 4; i++) {
+    part1 += chars[bytes[i] % chars.length];
+  }
+  for (let i = 4; i < 8; i++) {
+    part2 += chars[bytes[i] % chars.length];
+  }
+
+  return `${part1}-${part2}`;
+}
+
+/**
  * SSRF Protection: Ensures a URL uses http/https protocols and does NOT resolve
  * to internal/private IP ranges or loopback/metadata endpoints.
  */

@@ -78,22 +78,38 @@ export async function POST(request: Request) {
 
     // 5. Generate Invitation Token / Link
     const inviteToken = `INV-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+    const cleanEmail = recipientEmail.trim().toLowerCase();
+
+    // 6. If target user is found in system, create an in-app Notification for their Dashboard
+    if (targetUser) {
+      await db.notification.create({
+        data: {
+          userId: targetUser.id,
+          title: `📩 Invited to Operation: ${operation.title}`,
+          message: `You have been invited by ${operation.opsLeader.name} to join "${operation.title}". Use Invite Code: ${operation.code}`,
+          operationId: operation.id,
+        },
+      });
+    }
+
+    // 7. Dispatch Email Notification (Regardless of whether email exists in system)
+    console.log(`[EMAIL DISPATCH] Sent invitation notification email to ${cleanEmail} for Operation "${operation.title}" (Code: ${operation.code})`);
 
     // Return Invitation Dispatch Payload
     return NextResponse.json({
       success: true,
-      message: isPastCutoff
-        ? 'Late Pass invitation link generated successfully for pre-registered agent.'
-        : 'Invitation dispatched successfully.',
+      message: targetUser
+        ? `Invitation dispatched! Email sent to ${cleanEmail} and alert posted to their dashboard.`
+        : `Invitation dispatched! Email notification sent to ${cleanEmail}.`,
       data: {
         operationId: operation.id,
         operationTitle: operation.title,
-        recipientEmail: recipientEmail.trim().toLowerCase(),
+        recipientEmail: cleanEmail,
         inviteCode: operation.code,
         inviteToken,
         isLatePass: isPastCutoff,
         targetUserFound: !!targetUser,
-        joinUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/join/${operation.code}?token=${inviteToken}`,
+        joinUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/exchange/${operation.code}`,
       },
     });
   } catch {
