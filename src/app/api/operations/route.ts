@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
 import { generateInviteCode } from '@/lib/security';
+import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
 
 export async function GET(request: Request) {
   try {
@@ -28,6 +29,12 @@ export async function GET(request: Request) {
               targetUser: {
                 select: { id: true, name: true, codename: true, streetAddress: true, city: true, state: true, zipCode: true },
               },
+            },
+          },
+          exclusionRules: {
+            include: {
+              agent: { select: { id: true, name: true, codename: true } },
+              restrictedAgent: { select: { id: true, name: true, codename: true } },
             },
           },
         },
@@ -88,11 +95,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Action: Trigger Sattolo Target Draw for Secret Santa
+    // Action: Trigger Target Draw for Secret Santa
     if (action === 'draw' && operationId) {
       const op = await db.mission.findUnique({
         where: { id: operationId },
-        include: { agents: true },
+        include: { agents: true, exclusionRules: true },
       });
 
       if (!op) {
@@ -115,32 +122,174 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'At least 2 agents are required to execute a target draw' }, { status: 400 });
       }
 
-      // Execute Sattolo's Derangement Algorithm
-      const agentIds = op.agents.map((a: { id: string; userId: string }) => a.userId);
-      const shuffled = [...agentIds];
-      
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * i);
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
+      const agentsForDraw = op.agents.map((a) => ({
+        id: a.userId,
+        name: a.userId,
+        hasWishlistAttached: !!a.wishlistId,
+      }));
 
-      // Update Target Assignments in DB
-      for (let i = 0; i < op.agents.length; i++) {
-        const agent = op.agents[i];
-        const targetUserId = shuffled[i];
-        await db.missionAgent.update({
-          where: { id: agent.id },
-          data: { targetUserId },
+      const exclusionRulesForDraw = op.exclusionRules.map((r) => ({
+        agentId: r.agentId,
+        restrictedAgentId: r.restrictedAgentId,
+      }));
+
+      try {
+        const assignments = executeLinkedListDraw(agentsForDraw, {
+          isWhiteElephant: op.isWhiteElephant,
+          exclusionRules: exclusionRulesForDraw,
         });
+
+        for (const assignment of assignments) {
+          const agentRecord = op.agents.find((a) => a.userId === assignment.agentId);
+          if (agentRecord) {
+            await db.missionAgent.update({
+              where: { id: agentRecord.id },
+              data: { targetUserId: assignment.targetId },
+            });
+          }
+        }
+
+        await db.mission.update({
+          where: { id: operationId },
+          data: { status: 'ASSIGNED' },
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: 'Target assignments completed via Sattolo algorithm with exclusion rule enforcement',
+        });
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : 'Target draw failed';
+        return NextResponse.json({ error: errorMsg }, { status: 400 });
+      }
+    }
+
+    // Action: 2-Way Cascade Target Swap
+    if (action === 'swap' && operationId) {
+      const { originatorUserId, newTargetUserId } = body as {
+        originatorUserId?: string;
+        newTargetUserId?: string;
+      };
+
+      if (!originatorUserId || !newTargetUserId) {
+        return NextResponse.json({ error: 'originatorUserId and newTargetUserId are required' }, { status: 400 });
       }
 
-      // Update Operation Status to ASSIGNED
-      await db.mission.update({
+      const op = await db.mission.findUnique({
         where: { id: operationId },
-        data: { status: 'ASSIGNED' },
+        include: { agents: true, exclusionRules: true },
       });
 
-      return NextResponse.json({ success: true, message: 'Target assignments completed via Sattolo algorithm' });
+      if (!op) {
+        return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+      }
+
+      if (op.opsLeaderId !== activeUserId) {
+        return NextResponse.json({ error: 'Only the OpsLeader can execute target swaps' }, { status: 403 });
+      }
+
+      const currentAssignments = op.agents
+        .filter((a) => a.targetUserId)
+        .map((a) => ({ agentId: a.userId, targetId: a.targetUserId! }));
+
+      const exclusionRules = op.exclusionRules.map((r) => ({
+        agentId: r.agentId,
+        restrictedAgentId: r.restrictedAgentId,
+      }));
+
+      try {
+        const updatedAssignments = executeTargetSwap(
+          currentAssignments,
+          originatorUserId,
+          newTargetUserId,
+          exclusionRules
+        );
+
+        for (const assignment of updatedAssignments) {
+          const agentRecord = op.agents.find((a) => a.userId === assignment.agentId);
+          if (agentRecord) {
+            await db.missionAgent.update({
+              where: { id: agentRecord.id },
+              data: { targetUserId: assignment.targetId },
+            });
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: 'Target swap executed successfully',
+          assignments: updatedAssignments,
+        });
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : 'Target swap failed';
+        return NextResponse.json({ error: errorMsg }, { status: 400 });
+      }
+    }
+
+    // Action: Add Preventative Match Rule (Bidirectional)
+    if (action === 'addExclusion' && operationId) {
+      const { agentId, restrictedAgentId } = body as { agentId?: string; restrictedAgentId?: string };
+
+      if (!agentId || !restrictedAgentId) {
+        return NextResponse.json({ error: 'agentId and restrictedAgentId are required' }, { status: 400 });
+      }
+
+      if (agentId === restrictedAgentId) {
+        return NextResponse.json({ error: 'Cannot create a preventative match rule for self' }, { status: 400 });
+      }
+
+      const op = await db.mission.findUnique({ where: { id: operationId } });
+      if (!op) return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+      if (op.opsLeaderId !== activeUserId) {
+        return NextResponse.json({ error: 'Only OpsLeader can manage preventative match rules' }, { status: 403 });
+      }
+
+      const existing = await db.exclusionRule.findFirst({
+        where: {
+          missionId: operationId,
+          OR: [
+            { agentId, restrictedAgentId },
+            { agentId: restrictedAgentId, restrictedAgentId: agentId },
+          ],
+        },
+      });
+
+      if (existing) {
+        return NextResponse.json({ error: 'Preventative match rule already exists for these operatives' }, { status: 409 });
+      }
+
+      const newRule = await db.exclusionRule.create({
+        data: {
+          missionId: operationId,
+          agentId,
+          restrictedAgentId,
+        },
+        include: {
+          agent: { select: { id: true, name: true, codename: true } },
+          restrictedAgent: { select: { id: true, name: true, codename: true } },
+        },
+      });
+
+      return NextResponse.json({ success: true, message: 'Preventative match rule created', data: newRule });
+    }
+
+    // Action: Remove Preventative Match Rule
+    if (action === 'removeExclusion' && operationId) {
+      const { exclusionId } = body as { exclusionId?: string };
+
+      if (!exclusionId) {
+        return NextResponse.json({ error: 'exclusionId is required' }, { status: 400 });
+      }
+
+      const op = await db.mission.findUnique({ where: { id: operationId } });
+      if (!op) return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+      if (op.opsLeaderId !== activeUserId) {
+        return NextResponse.json({ error: 'Only OpsLeader can manage preventative match rules' }, { status: 403 });
+      }
+
+      await db.exclusionRule.delete({ where: { id: exclusionId } });
+
+      return NextResponse.json({ success: true, message: 'Preventative match rule removed' });
     }
 
     if (!config) {

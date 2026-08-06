@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { formatCodename, formatDateString } from '@/lib/security';
 import { useTheme } from '@/context/ThemeContext';
 import { InviteAgentModal } from '@/components/InviteAgentModal';
+import { PreventativeMatchModal, OperationExclusionRule } from '@/components/PreventativeMatchModal';
+import { ManageAssignmentsModal } from '@/components/ManageAssignmentsModal';
 
 interface OperationAgent {
   id: string;
@@ -58,6 +60,7 @@ interface OperationData {
     codename?: string;
   };
   agents: OperationAgent[];
+  exclusionRules?: OperationExclusionRule[];
 }
 
 export default function OperationCommandCenterPage() {
@@ -76,6 +79,8 @@ export default function OperationCommandCenterPage() {
 
   // Invite Agent Modal State
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [preventativeModalOpen, setPreventativeModalOpen] = useState(false);
+  const [manageAssignmentsModalOpen, setManageAssignmentsModalOpen] = useState(false);
 
   // OpsLeader Control Panel State
   const [drawingTargets, setDrawingTargets] = useState(false);
@@ -593,6 +598,24 @@ export default function OperationCommandCenterPage() {
                       className={theme.btnEmerald}
                     >
                       {drawingTargets ? 'Executing Draw...' : '🎯 Trigger Target Assignment Draw'}
+                    </button>
+                  )}
+
+                  {!operation.isWhiteElephant && (
+                    <button
+                      onClick={() => setPreventativeModalOpen(true)}
+                      className={theme.btnPurple}
+                    >
+                      🚫 Preventative Match Rules ({operation.exclusionRules?.length || 0})
+                    </button>
+                  )}
+
+                  {!operation.isWhiteElephant && operation.status === 'ASSIGNED' && (
+                    <button
+                      onClick={() => setManageAssignmentsModalOpen(true)}
+                      className={theme.btnEmerald}
+                    >
+                      🎯 Manage Target Assignments & Swaps
                     </button>
                   )}
 
@@ -1129,6 +1152,47 @@ export default function OperationCommandCenterPage() {
         opsLeaderUserId={userId || ''}
         onSuccess={() => fetchExchangeDetails()}
       />
+
+      {/* MODAL: PREVENTATIVE MATCH RULES */}
+      {operation && userId && (
+        <PreventativeMatchModal
+          isOpen={preventativeModalOpen}
+          onClose={() => setPreventativeModalOpen(false)}
+          operationId={operation.id}
+          opsLeaderUserId={userId}
+          agents={operation.agents.map((a) => ({
+            id: a.userId,
+            name: a.user?.name || a.userId,
+            codename: a.user?.codename,
+          }))}
+          exclusionRules={operation.exclusionRules || []}
+          onExclusionsUpdated={() => fetchExchangeDetails()}
+        />
+      )}
+
+      {/* MODAL: MANAGE ASSIGNMENTS & TARGET SWAPS */}
+      {operation && userId && (
+        <ManageAssignmentsModal
+          isOpen={manageAssignmentsModalOpen}
+          onClose={() => setManageAssignmentsModalOpen(false)}
+          operationId={operation.id}
+          opsLeaderUserId={userId}
+          agents={operation.agents.map((a) => ({
+            id: a.id,
+            userId: a.userId,
+            user: {
+              id: a.user?.id || a.userId,
+              name: a.user?.name || a.userId,
+              codename: a.user?.codename,
+            },
+            targetUserId: a.targetUserId,
+            targetUser: a.targetUser,
+            wishlistId: a.id,
+          }))}
+          exclusionRules={operation.exclusionRules || []}
+          onAssignmentsUpdated={() => fetchExchangeDetails()}
+        />
+      )}
 
     </div>
   );

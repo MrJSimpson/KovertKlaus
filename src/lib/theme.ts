@@ -83,6 +83,10 @@ export function getThemeClasses(isDarkMode: boolean) {
       ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-sky-950/50 transition-all'
       : 'bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 rounded-xl shadow-md transition-all',
 
+    btnPurple: isDarkMode
+      ? 'bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-purple-950/50 transition-all'
+      : 'bg-purple-800 hover:bg-purple-900 text-white font-bold px-4 py-2.5 rounded-xl shadow-md transition-all',
+
     // Input Controls
     inputBg: isDarkMode
       ? 'bg-slate-950 border-slate-800 text-slate-100 focus:ring-sky-400 font-medium'
