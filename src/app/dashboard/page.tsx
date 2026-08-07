@@ -237,11 +237,16 @@ export default function DashboardPage() {
     }
   }
 
-  // Capped OpKits (Max 5 items, Master Pinned First)
+  // Capped OpKits (Max 3 items, Master Pinned First)
   const recentOpKits = user?.wishlists
     ? [...user.wishlists]
         .sort((a, b) => (b.isMaster ? 1 : 0) - (a.isMaster ? 1 : 0))
-        .slice(0, 5)
+        .slice(0, 3)
+    : [];
+
+  // Capped Operations (Max 3 most recent active operations)
+  const recentParticipations = user?.participations
+    ? [...user.participations].slice(0, 3)
     : [];
 
   async function handleSignOut() {
@@ -395,7 +400,7 @@ export default function DashboardPage() {
             <Card variant="section" className="space-y-6">
               <SectionHeader
                 title="🎯 Active Operations (Exchanges)"
-                subtitle="Gift exchanges you are currently organizing or participating in as an assigned Field Agent."
+                subtitle="Gift exchanges you are currently organizing or participating in — Showing 3 most recent."
                 primaryAction={
                   <div className="flex items-center gap-2">
                     <Button onClick={() => setJoinOpModalOpen(true)} variant="secondary">
@@ -410,7 +415,7 @@ export default function DashboardPage() {
               />
 
               {/* Operations Cards Grid */}
-              {user.participations.length === 0 ? (
+              {recentParticipations.length === 0 ? (
                 <Card className="text-center py-8">
                   <div className="text-3xl mb-2">🎁</div>
                   <h3 className="text-base font-bold mb-1">No Active Operations</h3>
@@ -428,7 +433,7 @@ export default function DashboardPage() {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {user.participations.map((p) => {
+                  {recentParticipations.map((p) => {
                     const countdown = getNextMilestoneCountdown(p.mission);
                     return (
                       <Card
@@ -497,11 +502,11 @@ export default function DashboardPage() {
               )}
             </Card>
 
-            {/* Section 2: OpKits & OpTools Inventory (5 Most Recent Limit) */}
+            {/* Section 2: OpKits & OpTools Inventory (3 Most Recent Limit) */}
             <Card variant="section" className="space-y-6">
               <SectionHeader
                 title="🧰 OpKits (Wish Lists)"
-                subtitle="(OpKit = Wish List | OpTool = Gift Item) — Showing 5 most recent OpKits."
+                subtitle="(OpKit = Wish List | OpTool = Gift Item) — Showing 3 most recent OpKits."
                 primaryAction={
                   <Button onClick={() => setCreateOpKitModalOpen(true)} variant="primary">
                     + New OpKit
