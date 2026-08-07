@@ -48,3 +48,15 @@ This document provides a comprehensive technical overview of the **KovertKlaus**
 ## 🎨 4. Theme System
 
 Theme utilities are located in `src/lib/theme.ts`. Call `getThemeClasses(isDarkMode)` to obtain color tokens for Light 🎄 and Dark ❄️ (Icy) modes.
+
+---
+
+## 🔑 5. Test Database Credentials & Roster (`prisma/kovertklaus_test_db.sql`)
+
+* **Default Test Password:** `Password123!` (or user-created password during registration)
+* **Primary OpsLeader:** `joshua@example.com` (Joshua Simpson / Codename: `Chewie`)
+* **Active Operations:**
+  * **`SIMPSON-2026`**: Simpson Family Secret Santa (Phase 1: `RECRUITING`)
+  * **`WQRE-JXHG`**: Simpson White Elephant 2026
+* **Enrolled Operative Roster:** `zachary@example.com`, `shannon@example.com`, `matthew@example.com`, `leslie@example.com`, `charles@example.com`, `david@example.com`, `debbie@example.com`, `michael@example.com`, `terry@example.com`, `sharon@example.com`, `thomas@example.com`, `leonard@example.com`, `cheryl@example.com`, `kristy@example.com`, `dayton@example.com`, `kathy@example.com`, `john@example.com`, `james@example.com`, `julia@example.com`, `kimberly@example.com`, `rodney@example.com`.
+
