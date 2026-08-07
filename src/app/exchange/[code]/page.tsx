@@ -650,20 +650,18 @@ export default function OperationCommandCenterPage() {
                       <button onClick={() => setInviteModalOpen(true)} className={theme.btnEmerald}>
                         ✉️ Invite Agent
                       </button>
-                      <button onClick={handleCloseRecruitment} className={theme.btnSecondary}>
+                      <button onClick={handleCloseRecruitment} className={theme.btnAmber}>
                         🔒 Close Recruitment
                       </button>
                     </>
                   )}
 
                   {/* PHASE 2: ASSIGNMENT */}
-                  {(operation.status === 'SETUP' || operation.status === 'RECRUITING') && !operation.isWhiteElephant && (
+                  {operation.status === 'SETUP' && !operation.isWhiteElephant && (
                     <>
-                      {operation.status !== 'RECRUITING' && (
-                        <button onClick={() => setInviteModalOpen(true)} className={theme.btnSecondary}>
-                          🚨 Emergency Invite
-                        </button>
-                      )}
+                      <button onClick={() => setInviteModalOpen(true)} className={theme.btnSecondary}>
+                        🚨 Emergency Invite
+                      </button>
                       <button onClick={() => setPreventativeModalOpen(true)} className={theme.btnPurple}>
                         🚫 Matching Rules ({operation.exclusionRules?.length || 0})
                       </button>
@@ -960,23 +958,27 @@ export default function OperationCommandCenterPage() {
                               🔔 Nudge
                             </button>
 
-                            <button
-                              onClick={() => handleAgentAction('issue_demerit', agent)}
-                              title="Issue 1-point Demerit citation"
-                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
-                            >
-                              ⚠️ Citation
-                            </button>
+                             {operation.status !== 'RECRUITING' && (
+                              <>
+                                <button
+                                  onClick={() => handleAgentAction('issue_demerit', agent)}
+                                  title="Issue 1-point Demerit citation"
+                                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
+                                >
+                                  ⚠️ Citation
+                                </button>
 
-                            <button
-                              onClick={() => handleAgentAction('update_agent_role', agent, {
-                                newRole: agent.role === 'OPS_LEADER' ? 'FIELD_AGENT' : 'OPS_LEADER'
-                              })}
-                              title="Toggle OpsLeader Clearance"
-                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-stone-300 dark:border-slate-700 hover:bg-stone-200 transition-all cursor-pointer"
-                            >
-                              {agent.role === 'OPS_LEADER' ? '🔻 Demote' : '⭐ Promote'}
-                            </button>
+                                <button
+                                  onClick={() => handleAgentAction('update_agent_role', agent, {
+                                    newRole: agent.role === 'OPS_LEADER' ? 'FIELD_AGENT' : 'OPS_LEADER'
+                                  })}
+                                  title="Toggle OpsLeader Clearance"
+                                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-stone-300 dark:border-slate-700 hover:bg-stone-200 transition-all cursor-pointer"
+                                >
+                                  {agent.role === 'OPS_LEADER' ? '🔻 Demote' : '⭐ Promote'}
+                                </button>
+                              </>
+                            )}
 
                             {agent.userId !== operation.opsLeaderId && (
                               <button

@@ -60,8 +60,8 @@ export function getThemeClasses(isDarkMode: boolean) {
       : 'bg-red-700 hover:bg-red-800 text-white shadow-md font-black transition-all',
 
     btnSecondary: isDarkMode
-      ? 'bg-slate-800 border border-slate-700 text-slate-100 hover:bg-slate-700 font-bold transition-all'
-      : 'bg-stone-200 border border-stone-300 text-slate-900 hover:bg-stone-300 font-bold transition-all',
+      ? 'bg-slate-800 border border-slate-700 text-slate-100 hover:bg-slate-700 font-bold px-4 py-2.5 rounded-xl shadow-md transition-all'
+      : 'bg-stone-200 border border-stone-300 text-slate-900 hover:bg-stone-300 font-bold px-4 py-2.5 rounded-xl shadow-md transition-all',
 
     btnToggle: isDarkMode
       ? 'bg-slate-900 border border-slate-700 text-sky-300 hover:bg-slate-800 font-semibold transition-all'
