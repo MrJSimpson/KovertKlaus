@@ -1,5 +1,6 @@
 /**
  * Thematic Espionage & Holiday Codename Generator
+ * Used by landing page registration form and AccountPreferencesModal for random codename suggestions.
  */
 
 const CALLSIGNS = [

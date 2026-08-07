@@ -65,6 +65,8 @@ export default function DashboardPage() {
 
   // Edit Preferences Modal
   const [prefModalOpen, setPrefModalOpen] = useState(false);
+  /*
+  // NOTE: Unused state variables in DashboardPage. Address & preference form state is handled directly inside <AccountPreferencesModal>. Commented out per Phase 2 Code Review rules.
   const [streetAddress, setStreetAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -72,6 +74,7 @@ export default function DashboardPage() {
   const [codename, setCodename] = useState('');
   const [prefMessage, setPrefMessage] = useState('');
   const [prefError, setPrefError] = useState('');
+  */
 
   // OpKit Creation Modal
   const [createOpKitModalOpen, setCreateOpKitModalOpen] = useState(false);
@@ -108,11 +111,14 @@ export default function DashboardPage() {
       localStorage.setItem('kovertklaus_user_id', json.user.id);
       localStorage.setItem('kovertklaus_user_name', json.user.name);
       setUser(json.user);
+      /*
+      // NOTE: Unneeded state updates in DashboardPage. Address data is fetched and populated inside <AccountPreferencesModal>. Commented out per Phase 2 Code Review rules.
       setStreetAddress(json.user.streetAddress || '');
       setCity(json.user.city || '');
       setState(json.user.state || '');
       setZipCode(json.user.zipCode || '');
       setCodename(json.user.codename || '');
+      */
     } catch {
       router.push('/');
     } finally {
@@ -120,7 +126,8 @@ export default function DashboardPage() {
     }
   }
 
-  // Update Account & Address Preferences
+  /*
+  // NOTE: Currently uncalled helper function inside DashboardPage. Account preference updates are delegated to <AccountPreferencesModal>. Commented out per Phase 2 Code Review rules.
   async function handleUpdatePreferences(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
@@ -152,6 +159,7 @@ export default function DashboardPage() {
       setPrefError(err.message || 'Update failed');
     }
   }
+  */
 
   // Create Quick OpKit
   async function handleCreateQuickOpKit(e: React.FormEvent) {
