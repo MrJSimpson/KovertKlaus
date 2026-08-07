@@ -119,7 +119,7 @@ export default function OperationCommandCenterPage() {
   const [userOpKit, setUserOpKit] = useState<Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>>([]);
   const [validationError, setValidationError] = useState('');
 
-  // Anonymous Intel Messaging State
+  // Anonymous Intel Messaging State (Note: Initial seed message serves as a placeholder until live IntelMessage DB stream sync)
   const [intelMessageText, setIntelMessageText] = useState('');
   const [sendingIntel, setSendingIntel] = useState(false);
   const [intelLogs, setIntelLogs] = useState<Array<{ id: string; sender: string; text: string; time: string }>>([
