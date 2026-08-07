@@ -440,12 +440,23 @@ export default function OperationCommandCenterPage() {
       alert(err.message || 'Action failed');
     }
   }
-
   // Determine User Role & Target in this Operation
   const currentAgent = operation?.agents.find((a) => a.userId === userId);
   const isOpsLeader = operation?.opsLeaderId === userId || currentAgent?.role === 'OPS_LEADER';
   const assignedTarget = currentAgent?.targetUser;
   const todayStr = new Date().toISOString().split('T')[0];
+
+  async function handleSignOut() {
+    try {
+      await fetch('/api/users/me', { method: 'DELETE' });
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      localStorage.removeItem('kovertklaus_user_id');
+      localStorage.removeItem('kovertklaus_user_name');
+      window.location.href = '/';
+    }
+  }
 
   return (
     <div className={`min-h-screen transition-colors duration-300 font-sans ${theme.pageBg}`}>
@@ -481,6 +492,13 @@ export default function OperationCommandCenterPage() {
             >
               ← Operations Center
             </Link>
+
+            <button
+              onClick={handleSignOut}
+              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </header>

@@ -244,6 +244,18 @@ export default function DashboardPage() {
         .slice(0, 5)
     : [];
 
+  async function handleSignOut() {
+    try {
+      await fetch('/api/users/me', { method: 'DELETE' });
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      localStorage.removeItem('kovertklaus_user_id');
+      localStorage.removeItem('kovertklaus_user_name');
+      window.location.href = '/';
+    }
+  }
+
   return (
     <div className={`min-h-screen transition-colors duration-300 font-sans ${theme.pageBg}`}>
       
@@ -273,11 +285,8 @@ export default function DashboardPage() {
             </button>
 
             <button
-              onClick={() => {
-                localStorage.removeItem('kovertklaus_user_id');
-                router.push('/');
-              }}
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnNeutral}`}
+              onClick={handleSignOut}
+              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
             >
               Sign Out
             </button>
