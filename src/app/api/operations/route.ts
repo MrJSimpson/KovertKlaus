@@ -37,6 +37,12 @@ export async function GET(request: Request) {
               restrictedAgent: { select: { id: true, name: true, codename: true } },
             },
           },
+          afterActionReports: {
+            include: {
+              user: { select: { id: true, name: true, codename: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+          },
         },
       });
 
@@ -290,6 +296,96 @@ export async function POST(request: Request) {
       await db.exclusionRule.delete({ where: { id: exclusionId } });
 
       return NextResponse.json({ success: true, message: 'Preventative match rule removed' });
+    }
+
+    // Action: Close Recruitment (Updates inviteCutoffDate to today and advances status)
+    if (action === 'closeRecruitment' && operationId) {
+      const op = await db.mission.findUnique({ where: { id: operationId } });
+      if (!op) return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+      if (op.opsLeaderId !== activeUserId) return NextResponse.json({ error: 'Only OpsLeader can close recruitment' }, { status: 403 });
+
+      const now = new Date();
+      await db.mission.update({
+        where: { id: operationId },
+        data: {
+          inviteCutoffDate: now,
+          status: op.status === 'RECRUITING' ? 'SETUP' : op.status,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Recruitment closed. Invite cutoff date updated to today.',
+      });
+    }
+
+    // Action: End Operation (Updates executionDate to today and updates status to COMPLETED)
+    if (action === 'endOperation' && operationId) {
+      const op = await db.mission.findUnique({ where: { id: operationId } });
+      if (!op) return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+      if (op.opsLeaderId !== activeUserId) return NextResponse.json({ error: 'Only OpsLeader can end operation' }, { status: 403 });
+
+      const now = new Date();
+      await db.mission.update({
+        where: { id: operationId },
+        data: {
+          executionDate: now,
+          status: 'COMPLETED',
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Operation successfully ended! Status updated to COMPLETED.',
+      });
+    }
+
+    // Action: Send OpTeam Broadcast Notification
+    if (action === 'sendOpTeamBroadcast' && operationId) {
+      const { messageText } = body as { messageText?: string };
+      if (!messageText?.trim()) return NextResponse.json({ error: 'Message text is required' }, { status: 400 });
+
+      const op = await db.mission.findUnique({
+        where: { id: operationId },
+        include: { agents: true },
+      });
+      if (!op) return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+      if (op.opsLeaderId !== activeUserId) return NextResponse.json({ error: 'Only OpsLeader can broadcast to team' }, { status: 403 });
+
+      for (const agent of op.agents) {
+        await db.notification.create({
+          data: {
+            userId: agent.userId,
+            title: `📢 OpTeam Broadcast: ${op.title}`,
+            message: messageText.trim(),
+            operationId: op.id,
+          },
+        });
+      }
+
+      return NextResponse.json({ success: true, message: 'Broadcast dispatched to all enrolled operatives!' });
+    }
+
+    // Action: Create After-Action Report Entry
+    if (action === 'createReport' && operationId) {
+      const { thankYouText, photoUrl } = body as { thankYouText?: string; photoUrl?: string };
+
+      const op = await db.mission.findUnique({ where: { id: operationId } });
+      if (!op) return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+
+      const newReport = await db.afterActionReport.create({
+        data: {
+          missionId: operationId,
+          userId: activeUserId,
+          thankYouText: thankYouText?.trim(),
+          photoUrl: photoUrl?.trim(),
+        },
+        include: {
+          user: { select: { id: true, name: true, codename: true } },
+        },
+      });
+
+      return NextResponse.json({ success: true, message: 'After-Action Report entry posted!', data: newReport });
     }
 
     if (!config) {

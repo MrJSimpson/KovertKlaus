@@ -8,6 +8,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { InviteAgentModal } from '@/components/InviteAgentModal';
 import { PreventativeMatchModal, OperationExclusionRule } from '@/components/PreventativeMatchModal';
 import { ManageAssignmentsModal } from '@/components/ManageAssignmentsModal';
+import { OpTeamBroadcastModal } from '@/components/OpTeamBroadcastModal';
+import { AfterActionReportSection, AARReportEntry } from '@/components/AfterActionReportSection';
+
 
 interface OperationAgent {
   id: string;
@@ -61,6 +64,8 @@ interface OperationData {
   };
   agents: OperationAgent[];
   exclusionRules?: OperationExclusionRule[];
+  opsLeaderAssistedDraw?: boolean;
+  afterActionReports?: AARReportEntry[];
 }
 
 export default function OperationCommandCenterPage() {
@@ -81,6 +86,7 @@ export default function OperationCommandCenterPage() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [preventativeModalOpen, setPreventativeModalOpen] = useState(false);
   const [manageAssignmentsModalOpen, setManageAssignmentsModalOpen] = useState(false);
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
 
   // OpsLeader Control Panel State
   const [drawingTargets, setDrawingTargets] = useState(false);
@@ -291,6 +297,48 @@ export default function OperationCommandCenterPage() {
     }
   }
 
+  // Handle Close Recruitment (OpsLeader Only)
+  async function handleCloseRecruitment() {
+    if (!operation || !userId) return;
+    if (!confirm('Close recruitment for this operation now? The invite cutoff date will be updated to today.')) return;
+
+    try {
+      const res = await fetch('/api/operations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'closeRecruitment', operationId: operation.id, userId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to close recruitment');
+      alert('🔒 Recruitment closed! Invite cutoff date updated to today.');
+      fetchExchangeDetails();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Action failed';
+      alert(msg);
+    }
+  }
+
+  // Handle End Operation (OpsLeader Only)
+  async function handleEndOperation() {
+    if (!operation || !userId) return;
+    if (!confirm('Are you sure you want to end this operation now? Execution date will be updated to today and status marked as COMPLETED.')) return;
+
+    try {
+      const res = await fetch('/api/operations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'endOperation', operationId: operation.id, userId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to end operation');
+      alert('🏁 Operation completed! Status updated to COMPLETED.');
+      fetchExchangeDetails();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Action failed';
+      alert(msg);
+    }
+  }
+
   // Handle URL Scraper for OpTools
   async function handleScrapeUrl(e: React.FormEvent) {
     e.preventDefault();
@@ -361,6 +409,10 @@ export default function OperationCommandCenterPage() {
     if (actionType === 'remove_agent') {
       if (!confirm(`Are you sure you want to disenroll ${agent.user?.name || 'this agent'} from the operation?`)) return;
     } else if (actionType === 'issue_demerit') {
+      if (agent.deliveredConfirmed) {
+        alert(`🛡️ Demerit Waiver Active: ${agent.user?.name || 'This agent'} has verified receipt of a gift for this operation. Demerit citations cannot be issued.`);
+        return;
+      }
       if (!confirm(`Issue a 1-point Demerit citation to ${agent.user?.name || 'this agent'} for deadline non-compliance?`)) return;
     }
 
@@ -591,47 +643,93 @@ export default function OperationCommandCenterPage() {
                 )}
 
                 <div className="flex flex-wrap gap-3 pt-4">
-                  {!operation.isWhiteElephant && operation.status === 'RECRUITING' && (
-                    <button
-                      onClick={handleTriggerDraw}
-                      disabled={drawingTargets}
-                      className={theme.btnEmerald}
-                    >
-                      {drawingTargets ? 'Executing Draw...' : '🎯 Trigger Target Assignment Draw'}
-                    </button>
+
+                  {/* PHASE 1: RECRUITING */}
+                  {operation.status === 'RECRUITING' && (
+                    <>
+                      <button onClick={() => setInviteModalOpen(true)} className={theme.btnEmerald}>
+                        ✉️ Invite Agent
+                      </button>
+                      <button onClick={handleCloseRecruitment} className={theme.btnSecondary}>
+                        🔒 Close Recruitment
+                      </button>
+                    </>
                   )}
 
-                  {!operation.isWhiteElephant && (
-                    <button
-                      onClick={() => setPreventativeModalOpen(true)}
-                      className={theme.btnPurple}
-                    >
-                      🚫 Preventative Match Rules ({operation.exclusionRules?.length || 0})
-                    </button>
+                  {/* PHASE 2: ASSIGNMENT */}
+                  {(operation.status === 'SETUP' || operation.status === 'RECRUITING') && !operation.isWhiteElephant && (
+                    <>
+                      {operation.status !== 'RECRUITING' && (
+                        <button onClick={() => setInviteModalOpen(true)} className={theme.btnSecondary}>
+                          🚨 Emergency Invite
+                        </button>
+                      )}
+                      <button onClick={() => setPreventativeModalOpen(true)} className={theme.btnPurple}>
+                        🚫 Matching Rules ({operation.exclusionRules?.length || 0})
+                      </button>
+                      <button onClick={handleTriggerDraw} disabled={drawingTargets} className={theme.btnEmerald}>
+                        {drawingTargets ? 'Executing Draw...' : '🎯 Initiate Assignments'}
+                      </button>
+                    </>
                   )}
 
-                  {!operation.isWhiteElephant && operation.status === 'ASSIGNED' && (
-                    <button
-                      onClick={() => setManageAssignmentsModalOpen(true)}
-                      className={theme.btnEmerald}
-                    >
-                      🎯 Manage Target Assignments & Swaps
-                    </button>
+                  {/* PHASE 3: EXECUTION / SHIPPING */}
+                  {(operation.status === 'ASSIGNED' || operation.status === 'SHIPPED') && (
+                    <>
+                      <button onClick={() => setBroadcastModalOpen(true)} className={theme.btnSecondary}>
+                        📢 Send OpTeam Broadcast
+                      </button>
+                      {!operation.isWhiteElephant && (
+                        <button onClick={() => setManageAssignmentsModalOpen(true)} className={theme.btnEmerald}>
+                          🎯 Manage Target Assignments & Swaps
+                        </button>
+                      )}
+                    </>
                   )}
 
-                  <button
-                    onClick={() => { setSettingsError(''); setEditSettingsModalOpen(true); }}
-                    className={theme.btnAmber}
-                  >
-                    ⚙️ Edit Operation Options & Local Event
-                  </button>
+                  {/* PHASE 4: EXCHANGE EVENT (EXECUTED) */}
+                  {operation.status === 'EXECUTED' && (
+                    <>
+                      {!operation.isWhiteElephant && (
+                        <button onClick={() => setManageAssignmentsModalOpen(true)} className={theme.btnEmerald}>
+                          🎁 Wish List Verification
+                        </button>
+                      )}
+                      <button onClick={() => setBroadcastModalOpen(true)} className={theme.btnSecondary}>
+                        📢 OpTeam Broadcast
+                      </button>
+                      <button onClick={handleEndOperation} className={theme.btnPrimary}>
+                        🏁 End Operation
+                      </button>
+                    </>
+                  )}
 
-                  <button
-                    onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
-                    className={theme.btnSky}
-                  >
-                    ✏️ Edit Operational Timeline Dates
-                  </button>
+                  {/* POST-EVENT: COMPLETED */}
+                  {operation.status === 'COMPLETED' && (
+                    <>
+                      {!operation.isWhiteElephant && (
+                        <button onClick={() => setManageAssignmentsModalOpen(true)} className={theme.btnEmerald}>
+                          🎁 Wish List Verification
+                        </button>
+                      )}
+                      <button onClick={() => setBroadcastModalOpen(true)} className={theme.btnSecondary}>
+                        📢 OpTeam Broadcast
+                      </button>
+                    </>
+                  )}
+
+                  {/* COMMON OPTIONS & TIMELINE EDITORS */}
+                  {operation.status !== 'COMPLETED' && (
+                    <>
+                      <button onClick={() => { setSettingsError(''); setEditSettingsModalOpen(true); }} className={theme.btnAmber}>
+                        ⚙️ Edit Operation Options
+                      </button>
+                      <button onClick={() => { setDateError(''); setEditDatesModalOpen(true); }} className={theme.btnSky}>
+                        📅 Edit Operation Timeline
+                      </button>
+                    </>
+                  )}
+
                 </div>
               </div>
             )}
@@ -896,6 +994,18 @@ export default function OperationCommandCenterPage() {
                   </div>
                 </div>
               </div>
+
+              {/* POST-EVENT AFTER-ACTION REPORT (AAR) SECTION */}
+              {operation.status === 'COMPLETED' && (
+                <div className="pt-6">
+                  <AfterActionReportSection
+                    operationId={operation.id}
+                    currentUserId={userId || ''}
+                    reports={operation.afterActionReports || []}
+                    onReportPosted={() => fetchExchangeDetails()}
+                  />
+                </div>
+              )}
 
             </div>
 
@@ -1191,6 +1301,18 @@ export default function OperationCommandCenterPage() {
           }))}
           exclusionRules={operation.exclusionRules || []}
           onAssignmentsUpdated={() => fetchExchangeDetails()}
+        />
+      )}
+
+      {/* MODAL: OPTEAM BROADCAST */}
+      {operation && userId && (
+        <OpTeamBroadcastModal
+          isOpen={broadcastModalOpen}
+          onClose={() => setBroadcastModalOpen(false)}
+          operationId={operation.id}
+          operationTitle={operation.title}
+          opsLeaderUserId={userId}
+          onSuccess={() => fetchExchangeDetails()}
         />
       )}
 

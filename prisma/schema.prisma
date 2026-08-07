@@ -90,38 +90,42 @@ model User {
   notifications          Notification[]
   exclusionRulesAsAgent  ExclusionRule[]  @relation("ExclusionAgent")
   exclusionRulesAsTarget ExclusionRule[]  @relation("ExclusionRestrictedAgent")
-  sentMessages           IntelMessage[]   @relation("MessageSender")
-  receivedMessages       IntelMessage[]   @relation("MessageRecipient")
+  sentMessages           IntelMessage[]      @relation("MessageSender")
+  receivedMessages       IntelMessage[]      @relation("MessageRecipient")
+  afterActionReports     AfterActionReport[]
 }
 
 model Mission {
-  id               String        @id @default(uuid())
-  title            String
-  description      String?
-  code             String        @unique
-  opsLeaderId      String
-  opsLeader        User          @relation("OpsLeaderMissions", fields: [opsLeaderId], references: [id])
-  maxParticipants  Int?
-  giftingType      GiftingType   @default(SINGLE)
-  isLocalOnly      Boolean       @default(false)
-  eventLocation    String?
-  isWhiteElephant  Boolean       @default(false)
-  budgetMin        Decimal?      @db.Decimal(10, 2)
-  budgetMax        Decimal       @db.Decimal(10, 2)
-  currency         String        @default("USD")
-  inviteCutoffDate DateTime
-  assignmentDate   DateTime
-  shippingDate     DateTime?
-  executionDate    DateTime
-  status           MissionStatus @default(RECRUITING)
-  isFreeAnnualOp   Boolean       @default(false)
-  paymentStatus    PaymentStatus @default(FREE_ANNUAL)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id                     String        @id @default(uuid())
+  title                  String
+  description            String?
+  code                   String        @unique
+  opsLeaderId            String
+  opsLeader              User          @relation("OpsLeaderMissions", fields: [opsLeaderId], references: [id])
+  maxParticipants        Int?
+  giftingType            GiftingType   @default(SINGLE)
+  isLocalOnly            Boolean       @default(false)
+  eventLocation          String?
+  isWhiteElephant        Boolean       @default(false)
+  opsLeaderAssistedDraw  Boolean       @default(true)
+  drawVerifiedAt         DateTime?
+  budgetMin              Decimal?      @db.Decimal(10, 2)
+  budgetMax              Decimal       @db.Decimal(10, 2)
+  currency               String        @default("USD")
+  inviteCutoffDate       DateTime
+  assignmentDate         DateTime
+  shippingDate           DateTime?
+  executionDate          DateTime
+  status                 MissionStatus @default(RECRUITING)
+  isFreeAnnualOp         Boolean       @default(false)
+  paymentStatus          PaymentStatus @default(FREE_ANNUAL)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
 
-  agents         MissionAgent[]
-  exclusionRules ExclusionRule[]
-  intelMessages  IntelMessage[]
+  agents             MissionAgent[]
+  exclusionRules     ExclusionRule[]
+  intelMessages      IntelMessage[]
+  afterActionReports AfterActionReport[]
 }
 
 model OpToolCatalog {
@@ -238,4 +242,16 @@ model Notification {
   operationId    String?
   isAcknowledged Boolean  @default(false)
   createdAt      DateTime @default(now())
+}
+
+model AfterActionReport {
+  id           String   @id @default(uuid())
+  missionId    String
+  userId       String
+  thankYouText String?
+  photoUrl     String?
+  createdAt    DateTime @default(now())
+
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
