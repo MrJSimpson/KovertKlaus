@@ -52,21 +52,34 @@ export default function OperationCenterPage() {
 
   async function fetchOperations() {
     setLoading(true);
-    const userId = localStorage.getItem('kovertklaus_user_id');
-    if (!userId) {
+    let activeUserId = localStorage.getItem('kovertklaus_user_id');
+
+    try {
+      const meRes = await fetch('/api/users/me');
+      const meJson = await meRes.json();
+      if (meRes.ok && meJson.authenticated && meJson.user) {
+        activeUserId = meJson.user.id;
+        localStorage.setItem('kovertklaus_user_id', meJson.user.id);
+        localStorage.setItem('kovertklaus_user_name', meJson.user.name);
+      }
+    } catch {
+      // Fall back to localStorage if /api/users/me network check fails
+    }
+
+    if (!activeUserId) {
       setLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`/api/operations?userId=${userId}`);
+      const res = await fetch(`/api/operations?userId=${activeUserId}`);
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         const mapped = json.data.map((op: any) => {
-          const userAgent = op.agents?.find((a: any) => a.userId === userId);
+          const userAgent = op.agents?.find((a: any) => a.userId === activeUserId);
           return {
             id: op.id,
-            role: userAgent?.role || (op.opsLeaderId === userId ? 'OPS_LEADER' : 'AGENT'),
+            role: userAgent?.role || (op.opsLeaderId === activeUserId ? 'OPS_LEADER' : 'AGENT'),
             mission: op,
           };
         });

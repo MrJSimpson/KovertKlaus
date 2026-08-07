@@ -77,8 +77,10 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({ success: true, data: operations });
-  } catch {
-    return NextResponse.json({ error: 'Failed to fetch operations' }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to fetch operations';
+    console.error('API Error in GET /api/operations:', err);
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }
 
