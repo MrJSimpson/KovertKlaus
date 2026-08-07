@@ -474,16 +474,20 @@ export default function DashboardPage() {
                           </Card>
                         </div>
 
-                        <div className="mt-6 flex items-center justify-between pt-3 border-t border-stone-200 dark:border-slate-800">
-                          <div className="flex items-center gap-1.5">
+                        <div className="mt-6 flex items-center justify-between gap-2 pt-3 border-t border-stone-200 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <span className={`text-xs ${theme.textLabel}`}>Role:</span>
                             <Badge variant={p.role === 'OPS_LEADER' ? 'opsleader' : 'code'}>
                               {p.role === 'OPS_LEADER' ? '⭐ OpsLeader' : '🕵️ Field Agent'}
                             </Badge>
                           </div>
 
-                          <Button href={`/exchange/${p.mission.code}`} variant="primary">
-                            Open Command Center →
+                          <Button
+                            href={`/exchange/${p.mission.code}`}
+                            variant="primary"
+                            className="px-3 py-2 text-[11px] font-extrabold whitespace-nowrap shrink-0"
+                          >
+                            Command Center →
                           </Button>
                         </div>
                       </Card>

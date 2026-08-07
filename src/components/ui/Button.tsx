@@ -27,7 +27,7 @@ export function Button({
   if (variant === 'amber') style = theme.btnAmber;
   if (variant === 'sky') style = theme.btnSky;
 
-  const baseClasses = `px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 ${style} ${className}`;
+  const baseClasses = `px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap ${style} ${className}`;
 
   if (href) {
     return (

@@ -402,16 +402,16 @@ export default function OperationCenterPage() {
                     )}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between pt-3 border-t border-stone-200 dark:border-slate-800">
-                    <span className={`text-xs ${theme.textSubLabel}`}>
+                  <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-stone-200 dark:border-slate-800">
+                    <span className={`text-xs truncate shrink-0 ${theme.textSubLabel}`}>
                       OpsLeader: <strong className={theme.textLabel}>{p.mission.opsLeader.name}</strong>
                     </span>
 
                     <Link
                       href={`/exchange/${p.mission.code}`}
-                      className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
+                      className={`text-[11px] font-extrabold px-3 py-2 rounded-xl transition-all shadow-sm whitespace-nowrap shrink-0 ${theme.btnPrimary}`}
                     >
-                      Open Command Center →
+                      Command Center →
                     </Link>
                   </div>
                 </div>
