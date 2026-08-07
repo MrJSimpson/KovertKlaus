@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict MFINIuu1hE66RkK4egkqLdYDvgKYWyp5k670F39iuftVweyXkeG1sLOlme9Omxi
+\restrict BKfb55xgEpEWFuE1vvDnEIEiGO0JkCLIb46Yx816WEiPWdR2bW7bIBGtnmB7RXj
 
 -- Dumped from database version 16.14
 -- Dumped by pg_dump version 16.14
@@ -17,6 +17,22 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: kovert
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+ALTER SCHEMA public OWNER TO kovert;
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: kovert
+--
+
+COMMENT ON SCHEMA public IS '';
+
 
 --
 -- Name: AccountStatus; Type: TYPE; Schema: public; Owner: kovert
@@ -767,8 +783,15 @@ ALTER TABLE ONLY public."Wishlist"
 
 
 --
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: kovert
+--
+
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict MFINIuu1hE66RkK4egkqLdYDvgKYWyp5k670F39iuftVweyXkeG1sLOlme9Omxi
+\unrestrict BKfb55xgEpEWFuE1vvDnEIEiGO0JkCLIb46Yx816WEiPWdR2bW7bIBGtnmB7RXj
 
