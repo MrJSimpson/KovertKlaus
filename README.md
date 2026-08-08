@@ -47,8 +47,23 @@ KovertKlaus includes Windows PowerShell and Batch scripts to manage the applicat
 
 ## 🚀 Quick Start (Self-Hosting for Personal / Family Use)
 
-KovertKlaus is container-native and ready to run out of the box:
+KovertKlaus is container-native and ready to run on Linux, Windows, or Docker out of the box.
 
+### 🐧 Linux Startup & Shutdown Scripts
+```bash
+# Start PostgreSQL database + Next.js dev server (Interactive)
+./start.sh              # or ./start-kovertklaus.sh
+
+# Options:
+./start.sh --detach     # Run dev server in background (logs to kovertklaus.log)
+./start.sh --open       # Automatically open http://localhost:3000 in browser
+./start.sh --prod       # Run full stack in production Docker mode
+
+# Stop all KovertKlaus services (Dev server + Docker containers)
+./stop.sh               # or ./stop-kovertklaus.sh
+```
+
+### 🐳 Full Docker Compose Mode
 ```bash
 # 1. Clone repository
 git clone https://github.com/MrJSimpson/KovertKlaus.git

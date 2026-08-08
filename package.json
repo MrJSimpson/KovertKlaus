@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:linux": "./start.sh",
+    "stop:linux": "./stop.sh",
     "lint": "eslint"
   },
   "dependencies": {
