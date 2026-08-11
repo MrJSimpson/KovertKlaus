@@ -42,8 +42,8 @@ The following priorities take precedence over infrastructure optimizations. All 
   - **Development Base (`~/projects/kovertklaus`)**: Primary private development workspace, experimental features, internal test harness, and local staging.
   - **Public Deployment Repo (`~/projects/kovertklaus-public` or `kovertklaus-saas`)**: Clean, public-facing production codebase tied to GitHub Actions CI/CD and production hosting targeting `kovertklaus.com`.
 - [ ] **Deployment Milestones**:
-  1. **Repo Initialization**: Create and link the dedicated public CI/CD deployment repository.
-  2. **Hosting Infrastructure**: Configure production host (Cloudflare Pages / Vercel / Railway / Docker host) with custom domain `kovertklaus.com`.
+  1. [x] **Repo Initialization**: Created and linked dedicated public CI/CD deployment repository ([`MrJSimpson/kovertklaus-saas`](https://github.com/MrJSimpson/kovertklaus-saas)).
+  2. [ ] **Hosting Infrastructure**: Configure production host (Cloudflare Pages / Vercel / Railway / Docker host) with custom domain `kovertklaus.com`.
   3. **Environment & Database Provisioning**: Set up production environment secrets (`DATABASE_URL`, `JWT_SECRET`, `NEXTAUTH_SECRET`) and managed PostgreSQL database instance.
   4. **CI/CD Pipeline Setup**: Configure GitHub Actions to automatically run `npm run build`, execute unit tests (`src/lib/draw.test.ts`), and deploy clean releases to `kovertklaus.com` upon pushing to `main`.
 - [ ] **Verification Criteria**: Pushing to the deployment repository triggers automated CI/CD and updates `https://kovertklaus.com` live without manual SSH intervention.
