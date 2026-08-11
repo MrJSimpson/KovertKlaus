@@ -31,8 +31,13 @@ The following priorities take precedence over infrastructure optimizations. All 
   - **OpsLeader Console Polish**: Finalize phase-scoped action controls and manual date override inputs.
   - **Agent Onboarding Flow**: Streamline profile creation, Base32 invite code entry (`XXXX-YYYY`), and OpKit auto-initialization.
   - **Wishlist & OpTool Management**: Ensure seamless manual entry fallback, product link previews, and deletion controls.
-  - **AAR & Demerit Immunity Interface**: Verify photo upload debriefs and automatic demerit waivers upon gift verification.
+  - **Fair-Use Allowance & Resource Limits Engine**:
+    - **1 Free Hosted Event/yr** ($0, includes hosting + free participation; doesn't deduct from join allowance).
+    - **3 Free Joined Entries/yr** ($0, accommodates split families, school, & friend exchanges).
+    - **Excessive Usage Barriers**: 4th+ Joined Entry = $1.00/event; 2nd+ Hosted Event = $5.00/event.
+    - **Resource Caps**: Secret Santa wishlist capped at 10 items; White Elephant capped at 1 item; AAR photos capped at 3 WebP images.
 - [ ] **Verification Criteria**: Complete manual walkthrough of Simpson Family test operation (`SIMPSON-2026`) from recruitment through completion without blocking bugs.
+
 
 ---
 
