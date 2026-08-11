@@ -8,7 +8,8 @@ KovertKlaus turns standard Secret Santa and White Elephant gift exchanges into e
 
 ## 🤖 AI Agent Guidelines & Architecture Rules
 
-Working on this repository as an AI assistant, subagent, or pair programmer? Please read **[`AGENTS.md`](./AGENTS.md)** before modifying code! All AI agents MUST adhere to:
+Working on this repository as an AI assistant, subagent, or pair programmer? Please read **[`AGENTS.md`](./AGENTS.md)** and **[`docs/PRIORITY_REMINDERS.md`](./docs/PRIORITY_REMINDERS.md)** before modifying code! All AI agents MUST adhere to:
+* **Production Priorities:** Check [Priority Reminders & Engineering Roadmap](./docs/PRIORITY_REMINDERS.md) for P1-P5 scaling tasks.
 * **Nomenclature:** `OpsLeader`, `Agent`, `Agent-` codename prefixes, `OpKit`, `OpTool`, and `Active Operations (Exchanges)`.
 * **Dual OpKits:** `WISHLIST` (unlimited requested items) vs `WHITE_ELEPHANT` (strictly 1 brought gift item).
 * **Security:** OWASP password complexity (min 10 chars), `bcryptjs` hashing (12 salt rounds), and 24h HTTP-only sessions.

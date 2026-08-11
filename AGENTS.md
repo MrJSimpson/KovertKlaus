@@ -80,3 +80,14 @@ OpsLeader console action buttons **MUST** strictly align with operation lifecycl
 2. **Unit Test Verification:** Run `npx tsx src/lib/draw.test.ts` to verify Sattolo derangements and target swap algorithms pass 100%.
 3. **No Symptom Masking:** Never wrap failing code in silent `try/catch` blocks or comment out broken assertions. Resolve root causes empirically based on build/runtime logs.
 4. **Documentation Integrity:** Preserve existing code comments, docstrings, and function signatures.
+
+---
+
+## 📋 8. Active Priority Reminders & Production Roadmap
+
+When picking up new tasks or assisting with engineering, consult **[`docs/PRIORITY_REMINDERS.md`](./docs/PRIORITY_REMINDERS.md)** for tracked production roadmap priorities:
+* **P1**: Database Connection Pooling & Concurrency Scaling (PgBouncer / Prisma Accelerate).
+* **P2**: Automated Background Cron & Event Transition Engine (Vercel Cron / QStash).
+* **P3**: End-to-End Test Hardening (Playwright Suite).
+* **P4**: Production Email Egress & DNS Reputation (`kovertklaus.com` SPF/DKIM/DMARC).
+* **P5**: Distributed Session Store & Edge Auth Safety.
