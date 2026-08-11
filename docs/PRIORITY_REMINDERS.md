@@ -1,72 +1,70 @@
 # 📋 KovertKlaus — Priority Reminders & Production Engineering Roadmap
 
 - **Repository**: `KovertKlaus` (`~/projects/kovertklaus`)
-- **Domain Focus**: Stealth Ops gift exchange application (`kovertklaus.com`)
-- **Status**: Active Pre-Production Hardening & Scaling Roadmap
+- **Public Domain**: `kovertklaus.com` (Officially Purchased)
+- **Production Strategy**: Functionality First ➔ Test Suite Verification ➔ Public CI/CD Deployment Repo
 - **Last Updated**: August 11, 2026
 
 ---
 
-## 🎯 Production Engineering Priorities
+## 🔥 TOP PRIORITIES (User-Defined Pre-Deployment Roadmap)
 
-This document serves as the authoritative priority tracker for scaling, hardening, and launching KovertKlaus for production commercial deployment.
-
----
-
-### 🚨 P1: Production Database Connection Pooling & Scaling
-- [ ] **Objective**: Prevent connection exhaustion during November/December peak holiday usage bursts.
-- [ ] **Technical Strategy**:
-  - Integrate connection pooling middleware (**PgBouncer**, **Prisma Accelerate**, or serverless PostgreSQL pooling via Neon/Supabase).
-  - Configure pool sizing and connection limits for production environment variables (`DATABASE_URL` with pooled connection strings).
-  - Verify migration safety scripts (`export-db.ps1` and `restore-db.ps1`) under pooled connections.
-- [ ] **Verification Criteria**: Run load test simulating 50 concurrent active operation draws without DB connection timeout errors.
+The following priorities take precedence over infrastructure optimizations. All core functionality and test verification MUST be complete before launching the public deployment pipeline.
 
 ---
 
-### ⏰ P2: Automated Background Cron & Event Transition Engine
-- [ ] **Objective**: Replace lazy request-driven phase transitions with deterministic, scheduled background execution.
-- [ ] **Technical Strategy**:
-  - Implement a background cron worker engine (e.g., **Vercel Cron**, **QStash**, or **BullMQ**).
-  - Automatically evaluate `inviteCutoffDate`, `assignmentDate`, `shippingDate`, and `executionDate` every hour.
-  - Trigger automated email broadcast reminders (`🔔 Nudge` alerts) to operatives with pending actions on milestone days.
-- [ ] **Verification Criteria**: Automated test verifying operation transitions from `RECRUITING` ➔ `ASSIGNED` at midnight on `inviteCutoffDate` without manual web request triggers.
+### 🧪 P0-A: Internal Test Pages Suite (`/test` Verification Harness)
+- [ ] **Objective**: Build a dedicated set of internal test pages under `/test` to isolate and empirically verify all critical UI components, state machine transitions, and algorithms before public launch.
+- [ ] **Test Pages Breakdown**:
+  1. **`/test/draw`**: Interactive visual test harness for the Sattolo derangement algorithm and mobile 2-way target cascade swap modal.
+  2. **`/test/lifecycle`**: 5-Phase Operation Lifecycle test harness to cycle operations through `RECRUITING`, `SETUP`, `ASSIGNED`, `EXECUTED`, and `COMPLETED` with date overrides.
+  3. **`/test/scraper`**: OpenGraph URL metadata web scraper test page with live fast-failover modal verification (2.5s AbortController).
+  4. **`/test/theme`**: Dual-theme UI token catalog inspecting *Christmas Tree Light* (🎄) vs. *Winter Nights Dark* (❄️) container frames, buttons, and badges.
+  5. **`/test/opkits`**: Dual OpKit validator verifying unlimited `WISHLIST` items vs. strict 1-item `WHITE_ELEPHANT` limit.
+- [ ] **Verification Criteria**: All `/test` pages function cleanly without console errors or TypeScript build warnings.
 
 ---
 
-### 🧪 P3: End-to-End (E2E) Test Hardening (Playwright Suite)
-- [ ] **Objective**: Prevent silent UI/API regressions during framework upgrades or feature refactors.
-- [ ] **Technical Strategy**:
-  - Set up a Playwright E2E testing framework (`e2e/` directory).
-  - Build automated test flows for:
-    1. Agent Registration ➔ Login ➔ Profile Setup.
-    2. Operation Creation (`OpsLeader`) ➔ Base32 Invite Code Join (`Agent`).
-    3. Sattolo Derangement Draw Execution ➔ Target-Swap Modal Invariant Verification.
-    4. Wishlist Scraper Fast-Failover Modal (`2.5s AbortController` verification).
-- [ ] **Verification Criteria**: `npm run test:e2e` passes 100% in CI/CD pipeline.
+### 🎨 P0-B: Feature Completeness & Pre-Deployment Polish Roadmap
+- [ ] **Objective**: Finalize all core application workflows and user functionality before code freeze.
+- [ ] **Feature Scope**:
+  - **OpsLeader Console Polish**: Finalize phase-scoped action controls and manual date override inputs.
+  - **Agent Onboarding Flow**: Streamline profile creation, Base32 invite code entry (`XXXX-YYYY`), and OpKit auto-initialization.
+  - **Wishlist & OpTool Management**: Ensure seamless manual entry fallback, product link previews, and deletion controls.
+  - **AAR & Demerit Immunity Interface**: Verify photo upload debriefs and automatic demerit waivers upon gift verification.
+- [ ] **Verification Criteria**: Complete manual walkthrough of Simpson Family test operation (`SIMPSON-2026`) from recruitment through completion without blocking bugs.
 
 ---
+
+### 🚀 P0-C: Public SaaS Pipeline & `kovertklaus.com` Deployment Roadmap
+- [ ] **Objective**: Establish the official deployment architecture and set up a dedicated public CI/CD repository for `kovertklaus.com`.
+- [ ] **Repository Architecture Strategy**:
+  - **Development Base (`~/projects/kovertklaus`)**: Primary private development workspace, experimental features, internal test harness, and local staging.
+  - **Public Deployment Repo (`~/projects/kovertklaus-public` or `kovertklaus-saas`)**: Clean, public-facing production codebase tied to GitHub Actions CI/CD and production hosting targeting `kovertklaus.com`.
+- [ ] **Deployment Milestones**:
+  1. **Repo Initialization**: Create and link the dedicated public CI/CD deployment repository.
+  2. **Hosting Infrastructure**: Configure production host (Cloudflare Pages / Vercel / Railway / Docker host) with custom domain `kovertklaus.com`.
+  3. **Environment & Database Provisioning**: Set up production environment secrets (`DATABASE_URL`, `JWT_SECRET`, `NEXTAUTH_SECRET`) and managed PostgreSQL database instance.
+  4. **CI/CD Pipeline Setup**: Configure GitHub Actions to automatically run `npm run build`, execute unit tests (`src/lib/draw.test.ts`), and deploy clean releases to `kovertklaus.com` upon pushing to `main`.
+- [ ] **Verification Criteria**: Pushing to the deployment repository triggers automated CI/CD and updates `https://kovertklaus.com` live without manual SSH intervention.
+
+---
+
+## 🛠️ SECONDARY PRIORITIES (Infrastructure & Performance Scaling)
+
+Once P0 functionality, test pages, and deployment pipelines are established, execute infrastructure hardening:
+
+### 🚨 P1: Production Database Connection Pooling
+- [ ] **Objective**: Implement PgBouncer / Prisma Accelerate connection pooling for holiday traffic bursts.
+
+### ⏰ P2: Automated Background Cron & Event Engine
+- [ ] **Objective**: Scheduled cron workers (Vercel Cron / QStash) for automated date-based phase shifts and email broadcasts.
+
+### 🧪 P3: Automated Playwright E2E Suite
+- [ ] **Objective**: Automated integration testing for registration, draw, and target swap UI.
 
 ### 📧 P4: Production Email Egress & DNS Reputation (`kovertklaus.com`)
-- [ ] **Objective**: Ensure 100% deliverability for operation invitations, nudge alerts, and assignment notifications.
-- [ ] **Technical Strategy**:
-  - Configure dedicated DNS records for `kovertklaus.com` on Cloudflare Registrar:
-    - **SPF Record**: `v=spf1 include:... ~all`
-    - **DKIM Record**: DomainKeys Identified Mail key signing.
-    - **DMARC Policy**: `v=DMARC1; p=quarantine;`
-  - Design transactional email HTML templates supporting both *Christmas Tree Light* and *Winter Nights Dark* branding.
-- [ ] **Verification Criteria**: Test emails achieve 100/100 deliverability score on Mail-Tester without landing in spam folders.
-
----
+- [ ] **Objective**: Configure SPF, DKIM, and DMARC DNS records on Cloudflare Registrar for `kovertklaus.com`.
 
 ### 🔒 P5: Distributed Session Store & Edge Auth Safety
-- [ ] **Objective**: Ensure session persistence across multi-region edge deployments and serverless container restarts.
-- [ ] **Technical Strategy**:
-  - Evaluate stateless session verification or a distributed Redis session cache (e.g. **Upstash Redis**).
-  - Verify HTTP-Only `SameSite=Strict` cookie persistence (`kovertklaus_session`) across serverless function restarts.
-- [ ] **Verification Criteria**: User session remains valid across simulated instance cold starts and redeployments.
-
----
-
-## 📌 Architectural Notes & Guidelines
-- All work on priority items MUST adhere strictly to the domain nomenclature guidelines in [AGENTS.md](../AGENTS.md).
-- Whenever modifying the database schema or algorithms, update [ARCHITECTURE.md](./ARCHITECTURE.md) and run existing unit tests (`npx tsx src/lib/draw.test.ts`).
+- [ ] **Objective**: Session persistence across multi-region edge deployments.

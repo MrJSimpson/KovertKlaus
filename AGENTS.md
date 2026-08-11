@@ -86,8 +86,7 @@ OpsLeader console action buttons **MUST** strictly align with operation lifecycl
 ## 📋 8. Active Priority Reminders & Production Roadmap
 
 When picking up new tasks or assisting with engineering, consult **[`docs/PRIORITY_REMINDERS.md`](./docs/PRIORITY_REMINDERS.md)** for tracked production roadmap priorities:
-* **P1**: Database Connection Pooling & Concurrency Scaling (PgBouncer / Prisma Accelerate).
-* **P2**: Automated Background Cron & Event Transition Engine (Vercel Cron / QStash).
-* **P3**: End-to-End Test Hardening (Playwright Suite).
-* **P4**: Production Email Egress & DNS Reputation (`kovertklaus.com` SPF/DKIM/DMARC).
-* **P5**: Distributed Session Store & Edge Auth Safety.
+* **P0-A (TOP)**: Internal Test Pages Suite (`/test/draw`, `/test/lifecycle`, `/test/scraper`, `/test/theme`, `/test/opkits`).
+* **P0-B (TOP)**: Feature Completeness & Pre-Deployment Polish (OpsLeader console, Base32 invites, AAR debriefs).
+* **P0-C (TOP)**: Public SaaS Pipeline & `kovertklaus.com` Deployment Repo setup (Dual-repo dev vs public deployment architecture).
+* **P1-P5**: Database Connection Pooling, Background Cron Engine, Playwright E2E, DNS Reputation (`kovertklaus.com`), and Edge Auth Safety.
