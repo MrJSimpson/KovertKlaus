@@ -82,6 +82,12 @@ export default function TestBench() {
 
         <div className="flex items-center gap-3">
           <Link
+            href="/tests/scraper"
+            className="bg-sky-950/60 hover:bg-sky-900/80 text-sky-300 border border-sky-500/40 px-4 py-2 rounded-lg font-mono text-xs transition-colors flex items-center gap-2"
+          >
+            🔎 Scraper Bench
+          </Link>
+          <Link
             href="/tests/lifecycle"
             className="bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 px-4 py-2 rounded-lg font-mono text-xs transition-colors flex items-center gap-2"
           >
