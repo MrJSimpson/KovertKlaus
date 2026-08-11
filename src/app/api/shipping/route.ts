@@ -20,19 +20,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication and operationId are required' }, { status: 400 });
     }
 
-    // Find agent participation
-    const agent = await db.missionAgent.findUnique({
+    // Find member participation
+    const member = await db.exchangeMember.findUnique({
       where: {
-        missionId_userId: {
-          missionId: operationId,
+        exchangeId_userId: {
+          exchangeId: operationId,
           userId: activeUserId,
         },
       },
     });
 
-    if (!agent) {
+    if (!member) {
       return NextResponse.json(
-        { error: 'Field Agent is not enrolled in this operation.' },
+        { error: 'Member is not enrolled in this exchange.' },
         { status: 404 }
       );
     }
@@ -41,8 +41,8 @@ export async function POST(request: Request) {
     const cleanTracking = trackingNumber?.trim() || null;
 
     // Update Shipping Confirmation
-    const updatedAgent = await db.missionAgent.update({
-      where: { id: agent.id },
+    const updatedMember = await db.exchangeMember.update({
+      where: { id: member.id },
       data: {
         shippingStatus,
         trackingNumber: cleanTracking,
@@ -53,9 +53,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: isLocalDelivery
-        ? 'Local delivery confirmed for operation.'
+        ? 'Local delivery confirmed for exchange.'
         : 'Shipment & tracking number confirmed!',
-      data: updatedAgent,
+      data: updatedMember,
     });
   } catch {
     return NextResponse.json({ error: 'Failed to confirm shipping status' }, { status: 500 });

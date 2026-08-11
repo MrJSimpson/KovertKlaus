@@ -7,12 +7,11 @@ import { setSessionCookie } from '@/lib/auth';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, codename, password, action } = body as {
+    const { name, email, codename, password } = body as {
       name?: string;
       email: string;
       codename?: string;
       password?: string;
-      action?: 'check' | 'register';
     };
 
     if (!email) {
@@ -25,7 +24,6 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Action: User Account Registration with 10-Character Password
     if (!name || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
     }
@@ -37,9 +35,7 @@ export async function POST(request: Request) {
     }
 
     const cleanName = sanitizeText(name);
-    const cleanCodename = codename
-      ? sanitizeText(codename)
-      : `Agent-${Math.floor(1000 + Math.random() * 9000)}`;
+    const cleanCodename = codename ? sanitizeText(codename) : undefined;
 
     // Hash Password with bcrypt salt rounds = 12
     const passwordHash = await bcrypt.hash(password, 12);
@@ -58,7 +54,7 @@ export async function POST(request: Request) {
         name: true,
         codename: true,
         accountStatus: true,
-        demerits: true,
+        penaltyPoints: true,
       },
     });
 
@@ -67,7 +63,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: user,
+      data: {
+        ...user,
+        demerits: user.penaltyPoints,
+      },
     });
   } catch (error: any) {
     if (error?.code === 'P2002') {

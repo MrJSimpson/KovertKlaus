@@ -28,12 +28,12 @@ export async function GET(request: Request) {
         zipCode: true,
         country: true,
         emailNotifications: true,
-        demerits: true,
+        penaltyPoints: true,
         accountStatus: true,
         createdAt: true,
         participations: {
           include: {
-            mission: {
+            exchange: {
               select: {
                 id: true,
                 title: true,
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
                 shippingDate: true,
                 executionDate: true,
                 status: true,
-                opsLeader: {
+                organizer: {
                   select: { name: true, codename: true },
                 },
               },
@@ -84,7 +84,7 @@ export async function GET(request: Request) {
         data: {
           userId: user.id,
           name: 'Master OpKit - Secret Santa',
-          type: 'WISHLIST',
+          type: 'STANDARD',
         },
       });
 
@@ -122,6 +122,7 @@ export async function GET(request: Request) {
       authenticated: true,
       user: {
         ...user,
+        demerits: user.penaltyPoints,
         wishlists: formattedWishlists,
       },
     });
@@ -215,7 +216,7 @@ export async function PATCH(request: Request) {
         zipCode: true,
         country: true,
         emailNotifications: true,
-        demerits: true,
+        penaltyPoints: true,
         accountStatus: true,
       },
     });
@@ -223,7 +224,10 @@ export async function PATCH(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Account preferences updated successfully',
-      user: updatedUser,
+      user: {
+        ...updatedUser,
+        demerits: updatedUser.penaltyPoints,
+      },
     });
   } catch (error) {
     console.error('Account preferences update error:', error);

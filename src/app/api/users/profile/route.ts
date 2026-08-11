@@ -36,11 +36,11 @@ export async function GET() {
         allergiesDiet: true,
         dislikes: true,
         favoriteHobbies: true,
-        allowOperatorViewSizes: true,
-        allowOperatorViewMeasurements: true,
-        allowOperatorViewAllergies: true,
-        allowOperatorViewFavorites: true,
-        demerits: true,
+        allowOrganizerViewSizes: true,
+        allowOrganizerViewMeasurements: true,
+        allowOrganizerViewAllergies: true,
+        allowOrganizerViewFavorites: true,
+        penaltyPoints: true,
         accountStatus: true,
         emailNotifications: true,
         createdAt: true,
@@ -51,7 +51,13 @@ export async function GET() {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, user });
+    return NextResponse.json({
+      success: true,
+      user: {
+        ...user,
+        demerits: user.penaltyPoints,
+      },
+    });
   } catch (error: any) {
     console.error('Fetch profile error:', error);
     return NextResponse.json({ error: error?.message || 'Failed to fetch user profile' }, { status: 500 });
@@ -89,9 +95,13 @@ export async function PUT(request: Request) {
       allergiesDiet,
       dislikes,
       favoriteHobbies,
+      allowOrganizerViewSizes,
       allowOperatorViewSizes,
+      allowOrganizerViewMeasurements,
       allowOperatorViewMeasurements,
+      allowOrganizerViewAllergies,
       allowOperatorViewAllergies,
+      allowOrganizerViewFavorites,
       allowOperatorViewFavorites,
       emailNotifications,
       currentPassword,
@@ -103,7 +113,6 @@ export async function PUT(request: Request) {
 
     if (name !== undefined) updateData.name = sanitizeText(name);
     if (codename !== undefined) {
-      // Strip legacy Agent- prefix if provided
       let cleanCodename = sanitizeText(codename).replace(/^(agent[-:\s]+)/i, '').trim();
       updateData.codename = cleanCodename || null;
     }
@@ -130,10 +139,15 @@ export async function PUT(request: Request) {
     if (dislikes !== undefined) updateData.dislikes = sanitizeText(dislikes) || null;
     if (favoriteHobbies !== undefined) updateData.favoriteHobbies = sanitizeText(favoriteHobbies) || null;
 
-    if (allowOperatorViewSizes !== undefined) updateData.allowOperatorViewSizes = Boolean(allowOperatorViewSizes);
-    if (allowOperatorViewMeasurements !== undefined) updateData.allowOperatorViewMeasurements = Boolean(allowOperatorViewMeasurements);
-    if (allowOperatorViewAllergies !== undefined) updateData.allowOperatorViewAllergies = Boolean(allowOperatorViewAllergies);
-    if (allowOperatorViewFavorites !== undefined) updateData.allowOperatorViewFavorites = Boolean(allowOperatorViewFavorites);
+    const sizePermission = allowOrganizerViewSizes !== undefined ? allowOrganizerViewSizes : allowOperatorViewSizes;
+    const measPermission = allowOrganizerViewMeasurements !== undefined ? allowOrganizerViewMeasurements : allowOperatorViewMeasurements;
+    const algPermission = allowOrganizerViewAllergies !== undefined ? allowOrganizerViewAllergies : allowOperatorViewAllergies;
+    const favPermission = allowOrganizerViewFavorites !== undefined ? allowOrganizerViewFavorites : allowOperatorViewFavorites;
+
+    if (sizePermission !== undefined) updateData.allowOrganizerViewSizes = Boolean(sizePermission);
+    if (measPermission !== undefined) updateData.allowOrganizerViewMeasurements = Boolean(measPermission);
+    if (algPermission !== undefined) updateData.allowOrganizerViewAllergies = Boolean(algPermission);
+    if (favPermission !== undefined) updateData.allowOrganizerViewFavorites = Boolean(favPermission);
 
     if (emailNotifications !== undefined) updateData.emailNotifications = Boolean(emailNotifications);
 
@@ -187,11 +201,11 @@ export async function PUT(request: Request) {
         allergiesDiet: true,
         dislikes: true,
         favoriteHobbies: true,
-        allowOperatorViewSizes: true,
-        allowOperatorViewMeasurements: true,
-        allowOperatorViewAllergies: true,
-        allowOperatorViewFavorites: true,
-        demerits: true,
+        allowOrganizerViewSizes: true,
+        allowOrganizerViewMeasurements: true,
+        allowOrganizerViewAllergies: true,
+        allowOrganizerViewFavorites: true,
+        penaltyPoints: true,
         accountStatus: true,
         emailNotifications: true,
       },
@@ -200,7 +214,10 @@ export async function PUT(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Profile updated successfully',
-      user: updatedUser,
+      user: {
+        ...updatedUser,
+        demerits: updatedUser.penaltyPoints,
+      },
     });
   } catch (error: any) {
     console.error('Update profile error:', error);

@@ -25,7 +25,7 @@ interface OpKit {
 }
 
 export default function OpKitsPage() {
-  const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { isDarkMode, toggleTheme, theme, terminology } = useTheme();
   const [loading, setLoading] = useState(true);
   const [opKits, setOpKits] = useState<OpKit[]>([]);
   const [selectedOpKitId, setSelectedOpKitId] = useState<string | null>(null);
@@ -274,7 +274,7 @@ export default function OpKitsPage() {
               onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
-              {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
+              {terminology.toggleButtonText}
             </button>
 
             <Link
@@ -302,15 +302,15 @@ export default function OpKitsPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeCode}`}>
-                🧰 OpKit Management Hub
+                🧰 {terminology.wishlistLabel} Management Hub
               </span>
               <span className={`text-xs ${theme.textSubLabel}`}>
-                (OpKit = Wish List | OpTool = Gift Item)
+                (Create wish lists & save gift items)
               </span>
             </div>
-            <h1 className="text-3xl font-black">Manage All OpKits & OpTools</h1>
+            <h1 className="text-3xl font-black">Manage All {terminology.wishlistLabel}s & {terminology.itemLabel}s</h1>
             <p className={`text-xs mt-1 max-w-2xl ${theme.textSubLabel}`}>
-              Organize your Master OpKit and operation-specific wish lists. Add gift links (OpTools), manage White Elephant brought items, and keep your secret santa wishes updated.
+              Organize your Master {terminology.wishlistLabel} and exchange-specific gift lists. Add gift links ({terminology.itemLabel}s), manage White Elephant brought items, and keep your Secret Santa wishes updated.
             </p>
           </div>
 
@@ -318,7 +318,7 @@ export default function OpKitsPage() {
             onClick={() => setCreateModalOpen(true)}
             className={`px-6 py-3.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnPrimary}`}
           >
-            <span>+ Create New OpKit</span>
+            <span>+ Create New {terminology.wishlistLabel}</span>
           </button>
         </div>
 
@@ -329,7 +329,7 @@ export default function OpKitsPage() {
           <div className="lg:col-span-4 space-y-4">
             <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">Your OpKits ({opKits.length})</h2>
+                <h2 className="text-lg font-bold">Your {terminology.wishlistLabel}s ({opKits.length})</h2>
                 <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md ${theme.badgeCode}`}>Inventory</span>
               </div>
 

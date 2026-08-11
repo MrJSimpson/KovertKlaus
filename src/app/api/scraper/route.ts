@@ -23,8 +23,8 @@ export async function POST(request: Request) {
     const normalizedUrl = normalizeProductUrl(formattedUrl);
     const parsedUrl = new URL(normalizedUrl);
 
-    // Step 1: Check shared OpToolCatalog in Database (~10ms fast hit)
-    const existingCatalog = await db.opToolCatalog.findUnique({
+    // Step 1: Check shared ProductCatalog in Database (~10ms fast hit)
+    const existingCatalog = await db.productCatalog.findUnique({
       where: { url: normalizedUrl },
     });
 
@@ -100,8 +100,8 @@ export async function POST(request: Request) {
       const parsedPrice = price ? parseFloat(price) : 0;
       const cleanDesc = description.substring(0, 300);
 
-      // Upsert into shared OpToolCatalog database table
-      const catalogRecord = await db.opToolCatalog.upsert({
+      // Upsert into shared ProductCatalog database table
+      const catalogRecord = await db.productCatalog.upsert({
         where: { url: normalizedUrl },
         create: {
           url: normalizedUrl,

@@ -34,7 +34,20 @@ interface UserData {
   participations: Array<{
     id: string;
     role: string;
-    mission: {
+    exchange?: {
+      id: string;
+      title: string;
+      code: string;
+      status: string;
+      giftingType: string;
+      isLocalOnly?: boolean;
+      isWhiteElephant: boolean;
+      budgetMin?: number;
+      budgetMax: number;
+      currency: string;
+      executionDate: string;
+    };
+    mission?: {
       id: string;
       title: string;
       code: string;
@@ -59,7 +72,7 @@ interface UserData {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { isDarkMode, toggleTheme, theme, terminology } = useTheme();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserData | null>(null);
 
@@ -286,7 +299,7 @@ export default function DashboardPage() {
               onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
-              {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
+              {terminology.toggleButtonText}
             </button>
 
             <button
@@ -317,7 +330,7 @@ export default function DashboardPage() {
                     OPERATIVE STATUS: ACTIVE
                   </span>
                   <span className="text-xs text-slate-500 font-mono">
-                    Demerits: <strong className={user.demerits > 0 ? 'text-red-500' : 'text-emerald-600 dark:text-sky-400'}>{user.demerits}/3</strong>
+                    {terminology.penaltyUnitPlural}: <strong className={user.demerits > 0 ? 'text-red-500' : 'text-emerald-600 dark:text-sky-400'}>{user.demerits}/3</strong>
                   </span>
                 </div>
 
@@ -376,7 +389,10 @@ export default function DashboardPage() {
 
             {/* Courier Shipping Address Incomplete Warning Banner */}
             {(!user.streetAddress || !user.city || !user.state || !user.zipCode) &&
-              user.participations?.some((p) => !p.mission.isLocalOnly && !p.mission.isWhiteElephant) && (
+              user.participations?.some((p) => {
+                const ex = p.exchange || p.mission;
+                return ex && !ex.isLocalOnly && !ex.isWhiteElephant;
+              }) && (
                 <div className={`p-5 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${theme.alertWarning}`}>
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">📦</span>
@@ -434,7 +450,9 @@ export default function DashboardPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {recentParticipations.map((p) => {
-                    const countdown = getNextMilestoneCountdown(p.mission);
+                    const ex = p.exchange || p.mission;
+                    if (!ex) return null;
+                    const countdown = getNextMilestoneCountdown(ex);
                     return (
                       <Card
                         key={p.id}
@@ -442,23 +460,23 @@ export default function DashboardPage() {
                       >
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <Badge variant="code">CODE: {p.mission.code}</Badge>
-                            <Badge variant={p.mission.isWhiteElephant ? 'white-elephant' : 'secret-santa'}>
+                            <Badge variant="code">CODE: {ex.code}</Badge>
+                            <Badge variant={ex.isWhiteElephant ? 'white-elephant' : 'secret-santa'}>
                               ● {countdown.phaseStatusLabel}
                             </Badge>
                           </div>
 
-                          <h3 className="text-xl font-black mt-2">{p.mission.title}</h3>
+                          <h3 className="text-xl font-black mt-2">{ex.title}</h3>
                           
                           <Card variant="inner" className="mt-3 space-y-1.5 text-xs">
                             <DataRow
                               label="Budget Range"
-                              value={`$${p.mission.budgetMin || 0} – $${p.mission.budgetMax} ${p.mission.currency}`}
+                              value={`$${ex.budgetMin || 0} – $${ex.budgetMax} ${ex.currency}`}
                               valueVariant="accent"
                             />
                             <DataRow
                               label="Exchange Day"
-                              value={formatDateString(p.mission.executionDate)}
+                              value={formatDateString(ex.executionDate)}
                               valueVariant="date"
                             />
 
@@ -482,13 +500,13 @@ export default function DashboardPage() {
                         <div className="mt-6 flex items-center justify-between gap-2 pt-3 border-t border-stone-200 dark:border-slate-800">
                           <div className="flex items-center gap-1.5 shrink-0">
                             <span className={`text-xs ${theme.textLabel}`}>Role:</span>
-                            <Badge variant={p.role === 'OPS_LEADER' ? 'opsleader' : 'code'}>
-                              {p.role === 'OPS_LEADER' ? '⭐ OpsLeader' : '🕵️ Field Agent'}
+                            <Badge variant={p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? 'opsleader' : 'code'}>
+                              {p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? `⭐ ${terminology.organizerRole}` : `🕵️ ${terminology.participantRole}`}
                             </Badge>
                           </div>
 
                           <Button
-                            href={`/exchange/${p.mission.code}`}
+                            href={`/exchange/${ex.code}`}
                             variant="primary"
                             className="px-3 py-2 text-[11px] font-extrabold whitespace-nowrap shrink-0"
                           >
@@ -502,19 +520,19 @@ export default function DashboardPage() {
               )}
             </Card>
 
-            {/* Section 2: OpKits & OpTools Inventory (3 Most Recent Limit) */}
+            {/* Section 2: Wishlists & Gifts Inventory (3 Most Recent Limit) */}
             <Card variant="section" className="space-y-6">
               <SectionHeader
-                title="🧰 OpKits (Wish Lists)"
-                subtitle="(OpKit = Wish List | OpTool = Gift Item) — Showing 3 most recent OpKits."
+                title={`🧰 ${terminology.wishlistLabel}s`}
+                subtitle={`Create & manage your ${terminology.wishlistLabel.toLowerCase()}s and wished-for ${terminology.itemLabel.toLowerCase()}s — Showing 3 most recent.`}
                 primaryAction={
                   <Button onClick={() => setCreateOpKitModalOpen(true)} variant="primary">
-                    + New OpKit
+                    + New {terminology.wishlistLabel}
                   </Button>
                 }
                 secondaryAction={
                   <Button href="/opkits" variant="toggle">
-                    ⚙️ Manage All OpKits →
+                    ⚙️ Manage All {terminology.wishlistLabel}s →
                   </Button>
                 }
               />

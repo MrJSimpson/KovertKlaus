@@ -2,6 +2,7 @@ import { db } from '../src/lib/db';
 import bcrypt from 'bcryptjs';
 
 const familyMembers = [
+  { name: 'Joshua Simpson', email: 'joshua@example.com', codename: 'Joshua' },
   { name: 'Zachary Simpson', email: 'zachary@example.com', codename: 'Zachary' },
   { name: 'Shannon Jaelynn Simpson', email: 'shannon@example.com', codename: 'Shannon' },
   { name: 'Matthew Simpson', email: 'matthew@example.com', codename: 'Matthew' },
@@ -26,49 +27,131 @@ const familyMembers = [
 ];
 
 async function main() {
-  console.log('🌱 Seeding KovertKlaus test family operative accounts...');
+  console.log('🌱 Seeding KovertKlaus test family accounts and exchanges...');
 
   const defaultPassword = 'Klaus2026!';
   const passwordHash = await bcrypt.hash(defaultPassword, 12);
 
-  let createdCount = 0;
-  let skippedCount = 0;
+  const userMap = new Map<string, string>(); // email -> userId
 
   for (const member of familyMembers) {
-    const existing = await db.user.findUnique({
+    let userRecord = await db.user.findUnique({
       where: { email: member.email },
     });
 
-    if (existing) {
-      console.log(`⏩ Skipping duplicate email: ${member.email} (${member.name})`);
-      skippedCount++;
-      continue;
+    if (!userRecord) {
+      userRecord = await db.user.create({
+        data: {
+          name: member.name,
+          email: member.email,
+          codename: member.codename,
+          passwordHash,
+        },
+      });
+
+      // Create default Wishlist for each user
+      await db.wishlist.create({
+        data: {
+          userId: userRecord.id,
+          name: 'Master Wishlist - Secret Santa',
+          type: 'STANDARD',
+        },
+      });
+
+      console.log(`✅ Created test user: ${member.name} <${member.email}>`);
+    } else {
+      userRecord = await db.user.update({
+        where: { id: userRecord.id },
+        data: { passwordHash },
+      });
+      console.log(`🔄 Reset password for test user: ${member.name} <${member.email}>`);
     }
 
-    const newUser = await db.user.create({
-      data: {
-        name: member.name,
-        email: member.email,
-        codename: member.codename,
-        passwordHash,
-      },
-    });
-
-    // Create default Master OpKit for each user
-    await db.wishlist.create({
-      data: {
-        userId: newUser.id,
-        name: 'Master OpKit - Secret Santa',
-        type: 'WISHLIST',
-      },
-    });
-
-    console.log(`✅ Created operative account: ${member.name} <${member.email}>`);
-    createdCount++;
+    userMap.set(member.email, userRecord.id);
   }
 
-  console.log(`\n🎉 Seeding complete! Created ${createdCount} accounts (${skippedCount} skipped).`);
+  const joshuaId = userMap.get('joshua@example.com')!;
+  const shannonId = userMap.get('shannon@example.com')!;
+
+  // ---------------------------------------------------------------------------
+  // Test Exchange 1: TEST-2026 (Family Holiday Secret Santa 2026)
+  // ---------------------------------------------------------------------------
+  const testCode1 = 'TEST-2026';
+  let ex1 = await db.exchange.findUnique({ where: { code: testCode1 } });
+
+  if (!ex1) {
+    ex1 = await db.exchange.create({
+      data: {
+        title: 'Family Holiday Secret Santa 2026',
+        description: 'Annual Simpson & Family Secret Santa Gift Exchange! Wishlists required.',
+        code: testCode1,
+        organizerId: joshuaId,
+        maxParticipants: 25,
+        giftingType: 'SINGLE',
+        isLocalOnly: false,
+        isWhiteElephant: false,
+        budgetMin: 25,
+        budgetMax: 75,
+        currency: 'USD',
+        inviteCutoffDate: new Date('2026-11-20T23:59:59Z'),
+        assignmentDate: new Date('2026-11-25T00:00:00Z'),
+        shippingDate: new Date('2026-12-15T23:59:59Z'),
+        executionDate: new Date('2026-12-25T18:00:00Z'),
+        status: 'RECRUITING',
+        enforcePenalties: true,
+        members: {
+          create: familyMembers.slice(0, 12).map((m, idx) => ({
+            userId: userMap.get(m.email)!,
+            role: idx === 0 ? 'ORGANIZER' : 'MEMBER',
+          })),
+        },
+      },
+    });
+    console.log(`🎁 Created Test Exchange 1: "${ex1.title}" (Code: ${testCode1})`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test Exchange 2: TEST-ELEV (Family White Elephant Party 2026)
+  // ---------------------------------------------------------------------------
+  const testCode2 = 'TEST-ELEV';
+  let ex2 = await db.exchange.findUnique({ where: { code: testCode2 } });
+
+  if (!ex2) {
+    ex2 = await db.exchange.create({
+      data: {
+        title: 'Family White Elephant Party 2026',
+        description: 'In-person local White Elephant gift stealing party! Bring 1 wrapped funny or cool gift under $30.',
+        code: testCode2,
+        organizerId: shannonId,
+        maxParticipants: 20,
+        giftingType: 'SINGLE',
+        isLocalOnly: true,
+        eventLocation: '123 North Pole Way, Bremerton, WA 98312',
+        isWhiteElephant: true,
+        budgetMin: 10,
+        budgetMax: 30,
+        currency: 'USD',
+        inviteCutoffDate: new Date('2026-12-10T23:59:59Z'),
+        assignmentDate: new Date('2026-12-15T00:00:00Z'),
+        shippingDate: new Date('2026-12-20T23:59:59Z'),
+        executionDate: new Date('2026-12-24T17:00:00Z'),
+        status: 'RECRUITING',
+        enforcePenalties: false, // Zero-pressure family exchange
+        members: {
+          create: familyMembers.slice(0, 8).map((m) => ({
+            userId: userMap.get(m.email)!,
+            role: m.email === 'shannon@example.com' ? 'ORGANIZER' : 'MEMBER',
+          })),
+        },
+      },
+    });
+    console.log(`🐘 Created Test Exchange 2: "${ex2.title}" (Code: ${testCode2})`);
+  }
+
+  console.log('\n🎉 Seeding complete!');
+  console.log(`🔑 All test accounts use email format: "firstname@example.com"`);
   console.log(`🔑 All test accounts use password: "${defaultPassword}"`);
+  console.log(`📌 Test Exchange Codes: ${testCode1}, ${testCode2}`);
 }
 
 main()

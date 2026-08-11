@@ -12,10 +12,10 @@ enum AccountStatus {
   DISABLED
 }
 
-enum MissionStatus {
+enum ExchangeStatus {
   SETUP
   RECRUITING
-  ASSIGNED
+  MATCHED
   SHIPPED
   EXECUTED
   COMPLETED
@@ -32,9 +32,9 @@ enum PaymentStatus {
   EXEMPT_SELF_HOSTED
 }
 
-enum AgentRole {
-  OPS_LEADER
-  FIELD_AGENT
+enum MemberRole {
+  ORGANIZER
+  MEMBER
 }
 
 enum ShippingStatus {
@@ -43,92 +43,93 @@ enum ShippingStatus {
   SHIPPED
 }
 
-enum OpKitType {
-  WISHLIST
+enum WishlistType {
+  STANDARD
   WHITE_ELEPHANT
 }
 
 model User {
-  id                 String        @id @default(uuid())
-  email              String        @unique
-  name               String
-  codename           String?
-  passwordHash       String
-  streetAddress      String?
-  addressLine2       String?
-  city               String?
-  state              String?
-  zipCode            String?
-  country            String?       @default("US")
-  deliveryNotes                 String?
-  shirtSize                     String?
-  topHalfSize                   String?
-  bottomHalfSize                String?
-  shoeSize                      String?
-  chestBustMeasurement          String?
-  waistMeasurement              String?
-  inseamMeasurement             String?
-  favoriteColors                String?
-  allergiesDiet                 String?
-  dislikes                      String?
-  favoriteHobbies               String?
-  allowOperatorViewSizes        Boolean       @default(true)
-  allowOperatorViewMeasurements Boolean       @default(false)
-  allowOperatorViewAllergies    Boolean       @default(true)
-  allowOperatorViewFavorites     Boolean       @default(false)
-  demerits                      Int           @default(0)
-  accountStatus                 AccountStatus @default(ACTIVE)
-  emailNotifications            Boolean       @default(true)
-  createdAt                     DateTime      @default(now())
-  updatedAt                     DateTime      @updatedAt
+  id                             String            @id @default(uuid())
+  email                          String            @unique
+  name                           String
+  codename                       String?
+  passwordHash                   String
+  streetAddress                  String?
+  addressLine2                   String?
+  city                           String?
+  state                          String?
+  zipCode                        String?
+  country                        String?           @default("US")
+  deliveryNotes                  String?
+  shirtSize                      String?
+  topHalfSize                    String?
+  bottomHalfSize                 String?
+  shoeSize                       String?
+  chestBustMeasurement           String?
+  waistMeasurement               String?
+  inseamMeasurement              String?
+  favoriteColors                 String?
+  allergiesDiet                  String?
+  dislikes                       String?
+  favoriteHobbies                String?
+  allowOrganizerViewSizes        Boolean           @default(true)
+  allowOrganizerViewMeasurements Boolean           @default(false)
+  allowOrganizerViewAllergies    Boolean           @default(true)
+  allowOrganizerViewFavorites    Boolean           @default(false)
+  penaltyPoints                  Int               @default(0)
+  accountStatus                  AccountStatus     @default(ACTIVE)
+  emailNotifications             Boolean           @default(true)
+  createdAt                      DateTime          @default(now())
+  updatedAt                      DateTime          @updatedAt
 
-  createdMissions        Mission[]        @relation("OpsLeaderMissions")
-  participations         MissionAgent[]   @relation("AgentUser")
-  targetedBy             MissionAgent[]   @relation("TargetUser")
+  createdExchanges       Exchange[]        @relation("OrganizerExchanges")
+  participations         ExchangeMember[]  @relation("MemberUser")
+  targetedBy             ExchangeMember[]  @relation("TargetUser")
   items                  Item[]
   wishlists              Wishlist[]
   notifications          Notification[]
-  exclusionRulesAsAgent  ExclusionRule[]  @relation("ExclusionAgent")
-  exclusionRulesAsTarget ExclusionRule[]  @relation("ExclusionRestrictedAgent")
-  sentMessages           IntelMessage[]      @relation("MessageSender")
-  receivedMessages       IntelMessage[]      @relation("MessageRecipient")
-  afterActionReports     AfterActionReport[]
+  exclusionRulesAsMember ExclusionRule[]   @relation("ExclusionMember")
+  exclusionRulesAsTarget ExclusionRule[]   @relation("ExclusionRestrictedMember")
+  sentMessages           ExchangeMessage[] @relation("MessageSender")
+  receivedMessages       ExchangeMessage[] @relation("MessageRecipient")
+  exchangeReports        ExchangeReport[]
 }
 
-model Mission {
-  id                     String        @id @default(uuid())
-  title                  String
-  description            String?
-  code                   String        @unique
-  opsLeaderId            String
-  opsLeader              User          @relation("OpsLeaderMissions", fields: [opsLeaderId], references: [id])
-  maxParticipants        Int?
-  giftingType            GiftingType   @default(SINGLE)
-  isLocalOnly            Boolean       @default(false)
-  eventLocation          String?
-  isWhiteElephant        Boolean       @default(false)
-  opsLeaderAssistedDraw  Boolean       @default(true)
-  drawVerifiedAt         DateTime?
-  budgetMin              Decimal?      @db.Decimal(10, 2)
-  budgetMax              Decimal       @db.Decimal(10, 2)
-  currency               String        @default("USD")
-  inviteCutoffDate       DateTime
-  assignmentDate         DateTime
-  shippingDate           DateTime?
-  executionDate          DateTime
-  status                 MissionStatus @default(RECRUITING)
-  isFreeAnnualOp         Boolean       @default(false)
-  paymentStatus          PaymentStatus @default(FREE_ANNUAL)
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
+model Exchange {
+  id                    String         @id @default(uuid())
+  title                 String
+  description           String?
+  code                  String         @unique
+  organizerId           String
+  organizer             User           @relation("OrganizerExchanges", fields: [organizerId], references: [id])
+  maxParticipants       Int?
+  giftingType           GiftingType    @default(SINGLE)
+  isLocalOnly           Boolean        @default(false)
+  eventLocation         String?
+  isWhiteElephant       Boolean        @default(false)
+  organizerAssistedDraw Boolean        @default(true)
+  drawVerifiedAt        DateTime?
+  budgetMin             Decimal?       @db.Decimal(10, 2)
+  budgetMax             Decimal        @db.Decimal(10, 2)
+  currency              String         @default("USD")
+  inviteCutoffDate      DateTime
+  assignmentDate        DateTime
+  shippingDate          DateTime?
+  executionDate         DateTime
+  status                ExchangeStatus @default(RECRUITING)
+  isFreeAnnualExchange  Boolean        @default(false)
+  enforcePenalties      Boolean        @default(true)
+  paymentStatus         PaymentStatus  @default(FREE_ANNUAL)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
-  agents             MissionAgent[]
-  exclusionRules     ExclusionRule[]
-  intelMessages      IntelMessage[]
-  afterActionReports AfterActionReport[]
+  members        ExchangeMember[]
+  exclusionRules ExclusionRule[]
+  messages       ExchangeMessage[]
+  reports        ExchangeReport[]
 }
 
-model OpToolCatalog {
+model ProductCatalog {
   id           String   @id @default(uuid())
   url          String   @unique
   title        String
@@ -144,34 +145,34 @@ model OpToolCatalog {
 }
 
 model Item {
-  id           String         @id @default(uuid())
+  id           String          @id @default(uuid())
   userId       String
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   catalogId    String?
-  catalog      OpToolCatalog? @relation(fields: [catalogId], references: [id], onDelete: SetNull)
+  catalog      ProductCatalog? @relation(fields: [catalogId], references: [id], onDelete: SetNull)
   name         String
   url          String
-  price        Decimal        @db.Decimal(10, 2)
+  price        Decimal         @db.Decimal(10, 2)
   description  String?
   thumbnailUrl String?
   properties   Json?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   wishlistItems WishlistItem[]
 }
 
 model Wishlist {
-  id        String    @id @default(uuid())
+  id        String       @id @default(uuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
-  type      OpKitType @default(WISHLIST)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  type      WishlistType @default(STANDARD)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  wishlistItems WishlistItem[]
-  missionAgents MissionAgent[]
+  wishlistItems   WishlistItem[]
+  exchangeMembers ExchangeMember[]
 }
 
 model WishlistItem {
@@ -185,12 +186,12 @@ model WishlistItem {
   @@unique([wishlistId, itemId])
 }
 
-model MissionAgent {
+model ExchangeMember {
   id                 String         @id @default(uuid())
-  missionId          String
+  exchangeId         String
   userId             String
   wishlistId         String?
-  role               AgentRole      @default(FIELD_AGENT)
+  role               MemberRole     @default(MEMBER)
   targetUserId       String?
   shippingStatus     ShippingStatus @default(PENDING)
   trackingNumber     String?
@@ -198,39 +199,39 @@ model MissionAgent {
   deliveredConfirmed Boolean        @default(false)
   joinedAt           DateTime       @default(now())
 
-  mission    Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  user       User      @relation("AgentUser", fields: [userId], references: [id], onDelete: Cascade)
-  targetUser User?     @relation("TargetUser", fields: [targetUserId], references: [id])
-  wishlist   Wishlist? @relation(fields: [wishlistId], references: [id])
+  exchange Exchange  @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  user     User      @relation("MemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  targetUser User?   @relation("TargetUser", fields: [targetUserId], references: [id])
+  wishlist Wishlist? @relation(fields: [wishlistId], references: [id])
 
-  @@unique([missionId, userId])
+  @@unique([exchangeId, userId])
 }
 
 model ExclusionRule {
-  id                String @id @default(uuid())
-  missionId         String
-  agentId           String
-  restrictedAgentId String
+  id                 String @id @default(uuid())
+  exchangeId         String
+  memberId           String
+  restrictedMemberId String
 
-  mission         Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  agent           User    @relation("ExclusionAgent", fields: [agentId], references: [id], onDelete: Cascade)
-  restrictedAgent User    @relation("ExclusionRestrictedAgent", fields: [restrictedAgentId], references: [id], onDelete: Cascade)
+  exchange         Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  member           User     @relation("ExclusionMember", fields: [memberId], references: [id], onDelete: Cascade)
+  restrictedMember User     @relation("ExclusionRestrictedMember", fields: [restrictedMemberId], references: [id], onDelete: Cascade)
 
-  @@unique([missionId, agentId, restrictedAgentId])
+  @@unique([exchangeId, memberId, restrictedMemberId])
 }
 
-model IntelMessage {
+model ExchangeMessage {
   id          String   @id @default(uuid())
-  missionId   String
+  exchangeId  String
   senderId    String
   recipientId String
   messageText String
   isFromSanta Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  sender    User    @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient User    @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  exchange  Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  sender    User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User     @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
@@ -239,19 +240,19 @@ model Notification {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title          String
   message        String
-  operationId    String?
+  exchangeId     String?
   isAcknowledged Boolean  @default(false)
   createdAt      DateTime @default(now())
 }
 
-model AfterActionReport {
+model ExchangeReport {
   id           String   @id @default(uuid())
-  missionId    String
+  exchangeId   String
   userId       String
   thankYouText String?
   photoUrl     String?
   createdAt    DateTime @default(now())
 
-  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exchange Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

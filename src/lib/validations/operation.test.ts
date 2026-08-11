@@ -29,6 +29,7 @@ test('Operation Validator - Rejects White Elephant on Remote Ops', () => {
     budgetMax: 25,
     inviteCutoffDate: '2026-12-01',
     assignmentDate: '2026-12-05',
+    shippingDate: '2026-12-15',
     executionDate: '2026-12-25',
   };
 
@@ -52,5 +53,5 @@ test('Operation Validator - Enforces Date Sequence', () => {
 
   const result = validateOperationConfig(input);
   assert.strictEqual(result.isValid, false);
-  assert.ok(result.errors.includes('Invite Cutoff Date cannot be after Assignment Date.'));
+  assert.ok(result.errors.includes('Go/No-Go Date (Invite Cutoff) cannot be set after Target Assignment Date.'));
 });

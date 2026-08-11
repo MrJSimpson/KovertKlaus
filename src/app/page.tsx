@@ -74,7 +74,7 @@ function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
 
 export default function Home() {
   const router = useRouter();
-  const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { isDarkMode, toggleTheme, theme, terminology } = useTheme();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -413,7 +413,7 @@ export default function Home() {
               title="Toggle Theme Mode"
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${theme.btnToggle}`}
             >
-              <span>{isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}</span>
+              <span>{terminology.toggleButtonText}</span>
             </button>
 
             {currentUser ? (
@@ -700,7 +700,7 @@ export default function Home() {
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
-                <span>{authMode === 'login' ? '🔑 Agent Sign In' : '✨ Create Agent Profile'}</span>
+                <span>{authMode === 'login' ? '🔑 Sign In' : `✨ Create ${terminology.participantRole} Profile`}</span>
               </h3>
               <button
                 onClick={() => setLoginModalOpen(false)}
@@ -732,7 +732,7 @@ export default function Home() {
                     : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                ✨ Sign Up (New Agent)
+                ✨ Sign Up (New {terminology.participantRole})
               </button>
             </div>
 
@@ -762,7 +762,7 @@ export default function Home() {
                   <input
                     type="password"
                     required
-                    placeholder="Enter your password"
+                    placeholder="••••••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
@@ -817,7 +817,7 @@ export default function Home() {
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-slate-500">Operative Codename / Call Sign</label>
+                    <label className="block text-slate-500">{terminology.participantRole} Nickname / Codename</label>
                     <button
                       type="button"
                       onClick={() => setCodename(generateRandomCodename())}

@@ -128,7 +128,7 @@ export async function POST(request: Request) {
       data: {
         userId: activeUserId,
         name: sanitizeText(name),
-        type: type === 'WHITE_ELEPHANT' ? 'WHITE_ELEPHANT' : 'WISHLIST',
+        type: type === 'WHITE_ELEPHANT' ? 'WHITE_ELEPHANT' : 'STANDARD',
       },
     });
 

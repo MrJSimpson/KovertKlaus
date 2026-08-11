@@ -56,15 +56,23 @@ interface OperationData {
   isLocalOnly: boolean;
   eventLocation?: string;
   maxParticipants?: number;
-  opsLeaderId: string;
-  opsLeader: {
+  enforcePenalties?: boolean;
+  organizerId?: string;
+  opsLeaderId?: string;
+  organizer?: {
     id: string;
     name: string;
     codename?: string;
   };
-  agents: OperationAgent[];
+  opsLeader?: {
+    id: string;
+    name: string;
+    codename?: string;
+  };
+  members?: OperationAgent[];
+  agents?: OperationAgent[];
   exclusionRules?: OperationExclusionRule[];
-  opsLeaderAssistedDraw?: boolean;
+  reports?: AARReportEntry[];
   afterActionReports?: AARReportEntry[];
 }
 
@@ -73,7 +81,7 @@ export default function OperationCommandCenterPage() {
   const router = useRouter();
   const code = (params?.code as string)?.toUpperCase() || '';
 
-  const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { isDarkMode, toggleTheme, theme, terminology } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [operation, setOperation] = useState<OperationData | null>(null);
@@ -441,8 +449,11 @@ export default function OperationCommandCenterPage() {
     }
   }
   // Determine User Role & Target in this Operation
-  const currentAgent = operation?.agents.find((a) => a.userId === userId);
-  const isOpsLeader = operation?.opsLeaderId === userId || currentAgent?.role === 'OPS_LEADER';
+  const membersList = operation?.members || operation?.agents || [];
+  const organizerData = operation?.organizer || operation?.opsLeader;
+  const organizerIdVal = operation?.organizerId || operation?.opsLeaderId;
+  const currentAgent = membersList.find((a) => a.userId === userId);
+  const isOpsLeader = organizerIdVal === userId || currentAgent?.role === 'ORGANIZER' || currentAgent?.role === 'OPS_LEADER';
   const assignedTarget = currentAgent?.targetUser;
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -483,7 +494,7 @@ export default function OperationCommandCenterPage() {
               onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
-              {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
+              {terminology.toggleButtonText}
             </button>
 
             <Link
@@ -544,7 +555,7 @@ export default function OperationCommandCenterPage() {
                   )}
 
                   <span className={`text-xs font-semibold ${theme.textSubLabel}`}>
-                    OpsLeader: <strong className={theme.textLabel}>{operation.opsLeader.name} ({formatCodename(operation.opsLeader.codename, operation.opsLeader.name)})</strong>
+                    {terminology.organizerRole}: <strong className={theme.textLabel}>{organizerData?.name || 'Organizer'} ({formatCodename(organizerData?.codename, organizerData?.name)})</strong>
                   </span>
                 </div>
 
@@ -594,8 +605,8 @@ export default function OperationCommandCenterPage() {
                   <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-amber-300' : 'text-amber-800'}`}>
                     STAGE 1
                   </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Go/No-Go Date</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Invite Cutoff)</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>{terminology.cutoffLabel}</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>{terminology.cutoffSublabel}</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.inviteCutoffDate)}
                   </strong>
@@ -605,8 +616,8 @@ export default function OperationCommandCenterPage() {
                   <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-sky-300' : 'text-sky-800'}`}>
                     STAGE 2
                   </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Target Assignment</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Sattolo Draw)</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>{terminology.assignmentLabel}</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>{terminology.assignmentSublabel}</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.assignmentDate)}
                   </strong>
@@ -616,8 +627,8 @@ export default function OperationCommandCenterPage() {
                   <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-purple-300' : 'text-purple-800'}`}>
                     STAGE 3
                   </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Gift Shipping Deadline</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Tracking Required)</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>{terminology.shippingLabel}</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>{terminology.shippingSublabel}</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.shippingDate)}
                   </strong>
@@ -627,8 +638,8 @@ export default function OperationCommandCenterPage() {
                   <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>
                     STAGE 4
                   </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Exchange Execution</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Event Day)</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>{terminology.executionLabel}</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>{terminology.executionSublabel}</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textAccent}`}>
                     {formatDateString(operation.executionDate)}
                   </strong>
@@ -924,7 +935,7 @@ export default function OperationCommandCenterPage() {
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                   <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                     <h2 className="text-xl font-bold flex items-center gap-2">
-                      👥 Enrolled Agents ({operation.agents?.length || 0})
+                      👥 Enrolled {terminology.participantRole}s ({membersList.length})
                     </h2>
                     <div className="flex items-center gap-2">
                       {isOpsLeader && (
@@ -932,7 +943,7 @@ export default function OperationCommandCenterPage() {
                           onClick={() => setInviteModalOpen(true)}
                           className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 ${theme.btnPrimary}`}
                         >
-                          <span>✉️ + Invite Agent</span>
+                          <span>✉️ + Invite {terminology.participantRole}</span>
                         </button>
                       )}
                       <span className={`text-xs font-mono font-bold px-2 py-1 rounded-md ${theme.badgeCode}`}>
@@ -942,7 +953,7 @@ export default function OperationCommandCenterPage() {
                   </div>
 
                   <div className="space-y-3">
-                    {operation.agents?.map((agent, i) => (
+                    {membersList.map((agent, i) => (
                       <div key={agent.id} className={`p-4 rounded-2xl border space-y-2 text-xs ${theme.cardInnerBg}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
@@ -953,9 +964,9 @@ export default function OperationCommandCenterPage() {
                               </span>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                                  agent.role === 'OPS_LEADER' ? theme.badgeAmber : theme.badgeSecretSanta
+                                  agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? theme.badgeAmber : theme.badgeSecretSanta
                                 }`}>
-                                  {agent.role === 'OPS_LEADER' ? 'OpsLeader' : 'Agent'}
+                                  {agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? terminology.organizerRole : terminology.participantRole}
                                 </span>
                                 <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
                                   Shipping: {agent.shippingStatus}
@@ -976,14 +987,14 @@ export default function OperationCommandCenterPage() {
                               🔔 Nudge
                             </button>
 
-                             {operation.status !== 'RECRUITING' && (
+                            {operation.status !== 'RECRUITING' && operation.enforcePenalties !== false && (
                               <>
                                 <button
                                   onClick={() => handleAgentAction('issue_demerit', agent)}
-                                  title="Issue 1-point Demerit citation"
+                                  title={`${terminology.assignPenaltyAction} for deadline non-compliance`}
                                   className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
                                 >
-                                  ⚠️ Citation
+                                  🪨 {terminology.assignPenaltyAction}
                                 </button>
 
                                 <button
@@ -998,7 +1009,7 @@ export default function OperationCommandCenterPage() {
                               </>
                             )}
 
-                            {agent.userId !== operation.opsLeaderId && (
+                            {agent.userId !== organizerIdVal && (
                               <button
                                 onClick={() => handleAgentAction('remove_agent', agent)}
                                 title="Disenroll agent from operation"
@@ -1290,7 +1301,7 @@ export default function OperationCommandCenterPage() {
           onClose={() => setPreventativeModalOpen(false)}
           operationId={operation.id}
           opsLeaderUserId={userId}
-          agents={operation.agents.map((a) => ({
+          agents={membersList.map((a) => ({
             id: a.userId,
             name: a.user?.name || a.userId,
             codename: a.user?.codename,
@@ -1307,7 +1318,7 @@ export default function OperationCommandCenterPage() {
           onClose={() => setManageAssignmentsModalOpen(false)}
           operationId={operation.id}
           opsLeaderUserId={userId}
-          agents={operation.agents.map((a) => ({
+          agents={membersList.map((a) => ({
             id: a.id,
             userId: a.userId,
             user: {

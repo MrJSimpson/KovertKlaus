@@ -10,6 +10,7 @@ export interface CreateOperationInput {
   isLocalOnly: boolean;
   eventLocation?: string;
   isWhiteElephant: boolean;
+  enforcePenalties?: boolean;
   budgetMin?: number;
   budgetMax: number;
   currency?: string;

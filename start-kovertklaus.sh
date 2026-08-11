@@ -120,7 +120,7 @@ echo -e "${GREEN}[4/4] Starting Next.js development server...${NC}"
 
 if [ "$DETACH" = true ]; then
   echo -e "${YELLOW}[!] Launching in background mode. Logs: kovertklaus.log${NC}"
-  nohup bash -c "tail -f /dev/null | env CI=1 npx next dev" > kovertklaus.log 2>&1 &
+  nohup npx next dev > kovertklaus.log 2>&1 & disown
   DEV_PID=$!
   echo $DEV_PID > .kovertklaus.pid
   echo -e "${GREEN}[✔] Next.js dev server started (PID: ${DEV_PID})${NC}"

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { getThemeClasses, ThemeClasses } from '@/lib/theme';
+import { getTerminology, Terminology } from '@/lib/terminology';
 
 const THEME_STORAGE_KEY = 'kovertklaus_theme_mode';
 
@@ -10,6 +11,7 @@ interface ThemeContextType {
   toggleTheme: () => void;
   setDarkMode: (val: boolean) => void;
   theme: ThemeClasses;
+  terminology: Terminology;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -59,6 +61,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const theme = useMemo(() => getThemeClasses(isDarkMode), [isDarkMode]);
+  const terminology = useMemo(() => getTerminology(isDarkMode), [isDarkMode]);
 
   const value = useMemo(
     () => ({
@@ -66,8 +69,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       toggleTheme,
       setDarkMode,
       theme,
+      terminology,
     }),
-    [isDarkMode, theme]
+    [isDarkMode, theme, terminology]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -82,6 +86,7 @@ export function useTheme(): ThemeContextType {
       toggleTheme: () => {},
       setDarkMode: () => {},
       theme: getThemeClasses(false),
+      terminology: getTerminology(false),
     };
   }
   return context;

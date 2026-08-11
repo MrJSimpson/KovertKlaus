@@ -7,33 +7,41 @@ import { useTheme } from '@/context/ThemeContext';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
 
-interface OperationItem {
+interface ExchangeData {
   id: string;
-  role: string;
-  mission: {
+  title: string;
+  code: string;
+  description?: string;
+  status: string;
+  isWhiteElephant: boolean;
+  budgetMin?: number;
+  budgetMax: number;
+  currency: string;
+  inviteCutoffDate: string;
+  assignmentDate: string;
+  shippingDate?: string;
+  executionDate: string;
+  organizer?: {
     id: string;
-    title: string;
-    code: string;
-    description?: string;
-    status: string;
-    isWhiteElephant: boolean;
-    budgetMin?: number;
-    budgetMax: number;
-    currency: string;
-    inviteCutoffDate: string;
-    assignmentDate: string;
-    shippingDate?: string;
-    executionDate: string;
-    opsLeader: {
-      id: string;
-      name: string;
-      codename?: string;
-    };
+    name: string;
+    codename?: string;
+  };
+  opsLeader?: {
+    id: string;
+    name: string;
+    codename?: string;
   };
 }
 
+interface OperationItem {
+  id: string;
+  role: string;
+  exchange?: ExchangeData;
+  mission?: ExchangeData;
+}
+
 export default function OperationCenterPage() {
-  const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { isDarkMode, toggleTheme, theme, terminology } = useTheme();
   const [loading, setLoading] = useState(true);
   const [operations, setOperations] = useState<OperationItem[]>([]);
 
@@ -43,7 +51,7 @@ export default function OperationCenterPage() {
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'OPS_LEADER' | 'AGENT'>('ALL');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | 'ORGANIZER' | 'MEMBER' | 'OPS_LEADER' | 'AGENT'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RECRUITING' | 'ASSIGNED' | 'COMPLETED'>('ALL');
 
   useEffect(() => {
@@ -76,10 +84,12 @@ export default function OperationCenterPage() {
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         const mapped = json.data.map((op: any) => {
-          const userAgent = op.agents?.find((a: any) => a.userId === activeUserId);
+          const userMember = op.members?.find((m: any) => m.userId === activeUserId) || op.agents?.find((a: any) => a.userId === activeUserId);
+          const organizerIdVal = op.organizerId || op.opsLeaderId;
           return {
             id: op.id,
-            role: userAgent?.role || (op.opsLeaderId === activeUserId ? 'OPS_LEADER' : 'AGENT'),
+            role: userMember?.role || (organizerIdVal === activeUserId ? 'ORGANIZER' : 'MEMBER'),
+            exchange: op,
             mission: op,
           };
         });
@@ -94,10 +104,17 @@ export default function OperationCenterPage() {
 
   // Filter Operations List
   const filteredOperations = operations.filter((item) => {
-    const titleMatch = item.mission.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const codeMatch = item.mission.code.toLowerCase().includes(searchQuery.toLowerCase());
-    const roleMatch = roleFilter === 'ALL' || item.role === roleFilter;
-    const statusMatch = statusFilter === 'ALL' || item.mission.status === statusFilter;
+    const ex = item.exchange || item.mission;
+    if (!ex) return false;
+
+    const titleMatch = ex.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const codeMatch = ex.code.toLowerCase().includes(searchQuery.toLowerCase());
+    const roleMatch =
+      roleFilter === 'ALL' ||
+      item.role === roleFilter ||
+      (roleFilter === 'ORGANIZER' && item.role === 'OPS_LEADER') ||
+      (roleFilter === 'MEMBER' && item.role === 'FIELD_AGENT');
+    const statusMatch = statusFilter === 'ALL' || ex.status === statusFilter;
     return (titleMatch || codeMatch) && roleMatch && statusMatch;
   });
 
@@ -128,7 +145,7 @@ export default function OperationCenterPage() {
             <div>
               <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
               <span className={`text-xs font-bold ${theme.textBrand}`}>
-                Operation Center (Exchanges Workspace)
+                Exchange Workspace
               </span>
             </div>
           </Link>
@@ -138,7 +155,7 @@ export default function OperationCenterPage() {
               onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
-              {isDarkMode ? '🎄 Light' : '❄️ Dark (Icy)'}
+              {terminology.toggleButtonText}
             </button>
 
             <Link
@@ -166,11 +183,11 @@ export default function OperationCenterPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeCode}`}>
-                🗺️ Operation Control Center
+                🗺️ Exchange Control Center
               </span>
-              <span className={`text-xs ${theme.textSubLabel}`}>Active Operations & Secret Santa Exchanges</span>
+              <span className={`text-xs ${theme.textSubLabel}`}>Active Exchanges & Secret Santa Groups</span>
             </div>
-            <h1 className="text-3xl font-black">Operation Center Dashboard</h1>
+            <h1 className="text-3xl font-black">Gift Exchange Center</h1>
             <p className={`text-xs mt-1 max-w-2xl ${theme.textSubLabel}`}>
               Manage your active Secret Santa and White Elephant gift exchanges. Track participant enrollment, target assignments, and gift shipping deadlines in real time.
             </p>
@@ -198,7 +215,7 @@ export default function OperationCenterPage() {
           <div className="w-full sm:w-72">
             <input
               type="text"
-              placeholder="Search by operation name or code..."
+              placeholder="Search by exchange name or code..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`w-full border rounded-xl px-4 py-2 text-xs focus:outline-none ${theme.inputBg}`}
@@ -223,28 +240,28 @@ export default function OperationCenterPage() {
                 All Roles
               </button>
               <button
-                onClick={() => setRoleFilter('OPS_LEADER')}
+                onClick={() => setRoleFilter('ORGANIZER')}
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
-                  roleFilter === 'OPS_LEADER'
+                  roleFilter === 'ORGANIZER' || roleFilter === 'OPS_LEADER'
                     ? theme.btnPrimary
                     : isDarkMode
                     ? 'text-slate-400 hover:text-slate-200'
                     : 'text-slate-700 hover:text-slate-950'
                 }`}
               >
-                OpsLeader
+                {terminology.organizerRole}
               </button>
               <button
-                onClick={() => setRoleFilter('AGENT')}
+                onClick={() => setRoleFilter('MEMBER')}
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
-                  roleFilter === 'AGENT'
+                  roleFilter === 'MEMBER' || roleFilter === 'AGENT'
                     ? theme.btnPrimary
                     : isDarkMode
                     ? 'text-slate-400 hover:text-slate-200'
                     : 'text-slate-700 hover:text-slate-950'
                 }`}
               >
-                Agent
+                {terminology.participantRole}
               </button>
             </div>
 
@@ -296,14 +313,14 @@ export default function OperationCenterPage() {
         {loading ? (
           <div className="text-center py-20">
             <div className="text-4xl animate-bounce mb-3">🎁</div>
-            <p className="text-sm font-semibold">Loading Operations Directory Stream...</p>
+            <p className="text-sm font-semibold">Loading Exchange Workspace...</p>
           </div>
         ) : filteredOperations.length === 0 ? (
           <div className={`p-12 text-center rounded-3xl border ${theme.cardBg}`}>
             <div className="text-4xl mb-3">🔍</div>
-            <h3 className="text-lg font-bold mb-1">No Active Operations Found</h3>
+            <h3 className="text-lg font-bold mb-1">No Active Exchanges Found</h3>
             <p className={`text-xs mb-6 ${theme.textSubLabel}`}>
-              You aren't currently enrolled in any operations matching your filter criteria.
+              You aren't currently enrolled in any exchanges matching your filter criteria.
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
@@ -323,7 +340,10 @@ export default function OperationCenterPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredOperations.map((p) => {
-              const countdown = getNextMilestoneCountdown(p.mission);
+              const ex = p.exchange || p.mission;
+              if (!ex) return null;
+              const organizerData = ex.organizer || ex.opsLeader;
+              const countdown = getNextMilestoneCountdown(ex);
               return (
                 <div
                   key={p.id}
@@ -332,42 +352,42 @@ export default function OperationCenterPage() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg ${theme.badgeCode}`}>
-                        CODE: {p.mission.code}
+                        CODE: {ex.code}
                       </span>
                       <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
-                        p.mission.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
+                        ex.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
                       }`}>
                         ● {countdown.phaseStatusLabel}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg">{p.mission.isWhiteElephant ? '🐘' : '🎁'}</span>
-                      <h3 className="text-xl font-black">{p.mission.title}</h3>
+                      <span className="text-lg">{ex.isWhiteElephant ? '🐘' : '🎁'}</span>
+                      <h3 className="text-xl font-black">{ex.title}</h3>
                     </div>
 
                     <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
-                      Type: <strong className={theme.textLabel}>{p.mission.isWhiteElephant ? 'White Elephant (Single Brought Gift)' : 'Secret Santa Gifting'}</strong>
+                      Type: <strong className={theme.textLabel}>{ex.isWhiteElephant ? 'White Elephant (Single Brought Gift)' : 'Secret Santa Gifting'}</strong>
                     </p>
 
                     <div className={`p-4 rounded-2xl border space-y-2 text-xs mb-6 ${theme.cardInnerBg}`}>
                       <div className="flex justify-between items-center">
                         <span className={theme.textLabel}>Budget Range:</span>
                         <strong className={theme.textAccent}>
-                          ${p.mission.budgetMin || 0} – ${p.mission.budgetMax} {p.mission.currency}
+                          ${ex.budgetMin || 0} – ${ex.budgetMax} {ex.currency}
                         </strong>
                       </div>
 
                       <div className="flex justify-between items-center">
-                        <span className={theme.textLabel}>Your Assigned Role:</span>
+                        <span className={theme.textLabel}>Your Role:</span>
                         <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
-                          p.role === 'OPS_LEADER'
+                          p.role === 'ORGANIZER' || p.role === 'OPS_LEADER'
                             ? theme.badgeAmber
                             : isDarkMode
                             ? 'bg-slate-800 text-slate-200 border border-slate-700'
                             : 'bg-stone-200 text-slate-800 border border-stone-300'
                         }`}>
-                          {p.role === 'OPS_LEADER' ? 'OpsLeader (Organizer)' : 'Agent (Participant)'}
+                          {p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? terminology.organizerRole : terminology.participantRole}
                         </span>
                       </div>
 
@@ -389,26 +409,26 @@ export default function OperationCenterPage() {
                       <div className="flex justify-between">
                         <span className={theme.textLabel}>Exchange Execution Date:</span>
                         <strong className={theme.textDate}>
-                          {formatDateString(p.mission.executionDate)}
+                          {formatDateString(ex.executionDate)}
                         </strong>
                       </div>
                     </div>
 
-                    {p.mission.shippingDate && (
+                    {ex.shippingDate && (
                       <div className="text-xs mb-4 flex justify-between">
                         <span className={theme.textLabel}>Shipping Deadline:</span>
-                        <strong className={theme.textDate}>{formatDateString(p.mission.shippingDate)}</strong>
+                        <strong className={theme.textDate}>{formatDateString(ex.shippingDate)}</strong>
                       </div>
                     )}
                   </div>
 
                   <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-stone-200 dark:border-slate-800">
                     <span className={`text-xs truncate shrink-0 ${theme.textSubLabel}`}>
-                      OpsLeader: <strong className={theme.textLabel}>{p.mission.opsLeader.name}</strong>
+                      {terminology.organizerRole}: <strong className={theme.textLabel}>{organizerData?.name || 'Organizer'}</strong>
                     </span>
 
                     <Link
-                      href={`/exchange/${p.mission.code}`}
+                      href={`/exchange/${ex.code}`}
                       className={`text-[11px] font-extrabold px-3 py-2 rounded-xl transition-all shadow-sm whitespace-nowrap shrink-0 ${theme.btnPrimary}`}
                     >
                       Command Center →

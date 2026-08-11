@@ -19,7 +19,7 @@ export function CreateOperationModal({
   onSuccess,
 }: CreateOperationModalProps) {
   const router = useRouter();
-  const { isDarkMode, theme } = useTheme();
+  const { isDarkMode, theme, terminology } = useTheme();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -29,6 +29,7 @@ export function CreateOperationModal({
   const [budgetMin, setBudgetMin] = useState(0);
   const [budgetMax, setBudgetMax] = useState(50);
   const [maxParticipants, setMaxParticipants] = useState<number>(5);
+  const [enforcePenalties, setEnforcePenalties] = useState(true);
 
   // Default execution date to 12/25/<current year>
   const currentYear = new Date().getFullYear();
@@ -85,6 +86,7 @@ export function CreateOperationModal({
             isLocalOnly,
             eventLocation: isLocalOnly ? eventLocation.trim() : undefined,
             isWhiteElephant,
+            enforcePenalties,
             maxParticipants: maxParticipants ? Number(maxParticipants) : undefined,
             inviteCutoffDate: calculatedDates.inviteCutoffDate,
             assignmentDate: calculatedDates.assignmentDate,
@@ -123,9 +125,9 @@ export function CreateOperationModal({
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-200 dark:border-slate-800">
           <div>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
-              ⭐ OpsLeader Console
+              ⭐ {terminology.organizerRole} Console
             </span>
-            <h3 className="text-2xl font-black mt-1">Organize New Operation</h3>
+            <h3 className="text-2xl font-black mt-1">Organize New {terminology.exchangeLabel}</h3>
           </div>
           <button
             onClick={onClose}
@@ -308,6 +310,38 @@ export function CreateOperationModal({
               onChange={(e) => setMaxParticipants(Number(e.target.value))}
               className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputModalBg}`}
             />
+          </div>
+
+          {/* Penalty Enforcement Toggle & Trust Notice */}
+          <div className={`p-4 rounded-2xl border transition-all ${enforcePenalties ? theme.cardInnerBg : 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700/60'}`}>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enforcePenalties}
+                onChange={(e) => setEnforcePenalties(e.target.checked)}
+                className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
+              />
+              <div>
+                <span className="font-bold block text-xs">
+                  {isDarkMode ? 'Enable Agent Performance Log & Coal Tracking' : "Enable Santa's Naughty List & Coal Tracking"}
+                </span>
+                <span className="text-[11px] text-slate-500 font-normal block mt-0.5">
+                  On by default. Keeps gift delivery deadlines accountable with coal citations.
+                </span>
+              </div>
+            </label>
+
+            {!enforcePenalties && (
+              <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-200 font-medium space-y-1">
+                <div className="font-extrabold flex items-center gap-1 text-amber-950 dark:text-amber-100">
+                  <span>⚠️</span>
+                  <span>{terminology.organizerRole} Trust & Responsibility Notice:</span>
+                </div>
+                <p>
+                  Disabling penalty tracking removes all automated delivery verification and coal citations for this exchange. By unchecking this box, you (the <strong>{terminology.organizerRole}</strong>) confirm that all participants are trusted family/friends who will fulfill gifts on the honor system.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Actions */}

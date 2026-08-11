@@ -21,11 +21,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Fetch Operation
-    const operation = await db.mission.findUnique({
+    // 1. Fetch Exchange
+    const exchange = await db.exchange.findUnique({
       where: { id: operationId },
       include: {
-        agents: {
+        members: {
           include: {
             user: true,
           },
@@ -33,20 +33,20 @@ export async function POST(request: Request) {
       },
     });
 
-    if (!operation) {
-      return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+    if (!exchange) {
+      return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
     }
 
-    if (operation.opsLeaderId !== activeUserId) {
+    if (exchange.organizerId !== activeUserId) {
       return NextResponse.json(
-        { error: 'Only the designated OpsLeader can execute the audit engine.' },
+        { error: 'Only the designated Organizer can execute the audit engine.' },
         { status: 403 }
       );
     }
 
     // 2. Audit Execution Date
     const now = new Date();
-    if (now < new Date(operation.executionDate)) {
+    if (now < new Date(exchange.executionDate)) {
       return NextResponse.json(
         { error: 'Audit engine can only be run on or after Execution Day.' },
         { status: 400 }
@@ -62,41 +62,41 @@ export async function POST(request: Request) {
       accountStatus: string;
     }> = [];
 
-    // 3. Process Each Field Agent
-    for (const agent of operation.agents) {
+    // 3. Process Each Member
+    for (const member of exchange.members) {
       // White Elephant operations do not track individual shipping deliveries
-      if (operation.isWhiteElephant) continue;
+      if (exchange.isWhiteElephant) continue;
 
-      const isUnfulfilled = agent.shippingStatus === 'PENDING' && !agent.deliveredConfirmed;
-      const hasTrackingProof = !!agent.trackingNumber;
+      const isUnfulfilled = member.shippingStatus === 'PENDING' && !member.deliveredConfirmed;
+      const hasTrackingProof = !!member.trackingNumber;
 
       if (isUnfulfilled) {
         if (hasTrackingProof) {
-          // Carrier Protection Waiver: User provided tracking number, waiving demerit penalty
+          // Carrier Protection Waiver: User provided tracking number, waiving penalty
           auditResults.push({
-            userId: agent.user.id,
-            userName: agent.user.name,
+            userId: member.user.id,
+            userName: member.user.name,
             penalized: false,
             carrierWaived: true,
-            newDemeritCount: agent.user.demerits,
-            accountStatus: agent.user.accountStatus,
+            newDemeritCount: member.user.penaltyPoints,
+            accountStatus: member.user.accountStatus,
           });
         } else {
-          // Unfulfilled without tracking proof: Issue Demerit Penalty
-          const newDemerits = agent.user.demerits + 1;
+          // Unfulfilled without tracking proof: Issue Penalty Point
+          const newPenaltyPoints = member.user.penaltyPoints + 1;
           let newAccountStatus: 'ACTIVE' | 'REMOTE_RESTRICTED' | 'DISABLED' = 'ACTIVE';
 
-          if (newDemerits >= 4) {
+          if (newPenaltyPoints >= 4) {
             newAccountStatus = 'DISABLED';
-          } else if (newDemerits === 3) {
+          } else if (newPenaltyPoints === 3) {
             newAccountStatus = 'REMOTE_RESTRICTED';
           }
 
           // Update User Record
           await db.user.update({
-            where: { id: agent.user.id },
+            where: { id: member.user.id },
             data: {
-              demerits: newDemerits,
+              penaltyPoints: newPenaltyPoints,
               accountStatus: newAccountStatus,
             },
           });
@@ -104,29 +104,29 @@ export async function POST(request: Request) {
           // Issue Internal System Notification (cannot be turned off, only acknowledged)
           await db.notification.create({
             data: {
-              userId: agent.user.id,
-              operationId: operation.id,
-              title: '⚠️ Demerit Issued: Unfulfilled Gift Operation',
-              message: `You were issued 1 demerit for failing to ship/deliver your assigned gift in operation "${operation.title}". Current Demerits: ${newDemerits}. Account Status: ${newAccountStatus}.`,
+              userId: member.user.id,
+              exchangeId: exchange.id,
+              title: '⚠️ Penalty Issued: Unfulfilled Gift Exchange',
+              message: `You were issued 1 penalty point for failing to ship/deliver your assigned gift in exchange "${exchange.title}". Current Points: ${newPenaltyPoints}. Account Status: ${newAccountStatus}.`,
               isAcknowledged: false,
             },
           });
 
           auditResults.push({
-            userId: agent.user.id,
-            userName: agent.user.name,
+            userId: member.user.id,
+            userName: member.user.name,
             penalized: true,
             carrierWaived: false,
-            newDemeritCount: newDemerits,
+            newDemeritCount: newPenaltyPoints,
             accountStatus: newAccountStatus,
           });
         }
       }
     }
 
-    // 4. Mark Operation as EXECUTED / COMPLETED
-    await db.mission.update({
-      where: { id: operation.id },
+    // 4. Mark Exchange as COMPLETED
+    await db.exchange.update({
+      where: { id: exchange.id },
       data: { status: 'COMPLETED' },
     });
 
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
       success: true,
       message: 'Execution Day audit completed successfully.',
       data: {
-        operationId: operation.id,
+        operationId: exchange.id,
         auditResults,
       },
     });

@@ -22,43 +22,43 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Verify Operation
-    const operation = await db.mission.findUnique({
+    // 1. Verify Exchange
+    const exchange = await db.exchange.findUnique({
       where: { code: operationCode.trim().toUpperCase() },
-      include: { agents: true },
+      include: { members: true },
     });
 
-    if (!operation) {
-      return NextResponse.json({ error: 'Operation not found' }, { status: 404 });
+    if (!exchange) {
+      return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
     }
 
     // 2. Check Participant Limit
-    if (operation.maxParticipants && operation.agents.length >= operation.maxParticipants) {
+    if (exchange.maxParticipants && exchange.members.length >= exchange.maxParticipants) {
       return NextResponse.json(
-        { error: 'Operation participant capacity has been reached.' },
+        { error: 'Exchange participant capacity has been reached.' },
         { status: 400 }
       );
     }
 
     // 3. Verify user is not already enrolled
-    const existingAgent = operation.agents.find((a: { userId: string }) => a.userId === activeUserId);
-    if (existingAgent) {
+    const existingMember = exchange.members.find((a: { userId: string }) => a.userId === activeUserId);
+    if (existingMember) {
       return NextResponse.json(
-        { error: 'You are already enrolled in this operation.' },
+        { error: 'You are already enrolled in this exchange.' },
         { status: 400 }
       );
     }
 
-    // 4. Enroll Field Agent into Operation
-    const newAgent = await db.missionAgent.create({
+    // 4. Enroll Member into Exchange
+    const newMember = await db.exchangeMember.create({
       data: {
-        missionId: operation.id,
+        exchangeId: exchange.id,
         userId: activeUserId,
         wishlistId: wishlistId || null,
-        role: 'FIELD_AGENT',
+        role: 'MEMBER',
       },
       include: {
-        mission: {
+        exchange: {
           select: { title: true, code: true, assignmentDate: true, executionDate: true },
         },
         wishlist: {
@@ -69,8 +69,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Field Agent successfully enlisted in operation!',
-      data: newAgent,
+      message: 'Member successfully enrolled in exchange!',
+      data: newMember,
     });
   } catch {
     return NextResponse.json({ error: 'Failed to accept invitation' }, { status: 500 });
