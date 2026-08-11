@@ -82,10 +82,16 @@ export default function TestBench() {
 
         <div className="flex items-center gap-3">
           <Link
+            href="/tests/lifecycle"
+            className="bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 px-4 py-2 rounded-lg font-mono text-xs transition-colors flex items-center gap-2"
+          >
+            ⏰ Schedule & Lifecycle Engine
+          </Link>
+          <Link
             href="/"
             className="bg-gray-900 hover:bg-gray-800 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-lg font-mono text-xs transition-colors flex items-center gap-2"
           >
-            ← Return to Main Page
+            ← Main App
           </Link>
         </div>
       </header>
