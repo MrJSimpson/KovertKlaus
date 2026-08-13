@@ -130,13 +130,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'At least 2 agents are required to execute a target draw' }, { status: 400 });
       }
 
-      const agentsForDraw = op.agents.map((a) => ({
+      const agentsForDraw = op.agents.map((a: any) => ({
         id: a.userId,
         name: a.userId,
         hasWishlistAttached: !!a.wishlistId,
       }));
 
-      const exclusionRulesForDraw = op.exclusionRules.map((r) => ({
+      const exclusionRulesForDraw = op.exclusionRules.map((r: any) => ({
         agentId: r.agentId,
         restrictedAgentId: r.restrictedAgentId,
       }));
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
         });
 
         for (const assignment of assignments) {
-          const agentRecord = op.agents.find((a) => a.userId === assignment.agentId);
+          const agentRecord = op.agents.find((a: any) => a.userId === assignment.agentId);
           if (agentRecord) {
             await db.missionAgent.update({
               where: { id: agentRecord.id },
@@ -197,10 +197,10 @@ export async function POST(request: Request) {
       }
 
       const currentAssignments = op.agents
-        .filter((a) => a.targetUserId)
-        .map((a) => ({ agentId: a.userId, targetId: a.targetUserId! }));
+        .filter((a: any) => a.targetUserId)
+        .map((a: any) => ({ agentId: a.userId, targetId: a.targetUserId! }));
 
-      const exclusionRules = op.exclusionRules.map((r) => ({
+      const exclusionRules = op.exclusionRules.map((r: any) => ({
         agentId: r.agentId,
         restrictedAgentId: r.restrictedAgentId,
       }));
@@ -214,7 +214,7 @@ export async function POST(request: Request) {
         );
 
         for (const assignment of updatedAssignments) {
-          const agentRecord = op.agents.find((a) => a.userId === assignment.agentId);
+          const agentRecord = op.agents.find((a: any) => a.userId === assignment.agentId);
           if (agentRecord) {
             await db.missionAgent.update({
               where: { id: agentRecord.id },
