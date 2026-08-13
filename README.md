@@ -2,6 +2,10 @@
 
 **Stealth Intelligence Gift Exchange Network for Families, Friends & Communities**
 
+> [!IMPORTANT]
+> **DEVELOPMENT STATUS: PRE-ALPHA (Active Pre-Release Development)**  
+> KovertKlaus is currently open to the public on GitHub for browsing, testing, and feedback as we build toward the upcoming holiday season. Self-hosters are welcome to test the codebase locally using Docker Compose or Node.js scripts!
+
 KovertKlaus turns standard Secret Santa and White Elephant gift exchanges into engaging, covert stealth operations. Featuring account reliability tracking (Demerits), reusable OpKit wishlists, automated product metadata scraping, 100% bidirectional match exclusion rules, Sattolo target derangement algorithms, mobile-first 2-way target cascade swapping, phase-scoped OpsLeader command consoles, After-Action Reports (AAR), and containerized PostgreSQL database management.
 
 ---
@@ -12,7 +16,7 @@ Working on this repository as an AI assistant, subagent, or pair programmer? Ple
 * **Production Priorities:** Check [Priority Reminders & Engineering Roadmap](./docs/PRIORITY_REMINDERS.md) for P1-P5 scaling tasks.
 * **Nomenclature:** `OpsLeader`, `Agent`, `Agent-` codename prefixes, `OpKit`, `OpTool`, and `Active Operations (Exchanges)`.
 * **Dual OpKits:** `WISHLIST` (unlimited requested items) vs `WHITE_ELEPHANT` (strictly 1 brought gift item).
-* **Security:** OWASP password complexity (min 10 chars), `bcryptjs` hashing (12 salt rounds), and 24h HTTP-only sessions.
+* **Security & Mode Control:** `APP_MODE=selfhosted` (default) vs `APP_MODE=saas` configured in `src/lib/config/mode.ts`. OWASP password complexity (min 10 chars), `bcryptjs` hashing (12 salt rounds), and 24h HTTP-only sessions.
 
 ---
 

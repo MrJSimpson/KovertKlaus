@@ -51,7 +51,16 @@ Theme utilities are located in `src/lib/theme.ts`. Call `getThemeClasses(isDarkM
 
 ---
 
-## 🔑 5. Test Database Credentials & Roster (`prisma/kovertklaus_test_db.sql`)
+## ⚡ 5. Open-Core Architecture & Mode Vector (`src/lib/config/mode.ts`)
+
+KovertKlaus uses an **Environment Mode Flag Vector** (`APP_MODE`) to separate open-source self-hosted capabilities from commercial SaaS extensions:
+
+* **`APP_MODE=selfhosted` (Default)**: Full-featured, unlimited local operation capacity for personal, family, and home-lab deployments. Zero external billing credentials required.
+* **`APP_MODE=saas`**: Activates multi-tenant account resource quota checking (`src/lib/saas/stub.ts`) and Stripe commercial billing integration hooks.
+
+---
+
+## 🔑 6. Test Database Credentials & Roster (`prisma/kovertklaus_test_db.sql`)
 
 * **Default Test Password:** `Password123!` (or user-created password during registration)
 * **Primary OpsLeader:** `joshua@example.com` (Joshua Simpson / Codename: `Chewie`)
