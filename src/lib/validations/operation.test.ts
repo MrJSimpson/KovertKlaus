@@ -30,6 +30,7 @@ test('Operation Validator - Rejects White Elephant on Remote Ops', () => {
     inviteCutoffDate: '2026-12-01',
     assignmentDate: '2026-12-05',
     executionDate: '2026-12-25',
+    shippingDate: '2026-12-18',
   };
 
   const result = validateOperationConfig(input);
