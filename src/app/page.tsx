@@ -1,22 +1,38 @@
-'use client';
+import React from 'react';
+import { AppHomeLanding, ComingSoonLanding } from '@/components/landing';
 
-import { ComingSoonLanding } from '@/components/landing/ComingSoonLanding';
-import { AppHomeLanding } from '@/components/landing/AppHomeLanding';
+/**
+ * Registry mapping ALT_HOME environment values to landing page components.
+ * To add a new alternate homepage, register its key and component here.
+ */
+const ALT_HOME_REGISTRY: Record<string, React.ComponentType> = {
+  coming_soon: ComingSoonLanding,
+  comingsoon: ComingSoonLanding,
+  'coming-soon': ComingSoonLanding,
+  comingsoonlanding: ComingSoonLanding,
+};
 
 /**
  * Dynamic Start Page Controller (Single-Codebase Open-Core Router)
  * 
- * - When `NEXT_PUBLIC_SHOW_COMING_SOON === 'true'` (Pre-Launch SaaS on kovertklaus.com):
- *   Renders the festive Coming Soon landing page with Charlie Brown lights, countdown HUD, and waitlist.
- * - When `NEXT_PUBLIC_SHOW_COMING_SOON === 'false'` (or undefined in dev/self-hosted/launch-day):
- *   Renders the full interactive web application with direct login, registration, and exchange creation.
+ * - Reads `ALT_HOME` (or `NEXT_PUBLIC_ALT_HOME`) from environment variables.
+ * - If `ALT_HOME` matches a registered alternate page (e.g. `ALT_HOME=coming_soon`),
+ *   renders that specific alternate landing page.
+ * - If `ALT_HOME` is blank, empty, or undefined, it automatically defaults to
+ *   loading the standard interactive web application (`AppHomeLanding`).
  */
 export default function Page() {
-  const showComingSoon = process.env.NEXT_PUBLIC_SHOW_COMING_SOON === 'true';
+  const altHome = (
+    process.env.ALT_HOME ||
+    process.env.NEXT_PUBLIC_ALT_HOME ||
+    ''
+  ).trim().toLowerCase();
 
-  if (showComingSoon) {
-    return <ComingSoonLanding />;
+  if (altHome && ALT_HOME_REGISTRY[altHome]) {
+    const AltLandingPage = ALT_HOME_REGISTRY[altHome];
+    return <AltLandingPage />;
   }
 
+  // Default: Load standard App Home
   return <AppHomeLanding />;
 }
