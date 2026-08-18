@@ -90,3 +90,13 @@ When picking up new tasks or assisting with engineering, consult **[`docs/PRIORI
 * **P0-B (TOP)**: Feature Completeness & Pre-Deployment Polish (OpsLeader console, Base32 invites, AAR debriefs).
 * **P0-C (TOP)**: Public SaaS Pipeline & `kovertklaus.com` Deployment Repo setup (Dual-repo dev vs public deployment architecture).
 * **P1-P5**: Database Connection Pooling, Background Cron Engine, Playwright E2E, DNS Reputation (`kovertklaus.com`), and Edge Auth Safety.
+
+---
+
+## 🌿 9. Mandatory Git Feature Branching Protocol (NON-NEGOTIABLE)
+
+1. **Zero Direct-to-Main Changes**: NEVER make edits or commit directly to `main` in any repository, ESPECIALLY `kovertklaus-saas`.
+2. **Branch Creation**: Always create a descriptive feature/fix branch before modifying code:
+   `git checkout -b <type>/<short-description>` (e.g., `feat/admin-dual-pool-db`, `sec/rbac-guards`).
+3. **Verification**: Complete and test all changes on the branch (`npm run build`, unit tests).
+4. **Merge & Sync**: Once the feature is 100% verified, merge the branch into `main`, push to remote, and clean up the local branch.
