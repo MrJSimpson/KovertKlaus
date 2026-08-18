@@ -256,3 +256,11 @@ model ExchangeReport {
   exchange Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model ClearanceLead {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  ipHash    String?
+  source    String   @default("landing_page")
+  createdAt DateTime @default(now())
+}
