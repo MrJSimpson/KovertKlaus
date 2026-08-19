@@ -5,7 +5,10 @@ import { validateOperationConfig, CreateOperationInput } from '@/lib/validations
 import { generateInviteCode } from '@/lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
 
+export const dynamic = 'force-static';
+
 export async function GET(request: Request) {
+
   try {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');

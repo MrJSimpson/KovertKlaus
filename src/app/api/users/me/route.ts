@@ -4,7 +4,10 @@ import { db } from '@/lib/db';
 import { getSessionUserId, clearSessionCookie } from '@/lib/auth';
 import { sanitizeText, validatePassword } from '@/lib/security';
 
+export const dynamic = 'force-static';
+
 export async function GET(request: Request) {
+
   try {
     const { searchParams } = new URL(request.url);
     const paramUserId = searchParams.get('userId');

@@ -4,7 +4,10 @@ import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { validatePassword, sanitizeText } from '@/lib/security';
 
+export const dynamic = 'force-static';
+
 export async function GET() {
+
   try {
     const userId = await getSessionUserId();
     if (!userId) {
