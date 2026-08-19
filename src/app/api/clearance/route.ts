@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isValidEmail } from '@/lib/security';
+import { sendClearanceConfirmationEmail } from '@/lib/email';
 import crypto from 'crypto';
 
 // In-memory rate limiting map for basic abuse prevention (5 requests per min per IP)
@@ -67,6 +68,13 @@ export async function POST(req: NextRequest) {
       });
     } catch (dbError) {
       console.error('[Clearance API] Database error:', dbError);
+    }
+
+    // Dispatch Confirmation Email via Cloudflare Email Engine
+    try {
+      await sendClearanceConfirmationEmail({ to: cleanEmail });
+    } catch (emailErr) {
+      console.error('[Clearance API] Email dispatch error:', emailErr);
     }
 
     return NextResponse.json(
