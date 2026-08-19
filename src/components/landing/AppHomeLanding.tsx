@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { calculateAutomaticOperationDates } from '@/lib/validations/operation';
 import { useTheme } from '@/context/ThemeContext';
+import { SeasonalLightsStrand } from '@/components/ui/SeasonalLightsStrand';
 import { generateRandomCodename } from '@/lib/codenameGenerator';
+
+
 
 // Charlie Brown Retro Glowing Christmas Lights Strand
 function ChristmasLightsStrand({ isDarkMode }: { isDarkMode: boolean }) {
@@ -74,8 +77,9 @@ function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
 
 export function AppHomeLanding() {
   const router = useRouter();
-  const { isDarkMode, toggleTheme, theme, terminology } = useTheme();
+  const { isDarkMode, toggleTheme, theme, terminology, bannerText, bannerActive, lightsType } = useTheme();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -362,14 +366,20 @@ export function AppHomeLanding() {
   return (
     <div className={`min-h-screen transition-colors duration-300 flex flex-col font-sans ${theme.pageBg}`}>
       
-      {/* Announcement Banner */}
-      <div className={`text-xs py-2 px-4 text-center font-medium transition-colors ${
-        isDarkMode
-          ? 'bg-slate-900 text-sky-300 border-b border-sky-500/20 shadow-inner'
-          : 'bg-red-600 text-white shadow-inner'
-      }`}>
-        <span>{isDarkMode ? '❄️ Winter Night Ops Active' : '🎄 Welcome to KovertKlaus! Organize gift exchanges in under 60 seconds.'}</span>
-      </div>
+      {/* Dynamic Announcement Banner */}
+      {bannerActive && (
+        <div className={`text-xs py-2 px-4 text-center font-medium transition-colors ${
+          isDarkMode
+            ? 'bg-slate-900 text-sky-300 border-b border-sky-500/20 shadow-inner'
+            : 'bg-red-600 text-white shadow-inner'
+        }`}>
+          <span>{bannerText}</span>
+        </div>
+      )}
+
+      {/* Dynamic Seasonal Lights Strand */}
+      <SeasonalLightsStrand type={lightsType} isDarkMode={isDarkMode} />
+
 
       {/* Main Header */}
       <header className={`border-b transition-colors sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>

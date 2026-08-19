@@ -264,3 +264,51 @@ model ClearanceLead {
   source    String   @default("landing_page")
   createdAt DateTime @default(now())
 }
+
+model ThemePreset {
+  id               String   @id // e.g. "winter_holiday", "spring_egg_hunt", "tropic_klaus", "spooky_autumn"
+  name             String   // Display Name e.g. "Winter Holiday (Klaus & Kovert)"
+  season           String   @default("winter") // "winter" | "spring" | "summer" | "autumn" | "universal"
+  isDefault        Boolean  @default(false)
+  altHomeKey       String?  @default("coming_soon") // Linked ALT_HOME component key
+  
+  // Seasonal Themed Banner Text
+  bannerTextLight  String?  @default("🎄 Welcome to KovertKlaus! Organize gift exchanges in under 60 seconds.")
+  bannerTextDark   String?  @default("❄️ Winter Night Ops Active — Covert Holiday Gifting")
+  
+  // Visual Strand Style
+  lightsStrandType String   @default("christmas_bulbs") // "christmas_bulbs" | "easter_eggs" | "tropic_lanterns" | "spooky_pumpkins" | "none"
+  
+  // Dual Design System Token Overrides (JSON Objects)
+  lightTokens      Json?    // CSS classes for Light Mode (pageBg, headerBg, btnPrimary, badgeCode, etc.)
+  darkTokens       Json?    // CSS classes for Dark Mode
+  
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  systemConfigs    SystemConfig[]
+}
+
+model SystemConfig {
+  id                       String       @id @default("singleton")
+  activeThemeId            String       @default("winter_holiday")
+  activeTheme              ThemePreset  @relation(fields: [activeThemeId], references: [id])
+  activeSeason             String       @default("auto") // "auto" | "winter" | "spring" | "summer" | "autumn"
+  announcementBannerActive Boolean      @default(true)
+  maintenanceMode          Boolean      @default(false)
+  maintenanceMessage       String?
+  
+  // Public Limits & Quotas
+  freeAnnualHostAllowance  Int          @default(1)
+  freeAnnualJoinAllowance  Int          @default(3)
+  paidEventPriceUsd        Decimal      @default(5.00) @db.Decimal(10, 2)
+  maxFreeParticipants      Int          @default(25)
+  maxWishlistItems         Int          @default(50)
+  defaultBudgetMin         Decimal      @default(0.00) @db.Decimal(10, 2)
+  defaultBudgetMax         Decimal      @default(50.00) @db.Decimal(10, 2)
+  defaultCurrency          String       @default("USD")
+  
+  updatedAt                DateTime     @updatedAt
+  updatedByAdminId         String?
+}

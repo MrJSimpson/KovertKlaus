@@ -1,11 +1,13 @@
 /**
  * KovertKlaus Centralized Theme Design System
- * Single source of truth for color tokens, card variants, buttons, badges, and alerts across Light & Dark (Icy) modes.
+ * Single source of truth for color tokens, card variants, buttons, badges, and alerts across Light & Dark modes.
  */
 
-export type ThemeClasses = ReturnType<typeof getThemeClasses>;
+export type ThemeClasses = ReturnType<typeof getBaseThemeClasses>;
 
-export function getThemeClasses(isDarkMode: boolean) {
+export type LightsStrandType = 'christmas_bulbs' | 'easter_eggs' | 'tropic_lanterns' | 'spooky_pumpkins' | 'none';
+
+function getBaseThemeClasses(isDarkMode: boolean) {
   return {
     // Page & Structural Layout
     pageBg: isDarkMode
@@ -37,7 +39,7 @@ export function getThemeClasses(isDarkMode: boolean) {
       ? 'bg-slate-900 border-2 border-slate-800 text-white shadow-2xl'
       : 'bg-white border-2 border-stone-300 text-slate-900 shadow-2xl',
 
-    // OpsLeader Console Special Card Styling (Christmas Tree Light vs Winter Nights Dark)
+    // OpsLeader Console Special Card Styling
     consoleCard: isDarkMode
       ? 'bg-slate-900/95 border-2 border-amber-500/40 text-slate-100 shadow-2xl shadow-sky-950/40'
       : 'bg-amber-500/10 border-2 border-amber-500/30 text-slate-900 shadow-md',
@@ -175,4 +177,19 @@ export function getThemeClasses(isDarkMode: boolean) {
     textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-700',
     textDate: isDarkMode ? 'text-sky-300 font-black' : 'text-slate-950 font-black',
   };
+}
+
+/**
+ * Returns theme classes overlaid with optional database-driven ThemePreset token overrides.
+ */
+export function getThemeClasses(isDarkMode: boolean, presetTokens?: Record<string, string>): ThemeClasses {
+  const base = getBaseThemeClasses(isDarkMode);
+  if (!presetTokens || typeof presetTokens !== 'object') {
+    return base;
+  }
+
+  return {
+    ...base,
+    ...presetTokens,
+  } as ThemeClasses;
 }

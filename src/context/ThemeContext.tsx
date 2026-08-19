@@ -1,10 +1,41 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { getThemeClasses, ThemeClasses } from '@/lib/theme';
+import { getThemeClasses, ThemeClasses, LightsStrandType } from '@/lib/theme';
 import { getTerminology, Terminology } from '@/lib/terminology';
+import { PublicSystemConfigResponse } from '@/app/api/config/route';
 
 const THEME_STORAGE_KEY = 'kovertklaus_theme_mode';
+
+const DEFAULT_CONFIG: PublicSystemConfigResponse = {
+  activeThemeId: 'winter_holiday',
+  themeName: 'Winter Holiday (Klaus & Kovert)',
+  activeSeason: 'winter',
+  announcementBannerActive: true,
+  bannerTextLight: '🎄 Welcome to KovertKlaus! Organize gift exchanges in under 60 seconds.',
+  bannerTextDark: '❄️ Winter Night Ops Active — Covert Holiday Gifting',
+  lightsStrandType: 'christmas_bulbs',
+  lightTokens: {
+    accentColor: '#dc2626',
+    heroBadgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    btnPrimary: 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-md shadow-red-900/20',
+    btnSecondary: 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm',
+  },
+  darkTokens: {
+    accentColor: '#38bdf8',
+    heroBadgeBg: 'bg-sky-950/70 text-sky-300 border-sky-800/80',
+    btnPrimary: 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-slate-950 font-bold shadow-md shadow-sky-500/20',
+    btnSecondary: 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700',
+  },
+  freeAnnualHostAllowance: 1,
+  freeAnnualJoinAllowance: 3,
+  paidEventPriceUsd: 5.0,
+  maxFreeParticipants: 25,
+  maxWishlistItems: 50,
+  defaultBudgetMin: 0.0,
+  defaultBudgetMax: 50.0,
+  defaultCurrency: 'USD',
+};
 
 interface ThemeContextType {
   isDarkMode: boolean;
@@ -12,15 +43,24 @@ interface ThemeContextType {
   setDarkMode: (val: boolean) => void;
   theme: ThemeClasses;
   terminology: Terminology;
+  activeThemeId: string;
+  themeName: string;
+  activeSeason: string;
+  bannerText: string;
+  bannerActive: boolean;
+  lightsType: LightsStrandType;
+  systemConfig: PublicSystemConfigResponse;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [systemConfig, setSystemConfig] = useState<PublicSystemConfigResponse>(DEFAULT_CONFIG);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // 1. Restore dark mode preference
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
     if (savedTheme !== null) {
       const isDark = savedTheme === 'dark';
@@ -31,10 +71,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         document.documentElement.classList.remove('dark');
       }
     } else {
-      // Default to light mode (Christmas festive)
       document.documentElement.classList.remove('dark');
     }
-    setMounted(true);
+
+    // 2. Fetch database-driven public configuration
+    fetch('/api/config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data === 'object') {
+          setSystemConfig((prev) => ({ ...prev, ...data }));
+        }
+      })
+      .catch(() => {
+        // Fallback gracefully on network/offline errors
+      })
+      .finally(() => {
+        setMounted(true);
+      });
   }, []);
 
   const toggleTheme = () => {
@@ -60,8 +113,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const theme = useMemo(() => getThemeClasses(isDarkMode), [isDarkMode]);
+  const activeTokens = useMemo(() => {
+    return isDarkMode ? systemConfig.darkTokens : systemConfig.lightTokens;
+  }, [isDarkMode, systemConfig]);
+
+  const theme = useMemo(() => {
+    return getThemeClasses(isDarkMode, activeTokens);
+  }, [isDarkMode, activeTokens]);
+
   const terminology = useMemo(() => getTerminology(isDarkMode), [isDarkMode]);
+
+  const bannerText = useMemo(() => {
+    return isDarkMode ? systemConfig.bannerTextDark : systemConfig.bannerTextLight;
+  }, [isDarkMode, systemConfig]);
 
   const value = useMemo(
     () => ({
@@ -70,8 +134,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setDarkMode,
       theme,
       terminology,
+      activeThemeId: systemConfig.activeThemeId,
+      themeName: systemConfig.themeName,
+      activeSeason: systemConfig.activeSeason,
+      bannerText,
+      bannerActive: systemConfig.announcementBannerActive,
+      lightsType: (systemConfig.lightsStrandType as LightsStrandType) || 'christmas_bulbs',
+      systemConfig,
     }),
-    [isDarkMode, theme, terminology]
+    [isDarkMode, theme, terminology, systemConfig, bannerText]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -80,13 +151,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme(): ThemeContextType {
   const context = useContext(ThemeContext);
   if (!context) {
-    // Fallback if rendered outside ThemeProvider
     return {
       isDarkMode: false,
       toggleTheme: () => {},
       setDarkMode: () => {},
-      theme: getThemeClasses(false),
+      theme: getThemeClasses(false, DEFAULT_CONFIG.lightTokens),
       terminology: getTerminology(false),
+      activeThemeId: DEFAULT_CONFIG.activeThemeId,
+      themeName: DEFAULT_CONFIG.themeName,
+      activeSeason: DEFAULT_CONFIG.activeSeason,
+      bannerText: DEFAULT_CONFIG.bannerTextLight,
+      bannerActive: DEFAULT_CONFIG.announcementBannerActive,
+      lightsType: 'christmas_bulbs',
+      systemConfig: DEFAULT_CONFIG,
     };
   }
   return context;
