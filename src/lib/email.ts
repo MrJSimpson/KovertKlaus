@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 📧 KovertKlaus Transactional Email Dispatch Engine
  *
  * Cloudflare Email Routing & Outbound Gateway Integration
@@ -43,7 +43,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
   // 1. Live Cloudflare Egress Gateway (Production / Configured)
   if (cfGatewayUrl || (cfApiToken && cfAccountId)) {
     try {
-      const endpoint = cfGatewayUrl || `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/email/routing/send`;
+      const endpoint = cfGatewayUrl || `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/email/sending/send`;
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
