@@ -260,9 +260,12 @@ model ExchangeReport {
 model ClearanceLead {
   id        String   @id @default(uuid())
   email     String   @unique
+  name      String?
   ipHash    String?
-  source    String   @default("landing_page")
+  source    String   @default("landing_waitlist")
+  status    String   @default("PENDING")
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ThemePreset {

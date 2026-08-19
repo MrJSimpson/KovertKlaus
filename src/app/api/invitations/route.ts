@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { sendInvitationEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -92,8 +93,16 @@ export async function POST(request: Request) {
       });
     }
 
-    // 7. Dispatch Email Notification (Regardless of whether email exists in system)
-    console.log(`[EMAIL DISPATCH] Sent invitation notification email to ${cleanEmail} for Exchange "${exchange.title}" (Code: ${exchange.code})`);
+    // 7. Dispatch Email Notification via Cloudflare Email Engine
+    const emailResult = await sendInvitationEmail({
+      to: cleanEmail,
+      exchangeTitle: exchange.title,
+      organizerName: exchange.organizer.name,
+      inviteCode: exchange.code,
+      budgetMin: exchange.budgetMin ? Number(exchange.budgetMin) : null,
+      budgetMax: Number(exchange.budgetMax),
+      joinUrl: `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com'}/exchange/${exchange.code}`,
+    });
 
     // Return Invitation Dispatch Payload
     return NextResponse.json({

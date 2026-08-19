@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
 import { setSessionCookie } from '@/lib/auth';
+import { sendWelcomeEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -60,6 +61,13 @@ export async function POST(request: Request) {
 
     // Set HTTP-Only Short-Lived Session Cookie
     await setSessionCookie(user.id);
+
+    // Dispatch Welcome Email via Cloudflare Email Engine
+    await sendWelcomeEmail({
+      to: user.email,
+      name: user.name,
+      codename: user.codename || undefined,
+    });
 
     return NextResponse.json({
       success: true,
