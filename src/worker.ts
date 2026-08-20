@@ -1,25 +1,9 @@
-// Cloudflare Edge Compatibility Polyfills
-if (typeof (globalThis as any).__dirname === 'undefined') {
-  (globalThis as any).__dirname = '';
-}
-if (typeof (globalThis as any).__filename === 'undefined') {
-  (globalThis as any).__filename = '';
-}
+import bcrypt from 'bcryptjs';
+import { adminDb } from './lib/adminDb';
+import { db } from './lib/db';
+import { validateNistPassword } from './lib/adminAuth';
 
-import { POST as handleNorthPoleLogin } from './app/api/northpole/login/route';
-import { GET as handleNorthPoleMe, DELETE as handleNorthPoleLogout } from './app/api/northpole/me/route';
-import { POST as handleNorthPoleResetPassword } from './app/api/northpole/reset-password/route';
-import { GET as handleNorthPoleConfigGet, PATCH as handleNorthPoleConfigPatch } from './app/api/northpole/config/route';
-import { GET as handleNorthPoleUsersGet, PATCH as handleNorthPoleUsersPatch } from './app/api/northpole/users/route';
-import { GET as handleNorthPoleOperationsGet } from './app/api/northpole/operations/route';
-import { POST as handleNorthPoleEmailTest } from './app/api/northpole/email/test/route';
-import { GET as handleConfigGet } from './app/api/config/route';
-import { POST as handleLeadsPost, GET as handleLeadsGet } from './app/api/leads/route';
-import { POST as handleClearancePost } from './app/api/clearance/route';
-import { POST as handleUsersPost } from './app/api/users/route';
-import { POST as handleUserLogin } from './app/api/users/login/route';
-import { GET as handleUserMe } from './app/api/users/me/route';
-import { GET as handleWorkshopAuth } from './app/api/workshop/auth/route';
+const ADMIN_COOKIE_NAME = 'kovertklaus_admin_session';
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
@@ -27,6 +11,12 @@ interface Env {
   DATABASE_ADMIN_URL?: string;
   DIRECT_URL?: string;
   MODE?: string;
+}
+
+function parseCookie(cookieHeader: string | null, name: string): string | null {
+  if (!cookieHeader) return null;
+  const match = cookieHeader.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 export default {
@@ -40,56 +30,221 @@ export default {
     if (env.DIRECT_URL) process.env.DIRECT_URL = env.DIRECT_URL;
     if (env.MODE) process.env.MODE = env.MODE;
 
-    // Handle API endpoints
     try {
+      // -----------------------------------------------------------------------
+      // 1. /api/northpole/login (POST)
+      // -----------------------------------------------------------------------
       if (pathname === '/api/northpole/login' && request.method === 'POST') {
-        return await handleNorthPoleLogin(request);
+        const body = (await request.json().catch(() => ({}))) as any;
+        const loginId = (body.identifier || body.username || body.email || '').trim().toLowerCase();
+        const password = body.password || '';
+
+        if (!loginId || !password) {
+          return Response.json({ error: 'Username/email and password are required' }, { status: 400 });
+        }
+
+        const admin = await adminDb.adminUser.findFirst({
+          where: {
+            OR: [
+              { username: { equals: loginId, mode: 'insensitive' } },
+              { email: { equals: loginId, mode: 'insensitive' } },
+            ],
+          },
+        });
+
+        if (!admin || !admin.isActive) {
+          await bcrypt.compare(password, '$2a$12$eImiTXuWVfxh02WpuU.2Te6/k6G4v0S0i56u.0B.y/0x3d.0x.0x');
+          return Response.json({ error: 'Invalid administrative credentials or account disabled' }, { status: 401 });
+        }
+
+        const passwordMatch = await bcrypt.compare(password, admin.passwordHash);
+        if (!passwordMatch) {
+          return Response.json({ error: 'Invalid administrative credentials' }, { status: 401 });
+        }
+
+        if (admin.requiresPasswordReset) {
+          return Response.json({
+            success: true,
+            requiresPasswordReset: true,
+            adminId: admin.id,
+            identifier: admin.username || admin.email,
+            name: admin.name,
+            message: 'Initial installation login detected. NIST SP 800-63B mandatory password reset required.',
+          });
+        }
+
+        await adminDb.adminUser.update({
+          where: { id: admin.id },
+          data: { lastLoginAt: new Date() },
+        });
+
+        const headers = new Headers({ 'Content-Type': 'application/json' });
+        headers.append('Set-Cookie', `${ADMIN_COOKIE_NAME}=${admin.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200; Secure`);
+
+        return new Response(JSON.stringify({
+          success: true,
+          requiresPasswordReset: false,
+          admin: { id: admin.id, name: admin.name, email: admin.email, username: admin.username, role: admin.role },
+        }), { status: 200, headers });
       }
+
+      // -----------------------------------------------------------------------
+      // 2. /api/northpole/me (GET / DELETE)
+      // -----------------------------------------------------------------------
       if (pathname === '/api/northpole/me') {
-        if (request.method === 'GET') return await handleNorthPoleMe();
-        if (request.method === 'DELETE') return await handleNorthPoleLogout();
+        const cookieHeader = request.headers.get('cookie');
+        const adminId = parseCookie(cookieHeader, ADMIN_COOKIE_NAME);
+
+        if (request.method === 'DELETE') {
+          const headers = new Headers({ 'Content-Type': 'application/json' });
+          headers.append('Set-Cookie', `${ADMIN_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`);
+          return new Response(JSON.stringify({ success: true, message: 'Logged out' }), { status: 200, headers });
+        }
+
+        if (!adminId) {
+          return Response.json({ authenticated: false }, { status: 200 });
+        }
+
+        const admin = await adminDb.adminUser.findUnique({
+          where: { id: adminId },
+          select: { id: true, email: true, username: true, name: true, role: true, isActive: true, requiresPasswordReset: true },
+        });
+
+        if (!admin || !admin.isActive || admin.requiresPasswordReset) {
+          return Response.json({ authenticated: false }, { status: 200 });
+        }
+
+        return Response.json({ authenticated: true, admin });
       }
+
+      // -----------------------------------------------------------------------
+      // 3. /api/northpole/reset-password (POST)
+      // -----------------------------------------------------------------------
       if (pathname === '/api/northpole/reset-password' && request.method === 'POST') {
-        return await handleNorthPoleResetPassword(request);
+        const body = (await request.json().catch(() => ({}))) as any;
+        const { adminId, currentPassword, newPassword, confirmPassword } = body;
+
+        if (!adminId || !currentPassword || !newPassword) {
+          return Response.json({ error: 'All fields are required' }, { status: 400 });
+        }
+
+        if (newPassword !== confirmPassword) {
+          return Response.json({ error: 'New password and confirmation do not match' }, { status: 400 });
+        }
+
+        const admin = await adminDb.adminUser.findUnique({ where: { id: adminId } });
+        if (!admin) {
+          return Response.json({ error: 'Admin account not found' }, { status: 404 });
+        }
+
+        const currentMatch = await bcrypt.compare(currentPassword, admin.passwordHash);
+        if (!currentMatch) {
+          return Response.json({ error: 'Current password verification failed' }, { status: 401 });
+        }
+
+        const nistCheck = validateNistPassword(newPassword, admin.username || admin.email);
+        if (!nistCheck.isValid) {
+          return Response.json({ error: nistCheck.error }, { status: 400 });
+        }
+
+        const newHash = await bcrypt.hash(newPassword, 12);
+        await adminDb.adminUser.update({
+          where: { id: adminId },
+          data: { passwordHash: newHash, requiresPasswordReset: false, lastLoginAt: new Date() },
+        });
+
+        const headers = new Headers({ 'Content-Type': 'application/json' });
+        headers.append('Set-Cookie', `${ADMIN_COOKIE_NAME}=${admin.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200; Secure`);
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Password updated successfully. North Pole clearance unlocked.',
+          admin: { id: admin.id, name: admin.name, email: admin.email, username: admin.username, role: admin.role },
+        }), { status: 200, headers });
       }
+
+      // -----------------------------------------------------------------------
+      // 4. /api/northpole/config (GET / PATCH)
+      // -----------------------------------------------------------------------
       if (pathname === '/api/northpole/config') {
-        if (request.method === 'GET') return await handleNorthPoleConfigGet();
-        if (request.method === 'PATCH') return await handleNorthPoleConfigPatch(request);
+        if (request.method === 'GET') {
+          const config = await adminDb.systemConfig.findUnique({ where: { id: 'singleton' } });
+          const themes = await adminDb.themePreset.findMany({ orderBy: { id: 'asc' } });
+          return Response.json({ config, themes });
+        }
+        if (request.method === 'PATCH') {
+          const body = (await request.json().catch(() => ({}))) as any;
+          const updated = await adminDb.systemConfig.upsert({
+            where: { id: 'singleton' },
+            update: body,
+            create: { id: 'singleton', ...body },
+          });
+          return Response.json({ success: true, config: updated });
+        }
       }
+
+      // -----------------------------------------------------------------------
+      // 5. /api/northpole/users (GET / PATCH)
+      // -----------------------------------------------------------------------
       if (pathname === '/api/northpole/users') {
-        if (request.method === 'GET') return await handleNorthPoleUsersGet(request);
-        if (request.method === 'PATCH') return await handleNorthPoleUsersPatch(request);
+        if (request.method === 'GET') {
+          const users = await adminDb.user.findMany({
+            take: 50,
+            orderBy: { createdAt: 'desc' },
+            select: { id: true, name: true, email: true, codename: true, penaltyPoints: true, createdAt: true },
+          });
+          return Response.json({ users, total: users.length });
+        }
+        if (request.method === 'PATCH') {
+          const body = (await request.json().catch(() => ({}))) as any;
+          const { userId, penaltyPoints } = body;
+          const user = await adminDb.user.update({
+            where: { id: userId },
+            data: { penaltyPoints },
+          });
+          return Response.json({ success: true, user });
+        }
       }
+
+      // -----------------------------------------------------------------------
+      // 6. /api/northpole/operations (GET)
+      // -----------------------------------------------------------------------
       if (pathname === '/api/northpole/operations' && request.method === 'GET') {
-        return await handleNorthPoleOperationsGet(request);
+        const operations = await adminDb.exchange.findMany({
+          take: 50,
+          orderBy: { createdAt: 'desc' },
+          include: { _count: { select: { members: true } } },
+        });
+        return Response.json({ operations, total: operations.length });
       }
-      if (pathname === '/api/northpole/email/test' && request.method === 'POST') {
-        return await handleNorthPoleEmailTest(request);
-      }
+
+      // -----------------------------------------------------------------------
+      // 7. /api/config (GET)
+      // -----------------------------------------------------------------------
       if (pathname === '/api/config' && request.method === 'GET') {
-        return await handleConfigGet();
+        const config = await db.systemConfig.findUnique({ where: { id: 'singleton' } });
+        const theme = config ? await db.themePreset.findUnique({ where: { id: config.activeThemeId } }) : null;
+        return Response.json({ config, theme });
       }
-      if (pathname === '/api/leads') {
-        if (request.method === 'GET') return await handleLeadsGet();
-        if (request.method === 'POST') return await handleLeadsPost(request);
-      }
+
+      // -----------------------------------------------------------------------
+      // 8. /api/clearance (POST)
+      // -----------------------------------------------------------------------
       if (pathname === '/api/clearance' && request.method === 'POST') {
-        return await handleClearancePost(request as any);
+        const body = (await request.json().catch(() => ({}))) as any;
+        const email = (body.email || '').trim().toLowerCase();
+        if (!email) return Response.json({ error: 'Email is required' }, { status: 400 });
+
+        const lead = await db.clearanceLead.upsert({
+          where: { email },
+          update: { updatedAt: new Date() },
+          create: { email, source: 'landing_countdown' },
+        });
+        return Response.json({ success: true, lead });
       }
-      if (pathname === '/api/users' && request.method === 'POST') {
-        return await handleUsersPost(request);
-      }
-      if (pathname === '/api/users/login' && request.method === 'POST') {
-        return await handleUserLogin(request);
-      }
-      if (pathname === '/api/users/me' && request.method === 'GET') {
-        return await handleUserMe(request);
-      }
-      if (pathname === '/api/workshop/auth' && request.method === 'GET') {
-        return await handleWorkshopAuth();
-      }
+
     } catch (err: any) {
-      console.error('[Edge API Error]', err);
+      console.error('[Worker API Error]', err);
       return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
