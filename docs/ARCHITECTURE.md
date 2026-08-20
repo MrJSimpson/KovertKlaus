@@ -4,15 +4,17 @@ This document provides a comprehensive technical overview of the **KovertKlaus**
 
 ---
 
-## 🎯 1. Domain Nomenclature
+## 🎯 1. Canonical Domain Nomenclature (Santa's Whimsical Secret Service)
 
-| Term | Scope & Rule |
-| :--- | :--- |
-| **`OpsLeader`** | Organizer/creator of an operation. |
-| **`Agent`** | Operative participant (codenames must use `Agent-` prefix). |
-| **`OpKit`** | Wishlist container (`WISHLIST` or `WHITE_ELEPHANT`). |
-| **`OpTool`** | Individual gift item. |
-| **`Operation`** | Gift exchange event (`Mission`). |
+| Domain Concept | Canonical Term | Prisma DB Entity | Description & Scope |
+| :--- | :--- | :--- | :--- |
+| **Event Organizer** | **`Head Elf`** (`OpsLeader`) | `User` / `Exchange.organizer` | Creator/administrator of a Holiday Mission. |
+| **Participant** | **`Elf Agent`** (`Agent`) | `User` / `ExchangeMember` | Operative enrolled in the mission. |
+| **Gift Exchange Event** | **`Holiday Mission`** | `Exchange` (`Mission`) | Gift exchange operation (Secret Santa / White Elephant). |
+| **Wishlist Container** | **`Wishlist Manifest`** | `Wishlist` (`OpKit`) | Curated collection of wished-for gift items. |
+| **Individual Gift Item** | **`Manifest Item`** | `Item` (`OpTool`) | Individual product item inside a Wishlist Manifest. |
+| **Penalty / Demerit** | **`Coal Citation`** | `User.penaltyPoints` | Reliability penalty point for deadline non-compliance. |
+
 
 ---
 

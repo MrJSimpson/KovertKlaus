@@ -228,6 +228,15 @@ function generateODTFiles() {
         • <text:span text:style-name="CodeText">Anti-Enshittification Covenant</text:span>: Any acquiring entity is contractually bound to maintain an open-source GPLv3 version.<text:line-break/>
         • <text:span text:style-name="CodeText">GPLv3 Automatic Sunset</text:span>: Converts unconditionally to GNU GPLv3 upon business closure, acquisition breach, or owner demise.
       </text:p>
+      <text:p text:style-name="Heading2">1.3 Canonical Domain Nomenclature (Santa&apos;s Whimsical Secret Service)</text:p>
+      <text:p text:style-name="StandardText">
+        • <text:span text:style-name="CodeText">Head Elf</text:span>: Event organizer &amp; mission coordinator.<text:line-break/>
+        • <text:span text:style-name="CodeText">Elf Agent</text:span>: Enrolled operative participant.<text:line-break/>
+        • <text:span text:style-name="CodeText">Holiday Mission</text:span>: Gift exchange event / operation.<text:line-break/>
+        • <text:span text:style-name="CodeText">Wishlist Manifest</text:span>: Wished-for gift container.<text:line-break/>
+        • <text:span text:style-name="CodeText">Manifest Item</text:span>: Individual gift item inside a manifest.<text:line-break/>
+        • <text:span text:style-name="CodeText">Coal Citation</text:span>: Reliability demerit point for unfulfilled obligations.
+      </text:p>
 
       <!-- SECTION 2 -->
       <text:p text:style-name="Heading1">2. Clearance Levels, Roles &amp; Database Isolation</text:p>
