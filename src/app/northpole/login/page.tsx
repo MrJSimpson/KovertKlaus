@@ -8,8 +8,8 @@ export default function NorthPoleLoginPage() {
   const router = useRouter();
 
   // Login Form State
-  const [identifier, setIdentifier] = useState('santa');
-  const [password, setPassword] = useState('1sEcReTdEl!vErY');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -26,7 +26,7 @@ export default function NorthPoleLoginPage() {
     async function checkAuth() {
       try {
         const res = await fetch('/api/northpole/me');
-        const json = await res.json();
+        const json = await res.json().catch(() => ({}));
         if (res.ok && json.authenticated) {
           router.push('/northpole');
           return;
@@ -52,9 +52,9 @@ export default function NorthPoleLoginPage() {
         body: JSON.stringify({ identifier: identifier.trim(), password }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json.error || 'Authentication failed');
+        throw new Error(json.error || `Authentication failed (HTTP ${res.status})`);
       }
 
       if (json.requiresPasswordReset) {
@@ -106,9 +106,9 @@ export default function NorthPoleLoginPage() {
         }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Password update failed');
+        throw new Error(json.error || `Password update failed (HTTP ${res.status})`);
       }
 
       setResetSuccessMsg('✓ Password updated successfully! Activating clearance...');
@@ -173,11 +173,11 @@ export default function NorthPoleLoginPage() {
         {!isResetRequired ? (
           <form onSubmit={handleLogin} className="space-y-4 text-xs font-mono">
             <div>
-              <label className="block text-gray-300 font-bold mb-1">ADMIN USERNAME OR EMAIL</label>
+              <label className="block text-gray-300 font-bold mb-1">ADMINISTRATOR USERNAME OR EMAIL</label>
               <input
                 type="text"
                 required
-                placeholder="santa or admin@kovertklaus.com"
+                placeholder="Enter username or email..."
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 focus:border-red-500 rounded-xl px-3.5 py-2.5 text-white focus:outline-none transition-colors"
@@ -189,7 +189,7 @@ export default function NorthPoleLoginPage() {
               <input
                 type="password"
                 required
-                placeholder="••••••••••••"
+                placeholder="Enter clearance password..."
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 focus:border-red-500 rounded-xl px-3.5 py-2.5 text-white focus:outline-none transition-colors"
@@ -213,8 +213,8 @@ export default function NorthPoleLoginPage() {
               </div>
               <ul className="list-disc pl-4 space-y-0.5 text-gray-400">
                 <li>Minimum length: 12 characters</li>
-                <li>Cannot be the initial default password (<code className="text-amber-200">1sEcReTdEl!vErY</code>)</li>
-                <li>Cannot contain your username (<code className="text-amber-200">santa</code>)</li>
+                <li>Cannot be the initial default password</li>
+                <li>Cannot contain your username</li>
                 <li>Passphrases, spaces, and special symbols are encouraged</li>
               </ul>
             </div>
@@ -260,29 +260,6 @@ export default function NorthPoleLoginPage() {
         )}
 
         <div className="pt-4 border-t border-slate-800 text-center space-y-2 font-mono">
-          {!isResetRequired && (
-            <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl text-[11px] text-gray-400 space-y-1 text-left">
-              <div className="font-bold text-gray-300 flex items-center gap-1.5">
-                <span>🎁 First Install Default Credentials:</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Username:</span>
-                <code className="text-emerald-400 font-bold">santa</code>
-              </div>
-              <div className="flex justify-between">
-                <span>Email:</span>
-                <code className="text-sky-300 font-bold">admin@kovertklaus.com</code>
-              </div>
-              <div className="flex justify-between">
-                <span>Initial Password:</span>
-                <code className="text-amber-400 font-bold">1sEcReTdEl!vErY</code>
-              </div>
-              <div className="text-[10px] text-gray-500 pt-1">
-                * Mandatory password reset required upon initial login.
-              </div>
-            </div>
-          )}
-
           <div>
             <Link href="/" className="text-xs text-emerald-400 hover:underline font-mono">
               ← Return to Main Application

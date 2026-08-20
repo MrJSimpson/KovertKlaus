@@ -154,11 +154,6 @@ export async function findAdminByIdentifier(identifier: string) {
  * Default admin username: 'santa', initial password: '1sEcReTdEl!vErY', requiresPasswordReset: true.
  */
 export async function bootstrapInitialAdmin() {
-  // If startup initialization vector is SAAS, bypass local self-hosted bootstrap vectors
-  if (IS_SAAS) {
-    return null;
-  }
-
   try {
     const adminCount = await adminDb.adminUser.count();
     if (adminCount === 0) {

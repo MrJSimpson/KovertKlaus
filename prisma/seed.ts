@@ -183,6 +183,28 @@ async function main() {
   console.log('⚙️ Seeded SystemConfig singleton (activeThemeId: winter_holiday)');
 
   // ---------------------------------------------------------------------------
+  // 2.5 Seed Initial Super Admin (if not exists)
+  // ---------------------------------------------------------------------------
+  const initialAdminPassHash = await bcrypt.hash('1sEcReTdEl!vErY', 12);
+  const existingAdmin = await db.adminUser.findFirst({
+    where: { OR: [{ username: 'santa' }, { email: 'admin@kovertklaus.com' }] },
+  });
+  if (!existingAdmin) {
+    await db.adminUser.create({
+      data: {
+        username: 'santa',
+        email: 'admin@kovertklaus.com',
+        name: 'Santa Claus',
+        passwordHash: initialAdminPassHash,
+        role: 'SUPER_ADMIN',
+        isActive: true,
+        requiresPasswordReset: true,
+      },
+    });
+    console.log('🎅 Seeded initial Super Admin (username: santa, email: admin@kovertklaus.com)');
+  }
+
+  // ---------------------------------------------------------------------------
   // 3. Seed Family Test Accounts & Wishlists
   // ---------------------------------------------------------------------------
   const defaultPassword = 'Klaus2026!';
