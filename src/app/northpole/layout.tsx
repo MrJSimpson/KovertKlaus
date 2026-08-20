@@ -22,14 +22,16 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
     async function checkAdminSession() {
       try {
         const res = await fetch('/api/northpole/me', { credentials: 'include' });
-        const json = await res.json();
+        const json = await res.json().catch(() => ({}));
         if (!res.ok || !json.authenticated || !json.admin) {
-          router.push('/northpole/login');
+          console.warn('[NorthPole Access Denied]', json);
+          window.location.href = '/northpole/login';
           return;
         }
         setAdmin(json.admin);
-      } catch {
-        router.push('/northpole/login');
+      } catch (err) {
+        console.error('[NorthPole Session Check Error]', err);
+        window.location.href = '/northpole/login';
       } finally {
         setLoading(false);
       }
@@ -40,11 +42,11 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
   async function handleLogout() {
     try {
-      await fetch('/api/northpole/me', { method: 'DELETE' });
+      await fetch('/api/northpole/me', { method: 'DELETE', credentials: 'include' });
     } catch {
       // Ignore network errors
     } finally {
-      router.push('/northpole/login');
+      window.location.href = '/northpole/login';
     }
   }
 

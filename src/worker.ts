@@ -32,7 +32,7 @@ export default {
 
     try {
       const adminConnStr = env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL || process.env.DATABASE_ADMIN_URL || process.env.DIRECT_URL || process.env.DATABASE_URL;
-      const appConnStr = env.DATABASE_URL || process.env.DATABASE_URL;
+      const appConnStr = env.DATABASE_URL || env.DATABASE_ADMIN_URL || env.DIRECT_URL || process.env.DATABASE_URL || process.env.DATABASE_ADMIN_URL;
 
       const adminDb = getAdminDb(adminConnStr);
       const db = getDb(appConnStr);
@@ -98,7 +98,7 @@ export default {
       // 2. /api/northpole/me (GET / DELETE)
       // -----------------------------------------------------------------------
       if (pathname === '/api/northpole/me') {
-        const cookieHeader = request.headers.get('cookie');
+        const cookieHeader = request.headers.get('cookie') || request.headers.get('Cookie');
         const adminId = parseCookie(cookieHeader, ADMIN_COOKIE_NAME);
 
         if (request.method === 'DELETE') {

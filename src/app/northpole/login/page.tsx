@@ -66,7 +66,7 @@ export default function NorthPoleLoginPage() {
         return;
       }
 
-      router.push('/northpole');
+      window.location.href = '/northpole';
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
@@ -115,8 +115,8 @@ export default function NorthPoleLoginPage() {
 
       setResetSuccessMsg('✓ Password updated successfully! Activating clearance...');
       setTimeout(() => {
-        router.push('/northpole');
-      }, 1500);
+        window.location.href = '/northpole';
+      }, 1000);
     } catch (err: any) {
       setError(err.message || 'Password update failed');
     } finally {
