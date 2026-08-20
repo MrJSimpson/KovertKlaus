@@ -2,7 +2,11 @@ import type { NextConfig } from "next";
 import fs from "fs";
 import path from "path";
 
-const isStaticExport = process.env.STATIC_EXPORT === "true";
+const isStaticExport =
+  process.env.STATIC_EXPORT === "true" ||
+  process.env.CF_PAGES === "1" ||
+  process.env.CLOUDFLARE_PAGES === "1" ||
+  fs.existsSync(path.join(process.cwd(), "wrangler.json"));
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['pg', 'pg-cloudflare', '@prisma/client', '@prisma/adapter-pg', 'bcryptjs'],

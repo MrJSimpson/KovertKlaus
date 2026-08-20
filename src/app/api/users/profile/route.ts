@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { validatePassword, sanitizeText } from '@/lib/security';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 export async function GET() {
 
