@@ -245,12 +245,12 @@ export default function NorthPoleKnowledgeBasePage() {
                 8. Minimized ENV & Runtime Settings
               </h2>
               <p>
-                To minimize footprint, <code className="text-white">.env</code> contains ONLY connection strings (<code className="text-amber-400">DATABASE_URL</code>, <code className="text-amber-400">DIRECT_URL</code>), <code className="text-amber-400">SESSION_SECRET</code>, and optional bootstrap credentials. All other settings are database-driven:
+                To minimize footprint, <code className="text-white">.env</code> contains ONLY startup initialization vector (<code className="text-emerald-400">MODE=&quot;SELFHOSTED&quot;</code>), connection strings (<code className="text-amber-400">DATABASE_URL</code>, <code className="text-amber-400">DIRECT_URL</code>), <code className="text-amber-400">SESSION_SECRET</code>, and optional bootstrap credentials. All other settings are database-driven:
               </p>
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-[11px] space-y-1 text-gray-400">
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-[11px] space-y-1.5 text-gray-400">
+                <div>• <strong className="text-emerald-400">MODE</strong>: <code className="text-white">&quot;SELFHOSTED&quot;</code> (enables local flexible config &amp; santa bootstrap) | <code className="text-white">&quot;SAAS&quot;</code> (bypasses local bootstrap for cloud provisioning)</div>
                 <div>• <strong className="text-white">activeThemeId</strong>: winter_holiday, spring_egg_hunt, tropic_klaus, spooky_autumn</div>
-                <div>• <strong className="text-white">appMode</strong>: selfhosted | saas</div>
-                <div>• <strong className="text-white">altHome</strong>: "" (App Home) | "coming_soon" (Waitlist)</div>
+                <div>• <strong className="text-white">altHome</strong>: &quot;&quot; (App Home) | &quot;coming_soon&quot; (Waitlist)</div>
                 <div>• <strong className="text-white">emailProvider</strong>: auto | brevo | smtp | resend | console</div>
                 <div>• <strong className="text-white">freeAnnualHostAllowance</strong>: 1</div>
                 <div>• <strong className="text-white">freeAnnualJoinAllowance</strong>: 3</div>

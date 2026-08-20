@@ -364,6 +364,11 @@ function generateODTFiles() {
           <table:table-cell text:style-name="TableHeadCell"><text:p text:style-name="TableHeadText">Management &amp; Scope</text:p></table:table-cell>
         </table:table-row>
         <table:table-row>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">MODE</text:p></table:table-cell>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">SELFHOSTED</text:p></table:table-cell>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">.env (Startup Init Vector: &apos;SELFHOSTED&apos; vs &apos;SAAS&apos;)</text:p></table:table-cell>
+        </table:table-row>
+        <table:table-row>
           <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">activeThemeId</text:p></table:table-cell>
           <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">winter_holiday</text:p></table:table-cell>
           <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">/northpole/config (winter, spring, summer, autumn)</text:p></table:table-cell>

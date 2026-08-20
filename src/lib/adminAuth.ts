@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
+import { IS_SAAS } from '@/lib/config/mode';
 
 const ADMIN_SESSION_COOKIE_NAME = 'kovertklaus_admin_session';
 
@@ -153,6 +154,11 @@ export async function findAdminByIdentifier(identifier: string) {
  * Default admin username: 'santa', initial password: '1sEcReTdEl!vErY', requiresPasswordReset: true.
  */
 export async function bootstrapInitialAdmin() {
+  // If startup initialization vector is SAAS, bypass local self-hosted bootstrap vectors
+  if (IS_SAAS) {
+    return null;
+  }
+
   try {
     const adminCount = await db.adminUser.count();
     if (adminCount === 0) {
