@@ -30,10 +30,13 @@ export default {
     if (env.DIRECT_URL) process.env.DIRECT_URL = env.DIRECT_URL;
     if (env.MODE) process.env.MODE = env.MODE;
 
-    const adminDb = getAdminDb(env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL);
-    const db = getDb(env.DATABASE_URL);
-
     try {
+      const adminConnStr = env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL || process.env.DATABASE_ADMIN_URL || process.env.DIRECT_URL || process.env.DATABASE_URL;
+      const appConnStr = env.DATABASE_URL || process.env.DATABASE_URL;
+
+      const adminDb = getAdminDb(adminConnStr);
+      const db = getDb(appConnStr);
+
       // -----------------------------------------------------------------------
       // 1. /api/northpole/login (POST)
       // -----------------------------------------------------------------------

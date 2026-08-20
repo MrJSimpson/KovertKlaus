@@ -12,8 +12,11 @@ export function getAdminDb(overrideConnStr?: string): PrismaClient {
     overrideConnStr ||
     process.env.DATABASE_ADMIN_URL ||
     process.env.DIRECT_URL ||
-    process.env.DATABASE_URL ||
-    "postgresql://kovert:kovertsecret@localhost:5433/kovertklaus?schema=public";
+    process.env.DATABASE_URL;
+
+  if (!adminConnectionString) {
+    throw new Error('DATABASE_ADMIN_URL (or DATABASE_URL) is not defined in the environment.');
+  }
 
   if (cachedAdminDb && lastAdminConnStr === adminConnectionString) {
     return cachedAdminDb;

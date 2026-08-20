@@ -10,8 +10,11 @@ let lastConnStr: string = '';
 export function getDb(overrideConnStr?: string): PrismaClient {
   const connectionString =
     overrideConnStr ||
-    process.env.DATABASE_URL ||
-    "postgresql://kovert:kovertsecret@localhost:5433/kovertklaus?schema=public";
+    process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not defined in the environment.');
+  }
 
   if (cachedDb && lastConnStr === connectionString) {
     return cachedDb;
