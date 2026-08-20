@@ -3,19 +3,21 @@
 **Stealth Intelligence Gift Exchange Network for Families, Friends & Communities**
 
 > [!IMPORTANT]
-> **DEVELOPMENT STATUS: PRE-ALPHA (Active Pre-Release Development)**  
-> KovertKlaus is currently open to the public on GitHub for browsing, testing, and feedback as we build toward the upcoming holiday season. Self-hosters are welcome to test the codebase locally using Docker Compose or Node.js scripts!
+> **ACTIVE RELEASE: `v0.1.0-prealpha` (Pre-Alpha Foundations)**  
+> Target Alpha: October 1, 2026 (`v0.2.0-alpha`) | Target Beta: November 1, 2026 (`v1.0.0-beta` Season 1 Launch)  
+> Tracked via Weekly 6 Sprints ([`docs/CURRENT_SPRINT.md`](./docs/CURRENT_SPRINT.md)).
 
-KovertKlaus turns standard Secret Santa and White Elephant gift exchanges into engaging, covert stealth operations. Featuring account reliability tracking (Demerits), reusable OpKit wishlists, automated product metadata scraping, 100% bidirectional match exclusion rules, Sattolo target derangement algorithms, mobile-first 2-way target cascade swapping, phase-scoped OpsLeader command consoles, After-Action Reports (AAR), and containerized PostgreSQL database management.
+KovertKlaus turns standard Secret Santa and White Elephant gift exchanges into engaging, covert holiday missions. Featuring automated reliability tracking (Coal Citations), reusable Wishlist Manifests, automated product metadata scraping, 100% bidirectional match exclusion rules, Sattolo target derangement algorithms, mobile-first 2-way target cascade swapping, phase-scoped Head Elf command consoles, After-Action Reports (AAR), and containerized PostgreSQL database management.
 
 ---
 
 ## 🤖 AI Agent Guidelines & Architecture Rules
 
-Working on this repository as an AI assistant, subagent, or pair programmer? Please read **[`AGENTS.md`](./AGENTS.md)** and **[`docs/PRIORITY_REMINDERS.md`](./docs/PRIORITY_REMINDERS.md)** before modifying code! All AI agents MUST adhere to:
-* **Production Priorities:** Check [Priority Reminders & Engineering Roadmap](./docs/PRIORITY_REMINDERS.md) for P1-P5 scaling tasks.
-* **Nomenclature:** `OpsLeader`, `Agent`, `Agent-` codename prefixes, `OpKit`, `OpTool`, and `Active Operations (Exchanges)`.
-* **Dual OpKits:** `WISHLIST` (unlimited requested items) vs `WHITE_ELEPHANT` (strictly 1 brought gift item).
+Working on this repository as an AI assistant, subagent, or pair programmer? Please read **[`AGENTS.md`](./AGENTS.md)** and **[`docs/CURRENT_SPRINT.md`](./docs/CURRENT_SPRINT.md)** before modifying code! All AI agents MUST adhere to:
+* **Canonical Nomenclature:** `Head Elf` (Organizer), `Elf Agent` (Member), `Holiday Mission` (Exchange), `Wishlist Manifest` (OpKit), `Manifest Item` (OpTool), and `Coal Citations` (Demerits).
+* **Demerit Governance:** Platform Non-Intermediary Principle, `-1` auto-rehabilitation upon mission fulfillment, and Carrier Protection Waiver.
+* **Release Roadmap & Sprints:** `v0.1.0-prealpha` (now) ➔ `v0.2.0-alpha` (Oct 1) ➔ `v1.0.0-beta` (Nov 1). Sprints follow the **Weekly 6 Action Items** framework with Monday retrospectives.
+* **Dual Manifests:** `WISHLIST` (multiple requested items) vs `WHITE_ELEPHANT` (strictly 1 brought gift item).
 * **Security & Mode Control:** `APP_MODE=selfhosted` (default) vs `APP_MODE=saas` configured in `src/lib/config/mode.ts`. OWASP password complexity (min 10 chars), `bcryptjs` hashing (12 salt rounds), and 24h HTTP-only sessions.
 
 ---
@@ -24,17 +26,17 @@ Working on this repository as an AI assistant, subagent, or pair programmer? Ple
 
 - 🎲 **Sattolo Derangement Matching Engine**: Eliminates chain predictability. No operative can draw themselves, and cyclic chains are randomized (`src/lib/draw.ts`).
 - 🚫 **100% Bidirectional Exclusion Rules ($A \iff B$)**: Prevents blocked pairs (spouses, household members) from being matched in either direction.
-- 🎯 **Mobile-First Tap-to-Swap Modal**: Allows OpsLeaders to execute 2-way target cascade swaps ($A \to T_{\text{new}}$ and $B \to T_{\text{old}}$) without complex line-dragging UI.
-- 🎖️ **Phase-Scoped OpsLeader Admin Console**: Action buttons dynamically align with operation stages (`RECRUITING` ➔ `SETUP` ➔ `SHIPPED` ➔ `EXECUTED` ➔ `COMPLETED`). Advancing a stage automatically updates the milestone date to today.
-- 📸 **After-Action Report (AAR) Debriefing**: Post-event feed allowing operatives to post thank-you notes and gift photos (no rating system required).
-- ⚠️ **Demerit Reliability & Immunity System**: 
-  - `0-2 Demerits`: `ACTIVE`
-  - `3 Demerits`: `REMOTE_RESTRICTED` (relegated to local/in-person events only)
-  - `>3 Demerits`: `DISABLED`
+- 🎯 **Mobile-First Tap-to-Swap Modal**: Allows Head Elves to execute 2-way target cascade swaps ($A \to T_{\text{new}}$ and $B \to T_{\text{old}}$) without complex line-dragging UI.
+- 🎖️ **Phase-Scoped Head Elf Admin Console**: Action buttons dynamically align with mission stages (`RECRUITING` ➔ `SETUP` ➔ `SHIPPED` ➔ `EXECUTED` ➔ `COMPLETED`). Advancing a stage automatically updates the milestone date to today.
+- 📸 **After-Action Report (AAR) Debriefing**: Post-event feed allowing operatives to post thank-you notes and gift photos.
+- ⚠️ **Demerit Reliability & Auto-Rehabilitation**: 
+  - `0-2 Coal Citations`: `ACTIVE`
+  - `3 Coal Citations`: `REMOTE_RESTRICTED` (relegated to local/in-person events only)
+  - `>3 Coal Citations`: `DISABLED`
   - **Carrier Protection Waiver**: Submitting tracking numbers waives penalties if packages are lost.
-  - **Demerit Immunity Waiver**: Verified receipt of ANY gift completely waives demerit liability.
-- 🔎 **URL Metadata Web Scraper**: OpenGraph scraper with 2.5s fast-failover timeout for adding items to OpKit wishlists.
-- 📧 **Universal Transactional Email Dispatcher**: Pluggable adapter engine supporting **Brevo REST API** (300 free emails/day, 100% edge-safe with zero dependencies), **Direct SMTP** (`nodemailer` for self-hosted home users, Docker, and local mail servers), **Resend API**, and an automatic **Console Mock** fallback for local dev.
+  - **Automatic Rehabilitation**: Successful mission completion automatically removes `-1` coal citation.
+- 🔎 **URL Metadata Web Scraper**: OpenGraph scraper with 2.5s fast-failover timeout for adding items to Wishlist Manifests.
+- 📧 **Universal Transactional Email Dispatcher**: Pluggable adapter engine supporting **Brevo REST API** (300 free emails/day, 100% edge-safe), **Direct SMTP** (`nodemailer` for self-hosted home users), **Resend API**, and an automatic **Console Mock** fallback for local dev.
 
 ---
 
@@ -102,11 +104,6 @@ http://localhost:3000
 
 ## 📜 Licensing & Commercial Rights
 
-- **Free Non-Commercial Self-Hosting**: Anyone can download, run, modify, and self-host KovertKlaus for personal, family, non-profit, or home-lab use for free.
-- **Commercial Reservation**: Exclusive rights to operate and monetize KovertKlaus as a paid commercial SaaS service are reserved exclusively by **Joshua Simpson** (and designated successors/acquiring entities). Third parties may not host or re-sell KovertKlaus as a commercial paid service.
-
----
-
-## 🌅 Sunset Clause (January 1, 2030)
-
-On January 1, 2030 (or upon Joshua Simpson's retirement), the codebase automatically converts to **GNU General Public License v3.0 (GPLv3)**, becoming 100% open source forever.
+- **Free Non-Commercial Self-Hosting**: Anyone can download, run, modify, and self-host KovertKlaus for personal, family, non-profit, or home-lab use for free under BSL 1.1.
+- **Commercial Reservation**: Exclusive rights to operate and monetize KovertKlaus as a paid commercial SaaS service are reserved exclusively by **Joshua Simpson** (and designated successors/acquiring entities).
+- **Sunset Clause**: Converts unconditionally to **GNU General Public License v3.0 (GPLv3)** on January 1, 2030 or upon business closure.

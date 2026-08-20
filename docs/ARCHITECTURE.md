@@ -8,48 +8,53 @@ This document provides a comprehensive technical overview of the **KovertKlaus**
 
 | Domain Concept | Canonical Term | Prisma DB Entity | Description & Scope |
 | :--- | :--- | :--- | :--- |
-| **Event Organizer** | **`Head Elf`** (`OpsLeader`) | `User` / `Exchange.organizer` | Creator/administrator of a Holiday Mission. |
+| **Event Organizer** | **`Head Elf`** (`OpsLeader`) | `User` / `Exchange.organizer` | Creator & administrator of a Holiday Mission. |
 | **Participant** | **`Elf Agent`** (`Agent`) | `User` / `ExchangeMember` | Operative enrolled in the mission. |
 | **Gift Exchange Event** | **`Holiday Mission`** | `Exchange` (`Mission`) | Gift exchange operation (Secret Santa / White Elephant). |
 | **Wishlist Container** | **`Wishlist Manifest`** | `Wishlist` (`OpKit`) | Curated collection of wished-for gift items. |
 | **Individual Gift Item** | **`Manifest Item`** | `Item` (`OpTool`) | Individual product item inside a Wishlist Manifest. |
 | **Penalty / Demerit** | **`Coal Citation`** | `User.penaltyPoints` | Reliability penalty point for deadline non-compliance. |
 
-
 ---
 
 ## 🗄️ 2. Database Models (Prisma)
 
-- **`User`**: Account details, codename, address, demerit count (`0-3`), `accountStatus`.
-- **`Mission`**: Operation details, timeline dates (`inviteCutoffDate`, `assignmentDate`, `shippingDate`, `executionDate`), budget range, `opsLeaderAssistedDraw`, `drawVerifiedAt`.
-- **`MissionAgent`**: Link between `User` and `Mission` (`role`, `targetUserId`, `shippingStatus`, `trackingNumber`, `deliveredConfirmed`).
+- **`User`**: Account details, codename, address, coal citation count (`penaltyPoints: 0-3`), `accountStatus`.
+- **`Exchange` (`Mission`)**: Mission details, timeline dates (`inviteCutoffDate`, `assignmentDate`, `shippingDate`, `executionDate`), budget range, `opsLeaderAssistedDraw`, `drawVerifiedAt`.
+- **`ExchangeMember` (`MissionAgent`)**: Join link between `User` and `Exchange` (`role`, `targetUserId`, `shippingStatus`, `trackingNumber`, `deliveredConfirmed`).
 - **`ExclusionRule`**: 100% Bidirectional match exclusion rules ($A \iff B$) between operatives.
-- **`Wishlist`**: OpKit record (`name`, `type`, `userId`, `isMaster`).
+- **`Wishlist`**: Wishlist Manifest record (`name`, `type`, `userId`, `isMaster`).
 - **`Item`**: Product catalog record (`name`, `url`, `price`, `description`, `thumbnailUrl`).
 - **`WishlistItem`**: Join table connecting `Wishlist` to `Item`.
 - **`IntelMessage`**: Anonymous chat message stream.
 - **`Notification`**: In-app alert broadcasts and system notifications.
 - **`AfterActionReport`**: Post-event gift thank-you messages and photo uploads.
+- **`ClearanceLead`**: Early-access waitlist staging table.
+- **`AdminUser`**: Separate administrative credentials for North Pole Command (`/northpole`).
+- **`SystemConfig`**: Database-persisted live runtime configuration (tokens, themes, allowances, email keys).
 
 ---
 
 ## 🌐 3. API Route Reference
 
-- **`POST /api/users/login`**: Authenticates user via bcrypt, sets HTTP-only cookie.
-- **`GET / POST / PATCH / DELETE /api/users/me`**: Session profile retrieval (auto-creates default Master OpKit if missing), address/password updates, and logout.
+- **`POST /api/users/login`**: Authenticates user via bcrypt, sets HTTP-only session cookie.
+- **`GET / POST / PATCH / DELETE /api/users/me`**: Session profile retrieval (auto-creates default Master Wishlist Manifest if missing), address/password updates, and logout.
 - **`POST /api/users`**: Email existence check (`action: 'check'`) & account registration (`action: 'register'`).
-- **`GET / POST / PATCH /api/operations`**: Operation retrieval by code/user, operation creation, target drawing (`action: 'draw'`), 2-way target swaps (`action: 'swap'`), exclusion rules (`action: 'addExclusion'`, `'removeExclusion'`), recruitment closing (`action: 'closeRecruitment'`), ending operation (`action: 'endOperation'`), team broadcasts (`action: 'sendOpTeamBroadcast'`), and After-Action Reports (`action: 'createReport'`).
-- **`GET / POST / PATCH / DELETE /api/opkits`**: Persistent CRUD operations for OpKits and OpTools.
+- **`GET / POST / PATCH /api/operations`**: Mission retrieval by code/user, mission creation, target drawing (`action: 'draw'`), 2-way target swaps (`action: 'swap'`), exclusion rules (`action: 'addExclusion'`, `'removeExclusion'`), recruitment closing (`action: 'closeRecruitment'`), ending mission (`action: 'endOperation'`), team broadcasts (`action: 'sendOpTeamBroadcast'`), and After-Action Reports (`action: 'createReport'`).
+- **`GET / POST / PATCH / DELETE /api/opkits`**: Persistent CRUD operations for Wishlist Manifests and Manifest Items.
 - **`POST /api/scraper`**: OpenGraph metadata scraper with 2.5s fast-failover timeout.
-- **`POST /api/invitations/accept`**: Enrolls an agent into an operation via code.
-- **`GET / POST /api/shipping`**: Shipping status and tracking waiver submission.
-- **`GET / POST /api/demerits/audit`**: Demerit audit logs and citation records.
+- **`POST /api/invitations/accept`**: Enrolls an operative into a mission via invite code.
+- **`GET / POST /api/shipping`**: Shipping status and carrier tracking waiver submission.
+- **`GET / POST /api/demerits/audit`**: Demerit audit engine, automated `-1` redemption, and citation issuance.
+- **`POST /api/northpole/login` & `/api/northpole/me`**: Isolated SysAdmin authentication portal.
 
 ---
 
-## 🎨 4. Theme System
+## 🎨 4. Theme System & Design Tokens (`src/lib/theme.ts`)
 
-Theme utilities are located in `src/lib/theme.ts`. Call `getThemeClasses(isDarkMode)` to obtain color tokens for Light 🎄 and Dark ❄️ (Icy) modes.
+Theme utilities are located in `src/lib/theme.ts`. Call `getThemeClasses(isDarkMode, presetTokens)` to obtain color tokens for:
+* **Klaus Mode 🎄 (Light Theme)**: Evergreen pine headers, holly berry buttons, warm gold accents, and clean white frames.
+* **Kovert Mode ❄️ (Dark Theme)**: Midnight slate, icy sky blue accents, translucent glassmorphism panels, and frost borders.
 
 ---
 
@@ -57,41 +62,49 @@ Theme utilities are located in `src/lib/theme.ts`. Call `getThemeClasses(isDarkM
 
 KovertKlaus uses an **Environment Mode Flag Vector** (`APP_MODE`) to separate open-source self-hosted capabilities from commercial SaaS extensions:
 
-* **`APP_MODE=selfhosted` (Default)**: Full-featured, unlimited local operation capacity for personal, family, and home-lab deployments. Zero external billing credentials required.
-* **`APP_MODE=saas`**: Activates multi-tenant account resource quota checking (`src/lib/saas/stub.ts`) and Stripe commercial billing integration hooks.
+* **`APP_MODE=selfhosted` (Default)**: Full-featured, unlimited local operation capacity for personal, family, and home-lab deployments under BSL 1.1. Zero external billing credentials required.
+* **`APP_MODE=saas`**: Activates multi-tenant account resource quota checking (`src/lib/saas/stub.ts`) and Stripe commercial billing integration hooks for `kovertklaus.com`.
 
 ---
 
----
-
-## 🔑 6. Test Database Credentials & Roster (`prisma/kovertklaus_test_db.sql`)
-
-* **Default Test Password:** `Password123!` (or user-created password during registration)
-* **Primary OpsLeader:** `joshua@example.com` (Joshua Simpson / Codename: `Chewie`)
-* **Active Operations:**
-  * **`SIMPSON-2026`**: Simpson Family Secret Santa (Phase 1: `RECRUITING`)
-  * **`WQRE-JXHG`**: Simpson White Elephant 2026
-* **Enrolled Operative Roster:** `zachary@example.com`, `shannon@example.com`, `matthew@example.com`, `leslie@example.com`, `charles@example.com`, `david@example.com`, `debbie@example.com`, `michael@example.com`, `terry@example.com`, `sharon@example.com`, `thomas@example.com`, `leonard@example.com`, `cheryl@example.com`, `kristy@example.com`, `dayton@example.com`, `kathy@example.com`, `john@example.com`, `james@example.com`, `julia@example.com`, `kimberly@example.com`, `rodney@example.com`.
-
----
-
-## ⚖️ 7. Demerit Governance, Non-Intermediary Principle & Redemption Engine
+## ⚖️ 6. Demerit Governance, Non-Intermediary Principle & Redemption Engine
 
 * **Platform Non-Intermediary Principle**:
   * KovertKlaus admins and customer service do **NOT** arbitrate or handle demerits.
   * Acquiring demerits requires intentional neglect or abuse (e.g., failure to ship without tracking proof, ghosting).
-  * If a demerit citation is issued, it is strictly an administrative matter between the Event Organizer (`OpsLeader`) and the participant. KovertKlaus is **NOT an intermediary**.
+  * If a demerit citation is issued, it is strictly an administrative matter between the Event Organizer (`Head Elf`) and the participant. KovertKlaus is **NOT an intermediary**.
 * **Account Tiers**:
-  * `0-2` Demerits: **`ACTIVE`** (Full access across all remote and local operations).
-  * `3` Demerits: **`REMOTE_RESTRICTED`** (Restricted strictly to local in-person exchanges).
-  * `>3` Demerits: **`DISABLED`** (Suspended from creating or joining operations).
+  * `0-2` Coal Citations: **`ACTIVE`** (Full access across all remote and local missions).
+  * `3` Coal Citations: **`REMOTE_RESTRICTED`** (Restricted strictly to local in-person exchanges).
+  * `>3` Coal Citations: **`DISABLED`** (Suspended from creating or joining missions).
 * **Automatic Rehabilitation / Redemption Engine**:
-  * Demerits are not permanent scarlet letters.
-  * Successfully completing any subsequent exchange (fulfilling an assigned gift without incident) automatically clears **1 demerit point** (`penaltyPoints - 1`).
+  * Successfully completing any subsequent mission automatically clears **1 Coal Citation** (`Math.max(0, penaltyPoints - 1)`).
   * Once penalty points drop below 3 (e.g., from 3 to 2), account standing is automatically restored from `REMOTE_RESTRICTED` back to `ACTIVE`.
 * **Anti-Abuse Safeguards**:
   * **Carrier Protection Waiver**: Submitting a valid carrier tracking number automatically waives demerit penalties if a parcel is lost by the carrier.
-  * **Demerit Immunity Waiver**: Verified receipt of any gift in an operation waives demerit liability.
+  * **Demerit Immunity Waiver**: Verified receipt of any gift in a mission waives demerit liability.
   * **Execution Day Gate**: Demerit audits can only be executed on or after the scheduled Execution Day.
 
+---
 
+## 🗺️ 7. Master Release Roadmap & Engineering Lifecycle
+
+* **`v0.1.0-prealpha` (Active / Now – Sep 30, 2026)**: Core engine refactoring, algorithmic derangements, email dispatch test harness, and TSDoc codebase annotations.
+* **`v0.2.0-alpha` (Target: Oct 1, 2026)**: Closed family dogfooding (Shannon, Cheryl, Terry, Zach), multi-carrier webhooks, and mobile UI polish.
+* **`v1.0.0-beta` (Target: Nov 1, 2026)**: Season 1 Public Winter Launch (Nov 1 – Jan 31), live public exchanges, and Cloudflare SaaS multi-tenant gateway.
+* **`v1.0.0-ga` (Target: Jan 31, 2027)**: General Availability & Q2 Spring Egg Hunt Rotation.
+
+---
+
+## 📋 8. Weekly 6 Sprint Framework & Monday Cadence
+
+* All feature development is organized into **Weekly 6 Action Item** sprints tracked in `docs/sprints/YYYY-Wxx.md` and `docs/CURRENT_SPRINT.md`.
+* **Monday Retrospective & Planning Ceremony**:
+  1. Review empirical test proofs from previous week.
+  2. Identify areas for improvement and blockers.
+  3. Lock the upcoming week's 6 actionable deliverable cards.
+* **Definition of Done (DoD)**:
+  - 100% typed TypeScript with 3-tier TSDoc annotations.
+  - Automated test suite passes 100% (`draw.test.ts`, `email.test.ts`).
+  - Next.js Turbopack build succeeds with 0 errors (`npm run build`).
+  - Multi-repo synchronization (`kovertklaus` $\leftrightarrow$ `kovertklaus-saas`).
