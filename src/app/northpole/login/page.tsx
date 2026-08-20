@@ -25,10 +25,14 @@ export default function NorthPoleLoginPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch('/api/northpole/me', { credentials: 'include' });
+        const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+        const res = await fetch('/api/northpole/me', {
+          credentials: 'include',
+          headers: token ? { 'x-admin-token': token } : {},
+        });
         const json = await res.json().catch(() => ({}));
         if (res.ok && json.authenticated) {
-          router.push('/northpole');
+          window.location.href = '/northpole';
           return;
         }
       } catch {
@@ -64,6 +68,10 @@ export default function NorthPoleLoginPage() {
         setIsResetRequired(true);
         setError('');
         return;
+      }
+
+      if (json.token) {
+        localStorage.setItem('kovertklaus_admin_token', json.token);
       }
 
       window.location.href = '/northpole';
@@ -111,6 +119,10 @@ export default function NorthPoleLoginPage() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) {
         throw new Error(json.error || `Password update failed (HTTP ${res.status})`);
+      }
+
+      if (json.token) {
+        localStorage.setItem('kovertklaus_admin_token', json.token);
       }
 
       setResetSuccessMsg('✓ Password updated successfully! Activating clearance...');

@@ -21,7 +21,11 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
     async function checkAdminSession() {
       try {
-        const res = await fetch('/api/northpole/me', { credentials: 'include' });
+        const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+        const res = await fetch('/api/northpole/me', {
+          credentials: 'include',
+          headers: token ? { 'x-admin-token': token } : {},
+        });
         const json = await res.json().catch(() => ({}));
         if (!res.ok || !json.authenticated || !json.admin) {
           console.warn('[NorthPole Access Denied]', json);
@@ -42,10 +46,18 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
   async function handleLogout() {
     try {
-      await fetch('/api/northpole/me', { method: 'DELETE', credentials: 'include' });
+      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      await fetch('/api/northpole/me', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: token ? { 'x-admin-token': token } : {},
+      });
     } catch {
       // Ignore network errors
     } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('kovertklaus_admin_token');
+      }
       window.location.href = '/northpole/login';
     }
   }

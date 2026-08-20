@@ -19,6 +19,22 @@ function parseCookie(cookieHeader: string | null, name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function getAdminIdFromRequest(request: Request): string | null {
+  const cookieHeader = request.headers.get('cookie') || request.headers.get('Cookie');
+  const fromCookie = parseCookie(cookieHeader, ADMIN_COOKIE_NAME);
+  if (fromCookie) return fromCookie;
+
+  const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7).trim();
+  }
+
+  const customHeader = request.headers.get('x-admin-token');
+  if (customHeader) return customHeader.trim();
+
+  return null;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -89,6 +105,7 @@ export default {
 
         return new Response(JSON.stringify({
           success: true,
+          token: admin.id,
           requiresPasswordReset: false,
           admin: { id: admin.id, name: admin.name, email: admin.email, username: admin.username, role: admin.role },
         }), { status: 200, headers });
@@ -98,8 +115,7 @@ export default {
       // 2. /api/northpole/me (GET / DELETE)
       // -----------------------------------------------------------------------
       if (pathname === '/api/northpole/me') {
-        const cookieHeader = request.headers.get('cookie') || request.headers.get('Cookie');
-        const adminId = parseCookie(cookieHeader, ADMIN_COOKIE_NAME);
+        const adminId = getAdminIdFromRequest(request);
 
         if (request.method === 'DELETE') {
           const headers = new Headers({ 'Content-Type': 'application/json' });
@@ -108,7 +124,7 @@ export default {
         }
 
         if (!adminId) {
-          return Response.json({ authenticated: false }, { status: 200 });
+          return Response.json({ authenticated: false, reason: 'no_credentials_found' }, { status: 200 });
         }
 
         const admin = await adminDb.adminUser.findUnique({
@@ -117,7 +133,7 @@ export default {
         });
 
         if (!admin || !admin.isActive || admin.requiresPasswordReset) {
-          return Response.json({ authenticated: false }, { status: 200 });
+          return Response.json({ authenticated: false, reason: 'unauthorized_or_reset_required' }, { status: 200 });
         }
 
         return Response.json({ authenticated: true, admin });
@@ -164,6 +180,7 @@ export default {
 
         return new Response(JSON.stringify({
           success: true,
+          token: admin.id,
           message: 'Password updated successfully. North Pole clearance unlocked.',
           admin: { id: admin.id, name: admin.name, email: admin.email, username: admin.username, role: admin.role },
         }), { status: 200, headers });
