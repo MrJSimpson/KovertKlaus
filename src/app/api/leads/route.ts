@@ -1,7 +1,9 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isValidEmail, sanitizeText } from '@/lib/security';
 import { sendClearanceConfirmationEmail } from '@/lib/email';
+
+export const dynamic = 'force-static';
 
 export async function POST(request: Request) {
   try {
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
       message: isNew
         ? 'Clearance access request acknowledged! Confirmation email dispatched.'
         : 'Clearance request is already active on file. Confirmation email re-dispatched.',
-      emailDelivery: emailResult.mode,
+      emailDelivery: emailResult.provider || emailResult.mode,
       lead: {
         id: lead.id,
         email: lead.email,

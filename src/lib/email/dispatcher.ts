@@ -34,20 +34,23 @@ export async function sendEmail(
   const baseConfig = getEmailConfig();
   const config: EmailConfig = { ...baseConfig, ...overrideConfig };
 
+  let result: EmailResult;
   switch (config.provider) {
     case 'brevo':
-      return sendWithBrevo(message, config);
-
+      result = await sendWithBrevo(message, config);
+      break;
     case 'smtp':
-      return sendWithSmtp(message, config);
-
+      result = await sendWithSmtp(message, config);
+      break;
     case 'resend':
-      return sendWithResend(message, config);
-
+      result = await sendWithResend(message, config);
+      break;
     case 'console':
     default:
-      return sendWithConsole(message, config);
+      result = await sendWithConsole(message, config);
+      break;
   }
+  return { ...result, mode: result.provider };
 }
 
 /**

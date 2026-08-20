@@ -19,6 +19,7 @@ export interface EmailMessage {
 export interface EmailResult {
   success: boolean;
   provider: EmailProviderType;
+  mode?: EmailProviderType;
   messageId?: string;
   error?: string;
 }
