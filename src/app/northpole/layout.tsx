@@ -21,7 +21,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
     async function checkAdminSession() {
       try {
-        const res = await fetch('/api/northpole/me');
+        const res = await fetch('/api/northpole/me', { credentials: 'include' });
         const json = await res.json();
         if (!res.ok || !json.authenticated || !json.admin) {
           router.push('/northpole/login');

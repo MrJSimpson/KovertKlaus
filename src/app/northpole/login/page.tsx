@@ -25,7 +25,7 @@ export default function NorthPoleLoginPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch('/api/northpole/me');
+        const res = await fetch('/api/northpole/me', { credentials: 'include' });
         const json = await res.json().catch(() => ({}));
         if (res.ok && json.authenticated) {
           router.push('/northpole');
@@ -48,6 +48,7 @@ export default function NorthPoleLoginPage() {
     try {
       const res = await fetch('/api/northpole/login', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: identifier.trim(), password }),
       });
@@ -97,6 +98,7 @@ export default function NorthPoleLoginPage() {
     try {
       const res = await fetch('/api/northpole/reset-password', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           adminId: pendingAdminId,
