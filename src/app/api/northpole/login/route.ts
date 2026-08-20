@@ -1,32 +1,34 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
-import { isValidEmail } from '@/lib/security';
-import { setAdminSessionCookie, bootstrapInitialAdmin } from '@/lib/adminAuth';
+import {
+  setAdminSessionCookie,
+  bootstrapInitialAdmin,
+  findAdminByIdentifier,
+} from '@/lib/adminAuth';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password } = body as { email: string; password: string };
+    const { identifier, email, username, password } = body as {
+      identifier?: string;
+      email?: string;
+      username?: string;
+      password?: string;
+    };
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    const loginId = (identifier || username || email || '').trim();
+
+    if (!loginId || !password) {
+      return NextResponse.json({ error: 'Username/email and password are required' }, { status: 400 });
     }
 
-    if (!isValidEmail(email)) {
-      return NextResponse.json({ error: 'Invalid email address format' }, { status: 400 });
-    }
-
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Check if initial super admin needs to be bootstrapped
+    // Auto-bootstrap initial Super Admin (username: santa, password: 1sEcReTdEl!vErY) if DB is empty
     await bootstrapInitialAdmin();
 
     const DUMMY_HASH = '$2a$12$eImiTXuWVfxh02WpuU.2Te6/k6G4v0S0i56u.0B.y/0x3d.0x.0x';
 
-    const admin = await db.adminUser.findUnique({
-      where: { email: cleanEmail },
-    });
+    const admin = await findAdminByIdentifier(loginId);
 
     if (!admin || !admin.isActive) {
       await bcrypt.compare(password, DUMMY_HASH);
@@ -38,22 +40,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid administrative credentials' }, { status: 401 });
     }
 
-    // Update last login timestamp
+    // Mandatory First-Login Password Reset Flow (NIST SP 800-63B)
+    if (admin.requiresPasswordReset) {
+      return NextResponse.json({
+        success: true,
+        requiresPasswordReset: true,
+        adminId: admin.id,
+        identifier: admin.username || admin.email,
+        name: admin.name,
+        message: 'Initial installation login detected. NIST SP 800-63B mandatory password reset required before clearance activation.',
+      });
+    }
+
+    // Normal Login: Update last login timestamp & set session cookie
     await db.adminUser.update({
       where: { id: admin.id },
       data: { lastLoginAt: new Date() },
     });
 
-    // Set dedicated Admin HTTP-Only Session Cookie
     await setAdminSessionCookie(admin.id);
 
     return NextResponse.json({
       success: true,
+      requiresPasswordReset: false,
       message: 'North Pole Command clearance granted',
       admin: {
         id: admin.id,
         name: admin.name,
         email: admin.email,
+        username: admin.username,
         role: admin.role,
       },
     });

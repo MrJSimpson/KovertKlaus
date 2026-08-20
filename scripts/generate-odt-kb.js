@@ -265,7 +265,14 @@ function generateODTFiles() {
         </table:table-row>
       </table:table>
 
-      <text:p text:style-name="Heading2">2.1 The Hidden &quot;workshop&quot; Security Tag</text:p>
+      <text:p text:style-name="Heading2">2.1 First-Time Install Credentials &amp; Mandatory NIST Password Reset</text:p>
+      <text:p text:style-name="StandardText">
+        For fresh installations, KovertKlaus auto-bootstraps a default Super Admin account with username <text:span text:style-name="CodeText">santa</text:span>, email <text:span text:style-name="CodeText">admin@kovertklaus.com</text:span>, and initial temporary password <text:span text:style-name="CodeText">1sEcReTdEl!vErY</text:span>.<text:line-break/>
+        • <text:span text:style-name="CodeText">Mandatory Reset Enforcement</text:span>: Upon first authentication, administrative clearance remains locked until the password is reset.<text:line-break/>
+        • <text:span text:style-name="CodeText">NIST SP 800-63B Compliance</text:span>: The new passphrase must be at least 12 characters, cannot match the default initial password, and cannot contain the admin username or email.
+      </text:p>
+
+      <text:p text:style-name="Heading2">2.2 The Hidden &quot;workshop&quot; Security Tag</text:p>
       <text:p text:style-name="StandardText">
         Field agents cannot view their <text:span text:style-name="CodeText">isWorkshop</text:span> status via standard API endpoints. Only administrators in <text:span text:style-name="CodeText">/northpole/users</text:span> can view or toggle this flag. When enabled, the user gains access to <text:span text:style-name="CodeText">/workshop/*</text:span> while maintaining normal website functionality.
       </text:p>
@@ -385,6 +392,21 @@ function generateODTFiles() {
           <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">freeAnnualJoinAllowance</text:p></table:table-cell>
           <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">3</text:p></table:table-cell>
           <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">/northpole/config (Free annual participant limit)</text:p></table:table-cell>
+        </table:table-row>
+        <table:table-row>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">INITIAL_ADMIN_USERNAME</text:p></table:table-cell>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">santa</text:p></table:table-cell>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">.env / Bootstrap (Default Admin Username)</text:p></table:table-cell>
+        </table:table-row>
+        <table:table-row>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">INITIAL_ADMIN_EMAIL</text:p></table:table-cell>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">admin@kovertklaus.com</text:p></table:table-cell>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">.env / Bootstrap (Default Admin Email)</text:p></table:table-cell>
+        </table:table-row>
+        <table:table-row>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">INITIAL_ADMIN_PASSWORD</text:p></table:table-cell>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">1sEcReTdEl!vErY</text:p></table:table-cell>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">.env / Bootstrap (Mandatory Reset on First Login)</text:p></table:table-cell>
         </table:table-row>
       </table:table>
 

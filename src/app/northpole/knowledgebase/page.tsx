@@ -130,6 +130,16 @@ export default function NorthPoleKnowledgeBasePage() {
                   <span className="text-red-400 font-bold">4. North Pole SysAdmin</span> (<code className="text-gray-400">AdminUser</code> isolated schema)
                   <p className="text-[11px] text-gray-400 mt-1">System administrator with full control over global settings, email gateways, themes, and user records via <code className="text-red-400">kovertklaus_admin_session</code> cookie.</p>
                 </div>
+
+                <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-500/30 space-y-1 text-[11px]">
+                  <span className="text-amber-300 font-bold">🎁 First-Time Install Credentials &amp; NIST Mandatory Reset</span>
+                  <p className="text-gray-300">
+                    KovertKlaus auto-seeds default administrator account (Username: <code className="text-emerald-400">santa</code>, Email: <code className="text-sky-300">admin@kovertklaus.com</code>, Password: <code className="text-amber-300">1sEcReTdEl!vErY</code>).
+                  </p>
+                  <p className="text-gray-400">
+                    • <strong>NIST SP 800-63B Compliance</strong>: The default password MUST be reset before clearance is granted. Passphrases must be 12+ characters and cannot contain username/email.
+                  </p>
+                </div>
               </div>
             </div>
           )}

@@ -270,15 +270,17 @@ model ClearanceLead {
 }
 
 model AdminUser {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  name         String
-  passwordHash String
-  role         String    @default("SUPER_ADMIN") // "SUPER_ADMIN" | "OPS_ADMIN" | "MODERATOR"
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                    String    @id @default(uuid())
+  email                 String    @unique
+  username              String?   @unique
+  name                  String
+  passwordHash          String
+  role                  String    @default("SUPER_ADMIN") // "SUPER_ADMIN" | "OPS_ADMIN" | "MODERATOR"
+  isActive              Boolean   @default(true)
+  requiresPasswordReset Boolean   @default(false)
+  lastLoginAt           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
 model ThemePreset {
