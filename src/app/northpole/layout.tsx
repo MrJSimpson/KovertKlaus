@@ -19,6 +19,11 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
       return;
     }
 
+    if (admin) {
+      setLoading(false);
+      return;
+    }
+
     async function checkAdminSession() {
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
@@ -42,7 +47,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
     }
 
     checkAdminSession();
-  }, [pathname, isLoginPage, router]);
+  }, [pathname, isLoginPage, admin]);
 
   async function handleLogout() {
     try {

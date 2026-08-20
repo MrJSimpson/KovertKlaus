@@ -193,7 +193,21 @@ export default {
         if (request.method === 'GET') {
           const config = await adminDb.systemConfig.findUnique({ where: { id: 'singleton' } });
           const themes = await adminDb.themePreset.findMany({ orderBy: { id: 'asc' } });
-          return Response.json({ config, themes });
+          const totalUsers = await adminDb.user.count();
+          const totalOperations = await adminDb.exchange.count();
+          const totalLeads = await adminDb.clearanceLead.count();
+          const workshopUsersCount = await adminDb.user.count({ where: { isWorkshop: true } });
+          return Response.json({
+            success: true,
+            config,
+            themes,
+            stats: {
+              totalUsers,
+              totalOperations,
+              totalLeads,
+              workshopUsersCount,
+            },
+          });
         }
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as any;
@@ -214,16 +228,19 @@ export default {
           const users = await adminDb.user.findMany({
             take: 50,
             orderBy: { createdAt: 'desc' },
-            select: { id: true, name: true, email: true, codename: true, penaltyPoints: true, createdAt: true },
+            select: { id: true, name: true, email: true, codename: true, penaltyPoints: true, isWorkshop: true, createdAt: true },
           });
-          return Response.json({ users, total: users.length });
+          return Response.json({ success: true, users, total: users.length });
         }
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as any;
-          const { userId, penaltyPoints } = body;
+          const { userId, penaltyPoints, isWorkshop } = body;
           const user = await adminDb.user.update({
             where: { id: userId },
-            data: { penaltyPoints },
+            data: {
+              ...(penaltyPoints !== undefined ? { penaltyPoints } : {}),
+              ...(isWorkshop !== undefined ? { isWorkshop } : {}),
+            },
           });
           return Response.json({ success: true, user });
         }
@@ -238,7 +255,7 @@ export default {
           orderBy: { createdAt: 'desc' },
           include: { _count: { select: { members: true } } },
         });
-        return Response.json({ operations, total: operations.length });
+        return Response.json({ success: true, operations, total: operations.length });
       }
 
       // -----------------------------------------------------------------------
