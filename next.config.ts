@@ -5,6 +5,7 @@ import path from "path";
 const isStaticExport = process.env.STATIC_EXPORT === "true";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['pg', 'pg-cloudflare', '@prisma/client', '@prisma/adapter-pg', 'bcryptjs'],
   ...(isStaticExport
     ? {
         output: "export",
