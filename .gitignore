@@ -41,3 +41,7 @@ kovertklaus.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# libreoffice locks
+.~lock.*#
+.~lock.*.odt#
