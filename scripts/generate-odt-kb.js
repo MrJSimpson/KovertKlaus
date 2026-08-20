@@ -237,6 +237,13 @@ function generateODTFiles() {
         • <text:span text:style-name="CodeText">Manifest Item</text:span>: Individual gift item inside a manifest.<text:line-break/>
         • <text:span text:style-name="CodeText">Coal Citation</text:span>: Reliability demerit point for unfulfilled obligations.
       </text:p>
+      <text:p text:style-name="Heading2">1.4 Release Trajectory &amp; Weekly 6 Sprint Lifecycle</text:p>
+      <text:p text:style-name="StandardText">
+        • <text:span text:style-name="CodeText">v0.1.0-prealpha (Active / Aug-Sep 2026)</text:span>: Core engine refactoring, algorithmic derangements, email dispatch test harness, and self-describing TSDoc annotations.<text:line-break/>
+        • <text:span text:style-name="CodeText">v0.2.0-alpha (Target: Oct 1, 2026)</text:span>: Closed family dogfooding, multi-carrier webhook ingestion, and mobile UI hardening.<text:line-break/>
+        • <text:span text:style-name="CodeText">v1.0.0-beta (Target: Nov 1, 2026)</text:span>: Season 1 Public Winter Launch (Nov 1 – Jan 31), live public exchanges, and Cloudflare SaaS multi-tenant gateway.<text:line-break/>
+        • <text:span text:style-name="CodeText">Weekly 6 Cadence</text:span>: Structured 6-item weekly sprints with Monday retrospectives and empirical test verification.
+      </text:p>
 
       <!-- SECTION 2 -->
       <text:p text:style-name="Heading1">2. Clearance Levels, Roles &amp; Database Isolation</text:p>
