@@ -2,14 +2,15 @@
 
 - **Repository**: `KovertKlaus` (`~/projects/kovertklaus`)
 - **Public Domain**: `kovertklaus.com` (Officially Purchased)
-- **Production Strategy**: Functionality First ➔ Test Suite Verification ➔ Public CI/CD Deployment Repo
-- **Last Updated**: August 11, 2026
+- **Active Release Stage**: **`v0.1.0-prealpha`** (Target Alpha: Oct 1, 2026 | Target Beta: Nov 1, 2026)
+- **Sprint Management**: [Active Weekly Sprint Tracker](CURRENT_SPRINT.md) (6-item sprints with Monday retrospectives)
+- **Last Updated**: August 20, 2026
 
 ---
 
-## 🔥 TOP PRIORITIES (User-Defined Pre-Deployment Roadmap)
+## 🔥 TOP PRIORITIES (Release Roadmap & Weekly Cadence)
 
-The following priorities take precedence over infrastructure optimizations. All core functionality and test verification MUST be complete before launching the public deployment pipeline.
+All development follows our **Weekly 6 Action Items** sprint framework ([`docs/CURRENT_SPRINT.md`](CURRENT_SPRINT.md)). All core functionality and test verification MUST satisfy the **Definition of Done** before promoting through release stages.
 
 ---
 

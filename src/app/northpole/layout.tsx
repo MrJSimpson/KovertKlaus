@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { APP_VERSION_LABEL } from '@/lib/version';
 
 export default function NorthPoleLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -85,6 +86,9 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
                   <span>NORTH POLE</span>
                   <span className="text-[10px] font-mono bg-red-950 text-red-300 border border-red-500/40 px-1.5 py-0.5 rounded font-bold">
                     HQ ADMIN
+                  </span>
+                  <span className="text-[10px] font-mono bg-slate-800 text-sky-300 border border-sky-600/40 px-1.5 py-0.5 rounded font-bold">
+                    {APP_VERSION_LABEL}
                   </span>
                 </span>
                 <span className="text-[11px] text-gray-400 font-mono block">

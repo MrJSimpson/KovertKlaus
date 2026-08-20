@@ -1,38 +1,61 @@
 /**
  * KovertKlaus Target Assignment Protocol
  * 
- * Randomized derangement algorithm that guarantees 1-to-1 matching
- * (every operative gives 1 gift and receives 1 gift) while obfuscating
- * chain predictability so revealing one pair does not reveal the rest of the group.
- * Includes support for strictly bidirectional preventative match rules and 2-way target swaps.
+ * Implements a randomized derangement algorithm guaranteeing 1-to-1 matching:
+ * Every operative gives exactly 1 gift and receives exactly 1 gift.
+ * 
+ * Mathematical Invariants:
+ * 1. Cyclic Derangement: Permutation contains zero fixed points (sigma(i) != i for all i).
+ * 2. Bidirectional Exclusion: For any rule (A, B), sigma(A) != B AND sigma(B) != A.
+ * 3. Constant Chain Obfuscation: Pairings cannot be reverse-engineered by compromised participants.
+ * 4. Two-Way Cascading Swaps: Allows Head Elf manual reassignments preserving the single 1-to-1 cycle.
  */
 
 export interface FieldAgent {
+  /** Unique user / member identifier */
   id: string;
+  /** Full human name of the operative */
   name: string;
+  /** Optional tactical call sign (e.g. Agent-Viper) */
   codename?: string | null;
+  /** Invariant: Operative must have an attached wishlist manifest to participate in Secret Santa */
   hasWishlistAttached: boolean;
 }
 
 export interface LinkedAssignment {
+  /** Giver operative ID */
   agentId: string;
+  /** Receiver target operative ID */
   targetId: string;
 }
 
 export interface ExclusionRuleInput {
+  /** Originating agent ID */
   agentId: string;
+  /** Blocked target agent ID (enforced bidirectionally) */
   restrictedAgentId: string;
 }
 
 export interface DrawOptions {
+  /** If true, asserts White Elephant rules and forbids digital draw */
   isWhiteElephant?: boolean;
+  /** If true, filters out any operatives who have not attached a wishlist */
   dropAgentsWithoutWishlists?: boolean;
+  /** List of bidirectional pairing exclusions */
   exclusionRules?: ExclusionRuleInput[];
 }
 
 /**
- * Checks whether a match between agentA and agentB is blocked.
- * Enforces 100% bidirectional exclusion rules (A <-> B).
+ * Validates whether a proposed match between two operatives is disallowed.
+ * 
+ * Enforces two strict rules:
+ * 1. Identity Guard: Operatives can never be assigned to themselves (A != B).
+ * 2. Bidirectional Exclusions: If a rule exists for (A -> B), both (A -> B) and (B -> A) are blocked.
+ * 
+ * @param agentAId - Originating giver ID
+ * @param agentBId - Candidate receiver ID
+ * @param exclusionRules - Active exclusion pairs configured by Head Elf
+ * @returns `true` if match is blocked; `false` if permitted
  */
 export function isMatchBlocked(
   agentAId: string,
@@ -47,6 +70,22 @@ export function isMatchBlocked(
   );
 }
 
+/**
+ * Computes a cryptographically random cyclic derangement matching all eligible operatives.
+ * 
+ * Algorithm:
+ * - Employs a Fisher-Yates / Sattolo-style cyclic permutation.
+ * - Iteratively verifies candidate permutations against the active exclusion matrix.
+ * - Automatically limits search space to 500 attempts before failing gracefully on over-constrained topologies.
+ * 
+ * @param agents - List of enrolled operatives
+ * @param options - Draw configuration parameters (exclusions, wishlist requirements)
+ * @returns Array of 1-to-1 LinkedAssignment mappings
+ * 
+ * @throws {Error} If operation is White Elephant (digital draw forbidden).
+ * @throws {Error} If fewer than 2 eligible operatives have attached wishlists.
+ * @throws {Error} If exclusion rules make valid derangement mathematically impossible (over-constrained).
+ */
 export function executeLinkedListDraw(
   agents: FieldAgent[],
   options: DrawOptions = {}
@@ -111,11 +150,18 @@ export function executeLinkedListDraw(
 }
 
 /**
- * Returns candidate agents that can be assigned as a new target for the originating operator.
- * Filters out:
- * 1. The Originating Operator (self)
- * 2. The Current Target
- * 3. Any agent blocked by bidirectional exclusion rules
+ * Computes the list of valid candidate targets for a manual reassignment.
+ * 
+ * Enforces 3 filtering predicates:
+ * 1. Self Exclusion: Originator cannot be matched with themselves.
+ * 2. Redundancy Guard: Originator cannot swap to their already-assigned target.
+ * 3. Bidirectional Exclusions: Excludes any operative violating configured exclusion pairs.
+ * 
+ * @param eligibleAgents - Full roster of participating operatives
+ * @param currentAssignments - Active linked assignments
+ * @param originatorId - The operative requesting or undergoing target reassignment
+ * @param exclusionRules - Configured exclusion rules
+ * @returns Array of eligible candidate operatives suitable for target reassignment
  */
 export function getValidSwapCandidates(
   eligibleAgents: FieldAgent[],
@@ -139,8 +185,21 @@ export function getValidSwapCandidates(
 }
 
 /**
- * Executes a 2-way cascade target swap between Originating Operator and Displaced Giver.
- * Preserves the invariant that every operative gives 1 gift and receives 1 gift.
+ * Executes an atomic 2-way cascading target swap between the Originator and Displaced Giver.
+ * 
+ * Invariant Preservation:
+ * - If Agent A gave to Target X, and Agent B gave to Target Y.
+ * - After swapping A -> Y: Agent B is automatically updated to give B -> X.
+ * - Guarantees that all operatives still give 1 gift and receive 1 gift without breaking the cyclic chain.
+ * 
+ * @param currentAssignments - Active linked assignments before swap
+ * @param originatorId - ID of the agent being reassigned
+ * @param newTargetId - ID of the new target being assigned to originator
+ * @param exclusionRules - Configured exclusion rules
+ * @returns Updated array of LinkedAssignment mappings
+ * 
+ * @throws {Error} If originator assignment or displaced target assignment is not found.
+ * @throws {Error} If either the direct swap or cascading swap violates an active exclusion rule.
  */
 export function executeTargetSwap(
   currentAssignments: LinkedAssignment[],
@@ -184,3 +243,4 @@ export function executeTargetSwap(
     return a;
   });
 }
+

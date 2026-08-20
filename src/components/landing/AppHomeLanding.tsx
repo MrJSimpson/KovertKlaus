@@ -7,6 +7,7 @@ import { calculateAutomaticOperationDates } from '@/lib/validations/operation';
 import { useTheme } from '@/context/ThemeContext';
 import { SeasonalLightsStrand } from '@/components/ui/SeasonalLightsStrand';
 import { generateRandomCodename } from '@/lib/codenameGenerator';
+import { APP_VERSION_LABEL } from '@/lib/version';
 
 
 
@@ -393,9 +394,16 @@ export function AppHomeLanding() {
               🎁
             </div>
             <div>
-              <span className="text-2xl font-black tracking-tight block">
-                KovertKlaus
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-black tracking-tight block">
+                  KovertKlaus
+                </span>
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                  isDarkMode ? 'bg-sky-950/80 text-sky-300 border-sky-800' : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                }`}>
+                  {APP_VERSION_LABEL}
+                </span>
+              </div>
               <span className={`text-xs block font-bold ${theme.textGoldOnDark}`}>
                 {isDarkMode ? 'Stealth Winter Exchange' : 'Simple & Fun Gift Exchanges'}
               </span>
@@ -1219,11 +1227,16 @@ export function AppHomeLanding() {
       {/* Footer */}
       <footer className={`border-t py-8 text-xs font-medium transition-colors ${theme.footerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="pl-12 sm:pl-0">
-            © 2026 KovertKlaus by <span className="font-semibold text-amber-300/90 dark:text-slate-300">Joshua Simpson</span>. Made for families & friends.
+          <div className="pl-12 sm:pl-0 flex items-center gap-2">
+            <span>© 2026 KovertKlaus by <span className="font-semibold text-amber-300/90 dark:text-slate-300">Joshua Simpson</span>.</span>
+            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+              isDarkMode ? 'bg-slate-900 text-sky-400 border-slate-700' : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+            }`}>
+              {APP_VERSION_LABEL}
+            </span>
           </div>
-          <div className="flex gap-6 font-semibold">
-            <Link href="/features" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>Features & Specs</Link>
+          <div className="flex gap-6 font-semibold items-center">
+            <Link href="/features" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>Features &amp; Specs</Link>
             <Link href="/tests" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>Test Bench</Link>
             <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>GitHub</a>
           </div>

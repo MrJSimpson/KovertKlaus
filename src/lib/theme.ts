@@ -1,12 +1,32 @@
 /**
  * KovertKlaus Centralized Theme Design System
+ * 
  * Single source of truth for color tokens, card variants, buttons, badges, and alerts across Light & Dark modes.
+ * Supports runtime overlaying with database-persisted `ThemePreset` tokens.
+ * 
+ * Aesthetic Matrix:
+ * - Light Mode (Klaus Mode 🎄): Evergreen pine headers, holly berry buttons, warm gold accents, and clean white frames.
+ * - Dark Mode (Kovert Mode ❄️): Midnight slate, icy sky blue accents, translucent glassmorphism panels, and frost borders.
  */
 
 export type ThemeClasses = ReturnType<typeof getBaseThemeClasses>;
 
-export type LightsStrandType = 'christmas_bulbs' | 'easter_eggs' | 'tropic_lanterns' | 'spooky_pumpkins' | 'none';
+/**
+ * Seasonal Light Strand Types for the 4-Season Rotation Calendar.
+ */
+export type LightsStrandType = 
+  | 'christmas_bulbs'   // Q1: Winter Holiday HQ (Nov 1 - Jan 31)
+  | 'easter_eggs'       // Q2: Spring Egg Hunt (Feb 1 - Apr 30)
+  | 'tropic_lanterns'   // Q3: Tropic Klaus / Christmas in July (May 1 - Jul 31)
+  | 'spooky_pumpkins'   // Q4: Spooky Autumn / Haunted Workshop (Aug 1 - Oct 31)
+  | 'none';
 
+/**
+ * Generates the complete baseline Tailwind CSS token mapping for a given visual mode.
+ * 
+ * @param isDarkMode - `true` for Kovert Mode 🕶️; `false` for Klaus Mode 🎄
+ * @returns Comprehensive dictionary of Tailwind utility class bindings
+ */
 function getBaseThemeClasses(isDarkMode: boolean) {
   return {
     // Page & Structural Layout
@@ -180,7 +200,12 @@ function getBaseThemeClasses(isDarkMode: boolean) {
 }
 
 /**
- * Returns theme classes overlaid with optional database-driven ThemePreset token overrides.
+ * Resolves theme classes for the application, merging baseline tokens with any active
+ * database-persisted `ThemePreset` token overrides.
+ * 
+ * @param isDarkMode - Active dark mode toggle state
+ * @param presetTokens - Optional JSON record of token overrides configured in North Pole Admin
+ * @returns Fully merged ThemeClasses object ready for React component consumption
  */
 export function getThemeClasses(isDarkMode: boolean, presetTokens?: Record<string, string>): ThemeClasses {
   const base = getBaseThemeClasses(isDarkMode);

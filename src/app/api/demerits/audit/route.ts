@@ -2,6 +2,29 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 
+/**
+ * Execution Day Demerit & Auto-Rehabilitation Audit Engine
+ * 
+ * Governance Invariants:
+ * 1. Platform Non-Intermediary Principle:
+ *    KovertKlaus admins and support NEVER adjudicate, modify, or manually intervene in personal demerit disputes.
+ *    Citations and redemptions are governed 100% deterministically by automated system rules and the Head Elf.
+ * 
+ * 2. Intentional Neglect Standard:
+ *    Demerits are only assigned when a participant demonstrates intentional neglect or abandonment (unfulfilled
+ *    delivery with zero carrier tracking proof provided by Execution Day).
+ * 
+ * 3. Carrier Protection Waiver:
+ *    Any operative who enters a valid package tracking number (USPS, FedEx, UPS, DHL) is granted automated immunity
+ *    from penalties, even if carrier delivery is delayed.
+ * 
+ * 4. Automatic Rehabilitation & Redemption Engine:
+ *    When an operative with penalty points (`penaltyPoints > 0`) successfully fulfills their gift in a subsequent
+ *    exchange (or participates in White Elephant), the system automatically decrements their penalty points by 1
+ *    (`-1`), restoring `accountStatus: 'ACTIVE'` when penalty points drop below 3.
+ * 
+ * @security Only executable on or after Execution Day by the designated Head Elf (`exchange.organizerId`).
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
