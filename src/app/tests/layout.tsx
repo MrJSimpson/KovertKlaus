@@ -1,11 +1,6 @@
-import { notFound } from 'next/navigation';
-import { IS_SAAS } from '@/lib/config/mode';
+import { redirect } from 'next/navigation';
 
-export default function TestsLayout({ children }: { children: React.ReactNode }) {
-  // In SaaS mode or production builds, test harness routes return 404 to avoid exposing internal benches
-  if (IS_SAAS) {
-    notFound();
-  }
-
-  return <>{children}</>;
+export default function TestsLayout() {
+  redirect('/workshop');
 }
+

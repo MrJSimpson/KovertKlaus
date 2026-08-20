@@ -1,4 +1,4 @@
-import { getEmailConfig } from './config';
+import { getEmailConfig, getResolvedEmailConfig } from './config';
 import { sendWithBrevo } from './providers/brevo';
 import { sendWithConsole } from './providers/console';
 import { sendWithResend } from './providers/resend';
@@ -31,7 +31,7 @@ export async function sendEmail(
   message: EmailMessage,
   overrideConfig?: Partial<EmailConfig>
 ): Promise<EmailResult> {
-  const baseConfig = getEmailConfig();
+  const baseConfig = await getResolvedEmailConfig();
   const config: EmailConfig = { ...baseConfig, ...overrideConfig };
 
   let result: EmailResult;

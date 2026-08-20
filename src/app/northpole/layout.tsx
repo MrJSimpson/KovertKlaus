@@ -1,0 +1,155 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+
+export default function NorthPoleLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [admin, setAdmin] = useState<{ id: string; name: string; email: string; role: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const isLoginPage = pathname === '/northpole/login';
+
+  useEffect(() => {
+    if (isLoginPage) {
+      setLoading(false);
+      return;
+    }
+
+    async function checkAdminSession() {
+      try {
+        const res = await fetch('/api/northpole/me');
+        const json = await res.json();
+        if (!res.ok || !json.authenticated || !json.admin) {
+          router.push('/northpole/login');
+          return;
+        }
+        setAdmin(json.admin);
+      } catch {
+        router.push('/northpole/login');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    checkAdminSession();
+  }, [pathname, isLoginPage, router]);
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/northpole/me', { method: 'DELETE' });
+    } catch {
+      // Ignore network errors
+    } finally {
+      router.push('/northpole/login');
+    }
+  }
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 font-mono text-xs">
+        Verifying North Pole Clearance...
+      </div>
+    );
+  }
+
+  const navItems = [
+    { label: '📊 Dashboard', href: '/northpole' },
+    { label: '⚙️ System Config', href: '/northpole/config' },
+    { label: '👥 User Roster', href: '/northpole/users' },
+    { label: '🎯 Operations', href: '/northpole/operations' },
+    { label: '🎨 Themes', href: '/northpole/themes' },
+    { label: '📖 Knowledge Base', href: '/northpole/knowledgebase' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
+      {/* Top Admin HUD Header */}
+      <header className="border-b border-red-900/40 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
+          
+          {/* Brand */}
+          <div className="flex items-center gap-3">
+            <Link href="/northpole" className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-red-600 to-emerald-800 flex items-center justify-center text-lg shadow-md">
+                🎅
+              </div>
+              <div>
+                <span className="font-extrabold text-base tracking-tight text-white flex items-center gap-2">
+                  <span>NORTH POLE</span>
+                  <span className="text-[10px] font-mono bg-red-950 text-red-300 border border-red-500/40 px-1.5 py-0.5 rounded font-bold">
+                    HQ ADMIN
+                  </span>
+                </span>
+                <span className="text-[11px] text-gray-400 font-mono block">
+                  KovertKlaus Administration
+                </span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Nav Links */}
+          <nav className="flex items-center flex-wrap gap-1 text-xs font-mono">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-3 py-1.5 rounded-lg transition-colors font-bold ${
+                    isActive
+                      ? 'bg-red-600 text-white shadow-sm'
+                      : 'text-gray-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Quick Links & Admin Profile */}
+          <div className="flex items-center gap-3 text-xs font-mono">
+            <Link
+              href="/workshop"
+              className="bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 px-2.5 py-1.5 rounded-lg transition-colors font-bold flex items-center gap-1"
+            >
+              🧪 Workshop
+            </Link>
+
+            <Link
+              href="/"
+              className="bg-slate-800 hover:bg-slate-700 text-gray-300 px-2.5 py-1.5 rounded-lg transition-colors"
+            >
+              Live Site
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+            >
+              Logout
+            </button>
+          </div>
+
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8">
+        {children}
+      </main>
+
+      {/* Admin Footer */}
+      <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs font-mono text-gray-600">
+        KovertKlaus North Pole Administration // Database Isolated RBAC // Version 2.0
+      </footer>
+    </div>
+  );
+}
