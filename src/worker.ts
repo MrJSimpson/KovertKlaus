@@ -272,7 +272,7 @@ export default {
               createdAt: true,
               _count: {
                 select: {
-                  organizedExchanges: true,
+                  createdExchanges: true,
                   participations: true,
                   wishlists: true,
                 },
@@ -284,7 +284,7 @@ export default {
             ...u,
             demerits: u.penaltyPoints ?? 0,
             accountStatus: u.accountStatus || 'ACTIVE',
-            organizedCount: u._count?.organizedExchanges ?? 0,
+            organizedCount: u._count?.createdExchanges ?? 0,
             joinedCount: u._count?.participations ?? 0,
             wishlistsCount: u._count?.wishlists ?? 0,
           }));
