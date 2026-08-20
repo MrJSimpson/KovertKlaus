@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
 import {
   setAdminSessionCookie,
   bootstrapInitialAdmin,
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     }
 
     // Normal Login: Update last login timestamp & set session cookie
-    await db.adminUser.update({
+    await adminDb.adminUser.update({
       where: { id: admin.id },
       data: { lastLoginAt: new Date() },
     });

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
 import { verifyAdminSession } from '@/lib/adminAuth';
 import { AccountStatus } from '@prisma/client';
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       whereClause.isWorkshop = false;
     }
 
-    const users = await db.user.findMany({
+    const users = await adminDb.user.findMany({
       where: whereClause,
       select: {
         id: true,
@@ -117,7 +117,7 @@ export async function PATCH(request: Request) {
       updateData.codename = codename.trim();
     }
 
-    const updatedUser = await db.user.update({
+    const updatedUser = await adminDb.user.update({
       where: { id: userId },
       data: updateData,
       select: {

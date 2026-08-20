@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
-import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
 import { IS_SAAS } from '@/lib/config/mode';
 
 const ADMIN_SESSION_COOKIE_NAME = 'kovertklaus_admin_session';
@@ -111,7 +111,7 @@ export async function verifyAdminSession() {
   if (!adminId) return null;
 
   try {
-    const admin = await db.adminUser.findUnique({
+    const admin = await adminDb.adminUser.findUnique({
       where: { id: adminId },
       select: {
         id: true,
@@ -139,7 +139,7 @@ export async function verifyAdminSession() {
  */
 export async function findAdminByIdentifier(identifier: string) {
   const cleanId = identifier.trim().toLowerCase();
-  return db.adminUser.findFirst({
+  return adminDb.adminUser.findFirst({
     where: {
       OR: [
         { username: { equals: cleanId, mode: 'insensitive' } },
@@ -160,14 +160,14 @@ export async function bootstrapInitialAdmin() {
   }
 
   try {
-    const adminCount = await db.adminUser.count();
+    const adminCount = await adminDb.adminUser.count();
     if (adminCount === 0) {
       const username = (process.env.INITIAL_ADMIN_USERNAME || DEFAULT_ADMIN_USERNAME).trim().toLowerCase();
       const email = (process.env.INITIAL_ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).trim().toLowerCase();
       const password = process.env.INITIAL_ADMIN_PASSWORD || DEFAULT_INITIAL_PASSWORD;
       const passwordHash = await bcrypt.hash(password, 12);
 
-      const admin = await db.adminUser.create({
+      const admin = await adminDb.adminUser.create({
         data: {
           username,
           email,

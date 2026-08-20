@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
 import { verifyAdminSession } from '@/lib/adminAuth';
 
 export const dynamic = 'force-static';
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       ];
     }
 
-    const operations = await db.exchange.findMany({
+    const operations = await adminDb.exchange.findMany({
       where: whereClause,
       include: {
         organizer: {

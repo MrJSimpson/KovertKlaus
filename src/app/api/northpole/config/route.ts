@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
 import { verifyAdminSession } from '@/lib/adminAuth';
 
 export const dynamic = 'force-static';
@@ -11,18 +11,18 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let config = await db.systemConfig.findUnique({
+    let config = await adminDb.systemConfig.findUnique({
       where: { id: 'singleton' },
       include: { activeTheme: true },
     });
 
     if (!config) {
       // Auto-initialize default singleton config if missing
-      const defaultTheme = await db.themePreset.findFirst({
+      const defaultTheme = await adminDb.themePreset.findFirst({
         where: { id: 'winter_holiday' },
       });
 
-      config = await db.systemConfig.create({
+      config = await adminDb.systemConfig.create({
         data: {
           id: 'singleton',
           activeThemeId: defaultTheme ? defaultTheme.id : 'winter_holiday',
@@ -47,15 +47,15 @@ export async function GET() {
       });
     }
 
-    const themes = await db.themePreset.findMany({
+    const themes = await adminDb.themePreset.findMany({
       orderBy: { createdAt: 'asc' },
     });
 
     const [totalUsers, totalOperations, totalLeads, workshopUsersCount] = await Promise.all([
-      db.user.count(),
-      db.exchange.count(),
-      db.clearanceLead.count(),
-      db.user.count({ where: { isWorkshop: true } }),
+      adminDb.user.count(),
+      adminDb.exchange.count(),
+      adminDb.clearanceLead.count(),
+      adminDb.user.count({ where: { isWorkshop: true } }),
     ]);
 
     return NextResponse.json({
@@ -149,7 +149,7 @@ export async function PATCH(request: Request) {
     if (defaultBudgetMax !== undefined) updateData.defaultBudgetMax = Number(defaultBudgetMax);
     if (defaultCurrency !== undefined) updateData.defaultCurrency = defaultCurrency;
 
-    const updatedConfig = await db.systemConfig.upsert({
+    const updatedConfig = await adminDb.systemConfig.upsert({
       where: { id: 'singleton' },
       update: updateData,
       create: {

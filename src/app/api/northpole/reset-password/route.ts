@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
 import {
   setAdminSessionCookie,
   validateNistPassword,
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'New password and confirmation do not match' }, { status: 400 });
     }
 
-    const admin = await db.adminUser.findUnique({
+    const admin = await adminDb.adminUser.findUnique({
       where: { id: adminId },
     });
 
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const newHash = await bcrypt.hash(newPassword, 12);
 
     // Update admin user record: clear password reset flag
-    await db.adminUser.update({
+    await adminDb.adminUser.update({
       where: { id: admin.id },
       data: {
         passwordHash: newHash,
