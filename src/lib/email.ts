@@ -18,15 +18,26 @@ export interface EmailResult {
   success: boolean;
   messageId?: string;
   error?: string;
-  mode: 'cloudflare' | 'logged';
+  mode: 'brevo' | 'cloudflare' | 'logged';
 }
 
-const DEFAULT_FROM = process.env.EMAIL_FROM || 'KovertKlaus HQ <dispatch@kovertklaus.com>';
-const DEFAULT_REPLY_TO = process.env.EMAIL_REPLY_TO || 'hq@kovertklaus.com';
+const DEFAULT_FROM = process.env.EMAIL_FROM || 'KovertKlaus HQ <dispatch@notify.kovertklaus.com>';
+const DEFAULT_REPLY_TO = process.env.EMAIL_REPLY_TO || 'admin@kovertklaus.com';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://kovertklaus.com';
 
 /**
- * Core Email Dispatcher
+ * Helper to parse "Display Name <user@domain.com>" or "user@domain.com"
+ */
+function parseEmailAddress(raw: string): { name?: string; email: string } {
+  const match = raw.match(/^(.*?)\s*<(.+?)>$/);
+  if (match) {
+    return { name: match[1].trim().replace(/^["']|["']$/g, ''), email: match[2].trim() };
+  }
+  return { email: raw.trim() };
+}
+
+/**
+ * Core Email Dispatcher (Brevo REST API, Cloudflare Gateway, or Dev Sandbox Simulator)
  */
 export async function sendEmail(options: SendEmailOptions): Promise<EmailResult> {
   const { to, subject, html, text, from = DEFAULT_FROM, replyTo = DEFAULT_REPLY_TO } = options;
@@ -35,12 +46,63 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
   // Plain-text fallback if not explicitly provided
   const plainText = text || html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-  // Cloudflare Email Routing / Gateway Configuration
+  // 1. Brevo REST API Egress (Primary Transactional Provider)
+  const brevoApiKey = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY;
+  if (brevoApiKey) {
+    try {
+      const sender = parseEmailAddress(from);
+      const replyToObj = replyTo ? parseEmailAddress(replyTo) : undefined;
+      const toList = recipients.map((r) => parseEmailAddress(r));
+
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          sender,
+          to: toList,
+          replyTo: replyToObj,
+          subject,
+          htmlContent: html,
+          textContent: plainText,
+        }),
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        const errMsg = errJson.message || `Brevo returned HTTP ${response.status}`;
+        console.error('[Brevo Email Error]', errMsg);
+        return {
+          success: false,
+          error: errMsg,
+          mode: 'brevo',
+        };
+      }
+
+      const data = await response.json().catch(() => ({}));
+      return {
+        success: true,
+        messageId: data.messageId || `brevo-${Date.now()}`,
+        mode: 'brevo',
+      };
+    } catch (err: any) {
+      console.error('[Brevo Dispatch Failed]', err.message);
+      return {
+        success: false,
+        error: err.message,
+        mode: 'brevo',
+      };
+    }
+  }
+
+  // 2. Cloudflare Email Service Gateway (Alternative / Secondary)
   const cfApiToken = process.env.CLOUDFLARE_EMAIL_TOKEN || process.env.CLOUDFLARE_API_TOKEN;
   const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   const cfGatewayUrl = process.env.CLOUDFLARE_EMAIL_GATEWAY_URL;
 
-  // 1. Live Cloudflare Egress Gateway (Production / Configured)
   if (cfGatewayUrl || (cfApiToken && cfAccountId)) {
     try {
       const endpoint = cfGatewayUrl || `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/email/sending/send`;
@@ -63,7 +125,6 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
       if (!response.ok) {
         const errText = await response.text();
         console.error('[Cloudflare Email Error]', response.status, errText);
-        // Fall back to logged mode in development / sandbox
         return {
           success: true,
           mode: 'logged',
@@ -87,9 +148,9 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
     }
   }
 
-  // 2. Development / Sandbox Console Fallback
+  // 3. Development / Sandbox Console Fallback
   console.log('---------------------------------------------------------');
-  console.log(`📧 [EMAIL DISPATCH - CLOUDFLARE SIMULATOR]`);
+  console.log(`📧 [EMAIL DISPATCH - SANDBOX SIMULATOR]`);
   console.log(`To: ${recipients.join(', ')}`);
   console.log(`From: ${from}`);
   console.log(`Subject: ${subject}`);
