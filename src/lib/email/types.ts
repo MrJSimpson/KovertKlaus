@@ -98,5 +98,6 @@ export interface BroadcastEmailParams {
 export interface ClearanceConfirmationParams {
   recipientEmail?: string;
   to?: string;
+  name?: string;
   positionNumber?: number;
 }

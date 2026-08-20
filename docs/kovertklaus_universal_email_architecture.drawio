@@ -1,0 +1,239 @@
+<mxfile host="Electron" modified="2026-08-20T07:55:00.000Z" agent="Antigravity" version="24.7.5">
+  <diagram id="kovertklaus-universal-email" name="Universal Email Architecture &amp; Multi-Provider Engine">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1300" background="#070A12" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ================= MASTER TITLE BANNER ================= -->
+        <mxCell id="title_banner" value="&lt;b style=&quot;font-size:24px;color:#F8FAFC;&quot;&gt;🎁 KovertKlaus — Universal Transactional Email &amp;amp; Multi-Provider Engine&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:13px;color:#38BDF8;font-family:monospace;&quot;&gt;Brevo REST API (Cloud / Edge SaaS) • Direct SMTP (Self-Hosted Home Users &amp;amp; Docker) • Console Sandbox Simulator&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#1E293B;arcSize=8;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="2020" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ================= LANE 1: EVENT TRIGGERS ================= -->
+        <mxCell id="lane_triggers" value="&lt;b style=&quot;font-size:15px;color:#38BDF8;&quot;&gt;🚀 1. Application Triggers &amp;amp; Endpoints&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#64748B;&quot;&gt;Next.js App Router API Routes (/src/app/api/*)&lt;/span&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0B0F19;strokeColor=#1E293B;fontColor=#F8FAFC;startSize=45;arcSize=8;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="350" height="1080" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trig_clearance" value="&lt;b style=&quot;color:#10B981;&quot;&gt;Early Access Clearance Lead&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;POST /api/clearance&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Rate Limited (5 req/min/IP)&lt;br&gt;• SHA-256 Privacy Hash&lt;br&gt;• Upsert to ClearanceLead table&lt;br&gt;• Triggers &lt;b&gt;sendClearanceConfirmationEmail()&lt;/b&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_triggers">
+          <mxGeometry x="20" y="60" width="310" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trig_user" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;Agent Registration &amp;amp; Profile Setup&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;POST /api/users&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Bcrypt 12 rounds hashing&lt;br&gt;• Auto-Init Master OpKit Wishlist&lt;br&gt;• Triggers &lt;b&gt;sendWelcomeEmail()&lt;/b&gt;&lt;br&gt;• Directs to dashboard checklist&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_triggers">
+          <mxGeometry x="20" y="230" width="310" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trig_invite" value="&lt;b style=&quot;color:#F59E0B;&quot;&gt;Exchange Recruitment &amp;amp; Late Pass&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;POST /api/invitations&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Cutoff Policy &amp;amp; Late Pass Check&lt;br&gt;• Base32 Code + Token Generation&lt;br&gt;• In-App Dashboard Alert&lt;br&gt;• Triggers &lt;b&gt;sendInvitationEmail()&lt;/b&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#451A03;strokeColor=#D97706;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_triggers">
+          <mxGeometry x="20" y="400" width="310" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trig_draw" value="&lt;b style=&quot;color:#EC4899;&quot;&gt;Sattolo Target Derangement Draw&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;POST /api/operations (action=draw)&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Randomized Cyclic Chain Draw&lt;br&gt;• Symmetrical Exclusion Check&lt;br&gt;• Batch targets locked in database&lt;br&gt;• Triggers &lt;b&gt;sendAssignmentEmail()&lt;/b&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4C0519;strokeColor=#DB2777;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_triggers">
+          <mxGeometry x="20" y="570" width="310" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trig_nudge" value="&lt;b style=&quot;color:#A855F7;&quot;&gt;OpsLeader Nudge &amp;amp; Broadcast&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;POST /api/operations (nudge/broadcast)&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• OpsLeader Nudge Reminder Alert&lt;br&gt;• Team-Wide Broadcast Dispatch&lt;br&gt;• In-App Notification Record&lt;br&gt;• Triggers &lt;b&gt;sendNudgeEmail() / Broadcast&lt;/b&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3B0764;strokeColor=#9333EA;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_triggers">
+          <mxGeometry x="20" y="740" width="310" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trig_diag" value="&lt;b style=&quot;color:#94A3B8;&quot;&gt;Automated Test &amp;amp; Diagnostics Suite&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#64748B;&quot;&gt;src/lib/email/email.test.ts&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• 18/18 Unit Test Assertions&lt;br&gt;• Auto-Detection Verification&lt;br&gt;• Plaintext &amp;amp; HTML Generator Tests&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#475569;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_triggers">
+          <mxGeometry x="20" y="910" width="310" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ================= LANE 2: TEMPLATE ENGINE ================= -->
+        <mxCell id="lane_templates" value="&lt;b style=&quot;font-size:15px;color:#38BDF8;&quot;&gt;🎨 2. Whimsical Covert Ops Templates&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#64748B;&quot;&gt;HTML Table Container &amp;amp; Plaintext Fallback (src/lib/email/templates/index.ts)&lt;/span&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0B0F19;strokeColor=#1E293B;fontColor=#F8FAFC;startSize=45;arcSize=8;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="140" width="370" height="1080" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tpl_engine" value="&lt;b style=&quot;font-size:13px;color:#38BDF8;&quot;&gt;renderBaseEmail() Layout Engine&lt;/b&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• &lt;b&gt;Design Tokens:&lt;/b&gt; Midnight Slate (&lt;font color=&quot;#090D16&quot;&gt;#090D16&lt;/font&gt;), Emerald (&lt;font color=&quot;#10B981&quot;&gt;#10B981&lt;/font&gt;), Gold (&lt;font color=&quot;#F59E0B&quot;&gt;#F59E0B&lt;/font&gt;), Sky (&lt;font color=&quot;#38BDF8&quot;&gt;#38BDF8&lt;/font&gt;)&lt;br&gt;• &lt;b&gt;Header Banner:&lt;/b&gt; 🎄 KOVERT KLAUS 🕶️ — Classified Operation Network&lt;br&gt;• &lt;b&gt;Compatibility:&lt;/b&gt; Strict HTML table layout (Apple Mail, Gmail, Outlook, Thunderbird)&lt;br&gt;• &lt;b&gt;Plaintext Generator:&lt;/b&gt; stripHtml() regex fallback ensuring 100% readability on CLI/smartwatches&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_templates">
+          <mxGeometry x="20" y="60" width="330" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tpl_card_invite" value="&lt;b style=&quot;color:#F59E0B;&quot;&gt;getInvitationEmailTemplate()&lt;/b&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Event Title &amp;amp; Organizer Display&lt;br&gt;• Target Budget Range ($25 – $50)&lt;br&gt;• Highlighted Base32 Invite Code Box&lt;br&gt;• Late Pass Emergency Clearance Badge&lt;br&gt;• 1-Click &quot;Accept Mission Directive&quot; CTA&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#451A03;strokeColor=#D97706;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_templates">
+          <mxGeometry x="20" y="230" width="330" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tpl_card_assign" value="&lt;b style=&quot;color:#EC4899;&quot;&gt;getAssignmentEmailTemplate()&lt;/b&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Secret Target Codename Box&lt;br&gt;• Secrecy &amp;amp; Anti-Spoiler Directive&lt;br&gt;• Shipping Deadline &amp;amp; Exchange Date Cards&lt;br&gt;• Demerit Immunity Package Tracking Notice&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4C0519;strokeColor=#DB2777;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_templates">
+          <mxGeometry x="20" y="390" width="330" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tpl_card_nudge" value="&lt;b style=&quot;color:#A855F7;&quot;&gt;getNudgeEmailTemplate() &amp;amp; Broadcast&lt;/b&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Custom Stylized Quote Block from OpsLeader&lt;br&gt;• Urgency Alert for Wishlist / Shipping&lt;br&gt;• Direct Command Center Action Link&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3B0764;strokeColor=#9333EA;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_templates">
+          <mxGeometry x="20" y="550" width="330" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tpl_card_welcome" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;getWelcomeEmailTemplate()&lt;/b&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Operative Codename Profile Badge&lt;br&gt;• Quick-Start Checklist (OpKit, Sizes, Join)&lt;br&gt;• 1-Click Dashboard Access Button&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_templates">
+          <mxGeometry x="20" y="700" width="330" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tpl_card_lead" value="&lt;b style=&quot;color:#10B981;&quot;&gt;getClearanceConfirmationEmailTemplate()&lt;/b&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Status: STAGED FOR LAUNCH&lt;br&gt;• Roster Waitlist Position (#42)&lt;br&gt;• Priority Launch Cipher Promise (Nov 1)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_templates">
+          <mxGeometry x="20" y="850" width="330" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ================= LANE 3: DISPATCHER & AUTO-DETECTION ================= -->
+        <mxCell id="lane_dispatcher" value="&lt;b style=&quot;font-size:15px;color:#38BDF8;&quot;&gt;⚙️ 3. Universal Dispatcher Strategy&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#64748B;&quot;&gt;Auto-Detection &amp;amp; Route Strategy (src/lib/email/dispatcher.ts)&lt;/span&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0B0F19;strokeColor=#1E293B;fontColor=#F8FAFC;startSize=45;arcSize=8;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="140" width="410" height="1080" as="geometry" />
+        </mxCell>
+
+        <mxCell id="disp_core" value="&lt;b style=&quot;font-size:14px;color:#F8FAFC;&quot;&gt;sendEmail(message, configOverride?)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Unified Strategy Router &amp;amp; Error Handler&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Normalizes To / From / Subject / HTML / Plaintext&lt;br&gt;• Resolves runtime config via &lt;b&gt;getEmailConfig()&lt;/b&gt;&lt;br&gt;• Dispatches through resolved provider adapter&lt;br&gt;• Returns standard &lt;b&gt;EmailResult&lt;/b&gt; { success, provider, messageId, error }&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#38BDF8;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_dispatcher">
+          <mxGeometry x="20" y="60" width="370" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="disp_detector" value="&lt;b style=&quot;color:#F59E0B;&quot;&gt;Auto-Detection Priority Resolver (config.ts)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Evaluates process.env settings&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;line-height:1.6;&quot;&gt;&lt;b&gt;EMAIL_PROVIDER:&lt;/b&gt; &apos;auto&apos; (default) | &apos;brevo&apos; | &apos;smtp&apos; | &apos;resend&apos; | &apos;console&apos;&lt;br&gt;&lt;br&gt;&lt;b style=&quot;color:#10B981;&quot;&gt;1. If BREVO_API_KEY is present:&lt;/b&gt;&lt;br&gt;➔ &lt;b&gt;Selects Provider: &apos;brevo&apos;&lt;/b&gt;&lt;br&gt;&lt;b style=&quot;color:#38BDF8;&quot;&gt;2. Else if SMTP_HOST is present:&lt;/b&gt;&lt;br&gt;➔ &lt;b&gt;Selects Provider: &apos;smtp&apos;&lt;/b&gt;&lt;br&gt;&lt;b style=&quot;color:#A855F7;&quot;&gt;3. Else if RESEND_API_KEY is present:&lt;/b&gt;&lt;br&gt;➔ &lt;b&gt;Selects Provider: &apos;resend&apos;&lt;/b&gt;&lt;br&gt;&lt;b style=&quot;color:#94A3B8;&quot;&gt;4. Fallback (No keys configured):&lt;/b&gt;&lt;br&gt;➔ &lt;b&gt;Selects Provider: &apos;console&apos;&lt;/b&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E293B;strokeColor=#D97706;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_dispatcher">
+          <mxGeometry x="20" y="240" width="370" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="disp_helpers" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;Convenience Dispatcher Helper Wrappers&lt;/b&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;line-height:1.7;&quot;&gt;• &lt;b&gt;sendInvitationEmail(params)&lt;/b&gt;&lt;br&gt;• &lt;b&gt;sendAssignmentEmail(params)&lt;/b&gt;&lt;br&gt;• &lt;b&gt;sendTargetAssignmentEmail(params)&lt;/b&gt; (Alias)&lt;br&gt;• &lt;b&gt;sendWelcomeEmail(params)&lt;/b&gt;&lt;br&gt;• &lt;b&gt;sendBroadcastEmail(params)&lt;/b&gt;&lt;br&gt;• &lt;b&gt;sendNudgeEmail(params)&lt;/b&gt;&lt;br&gt;• &lt;b&gt;sendClearanceConfirmationEmail(params)&lt;/b&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_dispatcher">
+          <mxGeometry x="20" y="510" width="370" height="190" as="geometry" />
+        </mxCell>
+
+        <!-- ================= LANE 4: PROVIDER ADAPTERS ================= -->
+        <mxCell id="lane_providers" value="&lt;b style=&quot;font-size:15px;color:#38BDF8;&quot;&gt;🔌 4. Pluggable Provider Adapters&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#64748B;&quot;&gt;Concrete Adapter Implementations (src/lib/email/providers/*)&lt;/span&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0B0F19;strokeColor=#1E293B;fontColor=#F8FAFC;startSize=45;arcSize=8;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="140" width="400" height="1080" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prov_brevo" value="&lt;b style=&quot;color:#10B981;font-size:13px;&quot;&gt;A. Brevo REST API Adapter&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;src/lib/email/providers/brevo.ts&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• &lt;b&gt;Target Endpoint:&lt;/b&gt; POST https://api.brevo.com/v3/smtp/email&lt;br&gt;• &lt;b&gt;Egress:&lt;/b&gt; Pure native &lt;b&gt;fetch()&lt;/b&gt; — ZERO npm dependencies&lt;br&gt;• &lt;b&gt;Auth:&lt;/b&gt; api-key: ${BREVO_API_KEY}&lt;br&gt;• &lt;b&gt;Account:&lt;/b&gt; 300 daily emails free tier for &lt;b&gt;admin@kovertklaus.com&lt;/b&gt;&lt;br&gt;• &lt;b&gt;Runtime:&lt;/b&gt; 100% Cloudflare Worker, Edge &amp;amp; Node.js safe&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_providers">
+          <mxGeometry x="20" y="60" width="360" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prov_smtp" value="&lt;b style=&quot;color:#38BDF8;font-size:13px;&quot;&gt;B. Direct SMTP Adapter (Nodemailer)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;src/lib/email/providers/smtp.ts&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• &lt;b&gt;Target:&lt;/b&gt; Custom Mail Server / Local Postfix / ISP SMTP&lt;br&gt;• &lt;b&gt;Transport:&lt;/b&gt; Standard SMTP over TCP sockets (Ports 587, 465, 25)&lt;br&gt;• &lt;b&gt;Isolation:&lt;/b&gt; Dynamic runtime import &lt;b&gt;await import(&apos;nodemailer&apos;)&lt;/b&gt;&lt;br&gt;• &lt;b&gt;Safety:&lt;/b&gt; Prevents bundling overhead and edge runtime crashes&lt;br&gt;• &lt;b&gt;Ideal For:&lt;/b&gt; Self-hosted home users, Docker, and private VPS&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_providers">
+          <mxGeometry x="20" y="270" width="360" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prov_resend" value="&lt;b style=&quot;color:#A855F7;font-size:13px;&quot;&gt;C. Resend REST API Adapter&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;src/lib/email/providers/resend.ts&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• &lt;b&gt;Target Endpoint:&lt;/b&gt; POST https://api.resend.com/emails&lt;br&gt;• &lt;b&gt;Auth:&lt;/b&gt; Authorization: Bearer ${RESEND_API_KEY}&lt;br&gt;• &lt;b&gt;Egress:&lt;/b&gt; Pure native &lt;b&gt;fetch()&lt;/b&gt; — Zero dependencies&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3B0764;strokeColor=#9333EA;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_providers">
+          <mxGeometry x="20" y="480" width="360" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prov_console" value="&lt;b style=&quot;color:#F59E0B;font-size:13px;&quot;&gt;D. Console Sandbox Mock Simulator&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;src/lib/email/providers/console.ts&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• &lt;b&gt;Target:&lt;/b&gt; Terminal stdout / Node.js console logs&lt;br&gt;• &lt;b&gt;Output:&lt;/b&gt; Formatted ASCII banner with To, Subject &amp;amp; Code&lt;br&gt;• &lt;b&gt;Zero-Crash Policy:&lt;/b&gt; Allows local testing without email keys&lt;br&gt;• &lt;b&gt;Returns:&lt;/b&gt; { success: true, provider: &apos;console&apos;, messageId: mock-id }&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#451A03;strokeColor=#D97706;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_providers">
+          <mxGeometry x="20" y="650" width="360" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ================= LANE 5: EGRESS & RECIPIENTS ================= -->
+        <mxCell id="lane_egress" value="&lt;b style=&quot;font-size:15px;color:#38BDF8;&quot;&gt;🌐 5. Network Egress &amp;amp; Inboxes&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#64748B;&quot;&gt;Delivery Infrastructure &amp;amp; User Touchpoints&lt;/span&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0B0F19;strokeColor=#1E293B;fontColor=#F8FAFC;startSize=45;arcSize=8;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1690" y="140" width="370" height="1080" as="geometry" />
+        </mxCell>
+
+        <mxCell id="egress_brevo_cloud" value="&lt;b style=&quot;color:#10B981;&quot;&gt;Brevo Global SMTP Cluster&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;smtp-relay.brevo.com / API Gateway&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• High Deliverability Infrastructure&lt;br&gt;• Automated DKIM / SPF Signing&lt;br&gt;• 300 free transactions / day pool&lt;br&gt;• Real-Time Dispatch Status Webhooks&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_egress">
+          <mxGeometry x="20" y="60" width="330" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="egress_cf_dns" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;kovertklaus.com DNS &amp;amp; Deliverability&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Cloudflare DNS Management&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• &lt;b&gt;Sender:&lt;/b&gt; admin@kovertklaus.com&lt;br&gt;• &lt;b&gt;SPF:&lt;/b&gt; v=spf1 include:spf.brevo.com ~all&lt;br&gt;• &lt;b&gt;DKIM:&lt;/b&gt; k1._domainkey.kovertklaus.com&lt;br&gt;• &lt;b&gt;DMARC:&lt;/b&gt; v=DMARC1; p=none; rua=...&lt;br&gt;• &lt;b&gt;Inbound:&lt;/b&gt; Cloudflare Email Routing Forwarding&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_egress">
+          <mxGeometry x="20" y="240" width="330" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="egress_smtp_server" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;Self-Hosted / Home Lab Mail Server&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Local Network or VPS Postfix&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Local SMTP Relay over TLS 587/465&lt;br&gt;• Full Self-Hosting Data Sovereignty&lt;br&gt;• Independent from 3rd party API limits&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#38BDF8;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_egress">
+          <mxGeometry x="20" y="440" width="330" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="egress_inbox" value="&lt;b style=&quot;color:#10B981;&quot;&gt;Operative Inboxes (Recipients)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Gmail, Apple Mail, Outlook, Mobile Devices&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• ✉️ Early-Access Clearance Ciphers&lt;br&gt;• ✉️ Welcome Onboarding Directives&lt;br&gt;• ✉️ Exchange Recruitment Orders &amp;amp; Late Passes&lt;br&gt;• ✉️ Secret Sattolo Target Dossiers&lt;br&gt;• ✉️ OpsLeader Urgent Reminder Nudges&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_egress">
+          <mxGeometry x="20" y="610" width="330" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ================= CONNECTORS / FLOW ARROWS ================= -->
+        <!-- Triggers to Templates -->
+        <mxCell id="arr_trig_lead_tpl" edge="1" parent="1" source="trig_clearance" target="tpl_card_lead" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="270" />
+              <mxPoint x="380" y="1050" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr_trig_user_tpl" edge="1" parent="1" source="trig_user" target="tpl_card_welcome" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="440" />
+              <mxPoint x="390" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr_trig_inv_tpl" edge="1" parent="1" source="trig_invite" target="tpl_card_invite" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F59E0B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arr_trig_draw_tpl" edge="1" parent="1" source="trig_draw" target="tpl_card_assign" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#EC4899;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arr_trig_nudge_tpl" edge="1" parent="1" source="trig_nudge" target="tpl_card_nudge" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#A855F7;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Templates to Base Layout -->
+        <mxCell id="arr_tpl_base" edge="1" parent="1" source="tpl_card_invite" target="tpl_engine" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=1.5;dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Templates to Dispatcher Core -->
+        <mxCell id="arr_tpl_to_disp" edge="1" parent="1" source="tpl_engine" target="disp_core" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=2.5;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Dispatcher to Config Resolver -->
+        <mxCell id="arr_disp_to_cfg" edge="1" parent="1" source="disp_core" target="disp_detector" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F59E0B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Config to Providers (Branches) -->
+        <mxCell id="arr_branch_brevo" edge="1" parent="1" source="disp_detector" target="prov_brevo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2.5;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1230" y="420" />
+              <mxPoint x="1230" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr_branch_smtp" edge="1" parent="1" source="disp_detector" target="prov_smtp" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=2.5;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arr_branch_resend" edge="1" parent="1" source="disp_detector" target="prov_resend" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#A855F7;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1230" y="490" />
+              <mxPoint x="1230" y="685" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr_branch_console" edge="1" parent="1" source="disp_detector" target="prov_console" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F59E0B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1210" y="520" />
+              <mxPoint x="1210" y="860" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Providers to Egress -->
+        <mxCell id="arr_brevo_to_egress" edge="1" parent="1" source="prov_brevo" target="egress_brevo_cloud" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2.5;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arr_brevo_to_dns" edge="1" parent="1" source="egress_brevo_cloud" target="egress_cf_dns" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arr_smtp_to_egress" edge="1" parent="1" source="prov_smtp" target="egress_smtp_server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=2.5;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1660" y="485" />
+              <mxPoint x="1660" y="645" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Egress to Recipients -->
+        <mxCell id="arr_dns_to_inbox" edge="1" parent="1" source="egress_cf_dns" target="egress_inbox" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=3;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arr_smtp_to_inbox" edge="1" parent="1" source="egress_smtp_server" target="egress_inbox" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
