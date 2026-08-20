@@ -4,6 +4,7 @@ import { getSessionUserId } from '@/lib/auth';
 import { validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
 import { generateInviteCode } from '@/lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
+import { sendAssignmentEmail, sendNudgeEmail } from '@/lib/email';
 
 export const dynamic = 'force-static';
 
@@ -164,6 +165,33 @@ export async function POST(request: Request) {
           where: { id: operationId },
           data: { status: 'MATCHED' },
         });
+
+        // Dispatch Assignment Notification Emails to enrolled operatives
+        try {
+          const enrolledUsers = await db.user.findMany({
+            where: { id: { in: ex.members.map((m) => m.userId) } },
+          });
+
+          for (const assignment of assignments) {
+            const giver = enrolledUsers.find((u) => u.id === assignment.agentId);
+            const target = enrolledUsers.find((u) => u.id === assignment.targetId);
+
+            if (giver && giver.email && giver.emailNotifications !== false) {
+              sendAssignmentEmail({
+                recipientEmail: giver.email,
+                recipientName: giver.name || giver.codename || 'Operative',
+                targetCodename: target?.codename || 'Classified Operative',
+                targetName: target?.name ?? undefined,
+                exchangeTitle: ex.title,
+                exchangeUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/exchange/${ex.code}`,
+                shippingDeadline: ex.shippingDate ? new Date(ex.shippingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
+                exchangeDate: ex.executionDate ? new Date(ex.executionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
+              }).catch((e) => console.warn('[EMAIL WARNING] Assignment email dispatch error:', e));
+            }
+          }
+        } catch (emailErr) {
+          console.warn('[EMAIL WARNING] Failed to batch dispatch assignment emails:', emailErr);
+        }
 
         return NextResponse.json({
           success: true,
@@ -352,7 +380,7 @@ export async function POST(request: Request) {
 
       const ex = await db.exchange.findUnique({
         where: { id: operationId },
-        include: { members: true },
+        include: { members: { include: { user: true } }, organizer: true },
       });
       if (!ex) return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
       if (ex.organizerId !== activeUserId) return NextResponse.json({ error: 'Only Organizer can broadcast to members' }, { status: 403 });
@@ -366,6 +394,17 @@ export async function POST(request: Request) {
             exchangeId: ex.id,
           },
         });
+
+        if (member.user.email && member.user.emailNotifications !== false) {
+          sendNudgeEmail({
+            recipientEmail: member.user.email,
+            recipientName: member.user.name || member.user.codename || 'Operative',
+            organizerName: ex.organizer.name,
+            exchangeTitle: ex.title,
+            message: messageText.trim(),
+            actionUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/exchange/${ex.code}`,
+          }).catch((e) => console.warn('[EMAIL WARNING] Broadcast email error:', e));
+        }
       }
 
       return NextResponse.json({ success: true, message: 'Broadcast dispatched to all enrolled members!' });
@@ -590,7 +629,40 @@ export async function PATCH(request: Request) {
 
     // Member Action 4: Dispatch Nudge Reminder
     if (action === 'nudge_agent' && memberId) {
-      return NextResponse.json({ success: true, message: 'Nudge alert dispatched to member' });
+      const memberToNudge = await db.exchangeMember.findUnique({
+        where: { id: memberId },
+        include: { user: true, exchange: { include: { organizer: true } } },
+      });
+
+      if (!memberToNudge) {
+        return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+      }
+
+      const nudgeMsg = 'Reminder: Please update your OpKit wishlist and review mission directives.';
+
+      // Create in-app notification
+      await db.notification.create({
+        data: {
+          userId: memberToNudge.userId,
+          title: `🔔 Mission Nudge: ${memberToNudge.exchange.title}`,
+          message: nudgeMsg,
+          exchangeId: memberToNudge.exchangeId,
+        },
+      });
+
+      // Dispatch Email Alert if user has email notifications enabled
+      if (memberToNudge.user.email && memberToNudge.user.emailNotifications !== false) {
+        sendNudgeEmail({
+          recipientEmail: memberToNudge.user.email,
+          recipientName: memberToNudge.user.name || memberToNudge.user.codename || 'Operative',
+          organizerName: memberToNudge.exchange.organizer.name,
+          exchangeTitle: memberToNudge.exchange.title,
+          message: nudgeMsg,
+          actionUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/exchange/${memberToNudge.exchange.code}`,
+        }).catch((e) => console.warn('[EMAIL WARNING] Nudge email dispatch error:', e));
+      }
+
+      return NextResponse.json({ success: true, message: 'Nudge alert and email dispatched to member' });
     }
 
     // Branch 1: Update Exchange Settings & Options

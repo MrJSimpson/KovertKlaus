@@ -34,6 +34,20 @@ Working on this repository as an AI assistant, subagent, or pair programmer? Ple
   - **Carrier Protection Waiver**: Submitting tracking numbers waives penalties if packages are lost.
   - **Demerit Immunity Waiver**: Verified receipt of ANY gift completely waives demerit liability.
 - 🔎 **URL Metadata Web Scraper**: OpenGraph scraper with 2.5s fast-failover timeout for adding items to OpKit wishlists.
+- 📧 **Universal Transactional Email Dispatcher**: Pluggable adapter engine supporting **Brevo REST API** (300 free emails/day, 100% edge-safe with zero dependencies), **Direct SMTP** (`nodemailer` for self-hosted home users, Docker, and local mail servers), **Resend API**, and an automatic **Console Mock** fallback for local dev.
+
+---
+
+## 📧 Email Configuration (Brevo & Direct SMTP)
+
+KovertKlaus automatically routes encrypted transactional dispatches (invitations, target draws, nudges, clearance ciphers) based on your environment variables:
+
+| Mode | Provider Setting | Key Requirements | Best For |
+| :--- | :--- | :--- | :--- |
+| **Brevo REST API** | `EMAIL_PROVIDER="brevo"` (or auto-detected via `BREVO_API_KEY`) | `BREVO_API_KEY="xkeysib-..."`<br>`BREVO_SENDER_EMAIL="admin@kovertklaus.com"` | Cloudflare Workers, Edge runtimes, Production SaaS (300 emails/day free tier) |
+| **Direct SMTP** | `EMAIL_PROVIDER="smtp"` (or auto-detected via `SMTP_HOST`) | `SMTP_HOST="mail.domain.com"`<br>`SMTP_PORT=587`<br>`SMTP_USER="..."`<br>`SMTP_PASS="..."` | Self-hosted home users, Docker, VPS, Postfix, Mailgun/SendGrid SMTP |
+| **Resend API** | `EMAIL_PROVIDER="resend"` | `RESEND_API_KEY="re_..."` | Developers using Resend REST API |
+| **Console Mock** | `EMAIL_PROVIDER="console"` (or default fallback) | *None* | Local development & offline testing (prints formatted emails to stdout) |
 
 ---
 

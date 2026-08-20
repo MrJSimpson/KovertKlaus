@@ -93,16 +93,23 @@ export async function POST(request: Request) {
       });
     }
 
-    // 7. Dispatch Email Notification via Cloudflare Email Engine
+    // 7. Dispatch Email Notification via Universal Email Dispatcher
+    const joinUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com'}/exchange/${exchange.code}`;
     const emailResult = await sendInvitationEmail({
-      to: cleanEmail,
-      exchangeTitle: exchange.title,
+      recipientEmail: cleanEmail,
+      recipientName: targetUser?.name,
       organizerName: exchange.organizer.name,
+      exchangeTitle: exchange.title,
       inviteCode: exchange.code,
       budgetMin: exchange.budgetMin ? Number(exchange.budgetMin) : null,
       budgetMax: Number(exchange.budgetMax),
-      joinUrl: `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com'}/exchange/${exchange.code}`,
+      joinUrl,
+      isLatePass: isPastCutoff,
     });
+
+    if (!emailResult.success) {
+      console.warn(`[EMAIL DISPATCH WARNING] Invitation email failed via ${emailResult.provider}:`, emailResult.error);
+    }
 
     // Return Invitation Dispatch Payload
     return NextResponse.json({
@@ -118,7 +125,7 @@ export async function POST(request: Request) {
         inviteToken,
         isLatePass: isPastCutoff,
         targetUserFound: !!targetUser,
-        joinUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/exchange/${exchange.code}`,
+        joinUrl,
       },
     });
   } catch {

@@ -66,6 +66,12 @@ export async function POST(req: NextRequest) {
           source: 'landing_page',
         },
       });
+      const totalCount = await db.clearanceLead.count();
+      // Dispatch Welcome / Early-Access Clearance Cipher Email
+      await sendClearanceConfirmationEmail({
+        recipientEmail: cleanEmail,
+        positionNumber: totalCount,
+      });
     } catch (dbError) {
       console.error('[Clearance API] Database error:', dbError);
     }
