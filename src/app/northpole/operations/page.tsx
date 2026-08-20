@@ -40,7 +40,11 @@ export default function NorthPoleOperationsPage() {
   async function fetchOperations(query = searchQuery) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/northpole/operations?q=${encodeURIComponent(query)}`);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const res = await fetch(`/api/northpole/operations?q=${encodeURIComponent(query)}`, {
+        credentials: 'include',
+        headers: token ? { 'x-admin-token': token } : {},
+      });
       const json = await res.json();
       if (res.ok && json.success) {
         setOperations(json.operations || []);

@@ -38,7 +38,11 @@ export default function NorthPoleUsersPage() {
       if (workshopOnly) {
         url += '&workshop=true';
       }
-      const res = await fetch(url);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const res = await fetch(url, {
+        credentials: 'include',
+        headers: token ? { 'x-admin-token': token } : {},
+      });
       const json = await res.json();
       if (res.ok && json.success) {
         setUsers(json.users || []);
@@ -57,9 +61,14 @@ export default function NorthPoleUsersPage() {
 
   async function handleToggleWorkshop(userId: string, currentStatus: boolean) {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
       const res = await fetch('/api/northpole/users', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-admin-token': token } : {}),
+        },
         body: JSON.stringify({ userId, isWorkshop: !currentStatus }),
       });
       const json = await res.json();
@@ -80,9 +89,14 @@ export default function NorthPoleUsersPage() {
   async function handleDemeritChange(userId: string, newDemerits: number) {
     if (newDemerits < 0) return;
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
       const res = await fetch('/api/northpole/users', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-admin-token': token } : {}),
+        },
         body: JSON.stringify({ userId, penaltyPoints: newDemerits }),
       });
       const json = await res.json();
@@ -102,9 +116,14 @@ export default function NorthPoleUsersPage() {
 
   async function handleStatusChange(userId: string, newStatus: string) {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
       const res = await fetch('/api/northpole/users', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-admin-token': token } : {}),
+        },
         body: JSON.stringify({ userId, accountStatus: newStatus }),
       });
       const json = await res.json();

@@ -27,7 +27,11 @@ export default function NorthPoleThemesPage() {
   async function fetchThemes() {
     setLoading(true);
     try {
-      const res = await fetch('/api/northpole/config');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const res = await fetch('/api/northpole/config', {
+        credentials: 'include',
+        headers: token ? { 'x-admin-token': token } : {},
+      });
       const json = await res.json();
       if (res.ok && json.success) {
         setThemes(json.themes || []);
@@ -44,9 +48,14 @@ export default function NorthPoleThemesPage() {
     setActivating(themeId);
     setSuccessMsg(null);
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
       const res = await fetch('/api/northpole/config', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-admin-token': token } : {}),
+        },
         body: JSON.stringify({ activeThemeId: themeId }),
       });
       const json = await res.json();

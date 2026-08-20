@@ -37,7 +37,11 @@ export default function NorthPoleDashboard() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        const res = await fetch('/api/northpole/config');
+        const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+        const res = await fetch('/api/northpole/config', {
+          credentials: 'include',
+          headers: token ? { 'x-admin-token': token } : {},
+        });
         const json = await res.json();
         if (res.ok && json.success) {
           setStats(json.stats);
