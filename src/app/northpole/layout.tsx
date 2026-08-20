@@ -5,21 +5,26 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { APP_VERSION_LABEL } from '@/lib/version';
 
+function getSavedAdmin(): { id: string; name: string; email: string; role: string } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('kovertklaus_admin_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function NorthPoleLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [admin, setAdmin] = useState<{ id: string; name: string; email: string; role: string } | null>(null);
-  const [loading, setLoading] = useState(true);
-
   const isLoginPage = pathname === '/northpole/login';
+
+  const [admin, setAdmin] = useState<{ id: string; name: string; email: string; role: string } | null>(getSavedAdmin);
+  const [loading, setLoading] = useState(!isLoginPage && !getSavedAdmin());
 
   useEffect(() => {
     if (isLoginPage) {
-      setLoading(false);
-      return;
-    }
-
-    if (admin) {
       setLoading(false);
       return;
     }
@@ -34,20 +39,26 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
         const json = await res.json().catch(() => ({}));
         if (!res.ok || !json.authenticated || !json.admin) {
           console.warn('[NorthPole Access Denied]', json);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('kovertklaus_admin_token');
+            localStorage.removeItem('kovertklaus_admin_user');
+          }
           window.location.href = '/northpole/login';
           return;
         }
         setAdmin(json.admin);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('kovertklaus_admin_user', JSON.stringify(json.admin));
+        }
       } catch (err) {
         console.error('[NorthPole Session Check Error]', err);
-        window.location.href = '/northpole/login';
       } finally {
         setLoading(false);
       }
     }
 
     checkAdminSession();
-  }, [pathname, isLoginPage, admin]);
+  }, [isLoginPage]);
 
   async function handleLogout() {
     try {
@@ -62,6 +73,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
     } finally {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('kovertklaus_admin_token');
+        localStorage.removeItem('kovertklaus_admin_user');
       }
       window.location.href = '/northpole/login';
     }

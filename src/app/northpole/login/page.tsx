@@ -73,6 +73,9 @@ export default function NorthPoleLoginPage() {
       if (json.token) {
         localStorage.setItem('kovertklaus_admin_token', json.token);
       }
+      if (json.admin) {
+        localStorage.setItem('kovertklaus_admin_user', JSON.stringify(json.admin));
+      }
 
       window.location.href = '/northpole';
     } catch (err: any) {
@@ -123,6 +126,9 @@ export default function NorthPoleLoginPage() {
 
       if (json.token) {
         localStorage.setItem('kovertklaus_admin_token', json.token);
+      }
+      if (json.admin) {
+        localStorage.setItem('kovertklaus_admin_user', JSON.stringify(json.admin));
       }
 
       setResetSuccessMsg('✓ Password updated successfully! Activating clearance...');
