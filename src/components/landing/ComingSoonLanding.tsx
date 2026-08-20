@@ -1,16 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { SeasonalLightsStrand } from '@/components/ui/SeasonalLightsStrand';
+import { APP_VERSION_LABEL } from '@/lib/version';
 
+const TARGET_LAUNCH_DATE = new Date('2026-11-01T00:00:00');
+
+interface CountdownState {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  isMounted: boolean;
+}
+
+function calculateTimeRemaining(): CountdownState {
+  const now = new Date();
+  const diffMs = Math.max(0, TARGET_LAUNCH_DATE.getTime() - now.getTime());
+  const totalSeconds = Math.floor(diffMs / 1000);
+
+  return {
+    days: Math.floor(totalSeconds / (3600 * 24)),
+    hours: Math.floor((totalSeconds % (3600 * 24)) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+    isMounted: true,
+  };
+}
 
 export function ComingSoonLanding() {
-  const { lightsType, bannerText, bannerActive } = useTheme();
+  const { lightsType } = useTheme();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Dynamic live countdown
+  const [timeLeft, setTimeLeft] = useState<CountdownState>({
+    days: 72,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    isMounted: false,
+  });
+
+  useEffect(() => {
+    setTimeLeft(calculateTimeRemaining());
+
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeRemaining());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,9 +98,14 @@ export function ComingSoonLanding() {
         <div className="flex items-center gap-3">
           <span className="text-xl">🎅</span>
           <div className="flex flex-col">
-            <span className="font-mono text-xs text-rose-400 tracking-widest uppercase font-bold">
-              KOVERT KLAUS // NORTH POLE SECTOR HQ
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-rose-400 tracking-widest uppercase font-bold">
+                KOVERT KLAUS // NORTH POLE SECTOR HQ
+              </span>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-900 text-sky-300 border border-sky-600/40">
+                {APP_VERSION_LABEL}
+              </span>
+            </div>
             <span className="text-[10px] text-slate-400 font-medium">The Covert Holiday Gift Exchange</span>
           </div>
         </div>
@@ -93,22 +141,52 @@ export function ComingSoonLanding() {
         </div>
 
         {/* Launch Countdown HUD */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 max-w-xl mx-auto font-mono">
-          <div className="bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-2xl shadow-xl backdrop-blur-sm">
-            <span className="block text-2xl sm:text-3xl font-black text-rose-400">74</span>
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Days to Launch</span>
+        <div className="space-y-3.5 max-w-xl mx-auto font-mono">
+          <div className="grid grid-cols-4 gap-2.5 sm:gap-3.5">
+            <div className="bg-slate-900/90 border border-slate-800/80 p-3 sm:p-4 rounded-2xl shadow-xl backdrop-blur-sm">
+              <span className="block text-2xl sm:text-4xl font-black text-rose-400">
+                {timeLeft.days}
+              </span>
+              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                Days
+              </span>
+            </div>
+            <div className="bg-slate-900/90 border border-slate-800/80 p-3 sm:p-4 rounded-2xl shadow-xl backdrop-blur-sm">
+              <span className="block text-2xl sm:text-4xl font-black text-amber-300">
+                {String(timeLeft.hours).padStart(2, '0')}
+              </span>
+              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                Hours
+              </span>
+            </div>
+            <div className="bg-slate-900/90 border border-slate-800/80 p-3 sm:p-4 rounded-2xl shadow-xl backdrop-blur-sm">
+              <span className="block text-2xl sm:text-4xl font-black text-emerald-400">
+                {String(timeLeft.minutes).padStart(2, '0')}
+              </span>
+              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                Minutes
+              </span>
+            </div>
+            <div className="bg-slate-900/90 border border-slate-800/80 p-3 sm:p-4 rounded-2xl shadow-xl backdrop-blur-sm">
+              <span className="block text-2xl sm:text-4xl font-black text-sky-400">
+                {String(timeLeft.seconds).padStart(2, '0')}
+              </span>
+              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                Seconds
+              </span>
+            </div>
           </div>
-          <div className="bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-2xl shadow-xl backdrop-blur-sm">
-            <span className="block text-2xl sm:text-3xl font-black text-amber-300">NOV 01</span>
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Live Date</span>
-          </div>
-          <div className="bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-2xl shadow-xl backdrop-blur-sm">
-            <span className="block text-2xl sm:text-3xl font-black text-emerald-400">100%</span>
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Free Tier</span>
-          </div>
-          <div className="bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-2xl shadow-xl backdrop-blur-sm">
-            <span className="block text-2xl sm:text-3xl font-black text-sky-400">&lt; 60s</span>
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Setup Time</span>
+          
+          <div className="flex flex-wrap items-center justify-center gap-2.5 text-[11px] text-slate-400 font-mono pt-1">
+            <span className="inline-flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 px-3 py-1 rounded-full">
+              🎯 <span className="text-slate-300 font-bold">Target Launch: Nov 1, 2026</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 px-3 py-1 rounded-full">
+              🎁 <span className="text-emerald-400 font-bold">100% Free Tier</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 px-3 py-1 rounded-full">
+              ⚡ <span className="text-sky-400 font-bold">&lt; 60s Setup</span>
+            </span>
           </div>
         </div>
 
