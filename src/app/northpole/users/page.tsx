@@ -146,6 +146,17 @@ export default function NorthPoleUsersPage() {
         </div>
       </div>
 
+      {/* Demerit Policy Guidance Banner */}
+      <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-start gap-3 text-xs font-mono">
+        <span className="text-lg">⚖️</span>
+        <div className="text-gray-300 space-y-1">
+          <div className="font-bold text-amber-300">Demerit Governance &amp; Non-Intermediary Policy</div>
+          <p className="text-gray-400 text-[11px] leading-relaxed">
+            KovertKlaus does <strong className="text-white">not</strong> arbitrate or handle demerit disputes. Demerit citations require intentional neglect or abuse and are solely between the Event Organizer and the participant. Operatives automatically redeem 1 demerit upon successfully completing subsequent events.
+          </p>
+        </div>
+      </div>
+
       {/* Action Notification */}
       {actionMessage && (
         <div className="p-3.5 rounded-xl bg-amber-950/80 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold">

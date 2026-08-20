@@ -60,6 +60,8 @@ KovertKlaus uses an **Environment Mode Flag Vector** (`APP_MODE`) to separate op
 
 ---
 
+---
+
 ## 🔑 6. Test Database Credentials & Roster (`prisma/kovertklaus_test_db.sql`)
 
 * **Default Test Password:** `Password123!` (or user-created password during registration)
@@ -68,4 +70,26 @@ KovertKlaus uses an **Environment Mode Flag Vector** (`APP_MODE`) to separate op
   * **`SIMPSON-2026`**: Simpson Family Secret Santa (Phase 1: `RECRUITING`)
   * **`WQRE-JXHG`**: Simpson White Elephant 2026
 * **Enrolled Operative Roster:** `zachary@example.com`, `shannon@example.com`, `matthew@example.com`, `leslie@example.com`, `charles@example.com`, `david@example.com`, `debbie@example.com`, `michael@example.com`, `terry@example.com`, `sharon@example.com`, `thomas@example.com`, `leonard@example.com`, `cheryl@example.com`, `kristy@example.com`, `dayton@example.com`, `kathy@example.com`, `john@example.com`, `james@example.com`, `julia@example.com`, `kimberly@example.com`, `rodney@example.com`.
+
+---
+
+## ⚖️ 7. Demerit Governance, Non-Intermediary Principle & Redemption Engine
+
+* **Platform Non-Intermediary Principle**:
+  * KovertKlaus admins and customer service do **NOT** arbitrate or handle demerits.
+  * Acquiring demerits requires intentional neglect or abuse (e.g., failure to ship without tracking proof, ghosting).
+  * If a demerit citation is issued, it is strictly an administrative matter between the Event Organizer (`OpsLeader`) and the participant. KovertKlaus is **NOT an intermediary**.
+* **Account Tiers**:
+  * `0-2` Demerits: **`ACTIVE`** (Full access across all remote and local operations).
+  * `3` Demerits: **`REMOTE_RESTRICTED`** (Restricted strictly to local in-person exchanges).
+  * `>3` Demerits: **`DISABLED`** (Suspended from creating or joining operations).
+* **Automatic Rehabilitation / Redemption Engine**:
+  * Demerits are not permanent scarlet letters.
+  * Successfully completing any subsequent exchange (fulfilling an assigned gift without incident) automatically clears **1 demerit point** (`penaltyPoints - 1`).
+  * Once penalty points drop below 3 (e.g., from 3 to 2), account standing is automatically restored from `REMOTE_RESTRICTED` back to `ACTIVE`.
+* **Anti-Abuse Safeguards**:
+  * **Carrier Protection Waiver**: Submitting a valid carrier tracking number automatically waives demerit penalties if a parcel is lost by the carrier.
+  * **Demerit Immunity Waiver**: Verified receipt of any gift in an operation waives demerit liability.
+  * **Execution Day Gate**: Demerit audits can only be executed on or after the scheduled Execution Day.
+
 

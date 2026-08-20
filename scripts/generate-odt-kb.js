@@ -305,12 +305,27 @@ function generateODTFiles() {
 
       <!-- SECTION 4 -->
       <text:p text:style-name="Heading1">4. Demerit, Accountability &amp; Trust Governance</text:p>
+      <text:p text:style-name="Heading2">4.1 Platform Non-Intermediary Principle</text:p>
       <text:p text:style-name="StandardText">
-        • <text:span text:style-name="CodeText">0–2 Demerits (ACTIVE)</text:span>: Full platform privileges.<text:line-break/>
-        • <text:span text:style-name="CodeText">3 Demerits (REMOTE_RESTRICTED)</text:span>: Restricted to local in-person events only.<text:line-break/>
-        • <text:span text:style-name="CodeText">&gt;3 Demerits (DISABLED)</text:span>: Account suspended from all operations.<text:line-break/>
-        • <text:span text:style-name="CodeText">Carrier Protection Waiver</text:span>: Valid carrier tracking number waives demerits if lost by courier.<text:line-break/>
-        • <text:span text:style-name="CodeText">Demerit Immunity Waiver</text:span>: Verified gift receipt completely waives demerit liability.
+        KovertKlaus administrators and customer service do <text:span text:style-name="CodeText">NOT</text:span> arbitrate or adjudicate demerit disputes. Acquiring a demerit requires either intentional neglect or abuse (such as failing to fulfill gift obligations without valid courier tracking proof, or ghosting an operation). When a demerit citation is issued, it is strictly an administrative matter between the Event Organizer (OpsLeader) and the participating operative. KovertKlaus acts strictly as the software platform and is <text:span text:style-name="CodeText">NOT an intermediary</text:span>.
+      </text:p>
+      <text:p text:style-name="Heading2">4.2 Rehabilitation &amp; Redemption Engine</text:p>
+      <text:p text:style-name="StandardText">
+        The reliability system is designed so it cannot be abused, and operatives always have an opportunity to correct past mistakes and restore their standing:<text:line-break/>
+        • <text:span text:style-name="CodeText">Event Completion Redemption</text:span>: Successfully fulfilling an assigned gift in any subsequent exchange automatically removes 1 demerit point from the operative&apos;s record.<text:line-break/>
+        • <text:span text:style-name="CodeText">Automatic Status Restoration</text:span>: Once penalty points drop below 3 (e.g., from 3 to 2), the account status is automatically restored from RESTRICTED to ACTIVE.
+      </text:p>
+      <text:p text:style-name="Heading2">4.3 Account Status Tiers</text:p>
+      <text:p text:style-name="StandardText">
+        • <text:span text:style-name="CodeText">0–2 Demerits (ACTIVE)</text:span>: Full platform privileges across both remote and local operations.<text:line-break/>
+        • <text:span text:style-name="CodeText">3 Demerits (REMOTE_RESTRICTED)</text:span>: Restricted exclusively to local in-person events where physical gift exchange is guaranteed.<text:line-break/>
+        • <text:span text:style-name="CodeText">&gt;3 Demerits (DISABLED)</text:span>: Account suspended from participating in or organizing exchanges.
+      </text:p>
+      <text:p text:style-name="Heading2">4.4 Anti-Abuse Protection Guarantees</text:p>
+      <text:p text:style-name="StandardText">
+        • <text:span text:style-name="CodeText">Carrier Protection Waiver</text:span>: Providing a valid carrier tracking number automatically waives demerit penalties if a parcel is lost or delayed in transit.<text:line-break/>
+        • <text:span text:style-name="CodeText">Demerit Immunity Waiver</text:span>: Verified receipt of any gift in an operation automatically waives demerit liability.<text:line-break/>
+        • <text:span text:style-name="CodeText">Execution Day Audit Gate</text:span>: Demerit audits can only be executed on or after the official Exchange Execution Day.
       </text:p>
 
       <!-- SECTION 5 -->
@@ -437,9 +452,16 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
 
+const publicDir = path.join(__dirname, '..', 'public');
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+}
+
 const outputPath = path.join(outputDir, 'KovertKlaus_Knowledge_Base.odt');
+const publicPath = path.join(publicDir, 'KovertKlaus_Knowledge_Base.odt');
 const files = generateODTFiles();
 const zipBuffer = createZipArchive(files);
 
 fs.writeFileSync(outputPath, zipBuffer);
-console.log(`[Success] Generated LibreOffice Writer .odt Knowledge Base at: ${outputPath} (${zipBuffer.length} bytes)`);
+fs.writeFileSync(publicPath, zipBuffer);
+console.log(`[Success] Generated LibreOffice Writer .odt Knowledge Base at: ${outputPath} and ${publicPath} (${zipBuffer.length} bytes)`);
