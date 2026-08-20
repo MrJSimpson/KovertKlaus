@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { adminDb } from './lib/adminDb';
-import { db } from './lib/db';
+import { getAdminDb } from './lib/adminDb';
+import { getDb } from './lib/db';
 import { validateNistPassword } from './lib/adminAuth';
 
 const ADMIN_COOKIE_NAME = 'kovertklaus_admin_session';
@@ -29,6 +29,9 @@ export default {
     if (env.DATABASE_ADMIN_URL) process.env.DATABASE_ADMIN_URL = env.DATABASE_ADMIN_URL;
     if (env.DIRECT_URL) process.env.DIRECT_URL = env.DIRECT_URL;
     if (env.MODE) process.env.MODE = env.MODE;
+
+    const adminDb = getAdminDb(env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL);
+    const db = getDb(env.DATABASE_URL);
 
     try {
       // -----------------------------------------------------------------------

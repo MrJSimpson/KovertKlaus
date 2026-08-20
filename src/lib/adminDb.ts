@@ -4,36 +4,54 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 import { Pool as NeonPool } from '@neondatabase/serverless';
 import pg from 'pg';
 
-const adminConnectionString =
-  process.env.DATABASE_ADMIN_URL ||
-  process.env.DIRECT_URL ||
-  process.env.DATABASE_URL ||
-  "postgresql://kovert:kovertsecret@localhost:5433/kovertklaus?schema=public";
+let cachedAdminDb: PrismaClient | null = null;
+let lastAdminConnStr: string = '';
 
-const isNeon = adminConnectionString.includes('neon.tech');
-const isLocalhost = adminConnectionString.includes('localhost') || adminConnectionString.includes('127.0.0.1');
+export function getAdminDb(overrideConnStr?: string): PrismaClient {
+  const adminConnectionString =
+    overrideConnStr ||
+    process.env.DATABASE_ADMIN_URL ||
+    process.env.DIRECT_URL ||
+    process.env.DATABASE_URL ||
+    "postgresql://kovert:kovertsecret@localhost:5433/kovertklaus?schema=public";
 
-function createAdminAdapter() {
+  if (cachedAdminDb && lastAdminConnStr === adminConnectionString) {
+    return cachedAdminDb;
+  }
+
+  const isNeon = adminConnectionString.includes('neon.tech');
+  const isLocalhost = adminConnectionString.includes('localhost') || adminConnectionString.includes('127.0.0.1');
+
+  let adapter: any;
   if (isNeon) {
     const pool = new NeonPool({ connectionString: adminConnectionString });
-    return new PrismaNeon(pool as any);
+    adapter = new PrismaNeon(pool as any);
+  } else {
+    const adminPool = new pg.Pool({
+      connectionString: adminConnectionString,
+      ssl: !isLocalhost || adminConnectionString.includes('sslmode=require')
+        ? { rejectUnauthorized: false }
+        : undefined,
+      max: 5,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+    adapter = new PrismaPg(adminPool);
   }
-  const adminPool = new pg.Pool({
-    connectionString: adminConnectionString,
-    ssl: !isLocalhost || adminConnectionString.includes('sslmode=require')
-      ? { rejectUnauthorized: false }
-      : undefined,
-    max: 5,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-  });
-  return new PrismaPg(adminPool);
+
+  cachedAdminDb = new PrismaClient({ adapter });
+  lastAdminConnStr = adminConnectionString;
+  return cachedAdminDb;
 }
 
-const adminAdapter = createAdminAdapter();
+export const adminDb = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getAdminDb();
+    const val = (client as any)[prop];
+    if (typeof val === 'function') {
+      return val.bind(client);
+    }
+    return val;
+  },
+});
 
-const globalForAdminPrisma = global as unknown as { adminPrisma: PrismaClient };
-
-export const adminDb = globalForAdminPrisma.adminPrisma || new PrismaClient({ adapter: adminAdapter });
-
-if (process.env.NODE_ENV !== 'production') globalForAdminPrisma.adminPrisma = adminDb;

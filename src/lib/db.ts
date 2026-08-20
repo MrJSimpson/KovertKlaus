@@ -4,32 +4,52 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 import { Pool as NeonPool } from '@neondatabase/serverless';
 import pg from 'pg';
 
-const connectionString = process.env.DATABASE_URL || "postgresql://kovert:kovertsecret@localhost:5433/kovertklaus?schema=public";
+let cachedDb: PrismaClient | null = null;
+let lastConnStr: string = '';
 
-const isNeon = connectionString.includes('neon.tech');
-const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+export function getDb(overrideConnStr?: string): PrismaClient {
+  const connectionString =
+    overrideConnStr ||
+    process.env.DATABASE_URL ||
+    "postgresql://kovert:kovertsecret@localhost:5433/kovertklaus?schema=public";
 
-function createAppAdapter() {
+  if (cachedDb && lastConnStr === connectionString) {
+    return cachedDb;
+  }
+
+  const isNeon = connectionString.includes('neon.tech');
+  const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+
+  let adapter: any;
   if (isNeon) {
     const pool = new NeonPool({ connectionString });
-    return new PrismaNeon(pool as any);
+    adapter = new PrismaNeon(pool as any);
+  } else {
+    const pool = new pg.Pool({
+      connectionString,
+      ssl: !isLocalhost || connectionString.includes('sslmode=require')
+        ? { rejectUnauthorized: false }
+        : undefined,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+    adapter = new PrismaPg(pool);
   }
-  const pool = new pg.Pool({
-    connectionString,
-    ssl: !isLocalhost || connectionString.includes('sslmode=require')
-      ? { rejectUnauthorized: false }
-      : undefined,
-    max: 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-  });
-  return new PrismaPg(pool);
+
+  cachedDb = new PrismaClient({ adapter });
+  lastConnStr = connectionString;
+  return cachedDb;
 }
 
-const adapter = createAppAdapter();
+export const db = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getDb();
+    const val = (client as any)[prop];
+    if (typeof val === 'function') {
+      return val.bind(client);
+    }
+    return val;
+  },
+});
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-export const db = globalForPrisma.prisma || new PrismaClient({ adapter });
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
