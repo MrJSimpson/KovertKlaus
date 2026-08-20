@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { verifyAdminSession } from '@/lib/adminAuth';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

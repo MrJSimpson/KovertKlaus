@@ -52,10 +52,13 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
     return <>{children}</>;
   }
 
-  if (loading) {
+  if (loading || !admin) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 font-mono text-xs">
-        Verifying North Pole Clearance...
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 font-mono text-xs gap-3">
+        <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-red-600 to-emerald-800 flex items-center justify-center text-xl shadow-lg animate-pulse">
+          🎅
+        </div>
+        <span>Verifying North Pole Clearance...</span>
       </div>
     );
   }

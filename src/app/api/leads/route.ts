@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { isValidEmail, sanitizeText } from '@/lib/security';
 import { sendClearanceConfirmationEmail } from '@/lib/email';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
