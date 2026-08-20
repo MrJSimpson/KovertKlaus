@@ -27,8 +27,7 @@ export function getAdminDb(overrideConnStr?: string): PrismaClient {
 
   let adapter: any;
   if (isNeon) {
-    const pool = new NeonPool({ connectionString: adminConnectionString });
-    adapter = new PrismaNeon(pool as any);
+    adapter = new PrismaNeon({ connectionString: adminConnectionString });
   } else {
     const adminPool = new pg.Pool({
       connectionString: adminConnectionString,

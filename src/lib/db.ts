@@ -25,8 +25,7 @@ export function getDb(overrideConnStr?: string): PrismaClient {
 
   let adapter: any;
   if (isNeon) {
-    const pool = new NeonPool({ connectionString });
-    adapter = new PrismaNeon(pool as any);
+    adapter = new PrismaNeon({ connectionString });
   } else {
     const pool = new pg.Pool({
       connectionString,
