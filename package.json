@@ -10,6 +10,9 @@
     "start": "next start",
     "start:linux": "./start.sh",
     "stop:linux": "./stop.sh",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:setup": "prisma db push && tsx prisma/seed.ts",
     "lint": "eslint"
   },
   "dependencies": {
