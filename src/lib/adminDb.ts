@@ -14,6 +14,7 @@ import pg from 'pg';
  */
 const adminConnectionString =
   process.env.DATABASE_ADMIN_URL ||
+  process.env.DIRECT_URL ||
   process.env.DATABASE_URL ||
   "postgresql://kovert:kovertsecret@localhost:5433/kovertklaus?schema=public";
 
