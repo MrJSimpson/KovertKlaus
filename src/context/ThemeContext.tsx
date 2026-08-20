@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { getThemeClasses, ThemeClasses, LightsStrandType } from '@/lib/theme';
-import { getTerminology, Terminology } from '@/lib/terminology';
 import { PublicSystemConfigResponse } from '@/app/api/config/route';
 
 const THEME_STORAGE_KEY = 'kovertklaus_theme_mode';
@@ -42,7 +41,6 @@ interface ThemeContextType {
   toggleTheme: () => void;
   setDarkMode: (val: boolean) => void;
   theme: ThemeClasses;
-  terminology: Terminology;
   activeThemeId: string;
   themeName: string;
   activeSeason: string;
@@ -121,8 +119,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return getThemeClasses(isDarkMode, activeTokens);
   }, [isDarkMode, activeTokens]);
 
-  const terminology = useMemo(() => getTerminology(isDarkMode), [isDarkMode]);
-
   const bannerText = useMemo(() => {
     return isDarkMode ? systemConfig.bannerTextDark : systemConfig.bannerTextLight;
   }, [isDarkMode, systemConfig]);
@@ -133,7 +129,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       toggleTheme,
       setDarkMode,
       theme,
-      terminology,
       activeThemeId: systemConfig.activeThemeId,
       themeName: systemConfig.themeName,
       activeSeason: systemConfig.activeSeason,
@@ -142,7 +137,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       lightsType: (systemConfig.lightsStrandType as LightsStrandType) || 'christmas_bulbs',
       systemConfig,
     }),
-    [isDarkMode, theme, terminology, systemConfig, bannerText]
+    [isDarkMode, theme, systemConfig, bannerText]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -156,7 +151,6 @@ export function useTheme(): ThemeContextType {
       toggleTheme: () => {},
       setDarkMode: () => {},
       theme: getThemeClasses(false, DEFAULT_CONFIG.lightTokens),
-      terminology: getTerminology(false),
       activeThemeId: DEFAULT_CONFIG.activeThemeId,
       themeName: DEFAULT_CONFIG.themeName,
       activeSeason: DEFAULT_CONFIG.activeSeason,
@@ -168,3 +162,4 @@ export function useTheme(): ThemeContextType {
   }
   return context;
 }
+

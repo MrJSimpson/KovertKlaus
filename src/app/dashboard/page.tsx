@@ -72,7 +72,7 @@ interface UserData {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isDarkMode, toggleTheme, theme, terminology } = useTheme();
+  const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserData | null>(null);
 
@@ -299,7 +299,7 @@ export default function DashboardPage() {
               onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
-              {terminology.toggleButtonText}
+              {isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}
             </button>
 
             <button
@@ -330,7 +330,7 @@ export default function DashboardPage() {
                     OPERATIVE STATUS: ACTIVE
                   </span>
                   <span className="text-xs text-slate-500 font-mono">
-                    {terminology.penaltyUnitPlural}: <strong className={user.demerits > 0 ? 'text-red-500' : 'text-emerald-600 dark:text-sky-400'}>{user.demerits}/3</strong>
+                    Coal Citations: <strong className={user.demerits > 0 ? 'text-red-500' : 'text-emerald-600 dark:text-sky-400'}>{user.demerits}/3</strong>
                   </span>
                 </div>
 
@@ -501,7 +501,7 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-1.5 shrink-0">
                             <span className={`text-xs ${theme.textLabel}`}>Role:</span>
                             <Badge variant={p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? 'opsleader' : 'code'}>
-                              {p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? `⭐ ${terminology.organizerRole}` : `🕵️ ${terminology.participantRole}`}
+                              {p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? '⭐ Head Elf' : '🕵️ Elf Agent'}
                             </Badge>
                           </div>
 
@@ -523,16 +523,16 @@ export default function DashboardPage() {
             {/* Section 2: Wishlists & Gifts Inventory (3 Most Recent Limit) */}
             <Card variant="section" className="space-y-6">
               <SectionHeader
-                title={`🧰 ${terminology.wishlistLabel}s`}
-                subtitle={`Create & manage your ${terminology.wishlistLabel.toLowerCase()}s and wished-for ${terminology.itemLabel.toLowerCase()}s — Showing 3 most recent.`}
+                title="🧰 Wishlist Manifests"
+                subtitle="Create & manage your wishlist manifests and wished-for manifest items — Showing 3 most recent."
                 primaryAction={
                   <Button onClick={() => setCreateOpKitModalOpen(true)} variant="primary">
-                    + New {terminology.wishlistLabel}
+                    + New Wishlist Manifest
                   </Button>
                 }
                 secondaryAction={
                   <Button href="/opkits" variant="toggle">
-                    ⚙️ Manage All {terminology.wishlistLabel}s →
+                    ⚙️ Manage All Wishlist Manifests →
                   </Button>
                 }
               />

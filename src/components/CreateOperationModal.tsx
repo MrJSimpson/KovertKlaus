@@ -19,7 +19,7 @@ export function CreateOperationModal({
   onSuccess,
 }: CreateOperationModalProps) {
   const router = useRouter();
-  const { isDarkMode, theme, terminology } = useTheme();
+  const { isDarkMode, theme } = useTheme();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -125,9 +125,9 @@ export function CreateOperationModal({
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-200 dark:border-slate-800">
           <div>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
-              ⭐ {terminology.organizerRole} Console
+              ⭐ Head Elf Console
             </span>
-            <h3 className="text-2xl font-black mt-1">Organize New {terminology.exchangeLabel}</h3>
+            <h3 className="text-2xl font-black mt-1">Organize New Holiday Mission</h3>
           </div>
           <button
             onClick={onClose}
@@ -335,10 +335,10 @@ export function CreateOperationModal({
               <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-200 font-medium space-y-1">
                 <div className="font-extrabold flex items-center gap-1 text-amber-950 dark:text-amber-100">
                   <span>⚠️</span>
-                  <span>{terminology.organizerRole} Trust & Responsibility Notice:</span>
+                  <span>Head Elf Trust &amp; Responsibility Notice:</span>
                 </div>
                 <p>
-                  Disabling penalty tracking removes all automated delivery verification and coal citations for this exchange. By unchecking this box, you (the <strong>{terminology.organizerRole}</strong>) confirm that all participants are trusted family/friends who will fulfill gifts on the honor system.
+                  Disabling penalty tracking removes all automated delivery verification and coal citations for this exchange. By unchecking this box, you (the <strong>Head Elf</strong>) confirm that all participants are trusted family/friends who will fulfill gifts on the honor system.
                 </p>
               </div>
             )}

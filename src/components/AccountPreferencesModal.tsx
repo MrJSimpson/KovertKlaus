@@ -12,7 +12,7 @@ export interface AccountPreferencesModalProps {
 }
 
 export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: AccountPreferencesModalProps) {
-  const { theme, isDarkMode, terminology } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const [activeTab, setActiveTab] = useState<'identity' | 'shipping' | 'dossier' | 'security'>('identity');
   
   const [loading, setLoading] = useState(true);
@@ -418,7 +418,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           className="h-3.5 w-3.5 rounded border-stone-300 accent-red-600 cursor-pointer"
                         />
                         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          {terminology.privacySizesToggle}
+                          Allow your assigned Secret Santa (Elf Agent) to view clothing &amp; shoe sizes
                         </span>
                       </label>
                     </div>
@@ -508,7 +508,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           className="h-3.5 w-3.5 rounded border-stone-300 accent-red-600 cursor-pointer"
                         />
                         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          {terminology.privacyMeasurementsToggle}
+                          Allow your assigned Secret Santa (Elf Agent) to view body measurements
                         </span>
                       </label>
                     </div>
@@ -563,7 +563,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           className="h-3.5 w-3.5 rounded border-stone-300 accent-red-600 cursor-pointer"
                         />
                         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          {terminology.privacyAllergiesToggle}
+                          Allow your assigned Secret Santa (Elf Agent) to view allergies &amp; dietary notes
                         </span>
                       </label>
                     </div>
@@ -593,7 +593,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           className="h-3.5 w-3.5 rounded border-stone-300 accent-red-600 cursor-pointer"
                         />
                         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          {terminology.privacyFavoritesToggle}
+                          Allow your assigned Secret Santa (Elf Agent) to view favorite colors &amp; hobbies
                         </span>
                       </label>
                     </div>
@@ -617,17 +617,17 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                   {/* Demerits & Penalty Ledger */}
                   <Card variant="inner" className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold ${theme.textLabel}`}>{terminology.naughtyListSectionHeader} Record</span>
+                      <span className={`text-xs font-bold ${theme.textLabel}`}>Santa's Naughty List (Coal Citations) Record</span>
                       <Badge variant={demerits === 0 ? 'code' : demerits >= 3 ? 'rose' : 'amber'}>
                         {demerits === 0
-                          ? `0 ${terminology.penaltyUnitPlural} (Clean Standing 🟢)`
+                          ? '0 Coal Citations (Clean Standing 🟢)'
                           : demerits >= 3
-                          ? `${demerits} ${terminology.penaltyUnitPlural} (Remote Restricted 🔴)`
-                          : `${demerits} ${terminology.penaltyUnitSingular}(s) (Caution 🟡)`}
+                          ? `${demerits} Coal Citations (Remote Restricted 🔴)`
+                          : `${demerits} Coal Citation(s) (Caution 🟡)`}
                       </Badge>
                     </div>
                     <p className={`text-xs ${theme.textSubLabel}`}>
-                      {terminology.penaltyNoticeText} Accumulating 3+ {terminology.penaltyUnitPlural.toLowerCase()} restricts remote physical gifting privileges. Carrier tracking waivers automatically protect against loss.
+                      Keep your holiday commitments to stay on Santa’s Nice List! Accumulating 3+ coal citations restricts remote physical gifting privileges. Carrier tracking waivers automatically protect against loss.
                     </p>
                   </Card>
 

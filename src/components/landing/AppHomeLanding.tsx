@@ -77,7 +77,7 @@ function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
 
 export function AppHomeLanding() {
   const router = useRouter();
-  const { isDarkMode, toggleTheme, theme, terminology, bannerText, bannerActive, lightsType } = useTheme();
+  const { isDarkMode, toggleTheme, theme, bannerText, bannerActive, lightsType } = useTheme();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -420,7 +420,7 @@ export function AppHomeLanding() {
               title="Toggle Theme Mode"
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${theme.btnToggle}`}
             >
-              <span>{terminology.toggleButtonText}</span>
+              <span>{isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}</span>
             </button>
 
             {currentUser ? (
@@ -707,7 +707,7 @@ export function AppHomeLanding() {
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
-                <span>{authMode === 'login' ? '🔑 Sign In' : `✨ Create ${terminology.participantRole} Profile`}</span>
+                <span>{authMode === 'login' ? '🔑 Sign In' : '✨ Create Elf Agent Profile'}</span>
               </h3>
               <button
                 onClick={() => setLoginModalOpen(false)}
@@ -739,7 +739,7 @@ export function AppHomeLanding() {
                     : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                ✨ Sign Up (New {terminology.participantRole})
+                ✨ Sign Up (New Elf Agent)
               </button>
             </div>
 
@@ -824,7 +824,7 @@ export function AppHomeLanding() {
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-slate-500">{terminology.participantRole} Nickname / Codename</label>
+                    <label className="block text-slate-500">Elf Agent Nickname / Codename</label>
                     <button
                       type="button"
                       onClick={() => setCodename(generateRandomCodename())}

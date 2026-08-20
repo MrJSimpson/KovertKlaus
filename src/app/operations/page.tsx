@@ -41,7 +41,7 @@ interface OperationItem {
 }
 
 export default function OperationCenterPage() {
-  const { isDarkMode, toggleTheme, theme, terminology } = useTheme();
+  const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [operations, setOperations] = useState<OperationItem[]>([]);
 
@@ -155,7 +155,7 @@ export default function OperationCenterPage() {
               onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
-              {terminology.toggleButtonText}
+              {isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}
             </button>
 
             <Link
@@ -183,13 +183,13 @@ export default function OperationCenterPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeCode}`}>
-                🗺️ Exchange Control Center
+                🗺️ Holiday Mission Control
               </span>
-              <span className={`text-xs ${theme.textSubLabel}`}>Active Exchanges & Secret Santa Groups</span>
+              <span className={`text-xs ${theme.textSubLabel}`}>Active Missions & Secret Santa Groups</span>
             </div>
-            <h1 className="text-3xl font-black">Gift Exchange Center</h1>
+            <h1 className="text-3xl font-black">Holiday Mission Center</h1>
             <p className={`text-xs mt-1 max-w-2xl ${theme.textSubLabel}`}>
-              Manage your active Secret Santa and White Elephant gift exchanges. Track participant enrollment, target assignments, and gift shipping deadlines in real time.
+              Manage your active Secret Santa and White Elephant holiday missions. Track participant enrollment, target assignments, and gift shipping deadlines in real time.
             </p>
           </div>
 
@@ -198,14 +198,14 @@ export default function OperationCenterPage() {
               onClick={() => setJoinModalOpen(true)}
               className={`px-5 py-3.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnSecondary}`}
             >
-              <span>🕵️ Join Exchange</span>
+              <span>🕵️ Join Mission</span>
             </button>
 
             <button
               onClick={() => setCreateModalOpen(true)}
               className={`px-6 py-3.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnPrimary}`}
             >
-              <span>+ New Exchange</span>
+              <span>+ New Mission</span>
             </button>
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function OperationCenterPage() {
           <div className="w-full sm:w-72">
             <input
               type="text"
-              placeholder="Search by exchange name or code..."
+              placeholder="Search by mission name or code..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`w-full border rounded-xl px-4 py-2 text-xs focus:outline-none ${theme.inputBg}`}
@@ -249,7 +249,7 @@ export default function OperationCenterPage() {
                     : 'text-slate-700 hover:text-slate-950'
                 }`}
               >
-                {terminology.organizerRole}
+                Head Elf
               </button>
               <button
                 onClick={() => setRoleFilter('MEMBER')}
@@ -261,7 +261,7 @@ export default function OperationCenterPage() {
                     : 'text-slate-700 hover:text-slate-950'
                 }`}
               >
-                {terminology.participantRole}
+                Elf Agent
               </button>
             </div>
 
@@ -387,7 +387,7 @@ export default function OperationCenterPage() {
                             ? 'bg-slate-800 text-slate-200 border border-slate-700'
                             : 'bg-stone-200 text-slate-800 border border-stone-300'
                         }`}>
-                          {p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? terminology.organizerRole : terminology.participantRole}
+                          {p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? 'Head Elf' : 'Elf Agent'}
                         </span>
                       </div>
 
@@ -424,7 +424,7 @@ export default function OperationCenterPage() {
 
                   <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-stone-200 dark:border-slate-800">
                     <span className={`text-xs truncate shrink-0 ${theme.textSubLabel}`}>
-                      {terminology.organizerRole}: <strong className={theme.textLabel}>{organizerData?.name || 'Organizer'}</strong>
+                      Head Elf: <strong className={theme.textLabel}>{organizerData?.name || 'Organizer'}</strong>
                     </span>
 
                     <Link

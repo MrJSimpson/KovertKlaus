@@ -81,7 +81,7 @@ export default function OperationCommandCenterPage() {
   const router = useRouter();
   const code = (params?.code as string)?.toUpperCase() || '';
 
-  const { isDarkMode, toggleTheme, theme, terminology } = useTheme();
+  const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [operation, setOperation] = useState<OperationData | null>(null);
@@ -494,7 +494,7 @@ export default function OperationCommandCenterPage() {
               onClick={toggleTheme}
               className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
             >
-              {terminology.toggleButtonText}
+              {isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}
             </button>
 
             <Link
@@ -555,7 +555,7 @@ export default function OperationCommandCenterPage() {
                   )}
 
                   <span className={`text-xs font-semibold ${theme.textSubLabel}`}>
-                    {terminology.organizerRole}: <strong className={theme.textLabel}>{organizerData?.name || 'Organizer'} ({formatCodename(organizerData?.codename, organizerData?.name)})</strong>
+                    Head Elf: <strong className={theme.textLabel}>{organizerData?.name || 'Organizer'} ({formatCodename(organizerData?.codename, organizerData?.name)})</strong>
                   </span>
                 </div>
 
@@ -605,8 +605,8 @@ export default function OperationCommandCenterPage() {
                   <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-amber-300' : 'text-amber-800'}`}>
                     STAGE 1
                   </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>{terminology.cutoffLabel}</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>{terminology.cutoffSublabel}</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>RSVP Cutoff Date</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Final Headcount)</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.inviteCutoffDate)}
                   </strong>
@@ -616,8 +616,8 @@ export default function OperationCommandCenterPage() {
                   <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-sky-300' : 'text-sky-800'}`}>
                     STAGE 2
                   </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>{terminology.assignmentLabel}</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>{terminology.assignmentSublabel}</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Secret Santa Match</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Targets Drawn)</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.assignmentDate)}
                   </strong>
@@ -627,8 +627,8 @@ export default function OperationCommandCenterPage() {
                   <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-purple-300' : 'text-purple-800'}`}>
                     STAGE 3
                   </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>{terminology.shippingLabel}</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>{terminology.shippingSublabel}</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Santa's Sleigh Departure</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Gifts In-Transit)</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
                     {formatDateString(operation.shippingDate)}
                   </strong>
@@ -638,8 +638,8 @@ export default function OperationCommandCenterPage() {
                   <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>
                     STAGE 4
                   </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>{terminology.executionLabel}</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>{terminology.executionSublabel}</span>
+                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Holiday Mission Exchange Party</span>
+                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Unwrapping Day)</span>
                   <strong className={`text-base font-black block mt-2 ${theme.textAccent}`}>
                     {formatDateString(operation.executionDate)}
                   </strong>
@@ -935,7 +935,7 @@ export default function OperationCommandCenterPage() {
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                   <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                     <h2 className="text-xl font-bold flex items-center gap-2">
-                      👥 Enrolled {terminology.participantRole}s ({membersList.length})
+                      👥 Enrolled Elf Agents ({membersList.length})
                     </h2>
                     <div className="flex items-center gap-2">
                       {isOpsLeader && (
@@ -943,7 +943,7 @@ export default function OperationCommandCenterPage() {
                           onClick={() => setInviteModalOpen(true)}
                           className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 ${theme.btnPrimary}`}
                         >
-                          <span>✉️ + Invite {terminology.participantRole}</span>
+                          <span>✉️ + Invite Elf Agent</span>
                         </button>
                       )}
                       <span className={`text-xs font-mono font-bold px-2 py-1 rounded-md ${theme.badgeCode}`}>
@@ -966,7 +966,7 @@ export default function OperationCommandCenterPage() {
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                                   agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? theme.badgeAmber : theme.badgeSecretSanta
                                 }`}>
-                                  {agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? terminology.organizerRole : terminology.participantRole}
+                                  {agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? 'Head Elf' : 'Elf Agent'}
                                 </span>
                                 <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
                                   Shipping: {agent.shippingStatus}
@@ -991,10 +991,10 @@ export default function OperationCommandCenterPage() {
                               <>
                                 <button
                                   onClick={() => handleAgentAction('issue_demerit', agent)}
-                                  title={`${terminology.assignPenaltyAction} for deadline non-compliance`}
+                                  title="Issue Coal Citation for deadline non-compliance"
                                   className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
                                 >
-                                  🪨 {terminology.assignPenaltyAction}
+                                  🪨 Issue Coal Citation
                                 </button>
 
                                 <button
