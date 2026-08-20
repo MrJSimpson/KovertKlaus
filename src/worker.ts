@@ -244,35 +244,100 @@ export default {
       // 5. /api/northpole/users (GET / PATCH)
       if (pathname === '/api/northpole/users') {
         if (request.method === 'GET') {
-          const users = await adminDb.user.findMany({
+          const q = url.searchParams.get('q')?.trim().toLowerCase();
+          const workshop = url.searchParams.get('workshop') === 'true';
+
+          const whereClause: any = {};
+          if (workshop) whereClause.isWorkshop = true;
+          if (q) {
+            whereClause.OR = [
+              { name: { contains: q, mode: 'insensitive' } },
+              { email: { contains: q, mode: 'insensitive' } },
+              { codename: { contains: q, mode: 'insensitive' } },
+            ];
+          }
+
+          const rawUsers = await adminDb.user.findMany({
+            where: whereClause,
             take: 100,
             orderBy: { createdAt: 'desc' },
-            select: { id: true, name: true, email: true, codename: true, penaltyPoints: true, isWorkshop: true, createdAt: true },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              codename: true,
+              penaltyPoints: true,
+              accountStatus: true,
+              isWorkshop: true,
+              createdAt: true,
+              _count: {
+                select: {
+                  organizedExchanges: true,
+                  participations: true,
+                  wishlists: true,
+                },
+              },
+            },
           });
-          return Response.json({ success: true, users, total: users.length });
+
+          const formatted = rawUsers.map((u) => ({
+            ...u,
+            demerits: u.penaltyPoints ?? 0,
+            accountStatus: u.accountStatus || 'ACTIVE',
+            organizedCount: u._count?.organizedExchanges ?? 0,
+            joinedCount: u._count?.participations ?? 0,
+            wishlistsCount: u._count?.wishlists ?? 0,
+          }));
+
+          return Response.json({ success: true, users: formatted, total: formatted.length });
         }
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as any;
-          const { userId, penaltyPoints, isWorkshop } = body;
+          const { userId, penaltyPoints, isWorkshop, accountStatus } = body;
           const user = await adminDb.user.update({
             where: { id: userId },
             data: {
               ...(penaltyPoints !== undefined ? { penaltyPoints } : {}),
               ...(isWorkshop !== undefined ? { isWorkshop } : {}),
+              ...(accountStatus !== undefined ? { accountStatus } : {}),
             },
           });
-          return Response.json({ success: true, user });
+          return Response.json({ success: true, user: { ...user, demerits: user.penaltyPoints } });
         }
       }
 
       // 6. /api/northpole/operations (GET)
       if (pathname === '/api/northpole/operations' && request.method === 'GET') {
-        const operations = await adminDb.exchange.findMany({
+        const q = url.searchParams.get('q')?.trim().toLowerCase();
+        const whereClause: any = {};
+        if (q) {
+          whereClause.OR = [
+            { title: { contains: q, mode: 'insensitive' } },
+            { code: { contains: q, mode: 'insensitive' } },
+          ];
+        }
+
+        const rawOps = await adminDb.exchange.findMany({
+          where: whereClause,
           take: 100,
           orderBy: { createdAt: 'desc' },
-          include: { _count: { select: { members: true } } },
+          include: {
+            organizer: { select: { id: true, name: true, email: true, codename: true } },
+            _count: { select: { members: true, exclusionRules: true, reports: true } },
+          },
         });
-        return Response.json({ success: true, operations, total: operations.length });
+
+        const formatted = rawOps.map((op) => ({
+          ...op,
+          organizer: op.organizer || { id: '', name: 'System Organizer', email: 'admin@kovertklaus.com' },
+          membersCount: op._count?.members ?? 0,
+          rulesCount: op._count?.exclusionRules ?? 0,
+          reportsCount: op._count?.reports ?? 0,
+          budgetMin: op.budgetMin ? Number(op.budgetMin) : 0,
+          budgetMax: op.budgetMax ? Number(op.budgetMax) : 0,
+        }));
+
+        return Response.json({ success: true, operations: formatted, total: formatted.length });
       }
 
       // 7. /api/northpole/email/test (POST)
