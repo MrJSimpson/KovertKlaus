@@ -1,3 +1,11 @@
+// Cloudflare Edge Compatibility Polyfills
+if (typeof (globalThis as any).__dirname === 'undefined') {
+  (globalThis as any).__dirname = '';
+}
+if (typeof (globalThis as any).__filename === 'undefined') {
+  (globalThis as any).__filename = '';
+}
+
 import { POST as handleNorthPoleLogin } from './app/api/northpole/login/route';
 import { GET as handleNorthPoleMe, DELETE as handleNorthPoleLogout } from './app/api/northpole/me/route';
 import { POST as handleNorthPoleResetPassword } from './app/api/northpole/reset-password/route';
