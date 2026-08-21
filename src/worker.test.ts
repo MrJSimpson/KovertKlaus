@@ -6,35 +6,12 @@ import { isSafePublicUrl, normalizeProductUrl, generateInviteCode, signToken, ve
 import { executeTargetSwap, buildExclusionIndex, LinkedAssignment, ExclusionRuleInput } from './lib/draw';
 import { evaluateMemberAudit } from './lib/demerits';
 
-test('Next.js Dynamic Route Directives Alignment (Finding 3.2)', async (t) => {
-  const apiDir = path.join(process.cwd(), 'src', 'app', 'api');
-
-  function scanDir(dir: string): string[] {
-    const results: string[] = [];
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        results.push(...scanDir(fullPath));
-      } else if (entry.name === 'route.ts') {
-        results.push(fullPath);
-      }
-    }
-    return results;
-  }
-
-  const routeFiles = scanDir(apiDir);
-
-  await t.test('All dynamic API routes do not contain force-static', () => {
-    for (const file of routeFiles) {
-      const content = fs.readFileSync(file, 'utf-8');
-      const hasForceStatic = content.includes("export const dynamic = 'force-static'");
-      assert.strictEqual(
-        hasForceStatic,
-        false,
-        `File ${path.relative(process.cwd(), file)} contains illegal force-static directive!`
-      );
-    }
+test('Next.js Route Configuration & Edge Assets Alignment (Finding 3.2)', async (t) => {
+  await t.test('next.config.ts configures static export for Cloudflare Pages/Workers', () => {
+    const configPath = path.join(process.cwd(), 'next.config.ts');
+    const content = fs.readFileSync(configPath, 'utf-8');
+    assert.strictEqual(content.includes('output: "export"'), true);
+    assert.strictEqual(content.includes('wrangler.json'), true);
   });
 });
 

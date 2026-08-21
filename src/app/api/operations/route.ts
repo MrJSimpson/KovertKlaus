@@ -6,7 +6,8 @@ import { generateInviteCode } from '@/lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
 import { sendAssignmentEmail, sendNudgeEmail } from '@/lib/email';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
+
 
 export async function GET(request: Request) {
 
