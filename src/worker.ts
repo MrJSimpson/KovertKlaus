@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { getAdminDb } from './lib/adminDb';
-import { getDb } from './lib/db';
+import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
+import { getDb, invalidateCachedDb } from './lib/db';
 import { validateNistPassword } from './lib/adminAuth';
 import { sanitizeText, isValidEmail, validatePassword, generateInviteCode } from './lib/security';
 import { executeLinkedListDraw } from './lib/draw';
@@ -212,12 +212,14 @@ export default {
       // 4. /api/northpole/config (GET / PATCH)
       if (pathname === '/api/northpole/config') {
         if (request.method === 'GET') {
-          const config = await adminDb.systemConfig.findUnique({ where: { id: 'singleton' } });
-          const themes = await adminDb.themePreset.findMany({ orderBy: { id: 'asc' } });
-          const totalUsers = await adminDb.user.count();
-          const totalOperations = await adminDb.exchange.count();
-          const totalLeads = await adminDb.clearanceLead.count();
-          const workshopUsersCount = await adminDb.user.count({ where: { isWorkshop: true } });
+          const [config, themes, totalUsers, totalOperations, totalLeads, workshopUsersCount] = await Promise.all([
+            adminDb.systemConfig.findUnique({ where: { id: 'singleton' } }),
+            adminDb.themePreset.findMany({ orderBy: { id: 'asc' } }),
+            adminDb.user.count(),
+            adminDb.exchange.count(),
+            adminDb.clearanceLead.count(),
+            adminDb.user.count({ where: { isWorkshop: true } }),
+          ]);
           return Response.json({
             success: true,
             config,
@@ -825,6 +827,8 @@ export default {
 
     } catch (err: any) {
       console.error('[Worker API Error]', err);
+      invalidateCachedDb();
+      invalidateCachedAdminDb();
       return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },

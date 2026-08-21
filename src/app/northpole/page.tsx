@@ -35,22 +35,34 @@ export default function NorthPoleDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchDashboardData() {
+    async function fetchDashboardData(retryCount = 0) {
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
         const res = await fetch('/api/northpole/config', {
           credentials: 'include',
           headers: token ? { 'x-admin-token': token } : {},
         });
-        const json = await res.json();
+        const json = await res.json().catch(() => ({}));
         if (res.ok && json.success) {
           setStats(json.stats);
           setConfig(json.config);
+          setLoading(false);
+          return;
+        }
+        if (retryCount < 2) {
+          setTimeout(() => fetchDashboardData(retryCount + 1), 600 * (retryCount + 1));
+          return;
         }
       } catch (error) {
         console.error('Failed to load admin dashboard data:', error);
+        if (retryCount < 2) {
+          setTimeout(() => fetchDashboardData(retryCount + 1), 600 * (retryCount + 1));
+          return;
+        }
       } finally {
-        setLoading(false);
+        if (retryCount >= 2) {
+          setLoading(false);
+        }
       }
     }
     fetchDashboardData();

@@ -1,11 +1,15 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaNeon } from '@prisma/adapter-neon';
-import { Pool as NeonPool } from '@neondatabase/serverless';
 import pg from 'pg';
 
 let cachedAdminDb: PrismaClient | null = null;
 let lastAdminConnStr: string = '';
+
+export function invalidateCachedAdminDb(): void {
+  cachedAdminDb = null;
+  lastAdminConnStr = '';
+}
 
 export function getAdminDb(overrideConnStr?: string): PrismaClient {
   const adminConnectionString =
@@ -27,7 +31,10 @@ export function getAdminDb(overrideConnStr?: string): PrismaClient {
 
   let adapter: any;
   if (isNeon) {
-    adapter = new PrismaNeon({ connectionString: adminConnectionString });
+    adapter = new PrismaNeon({
+      connectionString: adminConnectionString,
+      connectionTimeoutMillis: 10000,
+    });
   } else {
     const adminPool = new pg.Pool({
       connectionString: adminConnectionString,
@@ -46,6 +53,36 @@ export function getAdminDb(overrideConnStr?: string): PrismaClient {
   return cachedAdminDb;
 }
 
+export async function withAdminDbRetry<T>(fn: (client: PrismaClient) => Promise<T>, maxRetries = 2): Promise<T> {
+  let attempt = 0;
+  while (true) {
+    try {
+      const client = getAdminDb();
+      return await fn(client);
+    } catch (err: any) {
+      attempt++;
+      const isConnError =
+        err?.message?.includes('socket') ||
+        err?.message?.includes('connection') ||
+        err?.message?.includes('closed') ||
+        err?.message?.includes('WebSocket') ||
+        err?.message?.includes('ECONNRESET') ||
+        err?.message?.includes('ETIMEDOUT') ||
+        err?.message?.includes('Connection lost') ||
+        err?.name?.includes('PrismaClientInitializationError') ||
+        err?.name?.includes('PrismaClientRustPanicError');
+
+      if (isConnError && attempt < maxRetries) {
+        console.warn(`[AdminDB Retry] Neon connection issue (attempt ${attempt}/${maxRetries}), reconnecting...`, err.message);
+        invalidateCachedAdminDb();
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 export const adminDb = new Proxy({} as PrismaClient, {
   get(_target, prop) {
     const client = getAdminDb();
@@ -56,4 +93,3 @@ export const adminDb = new Proxy({} as PrismaClient, {
     return val;
   },
 });
-

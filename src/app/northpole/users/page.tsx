@@ -31,8 +31,8 @@ export default function NorthPoleUsersPage() {
     fetchUsers();
   }, [workshopOnly]);
 
-  async function fetchUsers(query = searchQuery) {
-    setLoading(true);
+  async function fetchUsers(query = searchQuery, retryCount = 0) {
+    if (retryCount === 0) setLoading(true);
     try {
       let url = `/api/northpole/users?q=${encodeURIComponent(query)}`;
       if (workshopOnly) {
@@ -43,14 +43,26 @@ export default function NorthPoleUsersPage() {
         credentials: 'include',
         headers: token ? { 'x-admin-token': token } : {},
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (res.ok && json.success) {
         setUsers(json.users || []);
+        setLoading(false);
+        return;
+      }
+      if (retryCount < 2) {
+        setTimeout(() => fetchUsers(query, retryCount + 1), 600 * (retryCount + 1));
+        return;
       }
     } catch (error) {
       console.error('Failed to fetch user roster:', error);
+      if (retryCount < 2) {
+        setTimeout(() => fetchUsers(query, retryCount + 1), 600 * (retryCount + 1));
+        return;
+      }
     } finally {
-      setLoading(false);
+      if (retryCount >= 2) {
+        setLoading(false);
+      }
     }
   }
 

@@ -29,16 +29,16 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
       return;
     }
 
-    async function checkAdminSession() {
+    async function checkAdminSession(retryCount = 0) {
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
         const res = await fetch('/api/northpole/me', {
           credentials: 'include',
           headers: token ? { 'x-admin-token': token } : {},
         });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok || !json.authenticated || !json.admin) {
-          console.warn('[NorthPole Access Denied]', json);
+
+        if (res.status === 401) {
+          console.warn('[NorthPole Access Denied] 401 Unauthorized');
           if (typeof window !== 'undefined') {
             localStorage.removeItem('kovertklaus_admin_token');
             localStorage.removeItem('kovertklaus_admin_user');
@@ -46,14 +46,42 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
           window.location.href = '/northpole/login';
           return;
         }
-        setAdmin(json.admin);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('kovertklaus_admin_user', JSON.stringify(json.admin));
+
+        const json = await res.json().catch(() => ({}));
+        if (res.ok && json.authenticated && json.admin) {
+          setAdmin(json.admin);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kovertklaus_admin_user', JSON.stringify(json.admin));
+          }
+          setLoading(false);
+          return;
+        }
+
+        // If server error / cold start, retry before redirecting
+        if (retryCount < 2) {
+          console.log(`[NorthPole Session Check] Retrying connection (${retryCount + 1}/2)...`);
+          setTimeout(() => checkAdminSession(retryCount + 1), 600 * (retryCount + 1));
+          return;
+        }
+
+        if (json.authenticated === false) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('kovertklaus_admin_token');
+            localStorage.removeItem('kovertklaus_admin_user');
+          }
+          window.location.href = '/northpole/login';
+          return;
         }
       } catch (err) {
         console.error('[NorthPole Session Check Error]', err);
+        if (retryCount < 2) {
+          setTimeout(() => checkAdminSession(retryCount + 1), 600 * (retryCount + 1));
+          return;
+        }
       } finally {
-        setLoading(false);
+        if (retryCount >= 2) {
+          setLoading(false);
+        }
       }
     }
 

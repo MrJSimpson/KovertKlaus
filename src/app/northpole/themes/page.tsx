@@ -24,23 +24,35 @@ export default function NorthPoleThemesPage() {
     fetchThemes();
   }, []);
 
-  async function fetchThemes() {
-    setLoading(true);
+  async function fetchThemes(retryCount = 0) {
+    if (retryCount === 0) setLoading(true);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
       const res = await fetch('/api/northpole/config', {
         credentials: 'include',
         headers: token ? { 'x-admin-token': token } : {},
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (res.ok && json.success) {
         setThemes(json.themes || []);
         setActiveThemeId(json.config?.activeThemeId || 'winter_holiday');
+        setLoading(false);
+        return;
+      }
+      if (retryCount < 2) {
+        setTimeout(() => fetchThemes(retryCount + 1), 600 * (retryCount + 1));
+        return;
       }
     } catch (error) {
       console.error('Failed to load themes:', error);
+      if (retryCount < 2) {
+        setTimeout(() => fetchThemes(retryCount + 1), 600 * (retryCount + 1));
+        return;
+      }
     } finally {
-      setLoading(false);
+      if (retryCount >= 2) {
+        setLoading(false);
+      }
     }
   }
 

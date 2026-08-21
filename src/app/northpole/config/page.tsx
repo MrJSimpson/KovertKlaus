@@ -56,14 +56,14 @@ export default function NorthPoleConfigPage() {
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
-    async function fetchConfig() {
+    async function fetchConfig(retryCount = 0) {
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
         const res = await fetch('/api/northpole/config', {
           credentials: 'include',
           headers: token ? { 'x-admin-token': token } : {},
         });
-        const json = await res.json();
+        const json = await res.json().catch(() => ({}));
         if (res.ok && json.success) {
           const cfg = json.config;
           setThemes(json.themes || []);
@@ -97,11 +97,23 @@ export default function NorthPoleConfigPage() {
           setDefaultBudgetMin(Number(cfg.defaultBudgetMin ?? 0));
           setDefaultBudgetMax(Number(cfg.defaultBudgetMax ?? 50));
           setDefaultCurrency(cfg.defaultCurrency || 'USD');
+          setLoading(false);
+          return;
+        }
+        if (retryCount < 2) {
+          setTimeout(() => fetchConfig(retryCount + 1), 600 * (retryCount + 1));
+          return;
         }
       } catch (error: any) {
+        if (retryCount < 2) {
+          setTimeout(() => fetchConfig(retryCount + 1), 600 * (retryCount + 1));
+          return;
+        }
         setErrorMessage('Failed to load system configuration');
       } finally {
-        setLoading(false);
+        if (retryCount >= 2) {
+          setLoading(false);
+        }
       }
     }
     fetchConfig();
