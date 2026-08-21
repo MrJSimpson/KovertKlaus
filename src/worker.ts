@@ -5,7 +5,7 @@ import { validateNistPassword } from './lib/adminAuth';
 import { sanitizeText, isValidEmail, validatePassword, generateInviteCode } from './lib/security';
 import { executeLinkedListDraw } from './lib/draw';
 import { sendEmail } from './lib/email/dispatcher';
-import { sendWelcomeEmail, sendInvitationEmail } from './lib/email';
+import { sendWelcomeEmail, sendInvitationEmail, sendClearanceConfirmationEmail } from './lib/email';
 
 const ADMIN_COOKIE_NAME = 'kovertklaus_admin_session';
 const USER_COOKIE_NAME = 'kovertklaus_session';
@@ -16,6 +16,19 @@ interface Env {
   DATABASE_ADMIN_URL?: string;
   DIRECT_URL?: string;
   MODE?: string;
+  BREVO_API_KEY?: string;
+  BREVO_SENDER_EMAIL?: string;
+  BREVO_SENDER_NAME?: string;
+  EMAIL_PROVIDER?: string;
+  EMAIL_FROM?: string;
+  EMAIL_FROM_NAME?: string;
+  RESEND_API_KEY?: string;
+  SMTP_HOST?: string;
+  SMTP_PORT?: string;
+  SMTP_USER?: string;
+  SMTP_PASS?: string;
+  SMTP_SECURE?: string;
+  SMTP_FROM?: string;
 }
 
 function parseCookie(cookieHeader: string | null, name: string): string | null {
@@ -70,6 +83,19 @@ export default {
     if (env.DATABASE_ADMIN_URL) process.env.DATABASE_ADMIN_URL = env.DATABASE_ADMIN_URL;
     if (env.DIRECT_URL) process.env.DIRECT_URL = env.DIRECT_URL;
     if (env.MODE) process.env.MODE = env.MODE;
+    if (env.BREVO_API_KEY) process.env.BREVO_API_KEY = env.BREVO_API_KEY;
+    if (env.BREVO_SENDER_EMAIL) process.env.BREVO_SENDER_EMAIL = env.BREVO_SENDER_EMAIL;
+    if (env.BREVO_SENDER_NAME) process.env.BREVO_SENDER_NAME = env.BREVO_SENDER_NAME;
+    if (env.EMAIL_PROVIDER) process.env.EMAIL_PROVIDER = env.EMAIL_PROVIDER;
+    if (env.EMAIL_FROM) process.env.EMAIL_FROM = env.EMAIL_FROM;
+    if (env.EMAIL_FROM_NAME) process.env.EMAIL_FROM_NAME = env.EMAIL_FROM_NAME;
+    if (env.RESEND_API_KEY) process.env.RESEND_API_KEY = env.RESEND_API_KEY;
+    if (env.SMTP_HOST) process.env.SMTP_HOST = env.SMTP_HOST;
+    if (env.SMTP_PORT) process.env.SMTP_PORT = env.SMTP_PORT;
+    if (env.SMTP_USER) process.env.SMTP_USER = env.SMTP_USER;
+    if (env.SMTP_PASS) process.env.SMTP_PASS = env.SMTP_PASS;
+    if (env.SMTP_SECURE) process.env.SMTP_SECURE = env.SMTP_SECURE;
+    if (env.SMTP_FROM) process.env.SMTP_FROM = env.SMTP_FROM;
 
     try {
       const adminConnStr = env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL || process.env.DATABASE_ADMIN_URL || process.env.DIRECT_URL || process.env.DATABASE_URL;
@@ -394,14 +420,41 @@ export default {
       if ((pathname === '/api/clearance' || pathname === '/api/leads') && request.method === 'POST') {
         const body = (await request.json().catch(() => ({}))) as any;
         const email = (body.email || '').trim().toLowerCase();
-        if (!email) return Response.json({ error: 'Email is required' }, { status: 400 });
+        const name = (body.name || '').trim();
+        const source = (body.source || 'landing_countdown').trim();
 
+        if (!email || !isValidEmail(email)) {
+          return Response.json({ error: 'A valid email address is required for clearance access.' }, { status: 400 });
+        }
+
+        const totalLeads = await db.clearanceLead.count();
         const lead = await db.clearanceLead.upsert({
           where: { email },
-          update: { updatedAt: new Date() },
-          create: { email, source: 'landing_countdown' },
+          update: { updatedAt: new Date(), ...(name ? { name: sanitizeText(name) } : {}) },
+          create: { email, name: name ? sanitizeText(name) : undefined, source: sanitizeText(source) },
         });
-        return Response.json({ success: true, lead });
+
+        // Dispatch Confirmation Email via configured Email Dispatcher
+        let emailResult: any = null;
+        try {
+          emailResult = await sendClearanceConfirmationEmail({
+            to: email,
+            name: name || undefined,
+            positionNumber: totalLeads + 1,
+          });
+        } catch (emailErr: any) {
+          console.error('[Clearance Email Dispatch Error]', emailErr);
+        }
+
+        return Response.json({
+          success: true,
+          lead,
+          emailDispatched: Boolean(emailResult?.success),
+          provider: emailResult?.provider || emailResult?.mode,
+          message: emailResult?.success
+            ? 'Clearance access confirmed! Encrypted briefing dispatched to your inbox.'
+            : 'Clearance request logged.',
+        });
       }
 
       // 10. /api/users/login (POST)
