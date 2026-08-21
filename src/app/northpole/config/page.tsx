@@ -27,11 +27,11 @@ export default function NorthPoleConfigPage() {
 
   // Email Config State
   const [emailProvider, setEmailProvider] = useState('auto');
-  const [emailFrom, setEmailFrom] = useState('admin@kovertklaus.com');
-  const [emailFromName, setEmailFromName] = useState('KovertKlaus HQ');
+  const [emailFrom, setEmailFrom] = useState('');
+  const [emailFromName, setEmailFromName] = useState('');
   const [brevoApiKey, setBrevoApiKey] = useState('');
-  const [brevoSenderEmail, setBrevoSenderEmail] = useState('admin@kovertklaus.com');
-  const [brevoSenderName, setBrevoSenderName] = useState('KovertKlaus HQ');
+  const [brevoSenderEmail, setBrevoSenderEmail] = useState('');
+  const [brevoSenderName, setBrevoSenderName] = useState('');
   const [smtpHost, setSmtpHost] = useState('');
   const [smtpPort, setSmtpPort] = useState(587);
   const [smtpUser, setSmtpUser] = useState('');
@@ -65,7 +65,7 @@ export default function NorthPoleConfigPage() {
         });
         const json = await res.json().catch(() => ({}));
         if (res.ok && json.success) {
-          const cfg = json.config;
+          const cfg = json.config || {};
           setThemes(json.themes || []);
           setActiveThemeId(cfg.activeThemeId || 'winter_holiday');
           setActiveSeason(cfg.activeSeason || 'auto');
@@ -76,10 +76,11 @@ export default function NorthPoleConfigPage() {
           setAppMode(cfg.appMode || 'selfhosted');
 
           setEmailProvider(cfg.emailProvider || 'auto');
-          setEmailFrom(cfg.emailFrom || 'admin@kovertklaus.com');
+          setEmailFrom(cfg.emailFrom || '');
+          setEmailFromName(cfg.emailFromName || '');
           setBrevoApiKey(cfg.brevoApiKey || '');
-          setBrevoSenderEmail(cfg.brevoSenderEmail || cfg.emailFrom || 'admin@kovertklaus.com');
-          setBrevoSenderName(cfg.brevoSenderName || cfg.emailFromName || 'KovertKlaus HQ');
+          setBrevoSenderEmail(cfg.brevoSenderEmail || '');
+          setBrevoSenderName(cfg.brevoSenderName || '');
           setSmtpHost(cfg.smtpHost || '');
           setSmtpPort(cfg.smtpPort || 587);
           setSmtpUser(cfg.smtpUser || '');
@@ -180,7 +181,49 @@ export default function NorthPoleConfigPage() {
   }
 
   async function handleSendTestEmail() {
-    if (!testEmailRecipient.trim()) return;
+    const recipient = testEmailRecipient.trim();
+    if (!recipient) {
+      setTestEmailResult({ success: false, message: 'Recipient email address is required.' });
+      return;
+    }
+    if (!recipient.includes('@') || !recipient.includes('.')) {
+      setTestEmailResult({ success: false, message: 'Please provide a valid recipient email address format.' });
+      return;
+    }
+
+    // Explicit validation per active provider mode
+    if (emailProvider === 'brevo') {
+      if (!brevoApiKey.trim()) {
+        setTestEmailResult({ success: false, message: 'Brevo API Key is missing. Please enter your Brevo API key.' });
+        return;
+      }
+      const sender = brevoSenderEmail.trim() || emailFrom.trim();
+      if (!sender) {
+        setTestEmailResult({ success: false, message: 'Sender Email is missing. A valid Sender Email is required for Brevo dispatch.' });
+        return;
+      }
+    } else if (emailProvider === 'smtp') {
+      if (!smtpHost.trim()) {
+        setTestEmailResult({ success: false, message: 'SMTP Host is missing. Please enter your SMTP host.' });
+        return;
+      }
+      const sender = smtpFrom.trim() || emailFrom.trim();
+      if (!sender) {
+        setTestEmailResult({ success: false, message: 'Sender Email is missing. A valid Sender Email is required for SMTP dispatch.' });
+        return;
+      }
+    } else if (emailProvider === 'resend') {
+      if (!resendApiKey.trim()) {
+        setTestEmailResult({ success: false, message: 'Resend API Key is missing. Please enter your Resend API key.' });
+        return;
+      }
+      const sender = emailFrom.trim();
+      if (!sender) {
+        setTestEmailResult({ success: false, message: 'Sender Email is missing. A valid Sender Email is required for Resend dispatch.' });
+        return;
+      }
+    }
+
     setTestingEmail(true);
     setTestEmailResult(null);
 
@@ -194,21 +237,21 @@ export default function NorthPoleConfigPage() {
           ...(token ? { 'x-admin-token': token } : {}),
         },
         body: JSON.stringify({
-          recipientEmail: testEmailRecipient.trim(),
+          recipientEmail: recipient,
           overrideConfig: {
             provider: emailProvider as any,
-            brevoApiKey,
-            brevoSenderEmail,
-            brevoSenderName,
-            smtpHost,
+            brevoApiKey: brevoApiKey.trim(),
+            brevoSenderEmail: brevoSenderEmail.trim(),
+            brevoSenderName: brevoSenderName.trim(),
+            smtpHost: smtpHost.trim(),
             smtpPort,
-            smtpUser,
-            smtpPass,
+            smtpUser: smtpUser.trim(),
+            smtpPass: smtpPass.trim(),
             smtpSecure,
-            smtpFrom,
-            resendApiKey,
-            defaultFromEmail: emailFrom,
-            defaultFromName: emailFromName,
+            smtpFrom: smtpFrom.trim(),
+            resendApiKey: resendApiKey.trim(),
+            defaultFromEmail: emailFrom.trim(),
+            defaultFromName: emailFromName.trim(),
           },
         }),
       });
@@ -425,6 +468,7 @@ export default function NorthPoleConfigPage() {
             <label className="block text-gray-300 font-bold mb-1">DEFAULT SENDER EMAIL (FROM)</label>
             <input
               type="email"
+              placeholder="e.g. admin@kovertklaus.com"
               value={emailFrom}
               onChange={(e) => setEmailFrom(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
@@ -435,6 +479,7 @@ export default function NorthPoleConfigPage() {
             <label className="block text-gray-300 font-bold mb-1">DEFAULT SENDER NAME</label>
             <input
               type="text"
+              placeholder="e.g. KovertKlaus HQ"
               value={emailFromName}
               onChange={(e) => setEmailFromName(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
@@ -453,7 +498,7 @@ export default function NorthPoleConfigPage() {
               <label className="block text-gray-400 mb-1">BREVO API KEY</label>
               <input
                 type="password"
-                placeholder="xkeysib-..."
+                placeholder="e.g. xkeysib-..."
                 value={brevoApiKey}
                 onChange={(e) => setBrevoApiKey(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
@@ -463,7 +508,7 @@ export default function NorthPoleConfigPage() {
               <label className="block text-gray-400 mb-1">SENDER EMAIL</label>
               <input
                 type="email"
-                placeholder="admin@kovertklaus.com"
+                placeholder="e.g. admin@kovertklaus.com"
                 value={brevoSenderEmail}
                 onChange={(e) => setBrevoSenderEmail(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
@@ -473,7 +518,7 @@ export default function NorthPoleConfigPage() {
               <label className="block text-gray-400 mb-1">SENDER NAME</label>
               <input
                 type="text"
-                placeholder="KovertKlaus HQ"
+                placeholder="e.g. KovertKlaus HQ"
                 value={brevoSenderName}
                 onChange={(e) => setBrevoSenderName(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"

@@ -10,7 +10,7 @@ export async function sendWithBrevo(message: EmailMessage, config: EmailConfig):
     return {
       success: false,
       provider: 'brevo',
-      error: 'BREVO_API_KEY is not configured in the environment.',
+      error: 'Brevo API Key is missing. Please configure your Brevo API key.',
     };
   }
 
@@ -26,8 +26,23 @@ export async function sendWithBrevo(message: EmailMessage, config: EmailConfig):
     };
   });
 
-  const senderEmail = message.from?.trim() || config.brevoSenderEmail || config.defaultFromEmail;
-  const senderName = message.fromName?.trim() || config.brevoSenderName || config.defaultFromName;
+  const senderEmail = (message.from || config.brevoSenderEmail || config.defaultFromEmail || '').trim();
+  if (!senderEmail) {
+    return {
+      success: false,
+      provider: 'brevo',
+      error: 'Sender email is missing or empty. A valid Sender Email is required for Brevo dispatch.',
+    };
+  }
+
+  const senderName = (message.fromName || config.brevoSenderName || config.defaultFromName || '').trim();
+  if (!senderName) {
+    return {
+      success: false,
+      provider: 'brevo',
+      error: 'Sender name is missing or empty. A valid Sender Name is required for Brevo dispatch.',
+    };
+  }
 
   const payload: Record<string, unknown> = {
     sender: {
