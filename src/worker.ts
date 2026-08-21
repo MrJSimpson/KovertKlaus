@@ -1,11 +1,28 @@
 import bcrypt from 'bcryptjs';
+import * as cheerio from 'cheerio';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { validateNistPassword } from './lib/adminAuth';
-import { sanitizeText, isValidEmail, validatePassword, generateInviteCode } from './lib/security';
-import { executeLinkedListDraw } from './lib/draw';
+import {
+  sanitizeText,
+  isValidEmail,
+  validatePassword,
+  generateInviteCode,
+  signToken,
+  verifyToken,
+  isSafePublicUrl,
+  normalizeProductUrl,
+} from './lib/security';
+import { executeLinkedListDraw, executeTargetSwap } from './lib/draw';
 import { sendEmail } from './lib/email/dispatcher';
-import { sendWelcomeEmail, sendInvitationEmail, sendClearanceConfirmationEmail } from './lib/email';
+import {
+  sendWelcomeEmail,
+  sendInvitationEmail,
+  sendClearanceConfirmationEmail,
+  sendAssignmentEmail,
+  sendNudgeEmail,
+} from './lib/email';
+import { evaluateMemberAudit } from './lib/demerits';
 
 const ADMIN_COOKIE_NAME = 'kovertklaus_admin_session';
 const USER_COOKIE_NAME = 'kovertklaus_session';
@@ -40,15 +57,13 @@ function parseCookie(cookieHeader: string | null, name: string): string | null {
 function getAdminIdFromRequest(request: Request): string | null {
   const cookieHeader = request.headers.get('cookie') || request.headers.get('Cookie');
   const fromCookie = parseCookie(cookieHeader, ADMIN_COOKIE_NAME);
-  if (fromCookie) return fromCookie;
+  const verifiedCookie = verifyToken(fromCookie);
+  if (verifiedCookie) return verifiedCookie;
 
   const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authHeader.substring(7).trim();
+    return verifyToken(authHeader.substring(7).trim());
   }
-
-  const customHeader = request.headers.get('x-admin-token');
-  if (customHeader) return customHeader.trim();
 
   return null;
 }
@@ -56,19 +71,13 @@ function getAdminIdFromRequest(request: Request): string | null {
 function getUserIdFromRequest(request: Request): string | null {
   const cookieHeader = request.headers.get('cookie') || request.headers.get('Cookie');
   const fromCookie = parseCookie(cookieHeader, USER_COOKIE_NAME);
-  if (fromCookie) return fromCookie;
+  const verifiedCookie = verifyToken(fromCookie);
+  if (verifiedCookie) return verifiedCookie;
 
   const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authHeader.substring(7).trim();
+    return verifyToken(authHeader.substring(7).trim());
   }
-
-  const customHeader = request.headers.get('x-user-id');
-  if (customHeader) return customHeader.trim();
-
-  const url = new URL(request.url);
-  const paramUserId = url.searchParams.get('userId');
-  if (paramUserId) return paramUserId.trim();
 
   return null;
 }
@@ -154,12 +163,13 @@ export default {
           data: { lastLoginAt: new Date() },
         });
 
+        const signedAdminId = signToken(admin.id);
         const headers = new Headers({ 'Content-Type': 'application/json' });
-        headers.append('Set-Cookie', `${ADMIN_COOKIE_NAME}=${admin.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200; Secure`);
+        headers.append('Set-Cookie', `${ADMIN_COOKIE_NAME}=${signedAdminId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200; Secure`);
 
         return new Response(JSON.stringify({
           success: true,
-          token: admin.id,
+          token: signedAdminId,
           requiresPasswordReset: false,
           admin: { id: admin.id, name: admin.name, email: admin.email, username: admin.username, role: admin.role },
         }), { status: 200, headers });
@@ -225,12 +235,13 @@ export default {
           data: { passwordHash: newHash, requiresPasswordReset: false, lastLoginAt: new Date() },
         });
 
+        const signedAdminId = signToken(admin.id);
         const headers = new Headers({ 'Content-Type': 'application/json' });
-        headers.append('Set-Cookie', `${ADMIN_COOKIE_NAME}=${admin.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200; Secure`);
+        headers.append('Set-Cookie', `${ADMIN_COOKIE_NAME}=${signedAdminId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200; Secure`);
 
         return new Response(JSON.stringify({
           success: true,
-          token: admin.id,
+          token: signedAdminId,
           message: 'Password updated successfully. North Pole clearance unlocked.',
           admin: { id: admin.id, name: admin.name, email: admin.email, username: admin.username, role: admin.role },
         }), { status: 200, headers });
@@ -477,12 +488,13 @@ export default {
         const match = await bcrypt.compare(password, user.passwordHash);
         if (!match) return Response.json({ error: 'Invalid email or password' }, { status: 401 });
 
+        const signedUserId = signToken(user.id);
         const headers = new Headers({ 'Content-Type': 'application/json' });
-        headers.append('Set-Cookie', `${USER_COOKIE_NAME}=${user.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure`);
+        headers.append('Set-Cookie', `${USER_COOKIE_NAME}=${signedUserId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure`);
 
         return new Response(JSON.stringify({
           success: true,
-          token: user.id,
+          token: signedUserId,
           message: 'Authentication successful',
           user: { id: user.id, name: user.name, email: user.email, codename: user.codename, isWorkshop: user.isWorkshop },
         }), { status: 200, headers });
@@ -616,10 +628,11 @@ export default {
 
           sendWelcomeEmail({ to: user.email, name: user.name, codename: user.codename || undefined }).catch(() => {});
 
+          const signedUserId = signToken(user.id);
           const headers = new Headers({ 'Content-Type': 'application/json' });
-          headers.append('Set-Cookie', `${USER_COOKIE_NAME}=${user.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure`);
+          headers.append('Set-Cookie', `${USER_COOKIE_NAME}=${signedUserId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure`);
 
-          return new Response(JSON.stringify({ success: true, token: user.id, data: user }), { status: 200, headers });
+          return new Response(JSON.stringify({ success: true, token: signedUserId, data: user }), { status: 200, headers });
         } catch (err: any) {
           if (err?.code === 'P2002') {
             return Response.json({ error: 'An account with this email already exists.' }, { status: 400 });
@@ -655,7 +668,44 @@ export default {
               },
             });
             if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
-            return Response.json({ success: true, data: exchange });
+
+            // Sanitize targetUser and physical addresses server-side
+            const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
+            const sanitizedMembers = exchange.members.map((m) => {
+              const isSelf = Boolean(activeUserId && m.userId === activeUserId);
+              const canViewDetails = isOrganizer || isSelf;
+
+              return {
+                id: m.id,
+                userId: m.userId,
+                role: m.role,
+                shippingStatus: m.shippingStatus,
+                trackingNumber: canViewDetails ? m.trackingNumber : undefined,
+                shippedAt: m.shippedAt,
+                deliveredConfirmed: m.deliveredConfirmed,
+                joinedAt: m.joinedAt,
+                user: {
+                  id: m.user.id,
+                  name: m.user.name,
+                  codename: m.user.codename,
+                  streetAddress: canViewDetails ? m.user.streetAddress : null,
+                  city: canViewDetails ? m.user.city : null,
+                  state: canViewDetails ? m.user.state : null,
+                  zipCode: canViewDetails ? m.user.zipCode : null,
+                },
+                targetUserId: canViewDetails ? m.targetUserId : null,
+                targetUser: canViewDetails ? m.targetUser : null,
+              };
+            });
+
+            return Response.json({
+              success: true,
+              data: {
+                ...exchange,
+                members: sanitizedMembers,
+                exclusionRules: isOrganizer ? exchange.exclusionRules : [],
+              },
+            });
           }
 
           if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
@@ -676,26 +726,218 @@ export default {
         if (request.method === 'POST') {
           const body = (await request.json().catch(() => ({}))) as any;
           const { config, action, operationId } = body;
-          const userId = activeUserId || body.userId;
+          const userId = activeUserId;
 
           if (!userId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
-          // Draw action
+          // Action 1: Draw
           if (action === 'draw' && operationId) {
-            const ex = await db.exchange.findUnique({ where: { id: operationId }, include: { members: true, exclusionRules: true } });
+            const ex = await db.exchange.findUnique({ where: { id: operationId }, include: { members: true, exclusionRules: true, organizer: true } });
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can trigger draws' }, { status: 403 });
             if (ex.members.length < 2) return Response.json({ error: 'At least 2 members required' }, { status: 400 });
 
             const agents = ex.members.map((m) => ({ id: m.userId, name: m.userId, hasWishlistAttached: !!m.wishlistId }));
-            const assignments = executeLinkedListDraw(agents, { isWhiteElephant: ex.isWhiteElephant });
+            const exclusionRules = ex.exclusionRules.map((r) => ({ agentId: r.memberId, restrictedAgentId: r.restrictedMemberId }));
+            const assignments = executeLinkedListDraw(agents, { isWhiteElephant: ex.isWhiteElephant, exclusionRules });
 
-            for (const assignment of assignments) {
-              const mem = ex.members.find((m) => m.userId === assignment.agentId);
-              if (mem) await db.exchangeMember.update({ where: { id: mem.id }, data: { targetUserId: assignment.targetId } });
-            }
-            await db.exchange.update({ where: { id: operationId }, data: { status: 'MATCHED' } });
+            const updateOps = assignments
+              .map((assignment) => {
+                const mem = ex.members.find((m) => m.userId === assignment.agentId);
+                if (!mem) return null;
+                return db.exchangeMember.update({ where: { id: mem.id }, data: { targetUserId: assignment.targetId } });
+              })
+              .filter(Boolean);
+
+            await db.$transaction([
+              ...(updateOps as any[]),
+              db.exchange.update({ where: { id: operationId }, data: { status: 'MATCHED' } }),
+            ]);
+
+            // Dispatch assignment emails
+            try {
+              const enrolledUsers = await db.user.findMany({
+                where: { id: { in: ex.members.map((m) => m.userId) } },
+              });
+              for (const assignment of assignments) {
+                const giver = enrolledUsers.find((u) => u.id === assignment.agentId);
+                const target = enrolledUsers.find((u) => u.id === assignment.targetId);
+                if (giver?.email && giver.emailNotifications !== false && target) {
+                  sendAssignmentEmail({
+                    recipientEmail: giver.email,
+                    recipientName: giver.name || giver.codename || 'Operative',
+                    targetCodename: target.codename || target.name || 'Target Operative',
+                    targetName: target.name || undefined,
+                    exchangeTitle: ex.title,
+                    shippingDeadline: ex.shippingDate ? new Date(ex.shippingDate).toLocaleDateString() : undefined,
+                    exchangeDate: ex.executionDate ? new Date(ex.executionDate).toLocaleDateString() : undefined,
+                    exchangeUrl: `https://kovertklaus.com/exchange/${ex.code}`,
+                  }).catch(() => {});
+                }
+              }
+            } catch {}
+
             return Response.json({ success: true, message: 'Draw completed successfully' });
+          }
+
+          // Action 2: 2-Way Cascade Target Swap
+          if (action === 'swap' && operationId) {
+            const { originatorUserId, newTargetUserId } = body;
+            if (!originatorUserId || !newTargetUserId) {
+              return Response.json({ error: 'originatorUserId and newTargetUserId required' }, { status: 400 });
+            }
+
+            const ex = await db.exchange.findUnique({
+              where: { id: operationId },
+              include: { members: true, exclusionRules: true },
+            });
+            if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+            if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can execute swaps' }, { status: 403 });
+
+            const currentAssignments = ex.members
+              .filter((a) => a.targetUserId)
+              .map((a) => ({ agentId: a.userId, targetId: a.targetUserId! }));
+
+            const exclusionRules = ex.exclusionRules.map((r) => ({
+              agentId: r.memberId,
+              restrictedAgentId: r.restrictedMemberId,
+            }));
+
+            try {
+              const updatedAssignments = executeTargetSwap(
+                currentAssignments,
+                originatorUserId,
+                newTargetUserId,
+                exclusionRules
+              );
+
+              const updateOps = updatedAssignments
+                .map((assignment) => {
+                  const memberRecord = ex.members.find((a) => a.userId === assignment.agentId);
+                  if (!memberRecord) return null;
+                  return db.exchangeMember.update({
+                    where: { id: memberRecord.id },
+                    data: { targetUserId: assignment.targetId },
+                  });
+                })
+                .filter(Boolean);
+
+              await db.$transaction(updateOps as any[]);
+              return Response.json({ success: true, message: 'Target swap executed successfully', assignments: updatedAssignments });
+            } catch (err: any) {
+              return Response.json({ error: err.message || 'Target swap failed' }, { status: 400 });
+            }
+          }
+
+          // Action 3: Add Exclusion Rule
+          if (action === 'addExclusion' && operationId) {
+            const { agentId: memberId, restrictedAgentId: restrictedMemberId } = body;
+            if (!memberId || !restrictedMemberId) {
+              return Response.json({ error: 'agentId and restrictedAgentId required' }, { status: 400 });
+            }
+
+            const ex = await db.exchange.findUnique({ where: { id: operationId } });
+            if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+            if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can configure exclusions' }, { status: 403 });
+
+            await db.exclusionRule.create({
+              data: { exchangeId: operationId, memberId, restrictedMemberId },
+            });
+            return Response.json({ success: true, message: 'Exclusion rule created' });
+          }
+
+          // Action 4: Remove Exclusion Rule
+          if (action === 'removeExclusion' && operationId) {
+            const { exclusionId } = body;
+            if (!exclusionId) return Response.json({ error: 'exclusionId required' }, { status: 400 });
+
+            const ex = await db.exchange.findUnique({ where: { id: operationId } });
+            if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+            if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can remove exclusions' }, { status: 403 });
+
+            await db.exclusionRule.delete({ where: { id: exclusionId } });
+            return Response.json({ success: true, message: 'Exclusion rule removed' });
+          }
+
+          // Action 5: Close Recruitment
+          if (action === 'closeRecruitment' && operationId) {
+            const ex = await db.exchange.findUnique({ where: { id: operationId } });
+            if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+            if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can close recruitment' }, { status: 403 });
+
+            await db.exchange.update({
+              where: { id: operationId },
+              data: { inviteCutoffDate: new Date() },
+            });
+            return Response.json({ success: true, message: 'Recruitment closed.' });
+          }
+
+          // Action 6: End Operation
+          if (action === 'endOperation' && operationId) {
+            const ex = await db.exchange.findUnique({ where: { id: operationId } });
+            if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+            if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can end exchange' }, { status: 403 });
+
+            await db.exchange.update({
+              where: { id: operationId },
+              data: { executionDate: new Date(), status: 'COMPLETED' },
+            });
+            return Response.json({ success: true, message: 'Exchange ended' });
+          }
+
+          // Action 7: Send Broadcast
+          if (action === 'sendOpTeamBroadcast' && operationId) {
+            const { messageText } = body;
+            if (!messageText?.trim()) return Response.json({ error: 'messageText required' }, { status: 400 });
+
+            const ex = await db.exchange.findUnique({
+              where: { id: operationId },
+              include: { members: { include: { user: true } }, organizer: true },
+            });
+            if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+            if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can broadcast' }, { status: 403 });
+
+            const notificationInserts = ex.members.map((m) =>
+              db.notification.create({
+                data: {
+                  userId: m.userId,
+                  title: `📢 Exchange Broadcast: ${ex.title}`,
+                  message: messageText.trim(),
+                  exchangeId: ex.id,
+                },
+              })
+            );
+
+            await db.$transaction(notificationInserts);
+
+            for (const member of ex.members) {
+              if (member.user.email && member.user.emailNotifications !== false) {
+                sendNudgeEmail({
+                  recipientEmail: member.user.email,
+                  recipientName: member.user.name || member.user.codename || 'Operative',
+                  organizerName: ex.organizer.name,
+                  exchangeTitle: ex.title,
+                  message: messageText.trim(),
+                  actionUrl: `https://kovertklaus.com/exchange/${ex.code}`,
+                }).catch(() => {});
+              }
+            }
+
+            return Response.json({ success: true, message: 'Broadcast dispatched' });
+          }
+
+          // Action 8: Create Report
+          if (action === 'createReport' && operationId) {
+            const { thankYouText, photoUrl } = body;
+            const report = await db.exchangeReport.create({
+              data: {
+                exchangeId: operationId,
+                userId,
+                thankYouText: thankYouText ? sanitizeText(thankYouText) : null,
+                photoUrl: photoUrl?.trim() || null,
+              },
+            });
+            return Response.json({ success: true, data: report });
           }
 
           // Create Exchange
@@ -726,13 +968,116 @@ export default {
             return Response.json({ success: true, data: newExchange });
           }
         }
+
+        if (request.method === 'PATCH') {
+          const activeUserId = getUserIdFromRequest(request);
+          if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+
+          const body = (await request.json().catch(() => ({}))) as any;
+          const { operationId, action, dates, settings, agentId: memberId, newRole, targetUserId, demeritPoints } = body;
+
+          if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
+
+          const ex = await db.exchange.findUnique({ where: { id: operationId } });
+          if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+          if (ex.organizerId !== activeUserId) return Response.json({ error: 'Only organizer can perform admin actions' }, { status: 403 });
+
+          if (action === 'update_agent_role' && memberId && newRole) {
+            const updatedMember = await db.exchangeMember.update({
+              where: { id: memberId },
+              data: { role: newRole === 'ORGANIZER' || newRole === 'OPS_LEADER' ? 'ORGANIZER' : 'MEMBER' },
+            });
+            return Response.json({ success: true, data: updatedMember });
+          }
+
+          if (action === 'remove_agent' && memberId) {
+            const memberToDelete = await db.exchangeMember.findUnique({ where: { id: memberId } });
+            if (!memberToDelete) return Response.json({ error: 'Member not found' }, { status: 404 });
+            if (memberToDelete.userId === ex.organizerId) return Response.json({ error: 'Cannot remove primary organizer' }, { status: 400 });
+            await db.exchangeMember.delete({ where: { id: memberId } });
+            return Response.json({ success: true, message: 'Member removed' });
+          }
+
+          if (action === 'issue_demerit' && targetUserId) {
+            const pts = demeritPoints || 1;
+            const updatedUser = await db.user.update({
+              where: { id: targetUserId },
+              data: { penaltyPoints: { increment: pts } },
+            });
+            return Response.json({ success: true, message: `Issued ${pts} point(s)`, totalDemerits: updatedUser.penaltyPoints });
+          }
+
+          if (action === 'nudge_agent' && memberId) {
+            const memberToNudge = await db.exchangeMember.findUnique({
+              where: { id: memberId },
+              include: { user: true, exchange: { include: { organizer: true } } },
+            });
+            if (!memberToNudge) return Response.json({ error: 'Member not found' }, { status: 404 });
+
+            const nudgeMsg = 'Reminder: Please update your OpKit wishlist and review mission directives.';
+            await db.notification.create({
+              data: {
+                userId: memberToNudge.userId,
+                title: `🔔 Mission Nudge: ${memberToNudge.exchange.title}`,
+                message: nudgeMsg,
+                exchangeId: memberToNudge.exchangeId,
+              },
+            });
+
+            if (memberToNudge.user.email && memberToNudge.user.emailNotifications !== false) {
+              sendNudgeEmail({
+                recipientEmail: memberToNudge.user.email,
+                recipientName: memberToNudge.user.name || memberToNudge.user.codename || 'Operative',
+                organizerName: memberToNudge.exchange.organizer.name,
+                exchangeTitle: memberToNudge.exchange.title,
+                message: nudgeMsg,
+                actionUrl: `https://kovertklaus.com/exchange/${memberToNudge.exchange.code}`,
+              }).catch(() => {});
+            }
+
+            return Response.json({ success: true, message: 'Nudge alert dispatched' });
+          }
+
+          if (action === 'update_settings' || settings) {
+            if (!settings) return Response.json({ error: 'Settings payload required' }, { status: 400 });
+            const updatedExchange = await db.exchange.update({
+              where: { id: operationId },
+              data: {
+                title: settings.title !== undefined ? settings.title.trim() : ex.title,
+                description: settings.description !== undefined ? settings.description.trim() : ex.description,
+                budgetMin: settings.budgetMin !== undefined ? Number(settings.budgetMin) : ex.budgetMin,
+                budgetMax: settings.budgetMax !== undefined ? Number(settings.budgetMax) : ex.budgetMax,
+                maxParticipants: settings.maxParticipants !== undefined ? (settings.maxParticipants ? Number(settings.maxParticipants) : null) : ex.maxParticipants,
+                isLocalOnly: settings.isLocalOnly !== undefined ? settings.isLocalOnly : ex.isLocalOnly,
+                eventLocation: settings.eventLocation !== undefined ? settings.eventLocation.trim() : ex.eventLocation,
+                enforcePenalties: settings.enforcePenalties !== undefined ? settings.enforcePenalties : ex.enforcePenalties,
+              },
+            });
+            return Response.json({ success: true, data: updatedExchange });
+          }
+
+          if (dates) {
+            const updatedExchange = await db.exchange.update({
+              where: { id: operationId },
+              data: {
+                inviteCutoffDate: new Date(dates.inviteCutoffDate),
+                assignmentDate: new Date(dates.assignmentDate),
+                shippingDate: new Date(dates.shippingDate),
+                executionDate: new Date(dates.executionDate),
+              },
+            });
+            return Response.json({ success: true, data: updatedExchange });
+          }
+        }
       }
 
       // 14. /api/invitations (POST)
       if (pathname === '/api/invitations' && request.method === 'POST') {
+        const activeUserId = getUserIdFromRequest(request);
+        if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+
         const body = (await request.json().catch(() => ({}))) as any;
-        const { operationId, requesterUserId, recipientEmail } = body;
-        const activeUserId = getUserIdFromRequest(request) || requesterUserId;
+        const { operationId, recipientEmail } = body;
 
         if (!operationId || !recipientEmail) return Response.json({ error: 'operationId and recipientEmail required' }, { status: 400 });
 
@@ -770,7 +1115,7 @@ export default {
       // 15. /api/invitations/accept (POST)
       if (pathname === '/api/invitations/accept' && request.method === 'POST') {
         const body = (await request.json().catch(() => ({}))) as any;
-        const activeUserId = getUserIdFromRequest(request) || body.userId;
+        const activeUserId = getUserIdFromRequest(request);
         const { operationCode, wishlistId } = body;
 
         if (!activeUserId || !operationCode) return Response.json({ error: 'Auth and operationCode required' }, { status: 400 });
@@ -786,6 +1131,236 @@ export default {
         });
 
         return Response.json({ success: true, message: 'Enrolled in exchange', data: member });
+      }
+
+      // 16. /api/shipping (POST)
+      if (pathname === '/api/shipping' && request.method === 'POST') {
+        const activeUserId = getUserIdFromRequest(request);
+        if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+
+        const body = (await request.json().catch(() => ({}))) as any;
+        const { operationId, isLocalDelivery, trackingNumber } = body;
+
+        if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
+
+        const member = await db.exchangeMember.findUnique({
+          where: {
+            exchangeId_userId: {
+              exchangeId: operationId,
+              userId: activeUserId,
+            },
+          },
+        });
+        if (!member) return Response.json({ error: 'Member not enrolled in this exchange' }, { status: 404 });
+
+        const shippingStatus = isLocalDelivery ? 'LOCAL_DELIVERY' : 'SHIPPED';
+        const cleanTracking = trackingNumber?.trim() || null;
+
+        const updatedMember = await db.exchangeMember.update({
+          where: { id: member.id },
+          data: { shippingStatus, trackingNumber: cleanTracking, shippedAt: new Date() },
+        });
+
+        return Response.json({
+          success: true,
+          message: isLocalDelivery ? 'Local delivery confirmed.' : 'Shipment confirmed!',
+          data: updatedMember,
+        });
+      }
+
+      // 17. /api/demerits/audit (POST)
+      if (pathname === '/api/demerits/audit' && request.method === 'POST') {
+        const activeUserId = getUserIdFromRequest(request);
+        if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+
+        const body = (await request.json().catch(() => ({}))) as any;
+        const { operationId } = body;
+
+        if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
+
+        const exchange = await db.exchange.findUnique({
+          where: { id: operationId },
+          include: { members: { include: { user: true } } },
+        });
+        if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+        if (exchange.organizerId !== activeUserId) return Response.json({ error: 'Only organizer can run audit' }, { status: 403 });
+
+        const now = new Date();
+        if (now < new Date(exchange.executionDate)) {
+          return Response.json({ error: 'Audit engine can only be run on or after Execution Day.' }, { status: 400 });
+        }
+
+        const auditResults = [];
+        for (const member of exchange.members) {
+          const outcome = evaluateMemberAudit({
+            userId: member.user.id,
+            userName: member.user.name,
+            shippingStatus: member.shippingStatus as any,
+            deliveredConfirmed: member.deliveredConfirmed,
+            trackingNumber: member.trackingNumber,
+            currentPenaltyPoints: member.user.penaltyPoints,
+            currentAccountStatus: member.user.accountStatus as any,
+            isWhiteElephant: exchange.isWhiteElephant,
+          });
+
+          if (outcome.newDemeritCount !== member.user.penaltyPoints || outcome.newAccountStatus !== member.user.accountStatus) {
+            await db.user.update({
+              where: { id: member.user.id },
+              data: { penaltyPoints: outcome.newDemeritCount, accountStatus: outcome.newAccountStatus },
+            });
+
+            if (outcome.penalized) {
+              await db.notification.create({
+                data: {
+                  userId: member.user.id,
+                  exchangeId: exchange.id,
+                  title: '⚠️ Penalty Issued: Unfulfilled Gift Exchange',
+                  message: `You were issued 1 Coal Citation for mission "${exchange.title}". Current Points: ${outcome.newDemeritCount}. Status: ${outcome.newAccountStatus}.`,
+                  isAcknowledged: false,
+                },
+              });
+            } else if (outcome.demeritCleared) {
+              await db.notification.create({
+                data: {
+                  userId: member.user.id,
+                  exchangeId: exchange.id,
+                  title: '🌟 Demerit Cleared: Mission Completed',
+                  message: `You fulfilled your obligation in "${exchange.title}". 1 Coal Citation removed. Current Points: ${outcome.newDemeritCount}. Status: ${outcome.newAccountStatus}.`,
+                  isAcknowledged: false,
+                },
+              });
+            }
+          }
+          auditResults.push(outcome);
+        }
+
+        await db.exchange.update({ where: { id: exchange.id }, data: { status: 'COMPLETED' } });
+        return Response.json({ success: true, message: 'Execution Day audit completed.', data: { operationId: exchange.id, auditResults } });
+      }
+
+      // 18. /api/scraper (POST)
+      if (pathname === '/api/scraper' && request.method === 'POST') {
+        const body = (await request.json().catch(() => ({}))) as any;
+        const { url } = body;
+
+        if (!url || typeof url !== 'string') return Response.json({ error: 'Valid product URL required' }, { status: 400 });
+
+        const formattedUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
+        const ssrfCheck = isSafePublicUrl(formattedUrl);
+        if (!ssrfCheck.safe) return Response.json({ error: ssrfCheck.error || 'URL forbidden' }, { status: 403 });
+
+        const normalizedUrl = normalizeProductUrl(formattedUrl);
+        const parsedUrl = new URL(normalizedUrl);
+
+        const existingCatalog = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
+        const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+        const isFresh = existingCatalog && (Date.now() - new Date(existingCatalog.scrapedAt).getTime() < TWENTY_FOUR_HOURS_MS);
+
+        if (existingCatalog && isFresh) {
+          return Response.json({
+            success: true,
+            foundInCatalog: true,
+            metadata: {
+              id: existingCatalog.id,
+              title: existingCatalog.title,
+              url: existingCatalog.url,
+              price: existingCatalog.price ? Number(existingCatalog.price) : undefined,
+              description: existingCatalog.description || undefined,
+              thumbnail: existingCatalog.thumbnailUrl || undefined,
+              domain: existingCatalog.domain || parsedUrl.hostname,
+            },
+          });
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+        try {
+          const response = await fetch(parsedUrl.toString(), {
+            signal: controller.signal,
+            redirect: 'error',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept-Language': 'en-US,en;q=0.9',
+            },
+          });
+          clearTimeout(timeoutId);
+
+          if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+
+          const html = await response.text();
+          const $ = cheerio.load(html);
+
+          const title = sanitizeText(
+            $('meta[property="og:title"]').attr('content') ||
+            $('meta[name="title"]').attr('content') ||
+            $('title').text() ||
+            parsedUrl.hostname
+          );
+
+          const image =
+            $('meta[property="og:image"]').attr('content') ||
+            $('meta[name="image"]').attr('content') ||
+            $('link[rel="image_src"]').attr('href') ||
+            null;
+
+          const price =
+            $('meta[property="og:price:amount"]').attr('content') ||
+            $('meta[property="product:price:amount"]').attr('content') ||
+            $('meta[name="price"]').attr('content') ||
+            null;
+
+          const description = sanitizeText(
+            $('meta[property="og:description"]').attr('content') ||
+            $('meta[name="description"]').attr('content') ||
+            ''
+          );
+
+          const parsedPrice = price ? parseFloat(price) : 0;
+          const cleanDesc = description.substring(0, 300);
+
+          const catalogRecord = await db.productCatalog.upsert({
+            where: { url: normalizedUrl },
+            create: { url: normalizedUrl, title, price: parsedPrice, description: cleanDesc, thumbnailUrl: image, domain: parsedUrl.hostname },
+            update: { title, price: parsedPrice, description: cleanDesc, thumbnailUrl: image, domain: parsedUrl.hostname, scrapedAt: new Date() },
+          });
+
+          return Response.json({
+            success: true,
+            foundInCatalog: false,
+            metadata: {
+              id: catalogRecord.id,
+              title: catalogRecord.title,
+              url: catalogRecord.url,
+              price: parsedPrice > 0 ? parsedPrice : undefined,
+              description: cleanDesc || undefined,
+              thumbnail: image || undefined,
+              domain: parsedUrl.hostname,
+            },
+          });
+        } catch {
+          clearTimeout(timeoutId);
+          if (existingCatalog) {
+            return Response.json({
+              success: true,
+              foundInCatalog: true,
+              metadata: {
+                id: existingCatalog.id,
+                title: existingCatalog.title,
+                url: existingCatalog.url,
+                price: existingCatalog.price ? Number(existingCatalog.price) : undefined,
+                description: existingCatalog.description || undefined,
+                thumbnail: existingCatalog.thumbnailUrl || undefined,
+                domain: existingCatalog.domain || parsedUrl.hostname,
+              },
+            });
+          }
+          return Response.json({
+            success: false,
+            fallback: true,
+            metadata: { title: parsedUrl.hostname, url: parsedUrl.toString(), domain: parsedUrl.hostname },
+          });
+        }
       }
 
       // 16. /api/opkits (GET / POST / DELETE)
@@ -881,8 +1456,8 @@ export default {
 
     } catch (err: any) {
       console.error('[Worker API Error]', err);
-      invalidateCachedDb();
-      invalidateCachedAdminDb();
+      await invalidateCachedDb().catch(() => {});
+      await invalidateCachedAdminDb().catch(() => {});
       return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },

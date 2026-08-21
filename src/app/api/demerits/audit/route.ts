@@ -29,14 +29,11 @@ import { evaluateMemberAudit, AuditOutcome } from '@/lib/demerits';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const sessionUserId = await getSessionUserId();
+    const activeUserId = await getSessionUserId();
 
-    const { operationId, requesterUserId } = body as {
+    const { operationId } = body as {
       operationId: string;
-      requesterUserId?: string;
     };
-
-    const activeUserId = sessionUserId || requesterUserId;
 
     if (!operationId || !activeUserId) {
       return NextResponse.json(

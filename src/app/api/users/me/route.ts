@@ -6,13 +6,9 @@ import { sanitizeText, validatePassword } from '@/lib/security';
 
 export const dynamic = 'force-static';
 
-export async function GET(request: Request) {
-
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const paramUserId = searchParams.get('userId');
-    const sessionUserId = await getSessionUserId();
-    const userId = sessionUserId || paramUserId;
+    const userId = await getSessionUserId();
 
     if (!userId) {
       return NextResponse.json({ authenticated: false }, { status: 401 });

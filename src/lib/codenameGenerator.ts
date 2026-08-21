@@ -1,3 +1,5 @@
+import { getSecureRandomInt } from './security';
+
 /**
  * Thematic Espionage & Holiday Codename Generator
  * Used by landing page registration form and AccountPreferencesModal for random codename suggestions.
@@ -29,6 +31,6 @@ const CALLSIGNS = [
 ];
 
 export function generateRandomCodename(): string {
-  const index = Math.floor(Math.random() * CALLSIGNS.length);
+  const index = getSecureRandomInt(CALLSIGNS.length);
   return CALLSIGNS[index];
 }

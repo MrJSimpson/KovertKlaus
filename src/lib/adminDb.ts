@@ -4,11 +4,36 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 import pg from 'pg';
 
 let cachedAdminDb: PrismaClient | null = null;
+let cachedAdminPool: pg.Pool | null = null;
 let lastAdminConnStr: string = '';
 
-export function invalidateCachedAdminDb(): void {
+/**
+ * Tears down active admin database connections and closes underlying connection pools
+ * before wiping references to prevent socket and connection leaks.
+ */
+export async function invalidateCachedAdminDb(): Promise<void> {
+  const dbToDisconnect = cachedAdminDb;
+  const poolToClose = cachedAdminPool;
+
   cachedAdminDb = null;
+  cachedAdminPool = null;
   lastAdminConnStr = '';
+
+  if (dbToDisconnect) {
+    try {
+      await dbToDisconnect.$disconnect();
+    } catch (err) {
+      console.warn('[AdminDB Teardown] Error disconnecting Prisma client:', err);
+    }
+  }
+
+  if (poolToClose) {
+    try {
+      await poolToClose.end();
+    } catch (err) {
+      console.warn('[AdminDB Teardown] Error ending Admin PostgreSQL pool:', err);
+    }
+  }
 }
 
 export function getAdminDb(overrideConnStr?: string): PrismaClient {
@@ -45,6 +70,7 @@ export function getAdminDb(overrideConnStr?: string): PrismaClient {
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
     });
+    cachedAdminPool = adminPool;
     adapter = new PrismaPg(adminPool);
   }
 
@@ -74,7 +100,7 @@ export async function withAdminDbRetry<T>(fn: (client: PrismaClient) => Promise<
 
       if (isConnError && attempt < maxRetries) {
         console.warn(`[AdminDB Retry] Neon connection issue (attempt ${attempt}/${maxRetries}), reconnecting...`, err.message);
-        invalidateCachedAdminDb();
+        await invalidateCachedAdminDb();
         await new Promise((r) => setTimeout(r, 400 * attempt));
         continue;
       }

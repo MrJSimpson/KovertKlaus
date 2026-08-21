@@ -5,10 +5,67 @@ import {
   getValidSwapCandidates,
   executeTargetSwap,
   isMatchBlocked,
+  buildExclusionIndex,
   FieldAgent,
   LinkedAssignment,
   ExclusionRuleInput,
 } from './draw';
+import { getSecureRandomInt } from './security';
+
+test('CSPRNG Unbiased Integer Generator', async (t) => {
+  await t.test('Produces integers strictly within [0, maxExclusive)', () => {
+    for (let max = 1; max <= 50; max++) {
+      for (let i = 0; i < 20; i++) {
+        const val = getSecureRandomInt(max);
+        assert.ok(val >= 0, `Value ${val} must be non-negative`);
+        assert.ok(val < max, `Value ${val} must be strictly less than max ${max}`);
+      }
+    }
+  });
+
+  await t.test('Returns 0 when maxExclusive is 1 or less', () => {
+    assert.strictEqual(getSecureRandomInt(1), 0);
+    assert.strictEqual(getSecureRandomInt(0), 0);
+    assert.strictEqual(getSecureRandomInt(-5), 0);
+  });
+});
+
+test('Exclusion Rule Index Pre-Compilation', async (t) => {
+  await t.test('buildExclusionIndex creates bidirectional composite keys', () => {
+    const exclusions: ExclusionRuleInput[] = [
+      { agentId: 'agent_1', restrictedAgentId: 'agent_2' },
+      { agentId: 'agent_3', restrictedAgentId: 'agent_4' },
+    ];
+
+    const index = buildExclusionIndex(exclusions);
+
+    assert.strictEqual(index.size, 4);
+    assert.ok(index.has('agent_1:agent_2'));
+    assert.ok(index.has('agent_2:agent_1'));
+    assert.ok(index.has('agent_3:agent_4'));
+    assert.ok(index.has('agent_4:agent_3'));
+    assert.ok(!index.has('agent_1:agent_3'));
+  });
+
+  await t.test('isMatchBlocked works with both raw array and pre-compiled Set', () => {
+    const exclusions: ExclusionRuleInput[] = [
+      { agentId: 'A', restrictedAgentId: 'B' },
+    ];
+    const index = buildExclusionIndex(exclusions);
+
+    // Array mode
+    assert.strictEqual(isMatchBlocked('A', 'B', exclusions), true);
+    assert.strictEqual(isMatchBlocked('B', 'A', exclusions), true);
+    assert.strictEqual(isMatchBlocked('A', 'C', exclusions), false);
+    assert.strictEqual(isMatchBlocked('A', 'A', exclusions), true); // Self-assignment
+
+    // Set mode (O(1))
+    assert.strictEqual(isMatchBlocked('A', 'B', index), true);
+    assert.strictEqual(isMatchBlocked('B', 'A', index), true);
+    assert.strictEqual(isMatchBlocked('A', 'C', index), false);
+    assert.strictEqual(isMatchBlocked('A', 'A', index), true); // Self-assignment
+  });
+});
 
 test('Linked-List Protocol - Cyclic Derangement (4 agents)', () => {
   const agents: FieldAgent[] = [
@@ -81,6 +138,41 @@ test('Linked-List Protocol - Respects Bidirectional Exclusion Rules', () => {
     assert.notStrictEqual(chewieMatch, '2', 'Chewie was assigned Han despite exclusion rule!');
     assert.notStrictEqual(hanMatch, '1', 'Han was assigned Chewie despite bidirectional rule!');
   }
+});
+
+test('Linked-List Protocol - Heavily Constrained & Large-Scale Graphs (50 operatives)', () => {
+  const agents: FieldAgent[] = Array.from({ length: 50 }, (_, i) => ({
+    id: `agent_${i + 1}`,
+    name: `Operative ${i + 1}`,
+    hasWishlistAttached: true,
+  }));
+
+  // Build a complex chain of 20 exclusion rules
+  const exclusions: ExclusionRuleInput[] = [];
+  for (let i = 1; i <= 20; i += 2) {
+    exclusions.push({
+      agentId: `agent_${i}`,
+      restrictedAgentId: `agent_${i + 1}`,
+    });
+  }
+
+  const start = performance.now();
+  const results = executeLinkedListDraw(agents, { exclusionRules: exclusions });
+  const duration = performance.now() - start;
+
+  assert.strictEqual(results.length, 50);
+
+  // Validate no self-assignments and no exclusion rule breaches
+  const blockedIndex = buildExclusionIndex(exclusions);
+  for (const { agentId, targetId } of results) {
+    assert.notStrictEqual(agentId, targetId, 'No self assignments allowed');
+    assert.ok(!blockedIndex.has(`${agentId}:${targetId}`), `Disallowed assignment ${agentId} -> ${targetId}`);
+  }
+
+  // Ensure 1-to-1 matching
+  assert.strictEqual(new Set(results.map((r) => r.agentId)).size, 50);
+  assert.strictEqual(new Set(results.map((r) => r.targetId)).size, 50);
+  assert.ok(duration < 50, `50-agent draw should complete in <50ms, took ${duration.toFixed(2)}ms`);
 });
 
 test('Linked-List Protocol - Throws Error on Over-Constrained Operations', () => {

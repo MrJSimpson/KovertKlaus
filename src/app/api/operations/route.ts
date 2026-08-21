@@ -6,16 +6,14 @@ import { generateInviteCode } from '@/lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
 import { sendAssignmentEmail, sendNudgeEmail } from '@/lib/email';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
-    const paramUserId = searchParams.get('userId');
-    const sessionUserId = await getSessionUserId();
-    const activeUserId = sessionUserId || paramUserId;
+    const activeUserId = await getSessionUserId();
 
     // Case 1: Fetch single exchange by unique invite code (e.g. KOVERT-87WZ)
     if (code) {
@@ -54,12 +52,50 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
       }
 
-      return NextResponse.json({ success: true, data: exchange });
+      // Security Invariant (Finding 2.1): Sanitize targetUser and physical addresses server-side.
+      // Only the exchange organizer or the specific assigned giver may view a member's target details and shipping address.
+      const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
+
+      const sanitizedMembers = exchange.members.map((m) => {
+        const isSelf = Boolean(activeUserId && m.userId === activeUserId);
+        const canViewDetails = isOrganizer || isSelf;
+
+        return {
+          id: m.id,
+          userId: m.userId,
+          role: m.role,
+          shippingStatus: m.shippingStatus,
+          trackingNumber: canViewDetails ? m.trackingNumber : undefined,
+          shippedAt: m.shippedAt,
+          deliveredConfirmed: m.deliveredConfirmed,
+          joinedAt: m.joinedAt,
+          user: {
+            id: m.user.id,
+            name: m.user.name,
+            codename: m.user.codename,
+            streetAddress: canViewDetails ? m.user.streetAddress : null,
+            city: canViewDetails ? m.user.city : null,
+            state: canViewDetails ? m.user.state : null,
+            zipCode: canViewDetails ? m.user.zipCode : null,
+          },
+          targetUserId: canViewDetails ? m.targetUserId : null,
+          targetUser: canViewDetails ? m.targetUser : null,
+        };
+      });
+
+      const sanitizedData = {
+        ...exchange,
+        members: sanitizedMembers,
+        // Preventative exclusion rules are strictly visible only to the Head Elf
+        exclusionRules: isOrganizer ? exchange.exclusionRules : [],
+      };
+
+      return NextResponse.json({ success: true, data: sanitizedData });
     }
 
-    // Case 2: Fetch all exchanges enrolled/owned by a user
+    // Case 2: Fetch all exchanges enrolled/owned by authenticated user
     if (!activeUserId) {
-      return NextResponse.json({ error: 'Authentication or user ID is required' }, { status: 401 });
+      return NextResponse.json({ error: 'Authentication is required' }, { status: 401 });
     }
 
     const exchanges = await db.exchange.findMany({
@@ -91,17 +127,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const sessionUserId = await getSessionUserId();
+    const activeUserId = await getSessionUserId();
     
-    const { userId: bodyUserId, config, action, operationId, forceUnlock } = body as {
-      userId?: string;
+    const { config, action, operationId, forceUnlock } = body as {
       config?: CreateOperationInput;
       action?: string;
       operationId?: string;
       forceUnlock?: boolean;
     };
-
-    const activeUserId = sessionUserId || bodyUserId;
 
     if (!activeUserId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -151,20 +184,24 @@ export async function POST(request: Request) {
           exclusionRules: exclusionRulesForDraw,
         });
 
-        for (const assignment of assignments) {
-          const memberRecord = ex.members.find((a) => a.userId === assignment.agentId);
-          if (memberRecord) {
-            await db.exchangeMember.update({
+        const updateOps = assignments
+          .map((assignment) => {
+            const memberRecord = ex.members.find((a) => a.userId === assignment.agentId);
+            if (!memberRecord) return null;
+            return db.exchangeMember.update({
               where: { id: memberRecord.id },
               data: { targetUserId: assignment.targetId },
             });
-          }
-        }
+          })
+          .filter(Boolean);
 
-        await db.exchange.update({
-          where: { id: operationId },
-          data: { status: 'MATCHED' },
-        });
+        await db.$transaction([
+          ...(updateOps as any[]),
+          db.exchange.update({
+            where: { id: operationId },
+            data: { status: 'MATCHED' },
+          }),
+        ]);
 
         // Dispatch Assignment Notification Emails to enrolled operatives
         try {
@@ -244,15 +281,18 @@ export async function POST(request: Request) {
           exclusionRules
         );
 
-        for (const assignment of updatedAssignments) {
-          const memberRecord = ex.members.find((a) => a.userId === assignment.agentId);
-          if (memberRecord) {
-            await db.exchangeMember.update({
+        const updateOps = updatedAssignments
+          .map((assignment) => {
+            const memberRecord = ex.members.find((a) => a.userId === assignment.agentId);
+            if (!memberRecord) return null;
+            return db.exchangeMember.update({
               where: { id: memberRecord.id },
               data: { targetUserId: assignment.targetId },
             });
-          }
-        }
+          })
+          .filter(Boolean);
+
+        await db.$transaction(updateOps as any[]);
 
         return NextResponse.json({
           success: true,
@@ -385,16 +425,20 @@ export async function POST(request: Request) {
       if (!ex) return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
       if (ex.organizerId !== activeUserId) return NextResponse.json({ error: 'Only Organizer can broadcast to members' }, { status: 403 });
 
-      for (const member of ex.members) {
-        await db.notification.create({
+      const notificationInserts = ex.members.map((member) =>
+        db.notification.create({
           data: {
             userId: member.userId,
             title: `📢 Exchange Broadcast: ${ex.title}`,
             message: messageText.trim(),
             exchangeId: ex.id,
           },
-        });
+        })
+      );
 
+      await db.$transaction(notificationInserts);
+
+      for (const member of ex.members) {
         if (member.user.email && member.user.emailNotifications !== false) {
           sendNudgeEmail({
             recipientEmail: member.user.email,
@@ -538,10 +582,9 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const sessionUserId = await getSessionUserId();
+    const activeUserId = await getSessionUserId();
 
     const {
-      userId: bodyUserId,
       operationId,
       action,
       dates,
@@ -551,7 +594,6 @@ export async function PATCH(request: Request) {
       targetUserId,
       demeritPoints,
     } = body as {
-      userId?: string;
       operationId: string;
       action?: 'update_dates' | 'update_settings' | 'update_agent_role' | 'remove_agent' | 'issue_demerit' | 'nudge_agent';
       dates?: {
@@ -576,8 +618,6 @@ export async function PATCH(request: Request) {
       targetUserId?: string;
       demeritPoints?: number;
     };
-
-    const activeUserId = sessionUserId || bodyUserId;
 
     if (!activeUserId || !operationId) {
       return NextResponse.json({ error: 'Authentication and operationId are required' }, { status: 400 });

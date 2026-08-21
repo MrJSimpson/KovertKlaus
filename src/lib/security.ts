@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 /**
  * KovertKlaus Web Security & Input Hardening Utility
  * Enforces OWASP Top 10 Guidelines:
@@ -11,6 +13,65 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 // Safe Exchange Code Regex (Alphanumeric and hyphens only, max 16 chars)
 const CODE_REGEX = /^[A-Z0-9-]{3,16}$/;
+
+/**
+ * Fallback HMAC session secret for development when SESSION_SECRET is unset.
+ */
+const DEFAULT_SESSION_SECRET = 'kovertklaus-session-hmac-secret-vault-do-not-use-in-production-min32chars';
+
+/**
+ * Retrieves the cryptographic secret used for HMAC token signing and verification.
+ */
+export function getSessionSecret(): string {
+  return process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET || DEFAULT_SESSION_SECRET;
+}
+
+/**
+ * Creates a cryptographically signed HMAC-SHA256 token payload.
+ * Output format: `<payload>.<base64url_signature>`
+ *
+ * @param data - The raw identifier or payload (e.g. userId or adminId)
+ * @param secret - The signing secret (defaults to getSessionSecret())
+ * @returns The signed token string
+ */
+export function signToken(data: string, secret = getSessionSecret()): string {
+  if (!data) return '';
+  const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+  return `${data}.${signature}`;
+}
+
+/**
+ * Verifies an HMAC-SHA256 signed token using constant-time comparison.
+ *
+ * @param token - The signed token string (<payload>.<signature>)
+ * @param secret - The signing secret (defaults to getSessionSecret())
+ * @returns The verified payload string, or `null` if verification fails or token is tampered.
+ */
+export function verifyToken(token: string | null | undefined, secret = getSessionSecret()): string | null {
+  if (!token || typeof token !== 'string') return null;
+  const lastDotIndex = token.lastIndexOf('.');
+  if (lastDotIndex === -1) return null;
+
+  const data = token.substring(0, lastDotIndex);
+  const signature = token.substring(lastDotIndex + 1);
+
+  if (!data || !signature) return null;
+
+  const expectedSignature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+
+  const sigBuf = Buffer.from(signature);
+  const expectedBuf = Buffer.from(expectedSignature);
+
+  if (sigBuf.length !== expectedBuf.length) {
+    return null;
+  }
+
+  if (!crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+    return null;
+  }
+
+  return data;
+}
 
 /**
  * Formats a Codename to enforce the "Agent: " display prefix rule across the app.
@@ -242,6 +303,29 @@ export function sanitizeInviteCode(code: string): string | null {
 }
 
 /**
+ * Returns a cryptographically secure, uniformly distributed random integer
+ * in the half-open interval [0, maxExclusive) using rejection sampling to eliminate modulo bias.
+ *
+ * @param maxExclusive - Upper bound (exclusive). Must be > 0.
+ * @returns An integer n where 0 <= n < maxExclusive.
+ */
+export function getSecureRandomInt(maxExclusive: number): number {
+  if (maxExclusive <= 1) return 0;
+  const range = maxExclusive;
+  const maxUint32 = 0x100000000;
+  const limit = maxUint32 - (maxUint32 % range);
+  const buffer = new Uint32Array(1);
+
+  let randomVal: number;
+  do {
+    crypto.getRandomValues(buffer);
+    randomVal = buffer[0];
+  } while (randomVal >= limit);
+
+  return randomVal % range;
+}
+
+/**
  * Generates a cryptographically secure random 8-character Base32 Invite Code
  * formatted as two 4-character chunks separated by a hyphen (e.g. "K9X2-R7M4").
  * Uses an unambiguous Base32 character set (excluding 0, O, 1, I).
@@ -250,13 +334,7 @@ export function sanitizeInviteCode(code: string): string | null {
 export function generateInviteCode(): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   const bytes = new Uint8Array(8);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < 8; i++) {
-      bytes[i] = Math.floor(Math.random() * 256);
-    }
-  }
+  crypto.getRandomValues(bytes);
 
   let part1 = '';
   let part2 = '';
@@ -272,45 +350,100 @@ export function generateInviteCode(): string {
 
 /**
  * SSRF Protection: Ensures a URL uses http/https protocols and does NOT resolve
- * to internal/private IP ranges or loopback/metadata endpoints.
+ * to internal/private IP ranges, loopback/metadata endpoints, or DNS rebinding wildcards.
  */
 export function isSafePublicUrl(urlString: string): { safe: boolean; error?: string } {
   try {
-    const parsed = new URL(urlString.trim());
+    const trimmed = (urlString || '').trim();
+    if (!trimmed) {
+      return { safe: false, error: 'URL cannot be empty.' };
+    }
 
-    // Protocol enforcement
+    const parsed = new URL(trimmed);
+
+    // Protocol enforcement: Only http and https
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       return { safe: false, error: 'Only http and https protocols are permitted.' };
     }
 
-    const hostname = parsed.hostname.toLowerCase();
+    // Reject userinfo in URL (e.g. http://user:pass@host)
+    if (parsed.username || parsed.password) {
+      return { safe: false, error: 'URLs containing embedded credentials are forbidden.' };
+    }
 
-    // Loopback & Localhost check
+    const rawHostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+
+    // Loopback & Localhost checks
     if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '::1' ||
-      hostname.endsWith('.local') ||
-      hostname.endsWith('.internal')
+      rawHostname === 'localhost' ||
+      rawHostname === '127.0.0.1' ||
+      rawHostname === '::1' ||
+      rawHostname === '0.0.0.0' ||
+      rawHostname.endsWith('.local') ||
+      rawHostname.endsWith('.internal') ||
+      rawHostname.endsWith('.localhost') ||
+      rawHostname.endsWith('.lan')
     ) {
       return { safe: false, error: 'Access to loopback/local addresses is forbidden.' };
     }
 
-    // AWS Cloud Metadata endpoint check
-    if (hostname === '169.254.169.254') {
+    // DNS Rebinding and wildcard service check
+    const rebindPatterns = [
+      /(^|\.)nip\.io$/,
+      /(^|\.)sslip\.io$/,
+      /(^|\.)xip\.io$/,
+      /(^|\.)localtest\.me$/,
+      /(^|\.)vcap\.me$/,
+      /(^|\.)burpcollaborator\.net$/,
+      /(^|\.)oastify\.com$/,
+      /\.127\.0\.0\.1(\.|$)/,
+      /\.169\.254(\.|$)/,
+    ];
+    if (rebindPatterns.some((pattern) => pattern.test(rawHostname))) {
+      return { safe: false, error: 'Access to dynamic DNS/rebinding domains is forbidden.' };
+    }
+
+    // AWS / Cloud Metadata endpoint checks
+    if (rawHostname === '169.254.169.254' || rawHostname === 'instance-data' || rawHostname === 'fd00:ec2::254') {
       return { safe: false, error: 'Access to cloud metadata endpoint is forbidden.' };
     }
 
-    // Private IPv4 range checks
-    const ipParts = hostname.split('.').map((p) => parseInt(p, 10));
+    // IPv6 Private & Local checks
+    if (
+      rawHostname.startsWith('fc') ||
+      rawHostname.startsWith('fd') ||
+      rawHostname.startsWith('fe80') ||
+      rawHostname === '::' ||
+      rawHostname.startsWith('::ffff:127.') ||
+      rawHostname.startsWith('::ffff:10.') ||
+      rawHostname.startsWith('::ffff:192.168.')
+    ) {
+      return { safe: false, error: 'Access to private IPv6 addresses is forbidden.' };
+    }
+
+    // Check if hostname is an integer representation of an IP (e.g. 2130706433 = 127.0.0.1)
+    if (/^\d+$/.test(rawHostname)) {
+      return { safe: false, error: 'Numeric integer IP addresses are forbidden.' };
+    }
+
+    // Check if hostname is hexadecimal or octal IP format (e.g. 0x7f000001 or 017700000001)
+    if (/^0x[0-9a-f]+$/i.test(rawHostname) || /^0[0-7]+$/.test(rawHostname)) {
+      return { safe: false, error: 'Hexadecimal or octal IP addresses are forbidden.' };
+    }
+
+    // Standard IPv4 dotted-decimal range check
+    const ipParts = rawHostname.split('.').map((p) => parseInt(p, 10));
     if (ipParts.length === 4 && ipParts.every((p) => !isNaN(p) && p >= 0 && p <= 255)) {
       const [a, b] = ipParts;
       if (
-        a === 10 || // 10.0.0.0/8
-        (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
-        (a === 192 && b === 168) || // 192.168.0.0/16
-        a === 127 || // 127.0.0.0/8
-        (a === 169 && b === 254) // 169.254.0.0/16
+        a === 0 ||                           // 0.0.0.0/8 (Current network)
+        a === 10 ||                          // 10.0.0.0/8 (Private network)
+        a === 127 ||                         // 127.0.0.0/8 (Loopback)
+        a === 169 && b === 254 ||            // 169.254.0.0/16 (Link-local / Cloud metadata)
+        a === 172 && b >= 16 && b <= 31 ||   // 172.16.0.0/12 (Private network)
+        a === 192 && b === 168 ||            // 192.168.0.0/16 (Private network)
+        a === 100 && b >= 64 && b <= 127 ||  // 100.64.0.0/10 (Carrier-grade NAT)
+        a === 198 && (b === 18 || b === 19) // 198.18.0.0/15 (Benchmarking)
       ) {
         return { safe: false, error: 'Access to private network IP ranges is forbidden.' };
       }

@@ -5,16 +5,13 @@ import { getSessionUserId } from '@/lib/auth';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const sessionUserId = await getSessionUserId();
+    const activeUserId = await getSessionUserId();
 
-    const { operationId, userId: bodyUserId, isLocalDelivery, trackingNumber } = body as {
+    const { operationId, isLocalDelivery, trackingNumber } = body as {
       operationId: string;
-      userId?: string;
       isLocalDelivery?: boolean;
       trackingNumber?: string;
     };
-
-    const activeUserId = sessionUserId || bodyUserId;
 
     if (!operationId || !activeUserId) {
       return NextResponse.json({ error: 'Authentication and operationId are required' }, { status: 400 });

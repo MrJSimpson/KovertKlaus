@@ -4,11 +4,36 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 import pg from 'pg';
 
 let cachedDb: PrismaClient | null = null;
+let cachedPool: pg.Pool | null = null;
 let lastConnStr: string = '';
 
-export function invalidateCachedDb(): void {
+/**
+ * Tears down active database connections and closes underlying connection pools
+ * before wiping references to prevent socket and connection leaks.
+ */
+export async function invalidateCachedDb(): Promise<void> {
+  const dbToDisconnect = cachedDb;
+  const poolToClose = cachedPool;
+
   cachedDb = null;
+  cachedPool = null;
   lastConnStr = '';
+
+  if (dbToDisconnect) {
+    try {
+      await dbToDisconnect.$disconnect();
+    } catch (err) {
+      console.warn('[DB Teardown] Error disconnecting Prisma client:', err);
+    }
+  }
+
+  if (poolToClose) {
+    try {
+      await poolToClose.end();
+    } catch (err) {
+      console.warn('[DB Teardown] Error ending PostgreSQL connection pool:', err);
+    }
+  }
 }
 
 export function getDb(overrideConnStr?: string): PrismaClient {
@@ -43,6 +68,7 @@ export function getDb(overrideConnStr?: string): PrismaClient {
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
     });
+    cachedPool = pool;
     adapter = new PrismaPg(pool);
   }
 
@@ -72,7 +98,7 @@ export async function withDbRetry<T>(fn: (client: PrismaClient) => Promise<T>, m
 
       if (isConnError && attempt < maxRetries) {
         console.warn(`[DB Retry] Connection issue detected (attempt ${attempt}/${maxRetries}), reconnecting...`, err.message);
-        invalidateCachedDb();
+        await invalidateCachedDb();
         await new Promise((r) => setTimeout(r, 400 * attempt));
         continue;
       }

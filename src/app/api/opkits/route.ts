@@ -3,15 +3,11 @@ import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { sanitizeText, isSafePublicUrl } from '@/lib/security';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const paramUserId = searchParams.get('userId');
-    const sessionUserId = await getSessionUserId();
-    const activeUserId = sessionUserId || paramUserId;
+    const activeUserId = await getSessionUserId();
 
     if (!activeUserId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -53,8 +49,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const sessionUserId = await getSessionUserId();
-    const activeUserId = sessionUserId || body.userId;
+    const activeUserId = await getSessionUserId();
 
     if (!activeUserId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -155,8 +150,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const sessionUserId = await getSessionUserId();
-    const activeUserId = sessionUserId || body.userId;
+    const activeUserId = await getSessionUserId();
 
     if (!activeUserId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -188,9 +182,7 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
     const wishlistId = searchParams.get('wishlistId');
     const itemId = searchParams.get('itemId');
-    const sessionUserId = await getSessionUserId();
-    const paramUserId = searchParams.get('userId');
-    const activeUserId = sessionUserId || paramUserId;
+    const activeUserId = await getSessionUserId();
 
     if (!activeUserId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });

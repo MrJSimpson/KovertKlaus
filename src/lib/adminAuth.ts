@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { adminDb } from '@/lib/adminDb';
 import { IS_SAAS } from '@/lib/config/mode';
+import { signToken, verifyToken } from '@/lib/security';
 
 const ADMIN_SESSION_COOKIE_NAME = 'kovertklaus_admin_session';
 
@@ -72,12 +73,13 @@ export function validateNistPassword(
 }
 
 /**
- * Sets a short-lived, HTTP-only, secure admin session cookie.
+ * Sets a short-lived, HTTP-only, cryptographically signed admin session cookie.
  * Expiration: 12 hours (43,200 seconds).
  */
 export async function setAdminSessionCookie(adminId: string) {
   const cookieStore = await cookies();
-  cookieStore.set(ADMIN_SESSION_COOKIE_NAME, adminId, {
+  const signedToken = signToken(adminId);
+  cookieStore.set(ADMIN_SESSION_COOKIE_NAME, signedToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -87,12 +89,12 @@ export async function setAdminSessionCookie(adminId: string) {
 }
 
 /**
- * Retrieves the current admin session ID from the HTTP-only cookie.
+ * Retrieves and cryptographically verifies the current admin session ID from the HTTP-only cookie.
  */
 export async function getAdminSessionId(): Promise<string | null> {
   const cookieStore = await cookies();
   const session = cookieStore.get(ADMIN_SESSION_COOKIE_NAME);
-  return session?.value || null;
+  return verifyToken(session?.value);
 }
 
 /**

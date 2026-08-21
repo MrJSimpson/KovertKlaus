@@ -69,9 +69,8 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const sessionUserId = await getSessionUserId();
+    const userId = await getSessionUserId();
     const body = await request.json();
-    const userId = sessionUserId || body.userId;
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized session' }, { status: 401 });

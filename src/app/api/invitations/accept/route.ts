@@ -5,15 +5,12 @@ import { getSessionUserId } from '@/lib/auth';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const sessionUserId = await getSessionUserId();
+    const activeUserId = await getSessionUserId();
 
-    const { userId: bodyUserId, operationCode, wishlistId } = body as {
-      userId?: string;
+    const { operationCode, wishlistId } = body as {
       operationCode: string;
       wishlistId?: string;
     };
-
-    const activeUserId = sessionUserId || bodyUserId;
 
     if (!activeUserId || !operationCode) {
       return NextResponse.json(

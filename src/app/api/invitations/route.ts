@@ -1,20 +1,25 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSessionUserId } from '@/lib/auth';
 import { sendInvitationEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
+    const activeUserId = await getSessionUserId();
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const body = await request.json();
-    const { operationId, requesterUserId, recipientEmail, isLatePass } = body as {
+    const { operationId, recipientEmail, isLatePass } = body as {
       operationId: string;
-      requesterUserId: string;
       recipientEmail: string;
       isLatePass?: boolean;
     };
 
-    if (!operationId || !requesterUserId || !recipientEmail) {
+    if (!operationId || !recipientEmail) {
       return NextResponse.json(
-        { error: 'operationId, requesterUserId, and recipientEmail are required' },
+        { error: 'operationId and recipientEmail are required' },
         { status: 400 }
       );
     }
@@ -29,7 +34,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
     }
 
-    if (exchange.organizerId !== requesterUserId) {
+    if (exchange.organizerId !== activeUserId) {
       return NextResponse.json(
         { error: 'Only the Organizer can issue invitations for this exchange.' },
         { status: 403 }

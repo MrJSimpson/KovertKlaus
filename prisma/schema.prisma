@@ -128,6 +128,10 @@ model Exchange {
   exclusionRules ExclusionRule[]
   messages       ExchangeMessage[]
   reports        ExchangeReport[]
+
+  @@index([organizerId])
+  @@index([status])
+  @@index([code])
 }
 
 model ProductCatalog {
@@ -161,6 +165,9 @@ model Item {
   updatedAt    DateTime        @updatedAt
 
   wishlistItems WishlistItem[]
+
+  @@index([userId])
+  @@index([catalogId])
 }
 
 model Wishlist {
@@ -174,6 +181,8 @@ model Wishlist {
 
   wishlistItems   WishlistItem[]
   exchangeMembers ExchangeMember[]
+
+  @@index([userId])
 }
 
 model WishlistItem {
@@ -206,6 +215,8 @@ model ExchangeMember {
   wishlist Wishlist? @relation(fields: [wishlistId], references: [id])
 
   @@unique([exchangeId, userId])
+  @@index([userId])
+  @@index([targetUserId])
 }
 
 model ExclusionRule {
@@ -233,6 +244,8 @@ model ExchangeMessage {
   exchange  Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
   sender    User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   recipient User     @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([exchangeId])
 }
 
 model Notification {
@@ -244,6 +257,8 @@ model Notification {
   exchangeId     String?
   isAcknowledged Boolean  @default(false)
   createdAt      DateTime @default(now())
+
+  @@index([userId, isAcknowledged])
 }
 
 model ExchangeReport {
@@ -256,6 +271,8 @@ model ExchangeReport {
 
   exchange Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([exchangeId])
 }
 
 model ClearanceLead {
