@@ -1,0 +1,59 @@
+<mxfile host="Electron" modified="2026-08-21T23:35:00.000Z" agent="Antigravity" version="24.7.5">
+  <diagram id="kovertklaus-database-erd" name="KovertKlaus Entity Relationship Diagram">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" background="#0B0F19" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b style=&quot;font-size:22px;color:#F8FAFC;&quot;&gt;🗄️ KovertKlaus — Relational Database Schema &amp;amp; ERD&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;color:#94A3B8;font-family:monospace;&quot;&gt;Prisma PostgreSQL Schema Entities, Relational Indexes, &amp;amp; Foreign Key Topologies&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#334155;arcSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="1840" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Entity 1: User -->
+        <mxCell id="ent_user" value="&lt;b style=&quot;color:#38BDF8;font-size:14px;&quot;&gt;User&lt;/b&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-family:monospace;font-size:10px;color:#CBD5E1;&quot;&gt;&lt;b style=&quot;color:#F59E0B;&quot;&gt;PK&lt;/b&gt; id : String (UUID / CUID)&lt;br&gt;&lt;b style=&quot;color:#38BDF8;&quot;&gt;UQ&lt;/b&gt; email : String&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;name : String&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;codename : String?&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;passwordHash : String&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;penaltyPoints : Int (0-4)&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;accountStatus : Enum (ACTIVE...)&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;isWorkshop : Boolean&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;address : String?&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;createdAt : DateTime&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="280" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- Entity 2: Exchange (Mission) -->
+        <mxCell id="ent_exchange" value="&lt;b style=&quot;color:#10B981;font-size:14px;&quot;&gt;Exchange (Holiday Mission)&lt;/b&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-family:monospace;font-size:10px;color:#CBD5E1;&quot;&gt;&lt;b style=&quot;color:#F59E0B;&quot;&gt;PK&lt;/b&gt; id : String&lt;br&gt;&lt;b style=&quot;color:#38BDF8;&quot;&gt;UQ&lt;/b&gt; code : String (e.g. KOVERT-87WZ)&lt;br&gt;&lt;b style=&quot;color:#A855F7;&quot;&gt;FK&lt;/b&gt; organizerId : String -&gt; User.id&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;title : String&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;status : Enum (RECRUITING...)&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;budgetMin : Decimal?&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;budgetMax : Decimal&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;currency : String (USD)&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;inviteCutoffDate : DateTime?&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;assignmentDate : DateTime?&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;shippingDate : DateTime?&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;executionDate : DateTime?&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="160" width="300" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- Entity 3: ExchangeMember -->
+        <mxCell id="ent_member" value="&lt;b style=&quot;color:#EC4899;font-size:14px;&quot;&gt;ExchangeMember (Roster)&lt;/b&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-family:monospace;font-size:10px;color:#CBD5E1;&quot;&gt;&lt;b style=&quot;color:#F59E0B;&quot;&gt;PK&lt;/b&gt; id : String&lt;br&gt;&lt;b style=&quot;color:#A855F7;&quot;&gt;FK&lt;/b&gt; exchangeId : String -&gt; Exchange.id&lt;br&gt;&lt;b style=&quot;color:#A855F7;&quot;&gt;FK&lt;/b&gt; userId : String -&gt; User.id&lt;br&gt;&lt;b style=&quot;color:#A855F7;&quot;&gt;FK&lt;/b&gt; targetUserId : String? -&gt; User.id&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;role : Enum (ORGANIZER, AGENT)&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;shippingStatus : Enum (PENDING...)&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;trackingNumber : String?&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;deliveredConfirmed : Boolean&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;giftIdeaNotes : String?&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#831843;strokeColor=#DB2777;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="960" y="160" width="300" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- Entity 4: ExclusionRule -->
+        <mxCell id="ent_rule" value="&lt;b style=&quot;color:#F59E0B;font-size:14px;&quot;&gt;ExclusionRule (100% Match Matrix)&lt;/b&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-family:monospace;font-size:10px;color:#CBD5E1;&quot;&gt;&lt;b style=&quot;color:#F59E0B;&quot;&gt;PK&lt;/b&gt; id : String&lt;br&gt;&lt;b style=&quot;color:#A855F7;&quot;&gt;FK&lt;/b&gt; exchangeId : String -&gt; Exchange.id&lt;br&gt;&lt;b style=&quot;color:#A855F7;&quot;&gt;FK&lt;/b&gt; agentId : String -&gt; User.id&lt;br&gt;&lt;b style=&quot;color:#A855F7;&quot;&gt;FK&lt;/b&gt; restrictedAgentId : String -&gt; User.id&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;reason : String?&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;createdAt : DateTime&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#451A03;strokeColor=#D97706;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="470" width="300" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Entity 5: Wishlist & Item -->
+        <mxCell id="ent_wishlist" value="&lt;b style=&quot;color:#A855F7;font-size:14px;&quot;&gt;Wishlist &amp;amp; Items (Manifests)&lt;/b&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-family:monospace;font-size:10px;color:#CBD5E1;&quot;&gt;&lt;b style=&quot;color:#F59E0B;&quot;&gt;PK&lt;/b&gt; Wishlist.id : String&lt;br&gt;&lt;b style=&quot;color:#A855F7;&quot;&gt;FK&lt;/b&gt; userId : String -&gt; User.id&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;name : String, type : Enum, isMaster : Bool&lt;br&gt;&lt;b style=&quot;color:#F59E0B;&quot;&gt;PK&lt;/b&gt; Item.id : String&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;name : String, url : String, price : Decimal&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;thumbnailUrl : String?&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#581C87;strokeColor=#9333EA;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="470" width="300" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Entity 6: ClearanceLead -->
+        <mxCell id="ent_lead" value="&lt;b style=&quot;color:#10B981;font-size:14px;&quot;&gt;ClearanceLead (Waitlist Queue)&lt;/b&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-family:monospace;font-size:10px;color:#CBD5E1;&quot;&gt;&lt;b style=&quot;color:#F59E0B;&quot;&gt;PK&lt;/b&gt; id : String&lt;br&gt;&lt;b style=&quot;color:#38BDF8;&quot;&gt;UQ&lt;/b&gt; email : String&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;name : String?&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;source : String (e.g. coming-soon)&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;status : String (PENDING, APPROVED)&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;createdAt : DateTime&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="160" width="300" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="rel1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#38BDF8;strokeWidth=2;" edge="1" parent="1" source="ent_user" target="ent_exchange">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#10B981;strokeWidth=2;" edge="1" parent="1" source="ent_exchange" target="ent_member">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#F59E0B;strokeWidth=2;" edge="1" parent="1" source="ent_exchange" target="ent_rule">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </mxfile>
+</mxfile>

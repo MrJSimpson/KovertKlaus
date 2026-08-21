@@ -1,110 +1,193 @@
-# KovertKlaus — Architecture & API Reference 🕵️‍♂️🎄
+# KovertKlaus — Technical Architecture Specification 🕵️‍♂️🎄
 
-This document provides a comprehensive technical overview of the **KovertKlaus** application structure, database schemas, API routes, and design conventions.
-
----
-
-## 🎯 1. Canonical Domain Nomenclature (Santa's Whimsical Secret Service)
-
-| Domain Concept | Canonical Term | Prisma DB Entity | Description & Scope |
-| :--- | :--- | :--- | :--- |
-| **Event Organizer** | **`Head Elf`** (`OpsLeader`) | `User` / `Exchange.organizer` | Creator & administrator of a Holiday Mission. |
-| **Participant** | **`Elf Agent`** (`Agent`) | `User` / `ExchangeMember` | Operative enrolled in the mission. |
-| **Gift Exchange Event** | **`Holiday Mission`** | `Exchange` (`Mission`) | Gift exchange operation (Secret Santa / White Elephant). |
-| **Wishlist Container** | **`Wishlist Manifest`** | `Wishlist` (`OpKit`) | Curated collection of wished-for gift items. |
-| **Individual Gift Item** | **`Manifest Item`** | `Item` (`OpTool`) | Individual product item inside a Wishlist Manifest. |
-| **Penalty / Demerit** | **`Coal Citation`** | `User.penaltyPoints` | Reliability penalty point for deadline non-compliance. |
+**Document Version:** 1.0.0  
+**Target Release:** `v0.1.0-prealpha` ➔ `v1.0.0-beta`  
+**Classification:** Public Engineering Specification  
 
 ---
 
-## 🗄️ 2. Database Models (Prisma)
+## 1. Executive Summary & System Overview
 
-- **`User`**: Account details, codename, address, coal citation count (`penaltyPoints: 0-3`), `accountStatus`.
-- **`Exchange` (`Mission`)**: Mission details, timeline dates (`inviteCutoffDate`, `assignmentDate`, `shippingDate`, `executionDate`), budget range, `opsLeaderAssistedDraw`, `drawVerifiedAt`.
-- **`ExchangeMember` (`MissionAgent`)**: Join link between `User` and `Exchange` (`role`, `targetUserId`, `shippingStatus`, `trackingNumber`, `deliveredConfirmed`).
-- **`ExclusionRule`**: 100% Bidirectional match exclusion rules ($A \iff B$) between operatives.
-- **`Wishlist`**: Wishlist Manifest record (`name`, `type`, `userId`, `isMaster`).
-- **`Item`**: Product catalog record (`name`, `url`, `price`, `description`, `thumbnailUrl`).
-- **`WishlistItem`**: Join table connecting `Wishlist` to `Item`.
-- **`IntelMessage`**: Anonymous chat message stream.
-- **`Notification`**: In-app alert broadcasts and system notifications.
-- **`AfterActionReport`**: Post-event gift thank-you messages and photo uploads.
-- **`ClearanceLead`**: Early-access waitlist staging table.
-- **`AdminUser`**: Separate administrative credentials for North Pole Command (`/northpole`).
-- **`SystemConfig`**: Database-persisted live runtime configuration (tokens, themes, allowances, email keys).
+**KovertKlaus** is a covert intelligence gift exchange network and reliability management platform designed for families, friends, communities, and enterprise teams. The system transforms standard Secret Santa and White Elephant gift exchanges into interactive holiday missions governed by automated reliability tracking (Coal Citations), reusable Wishlist Manifests, 100% bidirectional match exclusion matrices, cryptographic session integrity, and a hybrid Cloudflare Edge Worker + Serverless PostgreSQL architecture.
 
----
+```mermaid
+flowchart TD
+    subgraph Client Layer
+        Browser[Modern Web Browser / Mobile PWA]
+    end
 
-## 🌐 3. API Route Reference
+    subgraph Cloudflare Edge Layer
+        CF_Worker[Cloudflare Worker Gateway<br/><code>src/worker.ts</code>]
+        CF_Static[Cloudflare Static Assets / Pages<br/><code>/out</code> Next.js Static Export]
+    end
 
-- **`POST /api/users/login`**: Authenticates user via bcrypt, sets HTTP-only session cookie.
-- **`GET / POST / PATCH / DELETE /api/users/me`**: Session profile retrieval (auto-creates default Master Wishlist Manifest if missing), address/password updates, and logout.
-- **`POST /api/users`**: Email existence check (`action: 'check'`) & account registration (`action: 'register'`).
-- **`GET / POST / PATCH /api/operations`**: Mission retrieval by code/user, mission creation, target drawing (`action: 'draw'`), 2-way target swaps (`action: 'swap'`), exclusion rules (`action: 'addExclusion'`, `'removeExclusion'`), recruitment closing (`action: 'closeRecruitment'`), ending mission (`action: 'endOperation'`), team broadcasts (`action: 'sendOpTeamBroadcast'`), and After-Action Reports (`action: 'createReport'`).
-- **`GET / POST / PATCH / DELETE /api/opkits`**: Persistent CRUD operations for Wishlist Manifests and Manifest Items.
-- **`POST /api/scraper`**: OpenGraph metadata scraper with 2.5s fast-failover timeout.
-- **`POST /api/invitations/accept`**: Enrolls an operative into a mission via invite code.
-- **`GET / POST /api/shipping`**: Shipping status and carrier tracking waiver submission.
-- **`GET / POST /api/demerits/audit`**: Demerit audit engine, automated `-1` redemption, and citation issuance.
-- **`POST /api/northpole/login` & `/api/northpole/me`**: Isolated SysAdmin authentication portal.
+    subgraph Data & Persistence Layer
+        Neon_DB[(Neon Serverless PostgreSQL<br/>Connection Pooler & WebSockets)]
+        Prisma_ORM[Prisma Client v7<br/><code>@prisma/adapter-neon</code> / <code>@prisma/adapter-pg</code>]
+    end
 
----
+    subgraph External Intelligence & Dispatch
+        Brevo_API[Brevo REST API<br/>Transactional Email Dispatch]
+        Scraper_Engine[OpenGraph Product Metadata Scraper<br/>Anti-SSRF Protected]
+    end
 
-## 🎨 4. Theme System & Design Tokens (`src/lib/theme.ts`)
-
-Theme utilities are located in `src/lib/theme.ts`. Call `getThemeClasses(isDarkMode, presetTokens)` to obtain color tokens for:
-* **Klaus Mode 🎄 (Light Theme)**: Evergreen pine headers, holly berry buttons, warm gold accents, and clean white frames.
-* **Kovert Mode ❄️ (Dark Theme)**: Midnight slate, icy sky blue accents, translucent glassmorphism panels, and frost borders.
+    Browser -->|Static HTML / CSS / JS| CF_Static
+    Browser -->|Dynamic <code>/api/*</code> Traffic| CF_Worker
+    CF_Worker --> Prisma_ORM
+    Prisma_ORM --> Neon_DB
+    CF_Worker --> Brevo_API
+    CF_Worker --> Scraper_Engine
+```
 
 ---
 
-## ⚡ 5. Open-Core Architecture & Mode Vector (`src/lib/config/mode.ts`)
+## 2. Canonical Domain Nomenclature
 
-KovertKlaus uses an **Environment Mode Flag Vector** (`APP_MODE`) to separate open-source self-hosted capabilities from commercial SaaS extensions:
+To preserve the tactical covert holiday aesthetic, KovertKlaus establishes standard domain mappings across code, schemas, and user interfaces:
 
-* **`APP_MODE=selfhosted` (Default)**: Full-featured, unlimited local operation capacity for personal, family, and home-lab deployments under BSL 1.1. Zero external billing credentials required.
-* **`APP_MODE=saas`**: Activates multi-tenant account resource quota checking (`src/lib/saas/stub.ts`) and Stripe commercial billing integration hooks for `kovertklaus.com`.
-
----
-
-## ⚖️ 6. Demerit Governance, Non-Intermediary Principle & Redemption Engine
-
-* **Platform Non-Intermediary Principle**:
-  * KovertKlaus admins and customer service do **NOT** arbitrate or handle demerits.
-  * Acquiring demerits requires intentional neglect or abuse (e.g., failure to ship without tracking proof, ghosting).
-  * If a demerit citation is issued, it is strictly an administrative matter between the Event Organizer (`Head Elf`) and the participant. KovertKlaus is **NOT an intermediary**.
-* **Account Tiers**:
-  * `0-2` Coal Citations: **`ACTIVE`** (Full access across all remote and local missions).
-  * `3` Coal Citations: **`REMOTE_RESTRICTED`** (Restricted strictly to local in-person exchanges).
-  * `>3` Coal Citations: **`DISABLED`** (Suspended from creating or joining missions).
-* **Automatic Rehabilitation / Redemption Engine**:
-  * Successfully completing any subsequent mission automatically clears **1 Coal Citation** (`Math.max(0, penaltyPoints - 1)`).
-  * Once penalty points drop below 3 (e.g., from 3 to 2), account standing is automatically restored from `REMOTE_RESTRICTED` back to `ACTIVE`.
-* **Anti-Abuse Safeguards**:
-  * **Carrier Protection Waiver**: Submitting a valid carrier tracking number automatically waives demerit penalties if a parcel is lost by the carrier.
-  * **Demerit Immunity Waiver**: Verified receipt of any gift in a mission waives demerit liability.
-  * **Execution Day Gate**: Demerit audits can only be executed on or after the scheduled Execution Day.
+| Domain Concept | Canonical Term | Code Symbol | Database Entity | Scope & Semantics |
+| :--- | :--- | :--- | :--- | :--- |
+| **Event Organizer** | **`Head Elf`** | `organizer` / `OpsLeader` | `User` / `Exchange.organizerId` | Creator and administrative leader of a holiday mission. |
+| **Participant** | **`Elf Agent`** | `member` / `Agent` | `ExchangeMember` / `User` | Operative enrolled in the mission roster. |
+| **Gift Exchange** | **`Holiday Mission`** | `exchange` / `Operation` | `Exchange` | The overarching gift exchange event (Secret Santa or White Elephant). |
+| **Wishlist Container** | **`Wishlist Manifest`** | `manifest` / `OpKit` | `Wishlist` | Curated collection of desired gift items. |
+| **Individual Gift Item** | **`Manifest Item`** | `item` / `OpTool` | `Item` / `WishlistItem` | Product listing containing title, URL, price, and thumbnail. |
+| **Reliability Penalty** | **`Coal Citation`** | `demerit` / `penalty` | `User.penaltyPoints` | Reliability penalty point issued for unexcused deadline default. |
 
 ---
 
-## 🗺️ 7. Master Release Roadmap & Engineering Lifecycle
+## 3. Hybrid Edge & Next.js App Router Architecture
 
-* **`v0.1.0-prealpha` (Active / Now – Sep 30, 2026)**: Core engine refactoring, algorithmic derangements, email dispatch test harness, and TSDoc codebase annotations.
-* **`v0.2.0-alpha` (Target: Oct 1, 2026)**: Closed family dogfooding (Shannon, Cheryl, Terry, Zach), multi-carrier webhooks, and mobile UI polish.
-* **`v1.0.0-beta` (Target: Nov 1, 2026)**: Season 1 Public Winter Launch (Nov 1 – Jan 31), live public exchanges, and Cloudflare SaaS multi-tenant gateway.
-* **`v1.0.0-ga` (Target: Jan 31, 2027)**: General Availability & Q2 Spring Egg Hunt Rotation.
+KovertKlaus utilizes an open-core hybrid deployment model:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Operative as Browser Client
+    participant Edge as Cloudflare Edge Worker (worker.ts)
+    participant Auth as HMAC Session Gate
+    participant DB as Neon PostgreSQL (Prisma)
+    participant Email as Brevo Email Engine
+
+    Operative->>Edge: POST /api/operations (action: 'draw')
+    Edge->>Auth: verifyToken(sessionCookie)
+    Auth-->>Edge: Validated userId (Constant-Time HMAC)
+    Edge->>DB: Fetch members & exclusion rules
+    DB-->>Edge: Roster dataset
+    Note over Edge: Execute Sattolo derangement algorithm
+    Edge->>DB: db.$transaction([Update Member Targets, Exchange Status])
+    DB-->>Edge: Transaction Committed
+    Edge->>Email: sendAssignmentEmail() with exponential backoff
+    Email-->>Edge: Delivery receipt (messageId)
+    Edge-->>Operative: HTTP 200 { success: true, missionStatus: 'ASSIGNED' }
+```
+
+### Static Prerendering + Edge Runtime Routing
+1. **Next.js Static Export (`/out`)**: All UI pages (`/`, `/dashboard`, `/exchange/[code]`, `/workshop`, `/northpole`) are statically prerendered at build time using `export const dynamic = 'force-static'` for instant global CDN delivery.
+2. **Cloudflare Worker Gateway (`src/worker.ts`)**: Dynamically intercepts all incoming `/api/*` endpoints at the edge, authenticates sessions via HMAC-SHA256, connects to Neon PostgreSQL over secure WebSockets (`@neondatabase/serverless`), and executes business logic with 0ms cold starts.
+3. **Local Dev / Node.js Parity**: Next.js route handlers in `src/app/api/**/route.ts` maintain exact behavioral and algorithmic parity with `src/worker.ts` for self-hosted Docker and local development.
 
 ---
 
-## 📋 8. Weekly 6 Sprint Framework & Monday Cadence
+## 4. Cryptographic State & Defensive Security Pipeline
 
-* All feature development is organized into **Weekly 6 Action Item** sprints tracked in `docs/sprints/YYYY-Wxx.md` and `docs/CURRENT_SPRINT.md`.
-* **Monday Retrospective & Planning Ceremony**:
-  1. Review empirical test proofs from previous week.
-  2. Identify areas for improvement and blockers.
-  3. Lock the upcoming week's 6 actionable deliverable cards.
-* **Definition of Done (DoD)**:
-  - 100% typed TypeScript with 3-tier TSDoc annotations.
-  - Automated test suite passes 100% (`draw.test.ts`, `email.test.ts`).
-  - Next.js Turbopack build succeeds with 0 errors (`npm run build`).
-  - Multi-repo synchronization (`kovertklaus` $\leftrightarrow$ `kovertklaus-saas`).
+```mermaid
+flowchart LR
+    subgraph Ingestion Gate
+        Cookie[Cookie: kovertklaus_session] --> Split[Split: userId + '.' + signature]
+        Secret[(SESSION_SECRET)] --> Calc[HMAC-SHA256 Calc]
+        Split --> Calc
+        Calc --> Comp{crypto.timingSafeEqual}
+        Comp -->|Valid| Allow[Identity Context: req.userId]
+        Comp -->|Invalid / Tampered| Deny[HTTP 401 Unauthorized]
+    end
+```
+
+### Core Security Invariants
+- **Cryptographic State & Session Signing**: Session tokens take the format `userId.signature`. Signatures are generated using `crypto.createHmac('sha256', secret)` and verified with `crypto.timingSafeEqual` to prevent timing attacks. Raw, unsigned UUIDs are rejected unconditionally.
+- **Zero Identity Fallbacks**: Authenticated endpoints derive the active operator's identity strictly from the verified session context. Body identity overrides (e.g. `body.userId`) and query parameters (`?userId=...`) are explicitly ignored or rejected.
+- **Server-Side PII Isolation**: Secret Santa target assignments, recipient physical addresses, and exclusion rule matrices are filtered at the database query layer. Operatives only receive data for their assigned target.
+- **Anti-SSRF Web Scraper**: The OpenGraph product scraper in `src/lib/scraper.ts` strictly validates protocols (`http:`, `https:`), blocks non-standard IP formats (decimal, hexadecimal, octal), blocks private RFC 1918 CIDRs, DNS rebinding wildcard domains, loopback, and cloud metadata endpoints (`169.254.169.254`), and enforces `redirect: 'error'`.
+
+---
+
+## 5. Target Matching Derangement Engine (`src/lib/draw.ts`)
+
+KovertKlaus guarantees that **no participant can draw themselves** ($A \neq B$) and that all active 100% bidirectional exclusion rules ($A \iff B$) are strictly satisfied.
+
+```mermaid
+flowchart TD
+    A[Start Target Assignment] --> B[Load Active Members & Bidirectional Exclusion Matrix]
+    B --> C[Run Sattolo's Derangement Algorithm using CSPRNG]
+    C --> D{Check Exclusion Violations}
+    D -->|Violations Found| E{Attempts < 2000?}
+    E -->|Yes| C
+    E -->|No| F[Execute Constraint Satisfaction Backtracker]
+    D -->|Valid Match Found| G[Construct Atomic Transaction Batch]
+    G --> H[Commit to Database]
+```
+
+### Algorithmic Highlights
+- **Sattolo Derangement Algorithm**: Generates a single uniform cyclic derangement of length $N$ in $O(N)$ time using cryptographically secure random integers (`crypto.getRandomValues`).
+- **Bidirectional Exclusion Indexing**: Rules are indexed into a bidirectional lookup set `blockedSet` in $O(E)$ time, enabling $O(1)$ match validation during candidate shuffling.
+- **Constraint Satisfaction Backtracker**: If rapid stochastic shuffling does not find a valid permutation within 2,000 attempts due to dense exclusion constraints, a deterministic backtracking solver runs to find the optimal assignment.
+- **2-Way Cascade Swapping**: Organizers can execute manual target adjustments without breaking cycle integrity. If $A \to T_1$ is changed to $A \to T_2$, the displaced giver $B$ is automatically updated to $B \to T_1$ in an atomic 2-way cascade.
+
+---
+
+## 6. Demerit Governance & Rehabilitation State Machine (`src/lib/demerits.ts`)
+
+KovertKlaus operates under the **Platform Non-Intermediary Principle**: the platform provides automated reliability accounting (Coal Citations) without manual administrative arbitration.
+
+```mermaid
+stateDiagram-v2
+    [*] --> ACTIVE: 0 Citations (Registered)
+    ACTIVE --> ACTIVE: 1-2 Citations (Minor Infractions)
+    ACTIVE --> REMOTE_RESTRICTED: 3 Citations (Default on Remote Exchange)
+    REMOTE_RESTRICTED --> DISABLED: >3 Citations (Multiple Violations)
+    
+    REMOTE_RESTRICTED --> ACTIVE: -1 Citation (Fulfill Local / White Elephant Mission)
+    DISABLED --> REMOTE_RESTRICTED: Administrative Forgiveness
+```
+
+### Standing Tiers
+1. **`ACTIVE` (0–2 Coal Citations)**: Unrestricted access to all remote (shipping) and local holiday missions.
+2. **`REMOTE_RESTRICTED` (3 Coal Citations)**: Restricted strictly to in-person and local events (`isLocalOnly: true`). Remote shipping missions are locked.
+3. **`DISABLED` (>3 Coal Citations)**: Account suspended from creating or joining operations.
+
+### Defensive Waivers & Rehabilitation
+- **Carrier Protection Waiver**: Submitting a valid carrier tracking number (`USPS`, `UPS`, `FedEx`, `DHL`, `Amazon Logistics`) grants automated immunity against demerit penalties if a parcel is lost in transit.
+- **Automated Rehabilitation Engine**: Successfully completing any subsequent exchange automatically removes **`-1` Coal Citation** (`Math.max(0, penaltyPoints - 1)`). When points drop below 3, standing is automatically restored to `ACTIVE`.
+
+---
+
+## 7. Universal Transactional Email Dispatcher (`src/lib/email/*`)
+
+```mermaid
+flowchart TD
+    Call[sendEmail Message] --> Config[getResolvedEmailConfig]
+    Config --> Attempt1[Attempt 1: sendWithBrevo / SMTP / Resend]
+    Attempt1 -->|HTTP 200..299 + messageId| Success[Return EmailResult: success]
+    Attempt1 -->|Transient 5xx / 429 / Network Timeout| Delay1[Backoff Delay: 500ms]
+    Delay1 --> Attempt2[Attempt 2]
+    Attempt2 -->|Success| Success
+    Attempt2 -->|Transient Failure| Delay2[Backoff Delay: 1500ms]
+    Delay2 --> Attempt3[Attempt 3]
+    Attempt3 -->|Success| Success
+    Attempt3 -->|Failure| Fail[Return EmailResult: failed after 3 attempts]
+    Attempt1 -->|Permanent 400 / 401 / Missing Key| FastFail[Fast Fail: Terminate Early]
+```
+
+### Key Capabilities
+- **Multi-Provider Priority Engine**: Auto-detects configuration in order: Brevo REST API ➔ Direct SMTP (`nodemailer`) ➔ Resend API ➔ Console Mock.
+- **Exponential Backoff Retry Engine**: Automatically retries transient network failures, timeouts, rate limits (429), and 5xx server errors across 3 attempts (`500ms`, `1500ms`, `3000ms`).
+- **Edge Runtime Compatible**: Brevo REST and Resend implementations use zero-dependency native `fetch()`, guaranteeing 100% compatibility with Cloudflare Workers.
+
+---
+
+## 8. North Pole Command Center & Lookup-Only I/O Architecture
+
+To ensure platform scalability with 10,000+ registered operatives and holiday operations, North Pole administrative portals (`/northpole/users`, `/northpole/operations`, `/northpole/leads`) use a **Lookup-Only Architecture**:
+- **Zero Initial DB Dumps**: Pages mount with 0 upfront table scans.
+- **On-Demand Single-Record Lookups**: Admins query by specific User ID (`?id=...`), Email, Codename, or Operation Code (`?code=...`), transferring only matching records across the wire.
+- **Live In-Place Mutations**: Demerit points, Workshop clearance tags, and codenames are modified directly from the inspector interface.

@@ -1,0 +1,59 @@
+<mxfile host="Electron" modified="2026-08-21T23:32:00.000Z" agent="Antigravity" version="24.7.5">
+  <diagram id="kovertklaus-demerit-state-machine" name="KovertKlaus Demerit State Machine">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" background="#0B0F19" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b style=&quot;font-size:22px;color:#F8FAFC;&quot;&gt;⚖️ KovertKlaus — Demerit Reliability &amp;amp; Rehabilitation State Machine&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;color:#94A3B8;font-family:monospace;&quot;&gt;Coal Citation Issuance, Carrier Protection Waiver Immunity, &amp;amp; Automated Standing Restoration&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#334155;arcSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="1840" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- State 1: ACTIVE (0-2 Citations) -->
+        <mxCell id="st_active" value="&lt;b style=&quot;font-size:16px;color:#10B981;&quot;&gt;🟢 ACTIVE STANDING&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#94A3B8;&quot;&gt;0 – 2 Coal Citations (penaltyPoints)&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:11px;color:#CBD5E1;&quot;&gt;• Full Operational Privileges&lt;br&gt;• Create &amp;amp; Organize Holiday Missions&lt;br&gt;• Join Remote (Shipping) Exchanges&lt;br&gt;• Join Local &amp;amp; White Elephant Missions&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="220" width="360" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- State 2: REMOTE_RESTRICTED (3 Citations) -->
+        <mxCell id="st_restricted" value="&lt;b style=&quot;font-size:16px;color:#F59E0B;&quot;&gt;🟡 REMOTE_RESTRICTED&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#94A3B8;&quot;&gt;3 Coal Citations (penaltyPoints == 3)&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:11px;color:#CBD5E1;&quot;&gt;• Remote Shipping Missions Locked&lt;br&gt;• Restricted Strictly to In-Person Events&lt;br&gt;• Eligible for -1 Auto-Rehabilitation&lt;br&gt;• Restores to ACTIVE when points &lt; 3&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#451A03;strokeColor=#D97706;fontColor=#FFFFFF;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="220" width="380" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- State 3: DISABLED (>3 Citations) -->
+        <mxCell id="st_disabled" value="&lt;b style=&quot;font-size:16px;color:#EF4444;&quot;&gt;🔴 DISABLED STANDING&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#94A3B8;&quot;&gt;&gt; 3 Coal Citations (Severe Violation)&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:11px;color:#CBD5E1;&quot;&gt;• Complete Account Suspension&lt;br&gt;• Barred from Joining or Creating Missions&lt;br&gt;• Requires Manual North Pole Forgiveness&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#450A0A;strokeColor=#DC2626;fontColor=#FFFFFF;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="220" width="360" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- Safeguard Box 1: Carrier Protection Waiver -->
+        <mxCell id="waiver_box" value="&lt;b style=&quot;font-size:14px;color:#38BDF8;&quot;&gt;🛡️ Carrier Protection Waiver Protocol&lt;/b&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:11px;color:#CBD5E1;&quot;&gt;• Operative inputs valid tracking number (USPS, UPS, FedEx, DHL, Amazon)&lt;br&gt;• Submitting tracking ON OR BEFORE Execution Day grants automated immunity&lt;br&gt;• If postal carrier loses or delays parcel, 0 Coal Citations assessed&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0C4A6E;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="520" width="500" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Safeguard Box 2: Automated Rehabilitation Engine -->
+        <mxCell id="rehab_box" value="&lt;b style=&quot;font-size:14px;color:#A855F7;&quot;&gt;🔄 Automated Rehabilitation Engine (-1 Demerit)&lt;/b&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:11px;color:#CBD5E1;&quot;&gt;• Fulfilling any subsequent local or White Elephant mission removes -1 point&lt;br&gt;• Math.max(0, penaltyPoints - 1) computed atomically in db.$transaction&lt;br&gt;• Reinstates REMOTE_RESTRICTED back to ACTIVE automatically&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#581C87;strokeColor=#9333EA;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="760" y="520" width="520" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Transitions -->
+        <mxCell id="trans1" value="&lt;b style=&quot;color:#F59E0B;&quot;&gt;3rd Coal Citation Issued&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Execution Day Audit Default&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#F59E0B;strokeWidth=2;fontColor=#FFFFFF;" edge="1" parent="1" source="st_active" target="st_restricted">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trans2" value="&lt;b style=&quot;color:#10B981;&quot;&gt;Successful Mission Fulfillment (-1 Point)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Points drop from 3 to 2&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#10B981;strokeWidth=2;fontColor=#FFFFFF;" edge="1" parent="1" source="st_restricted" target="st_active">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="440" />
+              <mxPoint x="400" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="trans3" value="&lt;b style=&quot;color:#EF4444;&quot;&gt;Subsequent Default (&gt; 3 Points)&lt;/b&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#EF4444;strokeWidth=2;fontColor=#FFFFFF;" edge="1" parent="1" source="st_restricted" target="st_disabled">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </mxfile>
+</mxfile>

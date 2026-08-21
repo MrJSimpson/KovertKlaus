@@ -1,0 +1,85 @@
+<mxfile host="Electron" modified="2026-08-21T23:30:00.000Z" agent="Antigravity" version="24.7.5">
+  <diagram id="kovertklaus-system-topology" name="KovertKlaus Hybrid System Topology">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" background="#0B0F19" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title Header -->
+        <mxCell id="title" value="&lt;b style=&quot;font-size:22px;color:#F8FAFC;&quot;&gt;🕵️‍♂️ KovertKlaus — Hybrid Cloudflare Edge &amp;amp; Serverless PostgreSQL Architecture&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px;color:#94A3B8;font-family:monospace;&quot;&gt;Production Edge Worker Gateway, Next.js Static Export, Neon Connection Pooler, &amp;amp; Transactional Email Retry Engine&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#334155;arcSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="1840" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Lane 1: Client Tier -->
+        <mxCell id="lane_client" value="&lt;b style=&quot;font-size:15px;color:#38BDF8;&quot;&gt;📱 1. Client Tier &amp;amp; Edge CDN&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#64748B;&quot;&gt;Browser, PWA &amp;amp; Cloudflare Static Assets&lt;/span&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#090D16;strokeColor=#1E293B;fontColor=#F8FAFC;startSize=45;arcSize=8;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="380" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c_browser" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;Operative Client (Browser / PWA)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;React 19 / Tailwind CSS / Mobile-First&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Dashboard HUD &amp;amp; Command Center&lt;br&gt;• 2-Way Cascade Target Swap Modal&lt;br&gt;• Wishlist Manifest Catalog Editor&lt;br&gt;• North Pole Admin Oversight Console&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_client">
+          <mxGeometry x="20" y="70" width="340" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c_assets" value="&lt;b style=&quot;color:#10B981;&quot;&gt;Cloudflare Static Asset Cache (/out)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Next.js Static Export &amp;amp; Global CDN&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Instant 0ms Prerendered HTML Delivery&lt;br&gt;• Global Edge Caching for CSS &amp;amp; Bundles&lt;br&gt;• Fallback SPA Route Handling&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_client">
+          <mxGeometry x="20" y="240" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Lane 2: Edge Worker Gateway -->
+        <mxCell id="lane_edge" value="&lt;b style=&quot;font-size:15px;color:#F59E0B;&quot;&gt;⚡ 2. Cloudflare Edge Gateway&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#64748B;&quot;&gt;src/worker.ts (V8 Worker Runtime)&lt;/span&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#090D16;strokeColor=#1E293B;fontColor=#F8FAFC;startSize=45;arcSize=8;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="120" width="460" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_router" value="&lt;b style=&quot;color:#F59E0B;&quot;&gt;Edge API Router &amp;amp; Security Gate&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Interception of /api/* Traffic&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• HMAC-SHA256 Constant-Time Session Verify&lt;br&gt;• Zero Parameter Tampering Identity Extraction&lt;br&gt;• CORS &amp;amp; Security Headers Injection&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#451A03;strokeColor=#D97706;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_edge">
+          <mxGeometry x="20" y="70" width="420" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_matching" value="&lt;b style=&quot;color:#EC4899;&quot;&gt;Matching &amp;amp; Demerit Engine&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Sattolo Derangement &amp;amp; Reliability Audits&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• O(N) Derangement with CSPRNG Rejection Sampling&lt;br&gt;• 100% Bidirectional Exclusion Matrix (A &lt;=&gt; B)&lt;br&gt;• Automated Execution Day Demerit Audits&lt;br&gt;• Carrier Protection Waiver Immunity Processing&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#831843;strokeColor=#DB2777;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_edge">
+          <mxGeometry x="20" y="240" width="420" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_email_dispatch" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;Universal Email Dispatcher&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Exponential Backoff Retry Engine (src/lib/email)&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Max 3 Attempts with Backoffs: 500ms, 1500ms, 3000ms&lt;br&gt;• Brevo REST API (Zero-Dependency Native Fetch)&lt;br&gt;• Status 200..299 &amp;amp; messageId Receipt Validation&lt;br&gt;• Database Empty-String Fallback Shield&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0C4A6E;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_edge">
+          <mxGeometry x="20" y="420" width="420" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Lane 3: Persistence Tier -->
+        <mxCell id="lane_db" value="&lt;b style=&quot;font-size:15px;color:#10B981;&quot;&gt;🗄️ 3. Persistence Tier&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#64748B;&quot;&gt;Neon Serverless PostgreSQL &amp;amp; Prisma ORM&lt;/span&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#090D16;strokeColor=#1E293B;fontColor=#F8FAFC;startSize=45;arcSize=8;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="960" y="120" width="460" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_pooler" value="&lt;b style=&quot;color:#10B981;&quot;&gt;Neon Connection Pooler (WebSocket / pg)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;@neondatabase/serverless &amp;amp; @prisma/adapter-neon&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Multi-Tenant Schema with 7 Relational Indexes&lt;br&gt;• db.$transaction Atomic Mutation Boundaries&lt;br&gt;• Explicit Pool Teardown &amp;amp; Cache Invalidation&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064E3B;strokeColor=#059669;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_db">
+          <mxGeometry x="20" y="70" width="420" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db_tables" value="&lt;b style=&quot;color:#E2E8F0;&quot;&gt;Relational Entity Matrix&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;Core Schema Entities&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• User (Operatives, Coal Citations, AccountStatus)&lt;br&gt;• Exchange (Missions, Milestones, Budgets)&lt;br&gt;• ExchangeMember (Roster, Targets, Tracking)&lt;br&gt;• Wishlist / Item / WishlistItem (Manifests)&lt;br&gt;• ClearanceLead (Early Access Waitlist Queue)&lt;br&gt;• SystemConfig (Live Runtime Overrides)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E293B;strokeColor=#475569;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_db">
+          <mxGeometry x="20" y="240" width="420" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Lane 4: External Services -->
+        <mxCell id="lane_ext" value="&lt;b style=&quot;font-size:15px;color:#A855F7;&quot;&gt;🌐 4. External Intelligence &amp;amp; Dispatch&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#64748B;&quot;&gt;Brevo REST, Resend, Direct SMTP &amp;amp; Scraper&lt;/span&gt;" style="swimlane;whiteSpace=wrap;html=1;fillColor=#090D16;strokeColor=#1E293B;fontColor=#F8FAFC;startSize=45;arcSize=8;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="120" width="420" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_brevo" value="&lt;b style=&quot;color:#A855F7;&quot;&gt;Brevo Transactional Email REST API&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;api.brevo.com/v3/smtp/email&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Invitations, Assignment Briefings, Nudges&lt;br&gt;• Waitlist Clearance Confirmations&lt;br&gt;• Strict HTTP Status &amp;amp; messageId Verification&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#581C87;strokeColor=#9333EA;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_ext">
+          <mxGeometry x="20" y="70" width="380" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_scraper" value="&lt;b style=&quot;color:#F43F5E;&quot;&gt;Zero-Trust E-Commerce Scraper&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;OpenGraph Metadata Parser (src/lib/scraper.ts)&lt;/span&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Protocol Whitelist (HTTP/HTTPS Only)&lt;br&gt;• Anti-SSRF: Loopback, RFC 1918, &amp;amp; Cloud Metadata Filter&lt;br&gt;• Enforces redirect: &#39;error&#39; &amp;amp; 2.5s Timeout&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#881337;strokeColor=#E11D48;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_ext">
+          <mxGeometry x="20" y="240" width="380" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=2;" edge="1" parent="1" source="c_browser" target="e_router">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F59E0B;strokeWidth=2;" edge="1" parent="1" source="e_router" target="db_pooler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=2;" edge="1" parent="1" source="e_email_dispatch" target="ext_brevo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </mxfile>
+</mxfile>
