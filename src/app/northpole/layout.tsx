@@ -125,6 +125,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
   const navItems = [
     { label: '📊 Dashboard', href: '/northpole' },
     { label: '⚙️ System Config', href: '/northpole/config' },
+    { label: '🎟️ Reservations', href: '/northpole/leads' },
     { label: '👥 User Roster', href: '/northpole/users' },
     { label: '🎯 Operations', href: '/northpole/operations' },
     { label: '🎨 Themes', href: '/northpole/themes' },

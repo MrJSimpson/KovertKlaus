@@ -150,6 +150,38 @@ async function runTests() {
   });
   assert(clearanceRes.success === true, 'sendClearanceConfirmationEmail executes successfully');
 
+  // --- Test 5: Empty String Database Override Fallback ---
+  console.log('\n--- Test 5: Config Fallback When DB Overrides Are Empty Strings ---');
+  process.env.BREVO_API_KEY = 'xkeysib-env-key-12345';
+  process.env.BREVO_SENDER_EMAIL = 'env-sender@kovertklaus.com';
+
+  const cfgWithEmptyDb = getEmailConfig({
+    brevoApiKey: '',
+    brevoSenderEmail: '   ',
+    emailFrom: '',
+  });
+
+  assert(cfgWithEmptyDb.brevoApiKey === 'xkeysib-env-key-12345', 'Empty string dbOverride.brevoApiKey falls back to process.env.BREVO_API_KEY');
+  assert(cfgWithEmptyDb.brevoSenderEmail === 'env-sender@kovertklaus.com', 'Whitespace dbOverride.brevoSenderEmail falls back to process.env.BREVO_SENDER_EMAIL');
+  assert(cfgWithEmptyDb.provider === 'brevo', 'Auto-detects Brevo when env key is resolved');
+
+  delete process.env.BREVO_API_KEY;
+  delete process.env.BREVO_SENDER_EMAIL;
+
+  // --- Test 6: Retry Engine Behavior ---
+  console.log('\n--- Test 6: Retry Engine Execution & Attempt Tracking ---');
+  const retryResult = await sendEmail(
+    {
+      to: 'agent.retry@kovertklaus.com',
+      subject: 'Retry Test',
+      html: '<p>Retry verification</p>',
+    },
+    { provider: 'console' }
+  );
+
+  assert(retryResult.success === true, 'sendEmail succeeds on console mock');
+  assert(retryResult.attempts === 1, 'sendEmail reports attempt count 1 on immediate success');
+
   console.log(`\n📊 Test Summary: ${passed} Passed, ${failed} Failed`);
   if (failed > 0) {
     process.exit(1);

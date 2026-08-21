@@ -283,14 +283,73 @@ export default {
 
       // 5. /api/northpole/users (GET / PATCH)
       if (pathname === '/api/northpole/users') {
+        const adminId = getAdminIdFromRequest(request);
+        if (!adminId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
         if (request.method === 'GET') {
-          const q = url.searchParams.get('q')?.trim().toLowerCase();
+          const id = url.searchParams.get('id')?.trim();
+          const q = (url.searchParams.get('q') || '').trim().toLowerCase();
           const workshop = url.searchParams.get('workshop') === 'true';
+          const filterWorkshop = url.searchParams.get('workshop');
+
+          const totalCount = await adminDb.user.count();
+
+          // 1. Exact ID Lookup
+          if (id) {
+            const user = await adminDb.user.findUnique({
+              where: { id },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                codename: true,
+                penaltyPoints: true,
+                accountStatus: true,
+                isWorkshop: true,
+                createdAt: true,
+                _count: {
+                  select: {
+                    createdExchanges: true,
+                    participations: true,
+                    wishlists: true,
+                  },
+                },
+              },
+            });
+
+            return Response.json({
+              success: true,
+              users: user
+                ? [
+                    {
+                      ...user,
+                      demerits: user.penaltyPoints ?? 0,
+                      accountStatus: user.accountStatus || 'ACTIVE',
+                      organizedCount: user._count?.createdExchanges ?? 0,
+                      joinedCount: user._count?.participations ?? 0,
+                      wishlistsCount: user._count?.wishlists ?? 0,
+                    },
+                  ]
+                : [],
+              totalCount,
+            });
+          }
+
+          // 2. Unconstrained initial load -> Zero DB I/O payload
+          if (!q && filterWorkshop === null) {
+            return Response.json({
+              success: true,
+              users: [],
+              totalCount,
+              message: 'Enter an operative ID, email, or codename to inspect on demand.',
+            });
+          }
 
           const whereClause: any = {};
           if (workshop) whereClause.isWorkshop = true;
           if (q) {
             whereClause.OR = [
+              { id: { equals: q } },
               { name: { contains: q, mode: 'insensitive' } },
               { email: { contains: q, mode: 'insensitive' } },
               { codename: { contains: q, mode: 'insensitive' } },
@@ -299,7 +358,7 @@ export default {
 
           const rawUsers = await adminDb.user.findMany({
             where: whereClause,
-            take: 100,
+            take: 25,
             orderBy: { createdAt: 'desc' },
             select: {
               id: true,
@@ -329,17 +388,18 @@ export default {
             wishlistsCount: u._count?.wishlists ?? 0,
           }));
 
-          return Response.json({ success: true, users: formatted, total: formatted.length });
+          return Response.json({ success: true, users: formatted, totalCount });
         }
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as any;
-          const { userId, penaltyPoints, isWorkshop, accountStatus } = body;
+          const { userId, penaltyPoints, isWorkshop, accountStatus, codename } = body;
           const user = await adminDb.user.update({
             where: { id: userId },
             data: {
               ...(penaltyPoints !== undefined ? { penaltyPoints } : {}),
               ...(isWorkshop !== undefined ? { isWorkshop } : {}),
               ...(accountStatus !== undefined ? { accountStatus } : {}),
+              ...(codename !== undefined ? { codename } : {}),
             },
           });
           return Response.json({ success: true, user: { ...user, demerits: user.penaltyPoints } });
@@ -348,18 +408,63 @@ export default {
 
       // 6. /api/northpole/operations (GET)
       if (pathname === '/api/northpole/operations' && request.method === 'GET') {
-        const q = url.searchParams.get('q')?.trim().toLowerCase();
+        const id = url.searchParams.get('id')?.trim();
+        const code = url.searchParams.get('code')?.trim().toUpperCase();
+        const q = (url.searchParams.get('q') || '').trim().toLowerCase();
+
+        const totalCount = await adminDb.exchange.count();
+
+        // 1. Exact ID or Code Lookup
+        if (id || code) {
+          const op = await adminDb.exchange.findFirst({
+            where: id ? { id } : { code },
+            include: {
+              organizer: { select: { id: true, name: true, email: true, codename: true } },
+              _count: { select: { members: true, exclusionRules: true, reports: true } },
+            },
+          });
+
+          return Response.json({
+            success: true,
+            operations: op
+              ? [
+                  {
+                    ...op,
+                    organizer: op.organizer || { id: '', name: 'System Organizer', email: 'admin@kovertklaus.com' },
+                    membersCount: op._count?.members ?? 0,
+                    rulesCount: op._count?.exclusionRules ?? 0,
+                    reportsCount: op._count?.reports ?? 0,
+                    budgetMin: op.budgetMin ? Number(op.budgetMin) : 0,
+                    budgetMax: op.budgetMax ? Number(op.budgetMax) : 0,
+                  },
+                ]
+              : [],
+            totalCount,
+          });
+        }
+
+        // 2. Unconstrained initial load -> Zero DB I/O payload
+        if (!q) {
+          return Response.json({
+            success: true,
+            operations: [],
+            totalCount,
+            message: 'Enter an operation code, title, or ID to inspect on demand.',
+          });
+        }
+
         const whereClause: any = {};
         if (q) {
           whereClause.OR = [
+            { id: { equals: q } },
+            { code: { contains: q.toUpperCase() } },
             { title: { contains: q, mode: 'insensitive' } },
-            { code: { contains: q, mode: 'insensitive' } },
           ];
         }
 
         const rawOps = await adminDb.exchange.findMany({
           where: whereClause,
-          take: 100,
+          take: 25,
           orderBy: { createdAt: 'desc' },
           include: {
             organizer: { select: { id: true, name: true, email: true, codename: true } },
@@ -377,7 +482,7 @@ export default {
           budgetMax: op.budgetMax ? Number(op.budgetMax) : 0,
         }));
 
-        return Response.json({ success: true, operations: formatted, total: formatted.length });
+        return Response.json({ success: true, operations: formatted, totalCount });
       }
 
       // 7. /api/northpole/email/test (POST)
@@ -415,6 +520,110 @@ export default {
           result,
           message: result.success ? `Test email dispatched via ${result.provider}` : `Email failed: ${result.error}`,
         });
+      }
+
+      // 7b. /api/northpole/leads (GET / DELETE / POST)
+      if (pathname === '/api/northpole/leads') {
+        const adminId = getAdminIdFromRequest(request);
+        if (!adminId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+        if (request.method === 'GET') {
+          const query = (url.searchParams.get('q') || '').trim().toLowerCase();
+          const status = (url.searchParams.get('status') || '').trim().toUpperCase();
+
+          const whereClause: any = {};
+          if (query) {
+            whereClause.OR = [
+              { email: { contains: query, mode: 'insensitive' } },
+              { name: { contains: query, mode: 'insensitive' } },
+              { source: { contains: query, mode: 'insensitive' } },
+            ];
+          }
+          if (status && ['PENDING', 'APPROVED', 'REJECTED'].includes(status)) {
+            whereClause.status = status;
+          }
+
+          const [leads, totalCount] = await Promise.all([
+            adminDb.clearanceLead.findMany({
+              where: whereClause,
+              orderBy: { createdAt: 'desc' },
+              take: 100,
+            }),
+            adminDb.clearanceLead.count({ where: whereClause }),
+          ]);
+
+          return Response.json({
+            success: true,
+            leads: leads.map((lead) => ({
+              id: lead.id,
+              email: lead.email,
+              name: lead.name,
+              source: lead.source,
+              status: lead.status,
+              createdAt: lead.createdAt,
+              updatedAt: lead.updatedAt,
+            })),
+            totalCount,
+          });
+        }
+
+        if (request.method === 'DELETE') {
+          let id = url.searchParams.get('id');
+          if (!id) {
+            const body = (await request.json().catch(() => ({}))) as any;
+            id = body?.id;
+          }
+
+          if (!id) {
+            return Response.json({ error: 'Lead ID is required for deletion' }, { status: 400 });
+          }
+
+          const existing = await adminDb.clearanceLead.findUnique({ where: { id } });
+          if (!existing) {
+            return Response.json({ error: 'Clearance reservation not found' }, { status: 404 });
+          }
+
+          await adminDb.clearanceLead.delete({ where: { id } });
+          return Response.json({
+            success: true,
+            message: `Reservation for ${existing.email} successfully purged from clearance queue.`,
+            deletedLeadId: id,
+          });
+        }
+
+        if (request.method === 'POST') {
+          const body = (await request.json().catch(() => ({}))) as any;
+          const { action, id, email } = body;
+
+          if (action === 'resend_confirmation') {
+            const lead = id
+              ? await adminDb.clearanceLead.findUnique({ where: { id } })
+              : email
+              ? await adminDb.clearanceLead.findUnique({ where: { email: email.trim().toLowerCase() } })
+              : null;
+
+            if (!lead) {
+              return Response.json({ error: 'Clearance lead not found' }, { status: 404 });
+            }
+
+            const totalLeads = await adminDb.clearanceLead.count();
+            const emailResult = await sendClearanceConfirmationEmail({
+              to: lead.email,
+              name: lead.name || undefined,
+              positionNumber: totalLeads,
+            });
+
+            return Response.json({
+              success: emailResult.success,
+              emailResult,
+              message: emailResult.success
+                ? `Clearance confirmation briefing re-dispatched to ${lead.email} via ${emailResult.provider}.`
+                : `Email dispatch failed: ${emailResult.error}`,
+            });
+          }
+
+          return Response.json({ error: 'Unsupported action' }, { status: 400 });
+        }
       }
 
       // =======================================================================

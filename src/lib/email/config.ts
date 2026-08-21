@@ -26,25 +26,29 @@ export function getEmailConfig(dbOverride?: {
     'auto'
   ).toLowerCase().trim() as EmailProviderType;
 
-  const brevoApiKey = (dbOverride?.brevoApiKey ?? process.env.BREVO_API_KEY)?.trim() || undefined;
+  const brevoApiKey = (dbOverride?.brevoApiKey?.trim() || process.env.BREVO_API_KEY?.trim()) || undefined;
   const brevoSenderEmail =
-    (dbOverride?.brevoSenderEmail ?? process.env.BREVO_SENDER_EMAIL)?.trim() ||
-    (dbOverride?.emailFrom ?? process.env.EMAIL_FROM)?.trim() ||
+    (dbOverride?.brevoSenderEmail?.trim() ||
+      process.env.BREVO_SENDER_EMAIL?.trim() ||
+      dbOverride?.emailFrom?.trim() ||
+      process.env.EMAIL_FROM?.trim()) ||
     'admin@kovertklaus.com';
   const brevoSenderName =
-    (dbOverride?.brevoSenderName ?? process.env.BREVO_SENDER_NAME)?.trim() ||
-    (dbOverride?.emailFromName ?? process.env.EMAIL_FROM_NAME)?.trim() ||
+    (dbOverride?.brevoSenderName?.trim() ||
+      process.env.BREVO_SENDER_NAME?.trim() ||
+      dbOverride?.emailFromName?.trim() ||
+      process.env.EMAIL_FROM_NAME?.trim()) ||
     'KovertKlaus HQ';
 
-  const smtpHost = (dbOverride?.smtpHost ?? process.env.SMTP_HOST)?.trim() || undefined;
+  const smtpHost = (dbOverride?.smtpHost?.trim() || process.env.SMTP_HOST?.trim()) || undefined;
   const smtpPort =
     dbOverride?.smtpPort !== undefined && dbOverride?.smtpPort !== null
       ? dbOverride.smtpPort
       : process.env.SMTP_PORT
       ? parseInt(process.env.SMTP_PORT, 10)
       : 587;
-  const smtpUser = (dbOverride?.smtpUser ?? process.env.SMTP_USER)?.trim() || undefined;
-  const smtpPass = (dbOverride?.smtpPass ?? process.env.SMTP_PASS)?.trim() || undefined;
+  const smtpUser = (dbOverride?.smtpUser?.trim() || process.env.SMTP_USER?.trim()) || undefined;
+  const smtpPass = (dbOverride?.smtpPass?.trim() || process.env.SMTP_PASS?.trim()) || undefined;
   const smtpSecure =
     dbOverride?.smtpSecure !== undefined && dbOverride?.smtpSecure !== null
       ? Boolean(dbOverride.smtpSecure)
@@ -52,19 +56,21 @@ export function getEmailConfig(dbOverride?: {
       ? process.env.SMTP_SECURE === 'true'
       : smtpPort === 465;
   const smtpFrom =
-    (dbOverride?.smtpFrom ?? process.env.SMTP_FROM)?.trim() ||
-    (dbOverride?.emailFrom ?? process.env.EMAIL_FROM)?.trim() ||
+    (dbOverride?.smtpFrom?.trim() ||
+      process.env.SMTP_FROM?.trim() ||
+      dbOverride?.emailFrom?.trim() ||
+      process.env.EMAIL_FROM?.trim()) ||
     'admin@kovertklaus.com';
 
-  const resendApiKey = (dbOverride?.resendApiKey ?? process.env.RESEND_API_KEY)?.trim() || undefined;
+  const resendApiKey = (dbOverride?.resendApiKey?.trim() || process.env.RESEND_API_KEY?.trim()) || undefined;
 
   const defaultFromEmail =
-    (dbOverride?.emailFrom ?? process.env.EMAIL_FROM)?.trim() ||
+    (dbOverride?.emailFrom?.trim() || process.env.EMAIL_FROM?.trim()) ||
     brevoSenderEmail ||
     smtpFrom ||
     'admin@kovertklaus.com';
   const defaultFromName =
-    (dbOverride?.emailFromName ?? process.env.EMAIL_FROM_NAME)?.trim() ||
+    (dbOverride?.emailFromName?.trim() || process.env.EMAIL_FROM_NAME?.trim()) ||
     brevoSenderName ||
     'KovertKlaus HQ';
 

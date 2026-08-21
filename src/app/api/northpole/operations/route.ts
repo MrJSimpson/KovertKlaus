@@ -12,13 +12,79 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id')?.trim();
+    const code = searchParams.get('code')?.trim().toUpperCase();
     const query = searchParams.get('q')?.trim() || '';
+
+    const totalCount = await adminDb.exchange.count();
+
+    // 1. Exact ID or Code Lookup
+    if (id || code) {
+      const operation = await adminDb.exchange.findFirst({
+        where: id ? { id } : { code },
+        include: {
+          organizer: {
+            select: { id: true, name: true, email: true, codename: true },
+          },
+          _count: {
+            select: {
+              members: true,
+              exclusionRules: true,
+              messages: true,
+              reports: true,
+            },
+          },
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        operations: operation
+          ? [
+              {
+                id: operation.id,
+                title: operation.title,
+                code: operation.code,
+                status: operation.status,
+                giftingType: operation.giftingType,
+                isWhiteElephant: operation.isWhiteElephant,
+                isLocalOnly: operation.isLocalOnly,
+                budgetMin: operation.budgetMin ? Number(operation.budgetMin) : 0,
+                budgetMax: Number(operation.budgetMax),
+                currency: operation.currency,
+                inviteCutoffDate: operation.inviteCutoffDate,
+                assignmentDate: operation.assignmentDate,
+                shippingDate: operation.shippingDate,
+                executionDate: operation.executionDate,
+                organizer: operation.organizer,
+                membersCount: operation._count.members,
+                rulesCount: operation._count.exclusionRules,
+                messagesCount: operation._count.messages,
+                reportsCount: operation._count.reports,
+                createdAt: operation.createdAt,
+              },
+            ]
+          : [],
+        totalCount,
+      });
+    }
+
+    // 2. Unconstrained initial load -> Zero DB I/O payload
+    if (!query) {
+      return NextResponse.json({
+        success: true,
+        operations: [],
+        totalCount,
+        message: 'Enter an operation code (e.g. KOVERT-87WZ), title, or ID to inspect on demand.',
+      });
+    }
 
     const whereClause: any = {};
     if (query) {
       whereClause.OR = [
+        { id: { equals: query } },
+        { code: { contains: query.toUpperCase() } },
         { title: { contains: query, mode: 'insensitive' } },
-        { code: { contains: query, mode: 'insensitive' } },
       ];
     }
 
@@ -38,7 +104,7 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
+      take: 25,
     });
 
     return NextResponse.json({

@@ -80,7 +80,8 @@ export async function sendWithBrevo(message: EmailMessage, config: EmailConfig):
     const data = await response.json().catch(() => null) as { messageId?: string; message?: string; code?: string } | null;
 
     if (!response.ok) {
-      const errorMsg = data?.message || `Brevo API HTTP ${response.status}: ${response.statusText}`;
+      const errorDetail = data?.message || data?.code || response.statusText;
+      const errorMsg = `Brevo API HTTP ${response.status}: ${errorDetail}`;
       console.error('[EMAIL:BREVO] Dispatch failed:', errorMsg);
       return {
         success: false,
@@ -89,10 +90,11 @@ export async function sendWithBrevo(message: EmailMessage, config: EmailConfig):
       };
     }
 
+    const messageId = data?.messageId?.trim() || `brevo-${Date.now()}`;
     return {
       success: true,
       provider: 'brevo',
-      messageId: data?.messageId,
+      messageId,
     };
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -100,7 +102,7 @@ export async function sendWithBrevo(message: EmailMessage, config: EmailConfig):
     return {
       success: false,
       provider: 'brevo',
-      error: errorMsg,
+      error: `Brevo Network Error: ${errorMsg}`,
     };
   }
 }

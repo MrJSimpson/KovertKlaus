@@ -20,20 +20,21 @@ test('Cloudflare Edge Worker API Parity Logic (Finding 3.1)', async (t) => {
     const currentAssignments: LinkedAssignment[] = [
       { agentId: 'agent_1', targetId: 'agent_2' },
       { agentId: 'agent_2', targetId: 'agent_3' },
-      { agentId: 'agent_3', targetId: 'agent_1' },
+      { agentId: 'agent_3', targetId: 'agent_4' },
+      { agentId: 'agent_4', targetId: 'agent_1' },
     ];
 
     const exclusions: ExclusionRuleInput[] = [
-      { agentId: 'agent_1', restrictedAgentId: 'agent_4' },
+      { agentId: 'agent_1', restrictedAgentId: 'agent_5' },
     ];
 
-    // Swap agent_1 target to agent_3
-    const updated = executeTargetSwap(currentAssignments, 'agent_1', 'agent_3', exclusions);
+    // Swap agent_1 target from agent_2 to agent_4 (displacing agent_3 to receive agent_2)
+    const updated = executeTargetSwap(currentAssignments, 'agent_1', 'agent_4', exclusions);
 
     const a1Target = updated.find((a) => a.agentId === 'agent_1')?.targetId;
-    const displacedGiverTarget = updated.find((a) => a.agentId === 'agent_2')?.targetId;
+    const displacedGiverTarget = updated.find((a) => a.agentId === 'agent_3')?.targetId;
 
-    assert.strictEqual(a1Target, 'agent_3');
+    assert.strictEqual(a1Target, 'agent_4');
     assert.strictEqual(displacedGiverTarget, 'agent_2');
   });
 
@@ -87,5 +88,13 @@ test('Cloudflare Edge Worker API Parity Logic (Finding 3.1)', async (t) => {
     assert.strictEqual(isSafePublicUrl('http://10.0.0.1/admin').safe, false);
     assert.strictEqual(isSafePublicUrl('http://192.168.1.1/').safe, false);
     assert.strictEqual(isSafePublicUrl('https://www.amazon.com/dp/B08N5WRWNW').safe, true);
+  });
+
+  await t.test('Clearance leads route structure exists and is configured for edge', () => {
+    const leadsRoutePath = path.join(process.cwd(), 'src', 'app', 'api', 'northpole', 'leads', 'route.ts');
+    assert.strictEqual(fs.existsSync(leadsRoutePath), true);
+    const content = fs.readFileSync(leadsRoutePath, 'utf-8');
+    assert.strictEqual(content.includes('export async function GET'), true);
+    assert.strictEqual(content.includes('export async function DELETE'), true);
   });
 });

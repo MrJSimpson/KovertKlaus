@@ -13,13 +13,75 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id')?.trim();
     const query = searchParams.get('q')?.trim() || '';
     const filterWorkshop = searchParams.get('workshop'); // 'true' | 'false' | null
+
+    const totalCount = await adminDb.user.count();
+
+    // 1. Exact ID Lookup
+    if (id) {
+      const user = await adminDb.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          codename: true,
+          penaltyPoints: true,
+          accountStatus: true,
+          isWorkshop: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              createdExchanges: true,
+              participations: true,
+              wishlists: true,
+            },
+          },
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        users: user
+          ? [
+              {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                codename: user.codename,
+                demerits: user.penaltyPoints,
+                accountStatus: user.accountStatus,
+                isWorkshop: user.isWorkshop,
+                createdAt: user.createdAt,
+                organizedCount: user._count.createdExchanges,
+                joinedCount: user._count.participations,
+                wishlistsCount: user._count.wishlists,
+              },
+            ]
+          : [],
+        totalCount,
+      });
+    }
+
+    // 2. Lookup by Query or Workshop filter
+    if (!query && filterWorkshop === null) {
+      // Zero DB I/O payload for initial page load
+      return NextResponse.json({
+        success: true,
+        users: [],
+        totalCount,
+        message: 'Enter a user ID, email, name, or codename to perform an on-demand lookup.',
+      });
+    }
 
     const whereClause: any = {};
 
     if (query) {
       whereClause.OR = [
+        { id: { equals: query } },
         { name: { contains: query, mode: 'insensitive' } },
         { email: { contains: query, mode: 'insensitive' } },
         { codename: { contains: query, mode: 'insensitive' } },
@@ -53,7 +115,7 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
+      take: 25,
     });
 
     return NextResponse.json({

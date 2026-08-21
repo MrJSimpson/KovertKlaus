@@ -22,6 +22,7 @@ export interface EmailResult {
   mode?: EmailProviderType;
   messageId?: string;
   error?: string;
+  attempts?: number;
 }
 
 export interface EmailConfig {

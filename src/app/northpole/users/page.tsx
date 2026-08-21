@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface UserRecord {
@@ -22,20 +22,28 @@ export default function NorthPoleUsersPage() {
   const initialWorkshopFilter = searchParams.get('workshop') === 'true';
 
   const [users, setUsers] = useState<UserRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [workshopOnly, setWorkshopOnly] = useState(initialWorkshopFilter);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [editingCodenameUser, setEditingCodenameUser] = useState<UserRecord | null>(null);
+  const [newCodename, setNewCodename] = useState('');
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [workshopOnly]);
+  async function handleLookup(query = searchQuery, isWorkshop = workshopOnly, retryCount = 0) {
+    const trimmed = query.trim();
+    if (!trimmed && !isWorkshop) {
+      setUsers([]);
+      setHasSearched(true);
+      return;
+    }
 
-  async function fetchUsers(query = searchQuery, retryCount = 0) {
     if (retryCount === 0) setLoading(true);
     try {
-      let url = `/api/northpole/users?q=${encodeURIComponent(query)}`;
-      if (workshopOnly) {
+      let url = `/api/northpole/users?q=${encodeURIComponent(trimmed)}`;
+      if (isWorkshop) {
         url += '&workshop=true';
       }
       const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
@@ -46,32 +54,42 @@ export default function NorthPoleUsersPage() {
       const json = await res.json().catch(() => ({}));
       if (res.ok && json.success) {
         setUsers(json.users || []);
+        if (json.totalCount !== undefined) setTotalCount(json.totalCount);
+        setHasSearched(true);
         setLoading(false);
         return;
       }
       if (retryCount < 2) {
-        setTimeout(() => fetchUsers(query, retryCount + 1), 600 * (retryCount + 1));
+        setTimeout(() => handleLookup(query, isWorkshop, retryCount + 1), 600 * (retryCount + 1));
         return;
       }
     } catch (error) {
-      console.error('Failed to fetch user roster:', error);
+      console.error('Failed to lookup user:', error);
       if (retryCount < 2) {
-        setTimeout(() => fetchUsers(query, retryCount + 1), 600 * (retryCount + 1));
+        setTimeout(() => handleLookup(query, isWorkshop, retryCount + 1), 600 * (retryCount + 1));
         return;
       }
     } finally {
       if (retryCount >= 2) {
         setLoading(false);
+        setHasSearched(true);
       }
     }
   }
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
-    fetchUsers(searchQuery);
+    handleLookup(searchQuery, workshopOnly);
   }
 
-  async function handleToggleWorkshop(userId: string, currentStatus: boolean) {
+  function handleToggleWorkshopFilter() {
+    const nextVal = !workshopOnly;
+    setWorkshopOnly(nextVal);
+    handleLookup(searchQuery, nextVal);
+  }
+
+  async function handleUpdateUser(userId: string, patchData: Record<string, any>) {
+    setUpdatingId(userId);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
       const res = await fetch('/api/northpole/users', {
@@ -81,71 +99,33 @@ export default function NorthPoleUsersPage() {
           'Content-Type': 'application/json',
           ...(token ? { 'x-admin-token': token } : {}),
         },
-        body: JSON.stringify({ userId, isWorkshop: !currentStatus }),
+        body: JSON.stringify({ userId, ...patchData }),
       });
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setUsers((prev) =>
-          prev.map((u) => (u.id === userId ? { ...u, isWorkshop: !currentStatus } : u))
-        );
-        setActionMessage(
-          `Security tag updated: ${json.user.name} workshop clearance is now ${!currentStatus ? 'ENABLED' : 'REVOKED'}`
-        );
-        setTimeout(() => setActionMessage(null), 3500);
-      }
-    } catch {
-      alert('Failed to update workshop tag');
-    }
-  }
-
-  async function handleDemeritChange(userId: string, newDemerits: number) {
-    if (newDemerits < 0) return;
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
-      const res = await fetch('/api/northpole/users', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'x-admin-token': token } : {}),
-        },
-        body: JSON.stringify({ userId, penaltyPoints: newDemerits }),
-      });
-      const json = await res.json();
-      if (res.ok && json.success) {
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success && json.user) {
         setUsers((prev) =>
           prev.map((u) =>
             u.id === userId
-              ? { ...u, demerits: json.user.demerits, accountStatus: json.user.accountStatus }
+              ? {
+                  ...u,
+                  demerits: json.user.demerits ?? u.demerits,
+                  accountStatus: json.user.accountStatus ?? u.accountStatus,
+                  isWorkshop: json.user.isWorkshop ?? u.isWorkshop,
+                  codename: json.user.codename ?? u.codename,
+                }
               : u
           )
         );
+        setActionMessage(`Operative record updated: ${json.user.name || json.user.email}`);
+        setTimeout(() => setActionMessage(null), 3500);
+      } else {
+        alert(json.error || 'Failed to update operative');
       }
-    } catch {
-      alert('Failed to update demerits');
-    }
-  }
-
-  async function handleStatusChange(userId: string, newStatus: string) {
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
-      const res = await fetch('/api/northpole/users', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'x-admin-token': token } : {}),
-        },
-        body: JSON.stringify({ userId, accountStatus: newStatus }),
-      });
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setUsers((prev) =>
-          prev.map((u) => (u.id === userId ? { ...u, accountStatus: newStatus } : u))
-        );
-      }
-    } catch {
-      alert('Failed to update account status');
+    } catch (err: any) {
+      alert(err?.message || 'Network error updating operative');
+    } finally {
+      setUpdatingId(null);
+      setEditingCodenameUser(null);
     }
   }
 
@@ -155,191 +135,255 @@ export default function NorthPoleUsersPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <span>👥 Operative Roster & Security Governance</span>
+            <span>👥 Operative Lookup & Security Roster</span>
           </h1>
           <p className="text-xs text-gray-400 font-mono mt-1">
-            Manage site users, demerit penalty points, account status, and grant hidden <code className="text-amber-400">workshop</code> testing clearance tags.
+            Lookup-first operative inspector for real-time clearance tags, Coal Citations, and standing modifications.
           </p>
         </div>
-
-        <div className="flex items-center gap-2 font-mono text-xs">
-          <button
-            onClick={() => setWorkshopOnly(!workshopOnly)}
-            className={`px-3.5 py-2 rounded-xl border transition-all cursor-pointer font-bold flex items-center gap-1.5 ${
-              workshopOnly
-                ? 'bg-amber-950 text-amber-300 border-amber-500/50 shadow-md'
-                : 'bg-slate-900 text-gray-300 border-slate-800 hover:text-white'
-            }`}
-          >
-            <span>🧪</span>
-            <span>{workshopOnly ? 'Showing Workshop Testers Only' : 'Filter Workshop Testers'}</span>
-          </button>
-        </div>
+        {totalCount > 0 && (
+          <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-xs text-slate-300">
+            <span className="text-emerald-400 font-bold">{totalCount}</span> Total Registered Operatives
+          </div>
+        )}
       </div>
 
-      {/* Demerit Policy Guidance Banner */}
-      <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-start gap-3 text-xs font-mono">
-        <span className="text-lg">⚖️</span>
-        <div className="text-gray-300 space-y-1">
-          <div className="font-bold text-amber-300">Demerit Governance &amp; Non-Intermediary Policy</div>
-          <p className="text-gray-400 text-[11px] leading-relaxed">
-            KovertKlaus does <strong className="text-white">not</strong> arbitrate or handle demerit disputes. Demerit citations require intentional neglect or abuse and are solely between the Event Organizer and the participant. Operatives automatically redeem 1 demerit upon successfully completing subsequent events.
-          </p>
-        </div>
-      </div>
-
-      {/* Action Notification */}
+      {/* Action Notification Toast */}
       {actionMessage && (
-        <div className="p-3.5 rounded-xl bg-amber-950/80 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold">
-          ✓ {actionMessage}
+        <div className="p-4 rounded-xl border bg-emerald-950/80 border-emerald-500/50 text-emerald-200 text-xs font-mono flex items-center justify-between shadow-lg">
+          <span>{actionMessage}</span>
+          <button onClick={() => setActionMessage(null)} className="opacity-70 hover:opacity-100 font-bold ml-4">
+            ✕
+          </button>
         </div>
       )}
 
-      {/* Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="flex gap-3">
-        <input
-          type="text"
-          placeholder="Search operatives by name, email, or codename..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 bg-slate-900 border border-slate-800 focus:border-red-500 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none font-mono"
-        />
-        <button
-          type="submit"
-          className="bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs px-5 py-2.5 rounded-xl transition-colors font-bold cursor-pointer"
-        >
-          🔍 Search
-        </button>
-      </form>
-
-      {/* Users Table */}
-      <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs">
-            <thead className="bg-slate-950/80 border-b border-slate-800 text-gray-400 uppercase text-[10px]">
-              <tr>
-                <th className="py-3 px-4">Operative</th>
-                <th className="py-3 px-4">Codename</th>
-                <th className="py-3 px-4">Demerits</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Workshop Tag</th>
-                <th className="py-3 px-4">Activity</th>
-                <th className="py-3 px-4">Joined</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-gray-500">
-                    Loading operative records...
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-gray-500">
-                    No operatives matching search criteria.
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-800/40 transition-colors">
-                    
-                    {/* Name & Email */}
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-white">{user.name}</div>
-                      <div className="text-[11px] text-gray-400">{user.email}</div>
-                    </td>
-
-                    {/* Codename */}
-                    <td className="py-3 px-4 text-emerald-400 font-bold">
-                      {user.codename || '—'}
-                    </td>
-
-                    {/* Demerits (+ / - controls) */}
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-                            user.demerits === 0
-                              ? 'bg-emerald-950 text-emerald-300'
-                              : user.demerits < 3
-                              ? 'bg-amber-950 text-amber-300'
-                              : 'bg-red-950 text-red-300'
-                          }`}
-                        >
-                          {user.demerits}/3
-                        </span>
-                        <div className="flex flex-col gap-0.5">
-                          <button
-                            onClick={() => handleDemeritChange(user.id, user.demerits + 1)}
-                            title="Add Demerit Citation"
-                            className="text-[9px] bg-slate-800 hover:bg-red-900 text-gray-300 hover:text-white px-1 rounded cursor-pointer"
-                          >
-                            ▲
-                          </button>
-                          <button
-                            onClick={() => handleDemeritChange(user.id, Math.max(0, user.demerits - 1))}
-                            title="Remove Demerit Waiver"
-                            className="text-[9px] bg-slate-800 hover:bg-emerald-900 text-gray-300 hover:text-white px-1 rounded cursor-pointer"
-                          >
-                            ▼
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Account Status */}
-                    <td className="py-3 px-4">
-                      <select
-                        value={user.accountStatus}
-                        onChange={(e) => handleStatusChange(user.id, e.target.value)}
-                        className={`bg-slate-950 border rounded-lg px-2 py-1 text-[11px] font-bold focus:outline-none ${
-                          user.accountStatus === 'ACTIVE'
-                            ? 'border-emerald-500/40 text-emerald-300'
-                            : user.accountStatus === 'REMOTE_RESTRICTED'
-                            ? 'border-amber-500/40 text-amber-300'
-                            : 'border-red-500/40 text-red-300'
-                        }`}
-                      >
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="REMOTE_RESTRICTED">RESTRICTED</option>
-                        <option value="DISABLED">DISABLED</option>
-                      </select>
-                    </td>
-
-                    {/* Workshop Security Tag Toggle */}
-                    <td className="py-3 px-4">
-                      <button
-                        onClick={() => handleToggleWorkshop(user.id, user.isWorkshop)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
-                          user.isWorkshop
-                            ? 'bg-amber-950 text-amber-300 border-amber-500/50 shadow-xs'
-                            : 'bg-slate-950 text-gray-500 border-slate-800 hover:border-gray-700'
-                        }`}
-                      >
-                        <span>🧪</span>
-                        <span>{user.isWorkshop ? 'Workshop Enabled' : 'No Workshop'}</span>
-                      </button>
-                    </td>
-
-                    {/* Activity */}
-                    <td className="py-3 px-4 text-gray-400 text-[11px]">
-                      <div>Organized: <strong className="text-white">{user.organizedCount}</strong></div>
-                      <div>Joined: <strong className="text-white">{user.joinedCount}</strong></div>
-                    </td>
-
-                    {/* Joined At */}
-                    <td className="py-3 px-4 text-gray-500 text-[11px]">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* On-Demand Lookup HUD */}
+      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-xl">
+        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search by exact User ID, email, codename, or name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 focus:border-red-500 rounded-xl pl-4 pr-10 py-3 text-xs text-white focus:outline-none font-mono"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setUsers([]);
+                  setHasSearched(false);
+                }}
+                className="absolute right-3 top-3 text-slate-500 hover:text-slate-300 text-xs font-mono"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleWorkshopFilter}
+            className={`px-4 py-3 rounded-xl border text-xs font-mono transition flex items-center gap-2 ${
+              workshopOnly
+                ? 'bg-amber-950/60 border-amber-500/60 text-amber-300 font-bold'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>🛠️ Workshop Only</span>
+            {workshopOnly && <span className="text-amber-400 font-bold">●</span>}
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-6 py-3 bg-red-700 hover:bg-red-600 text-white rounded-xl text-xs font-mono font-bold transition shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Searching...</span>
+              </>
+            ) : (
+              <span>🔍 Lookup Record</span>
+            )}
+          </button>
+        </form>
       </div>
+
+      {/* Results / Inspector Section */}
+      {loading ? (
+        <div className="py-20 text-center text-slate-400 font-mono text-xs flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
+          <span>Querying Operative Database...</span>
+        </div>
+      ) : !hasSearched ? (
+        <div className="py-16 text-center text-slate-500 font-mono text-xs border border-dashed border-slate-800 rounded-2xl space-y-2">
+          <div className="text-3xl">🔎</div>
+          <p className="text-slate-400 font-bold">Lookup Console Idle</p>
+          <p className="text-slate-600 max-w-md mx-auto">
+            Zero initial DB payload. Enter a User ID, email, codename, or toggle filters above to inspect records on demand.
+          </p>
+        </div>
+      ) : users.length === 0 ? (
+        <div className="py-16 text-center text-slate-400 font-mono text-xs border border-slate-800/80 rounded-2xl space-y-2 bg-slate-900/40">
+          <div className="text-3xl">📭</div>
+          <p className="text-slate-300 font-bold">No operative records matched your lookup.</p>
+          <p className="text-slate-500">Verify the ID or search term and try again.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="text-xs font-mono text-slate-400 flex items-center justify-between">
+            <span>Found {users.length} Matching Operative{users.length > 1 ? 's' : ''}</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {users.map((user) => (
+              <div
+                key={user.id}
+                className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl hover:border-slate-700 transition"
+              >
+                {/* Operative Header */}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-white text-base flex items-center gap-2">
+                      <span>{user.name || 'Anonymous Operative'}</span>
+                      {user.isWorkshop && (
+                        <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-600/40 px-1.5 py-0.5 rounded font-mono">
+                          WORKSHOP
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-xs text-sky-400 font-mono mt-0.5">{user.email}</p>
+                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">ID: {user.id}</p>
+                  </div>
+                  <span
+                    className={`text-[10px] font-mono px-2.5 py-1 rounded-full font-bold border ${
+                      user.accountStatus === 'ACTIVE'
+                        ? 'bg-emerald-950 text-emerald-300 border-emerald-600/40'
+                        : user.accountStatus === 'REMOTE_RESTRICTED'
+                        ? 'bg-amber-950 text-amber-300 border-amber-600/40'
+                        : 'bg-red-950 text-red-300 border-red-600/40'
+                    }`}
+                  >
+                    {user.accountStatus}
+                  </span>
+                </div>
+
+                {/* Codename & Metrics */}
+                <div className="grid grid-cols-3 gap-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 text-center font-mono">
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">Codename</span>
+                    <span className="text-xs text-slate-200 font-bold truncate block">
+                      {user.codename || 'Unassigned'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">Coal Citations</span>
+                    <span
+                      className={`text-xs font-bold ${
+                        user.demerits > 0 ? 'text-red-400' : 'text-emerald-400'
+                      }`}
+                    >
+                      {user.demerits}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">Operations</span>
+                    <span className="text-xs text-slate-200 font-bold">
+                      {user.organizedCount + user.joinedCount}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Live Modification Controls */}
+                <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                  {/* Workshop Toggle */}
+                  <button
+                    onClick={() => handleUpdateUser(user.id, { isWorkshop: !user.isWorkshop })}
+                    disabled={updatingId === user.id}
+                    className={`px-3 py-1.5 rounded-lg border text-[11px] transition ${
+                      user.isWorkshop
+                        ? 'bg-amber-950/60 border-amber-600/50 text-amber-300 hover:bg-amber-900'
+                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    {user.isWorkshop ? 'Revoke Workshop' : 'Grant Workshop'}
+                  </button>
+
+                  {/* Penalty Points Controls */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() =>
+                        handleUpdateUser(user.id, { penaltyPoints: Math.max(0, user.demerits - 1) })
+                      }
+                      disabled={updatingId === user.id || user.demerits <= 0}
+                      className="px-2 py-1 bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/40 rounded text-[10px] disabled:opacity-30"
+                      title="Forgive 1 Coal Citation"
+                    >
+                      -1 Coal
+                    </button>
+                    <button
+                      onClick={() => handleUpdateUser(user.id, { penaltyPoints: user.demerits + 1 })}
+                      disabled={updatingId === user.id}
+                      className="px-2 py-1 bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-700/40 rounded text-[10px] disabled:opacity-30"
+                      title="Issue 1 Coal Citation"
+                    >
+                      +1 Coal
+                    </button>
+                  </div>
+
+                  {/* Edit Codename */}
+                  <button
+                    onClick={() => {
+                      setEditingCodenameUser(user);
+                      setNewCodename(user.codename || '');
+                    }}
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-700/40 rounded-lg text-[11px]"
+                  >
+                    ✏️ Codename
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Codename Modal */}
+      {editingCodenameUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h3 className="font-bold text-base text-white">Modify Operative Codename</h3>
+            <p className="text-xs text-slate-400 font-mono">
+              Update callsign for operative: <strong className="text-white">{editingCodenameUser.email}</strong>
+            </p>
+            <input
+              type="text"
+              placeholder="e.g. Agent-Klaus, Chewbacca, Frosty..."
+              value={newCodename}
+              onChange={(e) => setNewCodename(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 focus:border-red-500 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none font-mono"
+            />
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setEditingCodenameUser(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-mono font-bold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleUpdateUser(editingCodenameUser.id, { codename: newCodename.trim() })}
+                disabled={updatingId === editingCodenameUser.id}
+                className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-xl text-xs font-mono font-bold transition shadow-lg disabled:opacity-50"
+              >
+                {updatingId === editingCodenameUser.id ? 'Saving...' : 'Save Codename'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
