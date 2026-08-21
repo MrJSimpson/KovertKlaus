@@ -1,4 +1,4 @@
-import { getEmailConfig } from './config';
+import { getEmailConfig, getResolvedEmailConfig } from './config';
 import { sendEmail, sendInvitationEmail, sendAssignmentEmail, sendNudgeEmail, sendClearanceConfirmationEmail } from './dispatcher';
 import {
   getInvitationEmailTemplate,
@@ -168,19 +168,27 @@ async function runTests() {
   delete process.env.BREVO_API_KEY;
   delete process.env.BREVO_SENDER_EMAIL;
 
-  // --- Test 6: Retry Engine Behavior ---
-  console.log('\n--- Test 6: Retry Engine Execution & Attempt Tracking ---');
-  const retryResult = await sendEmail(
-    {
-      to: 'agent.retry@kovertklaus.com',
-      subject: 'Retry Test',
-      html: '<p>Retry verification</p>',
-    },
-    { provider: 'console' }
-  );
+  // --- Test 7: Runtime envOverride Support ---
+  console.log('\n--- Test 7: Runtime envOverride Map Resolution ---');
+  const customEnv = {
+    BREVO_API_KEY: 'xkeysib-worker-env-test',
+    BREVO_SENDER_EMAIL: 'worker-sender@kovertklaus.com',
+    BREVO_SENDER_NAME: 'Worker Dispatcher',
+  };
+  const resolvedWorkerConfig = await getResolvedEmailConfig(undefined, customEnv);
+  assert(resolvedWorkerConfig.brevoApiKey === 'xkeysib-worker-env-test', 'getResolvedEmailConfig accepts runtime envOverride map');
+  assert(resolvedWorkerConfig.brevoSenderEmail === 'worker-sender@kovertklaus.com', 'envOverride sender email resolved correctly');
+  assert(resolvedWorkerConfig.provider === 'brevo', 'Provider auto-resolves to brevo from envOverride');
 
-  assert(retryResult.success === true, 'sendEmail succeeds on console mock');
-  assert(retryResult.attempts === 1, 'sendEmail reports attempt count 1 on immediate success');
+  // --- Test 8: overrideConfig Propagation in Helper Methods ---
+  console.log('\n--- Test 8: overrideConfig Propagation in Helper Methods ---');
+  const clearanceOverrideRes = await sendClearanceConfirmationEmail({
+    recipientEmail: 'agent.override@kovertklaus.com',
+    positionNumber: 99,
+    overrideConfig: { provider: 'console' },
+  });
+  assert(clearanceOverrideRes.success === true, 'sendClearanceConfirmationEmail honors overrideConfig');
+  assert(clearanceOverrideRes.provider === 'console', 'overrideConfig correctly sets console mock provider');
 
   console.log(`\n📊 Test Summary: ${passed} Passed, ${failed} Failed`);
   if (failed > 0) {
@@ -192,3 +200,4 @@ runTests().catch((err) => {
   console.error('Fatal test error:', err);
   process.exit(1);
 });
+

@@ -22,6 +22,8 @@ import {
   sendAssignmentEmail,
   sendNudgeEmail,
 } from './lib/email';
+import { getResolvedEmailConfig } from './lib/email/config';
+import { EmailConfig } from './lib/email/types';
 import { evaluateMemberAudit } from './lib/demerits';
 
 const ADMIN_COOKIE_NAME = 'kovertklaus_admin_session';
@@ -81,6 +83,36 @@ function getUserIdFromRequest(request: Request): string | null {
 
   return null;
 }
+
+/**
+ * Resolves transactional email configuration for the Cloudflare Worker runtime
+ * by loading database overrides via Neon and falling back to Worker environment variables.
+ */
+async function resolveWorkerEmailConfig(
+  env: Env,
+  dbClient?: any,
+  explicitOverride?: Partial<EmailConfig>
+): Promise<EmailConfig> {
+  const envMap: Record<string, string | undefined> = {
+    BREVO_API_KEY: env.BREVO_API_KEY,
+    BREVO_SENDER_EMAIL: env.BREVO_SENDER_EMAIL,
+    BREVO_SENDER_NAME: env.BREVO_SENDER_NAME,
+    EMAIL_PROVIDER: env.EMAIL_PROVIDER,
+    EMAIL_FROM: env.EMAIL_FROM,
+    EMAIL_FROM_NAME: env.EMAIL_FROM_NAME,
+    RESEND_API_KEY: env.RESEND_API_KEY,
+    SMTP_HOST: env.SMTP_HOST,
+    SMTP_PORT: env.SMTP_PORT,
+    SMTP_USER: env.SMTP_USER,
+    SMTP_PASS: env.SMTP_PASS,
+    SMTP_SECURE: env.SMTP_SECURE,
+    SMTP_FROM: env.SMTP_FROM,
+  };
+
+  const resolved = await getResolvedEmailConfig(dbClient, envMap);
+  return { ...resolved, ...explicitOverride };
+}
+
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -496,6 +528,8 @@ export default {
         const body = (await request.json().catch(() => ({}))) as any;
         const targetEmail = (body.recipientEmail || admin.email).trim();
 
+        const emailConfig = await resolveWorkerEmailConfig(env, adminDb, body.overrideConfig);
+
         const result = await sendEmail(
           {
             to: { email: targetEmail, name: 'North Pole Operator' },
@@ -512,7 +546,7 @@ export default {
             `,
             tags: ['admin-test', 'northpole'],
           },
-          body.overrideConfig
+          emailConfig
         );
 
         return Response.json({
@@ -607,10 +641,12 @@ export default {
             }
 
             const totalLeads = await adminDb.clearanceLead.count();
+            const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
             const emailResult = await sendClearanceConfirmationEmail({
               to: lead.email,
               name: lead.name || undefined,
               positionNumber: totalLeads,
+              overrideConfig: emailConfig,
             });
 
             return Response.json({
@@ -658,10 +694,12 @@ export default {
         // Dispatch Confirmation Email via configured Email Dispatcher
         let emailResult: any = null;
         try {
+          const emailConfig = await resolveWorkerEmailConfig(env, db);
           emailResult = await sendClearanceConfirmationEmail({
             to: email,
             name: name || undefined,
             positionNumber: totalLeads + 1,
+            overrideConfig: emailConfig,
           });
         } catch (emailErr: any) {
           console.error('[Clearance Email Dispatch Error]', emailErr);
@@ -674,9 +712,12 @@ export default {
           provider: emailResult?.provider || emailResult?.mode,
           message: emailResult?.success
             ? 'Clearance access confirmed! Encrypted briefing dispatched to your inbox.'
+            : emailResult?.error
+            ? `Clearance request logged, but dispatch failed: ${emailResult.error}`
             : 'Clearance request logged.',
         });
       }
+
 
       // 10. /api/users/login (POST)
       if (pathname === '/api/users/login' && request.method === 'POST') {
@@ -835,7 +876,17 @@ export default {
             select: { id: true, email: true, name: true, codename: true, accountStatus: true, penaltyPoints: true },
           });
 
-          sendWelcomeEmail({ to: user.email, name: user.name, codename: user.codename || undefined }).catch(() => {});
+          try {
+            const emailConfig = await resolveWorkerEmailConfig(env, db);
+            await sendWelcomeEmail({
+              to: user.email,
+              name: user.name,
+              codename: user.codename || undefined,
+              overrideConfig: emailConfig,
+            });
+          } catch (welcomeErr) {
+            console.warn('[Welcome Email Error]', welcomeErr);
+          }
 
           const signedUserId = signToken(user.id);
           const headers = new Headers({ 'Content-Type': 'application/json' });
@@ -965,14 +1016,15 @@ export default {
 
             // Dispatch assignment emails
             try {
+              const emailConfig = await resolveWorkerEmailConfig(env, db);
               const enrolledUsers = await db.user.findMany({
                 where: { id: { in: ex.members.map((m) => m.userId) } },
               });
-              for (const assignment of assignments) {
+              const emailPromises = assignments.map(async (assignment) => {
                 const giver = enrolledUsers.find((u) => u.id === assignment.agentId);
                 const target = enrolledUsers.find((u) => u.id === assignment.targetId);
                 if (giver?.email && giver.emailNotifications !== false && target) {
-                  sendAssignmentEmail({
+                  return sendAssignmentEmail({
                     recipientEmail: giver.email,
                     recipientName: giver.name || giver.codename || 'Operative',
                     targetCodename: target.codename || target.name || 'Target Operative',
@@ -981,10 +1033,15 @@ export default {
                     shippingDeadline: ex.shippingDate ? new Date(ex.shippingDate).toLocaleDateString() : undefined,
                     exchangeDate: ex.executionDate ? new Date(ex.executionDate).toLocaleDateString() : undefined,
                     exchangeUrl: `https://kovertklaus.com/exchange/${ex.code}`,
-                  }).catch(() => {});
+                    overrideConfig: emailConfig,
+                  });
                 }
-              }
-            } catch {}
+                return null;
+              });
+              await Promise.allSettled(emailPromises);
+            } catch (emailErr) {
+              console.error('[Draw Email Dispatch Error]', emailErr);
+            }
 
             return Response.json({ success: true, message: 'Draw completed successfully' });
           }
@@ -1119,17 +1176,25 @@ export default {
 
             await db.$transaction(notificationInserts);
 
-            for (const member of ex.members) {
-              if (member.user.email && member.user.emailNotifications !== false) {
-                sendNudgeEmail({
-                  recipientEmail: member.user.email,
-                  recipientName: member.user.name || member.user.codename || 'Operative',
-                  organizerName: ex.organizer.name,
-                  exchangeTitle: ex.title,
-                  message: messageText.trim(),
-                  actionUrl: `https://kovertklaus.com/exchange/${ex.code}`,
-                }).catch(() => {});
-              }
+            try {
+              const emailConfig = await resolveWorkerEmailConfig(env, db);
+              const broadcastPromises = ex.members.map(async (member) => {
+                if (member.user.email && member.user.emailNotifications !== false) {
+                  return sendNudgeEmail({
+                    recipientEmail: member.user.email,
+                    recipientName: member.user.name || member.user.codename || 'Operative',
+                    organizerName: ex.organizer.name,
+                    exchangeTitle: ex.title,
+                    message: messageText.trim(),
+                    actionUrl: `https://kovertklaus.com/exchange/${ex.code}`,
+                    overrideConfig: emailConfig,
+                  });
+                }
+                return null;
+              });
+              await Promise.allSettled(broadcastPromises);
+            } catch (broadcastErr) {
+              console.error('[Broadcast Email Error]', broadcastErr);
             }
 
             return Response.json({ success: true, message: 'Broadcast dispatched' });
@@ -1234,14 +1299,20 @@ export default {
             });
 
             if (memberToNudge.user.email && memberToNudge.user.emailNotifications !== false) {
-              sendNudgeEmail({
-                recipientEmail: memberToNudge.user.email,
-                recipientName: memberToNudge.user.name || memberToNudge.user.codename || 'Operative',
-                organizerName: memberToNudge.exchange.organizer.name,
-                exchangeTitle: memberToNudge.exchange.title,
-                message: nudgeMsg,
-                actionUrl: `https://kovertklaus.com/exchange/${memberToNudge.exchange.code}`,
-              }).catch(() => {});
+              try {
+                const emailConfig = await resolveWorkerEmailConfig(env, db);
+                await sendNudgeEmail({
+                  recipientEmail: memberToNudge.user.email,
+                  recipientName: memberToNudge.user.name || memberToNudge.user.codename || 'Operative',
+                  organizerName: memberToNudge.exchange.organizer.name,
+                  exchangeTitle: memberToNudge.exchange.title,
+                  message: nudgeMsg,
+                  actionUrl: `https://kovertklaus.com/exchange/${memberToNudge.exchange.code}`,
+                  overrideConfig: emailConfig,
+                });
+              } catch (nudgeErr) {
+                console.warn('[Nudge Email Error]', nudgeErr);
+              }
             }
 
             return Response.json({ success: true, message: 'Nudge alert dispatched' });
@@ -1307,16 +1378,22 @@ export default {
           });
         }
 
-        sendInvitationEmail({
-          recipientEmail: cleanEmail,
-          recipientName: targetUser?.name,
-          organizerName: exchange.organizer.name,
-          exchangeTitle: exchange.title,
-          inviteCode: exchange.code,
-          budgetMin: exchange.budgetMin ? Number(exchange.budgetMin) : null,
-          budgetMax: Number(exchange.budgetMax),
-          joinUrl: `https://kovertklaus.com/exchange/${exchange.code}`,
-        }).catch(() => {});
+        try {
+          const emailConfig = await resolveWorkerEmailConfig(env, db);
+          await sendInvitationEmail({
+            recipientEmail: cleanEmail,
+            recipientName: targetUser?.name,
+            organizerName: exchange.organizer.name,
+            exchangeTitle: exchange.title,
+            inviteCode: exchange.code,
+            budgetMin: exchange.budgetMin ? Number(exchange.budgetMin) : null,
+            budgetMax: Number(exchange.budgetMax),
+            joinUrl: `https://kovertklaus.com/exchange/${exchange.code}`,
+            overrideConfig: emailConfig,
+          });
+        } catch (inviteErr) {
+          console.warn('[Invitation Email Error]', inviteErr);
+        }
 
         return Response.json({ success: true, message: `Invitation sent to ${cleanEmail}` });
       }

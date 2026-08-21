@@ -110,15 +110,18 @@ export async function sendEmail(
 export async function sendInvitationEmail(params: InvitationEmailParams): Promise<EmailResult> {
   const { subject, html, text } = getInvitationEmailTemplate(params);
   const targetEmail = params.recipientEmail || params.to || '';
-  return sendEmail({
-    to: params.recipientName
-      ? { email: targetEmail, name: params.recipientName }
-      : targetEmail,
-    subject,
-    html,
-    text,
-    tags: ['invitation', 'recruitment', params.isLatePass ? 'late-pass' : 'standard'],
-  });
+  return sendEmail(
+    {
+      to: params.recipientName
+        ? { email: targetEmail, name: params.recipientName }
+        : targetEmail,
+      subject,
+      html,
+      text,
+      tags: ['invitation', 'recruitment', params.isLatePass ? 'late-pass' : 'standard'],
+    },
+    params.overrideConfig
+  );
 }
 
 /**
@@ -128,13 +131,16 @@ export async function sendAssignmentEmail(params: AssignmentEmailParams): Promis
   const { subject, html, text } = getAssignmentEmailTemplate(params);
   const targetEmail = params.recipientEmail || params.to || '';
   const recipientName = params.recipientName || params.agentName || 'Operative';
-  return sendEmail({
-    to: { email: targetEmail, name: recipientName },
-    subject,
-    html,
-    text,
-    tags: ['assignment', 'target-draw'],
-  });
+  return sendEmail(
+    {
+      to: { email: targetEmail, name: recipientName },
+      subject,
+      html,
+      text,
+      tags: ['assignment', 'target-draw'],
+    },
+    params.overrideConfig
+  );
 }
 
 /**
@@ -148,13 +154,16 @@ export const sendTargetAssignmentEmail = sendAssignmentEmail;
 export async function sendWelcomeEmail(params: WelcomeEmailParams): Promise<EmailResult> {
   const { subject, html, text } = getWelcomeEmailTemplate(params);
   const targetEmail = params.recipientEmail || params.to || '';
-  return sendEmail({
-    to: { email: targetEmail, name: params.name },
-    subject,
-    html,
-    text,
-    tags: ['welcome', 'onboarding'],
-  });
+  return sendEmail(
+    {
+      to: { email: targetEmail, name: params.name },
+      subject,
+      html,
+      text,
+      tags: ['welcome', 'onboarding'],
+    },
+    params.overrideConfig
+  );
 }
 
 /**
@@ -162,13 +171,16 @@ export async function sendWelcomeEmail(params: WelcomeEmailParams): Promise<Emai
  */
 export async function sendBroadcastEmail(params: BroadcastEmailParams): Promise<EmailResult> {
   const { subject, html, text } = getBroadcastEmailTemplate(params);
-  return sendEmail({
-    to: params.to,
-    subject,
-    html,
-    text,
-    tags: ['broadcast', 'opteam'],
-  });
+  return sendEmail(
+    {
+      to: params.to,
+      subject,
+      html,
+      text,
+      tags: ['broadcast', 'opteam'],
+    },
+    params.overrideConfig
+  );
 }
 
 /**
@@ -178,13 +190,16 @@ export async function sendNudgeEmail(params: NudgeEmailParams): Promise<EmailRes
   const { subject, html, text } = getNudgeEmailTemplate(params);
   const targetEmail = params.recipientEmail || params.to || '';
   const recipientName = params.recipientName || 'Operative';
-  return sendEmail({
-    to: { email: targetEmail, name: recipientName },
-    subject,
-    html,
-    text,
-    tags: ['nudge', 'reminder'],
-  });
+  return sendEmail(
+    {
+      to: { email: targetEmail, name: recipientName },
+      subject,
+      html,
+      text,
+      tags: ['nudge', 'reminder'],
+    },
+    params.overrideConfig
+  );
 }
 
 /**
@@ -193,11 +208,15 @@ export async function sendNudgeEmail(params: NudgeEmailParams): Promise<EmailRes
 export async function sendClearanceConfirmationEmail(params: ClearanceConfirmationParams): Promise<EmailResult> {
   const { subject, html, text } = getClearanceConfirmationEmailTemplate(params);
   const targetEmail = params.recipientEmail || params.to || '';
-  return sendEmail({
-    to: targetEmail,
-    subject,
-    html,
-    text,
-    tags: ['clearance', 'pre-launch-waitlist'],
-  });
+  return sendEmail(
+    {
+      to: targetEmail,
+      subject,
+      html,
+      text,
+      tags: ['clearance', 'pre-launch-waitlist'],
+    },
+    params.overrideConfig
+  );
 }
+

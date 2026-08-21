@@ -56,6 +56,7 @@ export interface InvitationEmailParams {
   budgetMin?: number | null;
   budgetMax?: number | null;
   isLatePass?: boolean;
+  overrideConfig?: Partial<EmailConfig>;
 }
 
 export interface AssignmentEmailParams {
@@ -69,6 +70,7 @@ export interface AssignmentEmailParams {
   exchangeUrl: string;
   shippingDeadline?: string;
   exchangeDate?: string;
+  overrideConfig?: Partial<EmailConfig>;
 }
 
 export interface NudgeEmailParams {
@@ -79,6 +81,7 @@ export interface NudgeEmailParams {
   exchangeTitle: string;
   message: string;
   actionUrl: string;
+  overrideConfig?: Partial<EmailConfig>;
 }
 
 export interface WelcomeEmailParams {
@@ -86,6 +89,7 @@ export interface WelcomeEmailParams {
   to?: string;
   name: string;
   codename?: string;
+  overrideConfig?: Partial<EmailConfig>;
 }
 
 export interface BroadcastEmailParams {
@@ -95,6 +99,7 @@ export interface BroadcastEmailParams {
   message: string;
   senderName: string;
   exchangeUrl: string;
+  overrideConfig?: Partial<EmailConfig>;
 }
 
 export interface ClearanceConfirmationParams {
@@ -102,4 +107,6 @@ export interface ClearanceConfirmationParams {
   to?: string;
   name?: string;
   positionNumber?: number;
+  overrideConfig?: Partial<EmailConfig>;
 }
+
