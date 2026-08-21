@@ -30,8 +30,8 @@ export default function NorthPoleConfigPage() {
   const [emailFrom, setEmailFrom] = useState('admin@kovertklaus.com');
   const [emailFromName, setEmailFromName] = useState('KovertKlaus HQ');
   const [brevoApiKey, setBrevoApiKey] = useState('');
-  const [brevoSenderEmail, setBrevoSenderEmail] = useState('');
-  const [brevoSenderName, setBrevoSenderName] = useState('');
+  const [brevoSenderEmail, setBrevoSenderEmail] = useState('admin@kovertklaus.com');
+  const [brevoSenderName, setBrevoSenderName] = useState('KovertKlaus HQ');
   const [smtpHost, setSmtpHost] = useState('');
   const [smtpPort, setSmtpPort] = useState(587);
   const [smtpUser, setSmtpUser] = useState('');
@@ -77,10 +77,9 @@ export default function NorthPoleConfigPage() {
 
           setEmailProvider(cfg.emailProvider || 'auto');
           setEmailFrom(cfg.emailFrom || 'admin@kovertklaus.com');
-          setEmailFromName(cfg.emailFromName || 'KovertKlaus HQ');
           setBrevoApiKey(cfg.brevoApiKey || '');
-          setBrevoSenderEmail(cfg.brevoSenderEmail || '');
-          setBrevoSenderName(cfg.brevoSenderName || '');
+          setBrevoSenderEmail(cfg.brevoSenderEmail || cfg.emailFrom || 'admin@kovertklaus.com');
+          setBrevoSenderName(cfg.brevoSenderName || cfg.emailFromName || 'KovertKlaus HQ');
           setSmtpHost(cfg.smtpHost || '');
           setSmtpPort(cfg.smtpPort || 587);
           setSmtpUser(cfg.smtpUser || '');
@@ -214,15 +213,22 @@ export default function NorthPoleConfigPage() {
         }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
+      if (!json) {
+        setTestEmailResult({
+          success: false,
+          message: `Server returned HTTP ${res.status}: ${res.statusText || 'Unable to parse server response'}`,
+        });
+        return;
+      }
       setTestEmailResult({
         success: Boolean(json.success),
-        message: json.message || (json.success ? 'Test email dispatched successfully' : 'Dispatch failed'),
+        message: json.message || (json.success ? 'Test email dispatched successfully' : (json.error || 'Dispatch failed')),
       });
     } catch (err: any) {
       setTestEmailResult({
         success: false,
-        message: err.message || 'Network error sending test email',
+        message: err?.message || 'Network error sending test email',
       });
     } finally {
       setTestingEmail(false);

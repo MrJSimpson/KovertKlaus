@@ -76,7 +76,8 @@ function getUserIdFromRequest(request: Request): string | null {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const { pathname } = url;
+    const rawPath = url.pathname;
+    const pathname = rawPath.replace(/\/+$/, '') || '/';
 
     // Populate runtime process.env with Cloudflare Worker bindings
     if (env.DATABASE_URL) process.env.DATABASE_URL = env.DATABASE_URL;
@@ -884,6 +885,14 @@ export default {
       invalidateCachedAdminDb();
       return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
         status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Never serve static HTML for unmatched API routes
+    if (pathname.startsWith('/api/')) {
+      return new Response(JSON.stringify({ error: `API route not found: ${pathname}` }), {
+        status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
     }
