@@ -813,17 +813,29 @@ export default {
           return Response.json({ error: 'A valid email address is required for clearance access.' }, { status: 400 });
         }
 
-        const totalLeads = await db.clearanceLead.count();
-        const lead = await db.clearanceLead.upsert({
-          where: { email },
-          update: { updatedAt: new Date(), ...(name ? { name: sanitizeText(name) } : {}) },
-          create: { email, name: name ? sanitizeText(name) : undefined, source: sanitizeText(source) },
-        });
+        let totalLeads = 0;
+        let lead: any = null;
+        try {
+          totalLeads = await db.clearanceLead.count();
+          lead = await db.clearanceLead.upsert({
+            where: { email },
+            update: { updatedAt: new Date(), ...(name ? { name: sanitizeText(name) } : {}) },
+            create: { email, name: name ? sanitizeText(name) : undefined, source: sanitizeText(source) },
+          });
+        } catch (dbErr: any) {
+          console.warn('[Clearance Lead DB Fallback to Admin]', dbErr?.message);
+          totalLeads = await adminDb.clearanceLead.count();
+          lead = await adminDb.clearanceLead.upsert({
+            where: { email },
+            update: { updatedAt: new Date(), ...(name ? { name: sanitizeText(name) } : {}) },
+            create: { email, name: name ? sanitizeText(name) : undefined, source: sanitizeText(source) },
+          });
+        }
 
         // Dispatch Confirmation Email via configured Email Dispatcher
         let emailResult: any = null;
         try {
-          const emailConfig = await resolveWorkerEmailConfig(env, db);
+          const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
           emailResult = await sendClearanceConfirmationEmail({
             to: email,
             name: name || undefined,
@@ -833,7 +845,7 @@ export default {
 
           if (!emailResult?.success) {
             await logError('EMAIL', `Clearance briefing dispatch failed for ${email}: ${emailResult?.error || 'Unknown error'}`, {
-              dbClient: db,
+              dbClient: adminDb,
               metadata: { email, source, provider: emailResult?.provider, error: emailResult?.error },
               path: pathname,
               statusCode: 500,
@@ -841,7 +853,7 @@ export default {
             }).catch(() => {});
           } else {
             await logInfo('EMAIL', `Clearance briefing dispatched to ${email} via ${emailResult.provider}`, {
-              dbClient: db,
+              dbClient: adminDb,
               metadata: { email, source, provider: emailResult.provider, position: totalLeads + 1 },
               path: pathname,
               statusCode: 200,
@@ -851,14 +863,13 @@ export default {
         } catch (emailErr: any) {
           console.error('[Clearance Email Dispatch Error]', emailErr);
           await logError('EMAIL', `Clearance email exception for ${email}: ${emailErr?.message || emailErr}`, {
-            dbClient: db,
+            dbClient: adminDb,
             metadata: { email, source, stack: emailErr?.stack },
             path: pathname,
             statusCode: 500,
             env,
           }).catch(() => {});
         }
-
 
         return Response.json({
           success: true,
@@ -872,6 +883,7 @@ export default {
             : 'Clearance request logged.',
         });
       }
+
 
 
       // 10. /api/users/login (POST)
@@ -1901,7 +1913,7 @@ export default {
 
     } catch (err: any) {
       console.error('[Worker API Error]', err);
-      logSystemEvent({
+      await logSystemEvent({
         level: 'ERROR',
         category: 'WORKER',
         message: `Unhandled Worker Exception on ${pathname}: ${err?.message || err}`,
@@ -1916,6 +1928,7 @@ export default {
         statusCode: 500,
         env,
       }).catch(() => {});
+
 
       await invalidateCachedDb().catch(() => {});
       await invalidateCachedAdminDb().catch(() => {});

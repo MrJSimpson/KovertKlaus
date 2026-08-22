@@ -175,17 +175,22 @@ export async function logSystemEvent(options: LogEntryOptions): Promise<void> {
     dedupCache.set(dedupKey, { count: 1, lastLogged: now });
   }
 
-  // 5. Database Persistence with Deterministic Edge Auto-Resolution
+  // 5. Database Persistence with Deterministic Admin Pool Resolution
   try {
-    let client = options.dbClient;
-    if (!client && options.env) {
-      const connStr = options.env.DATABASE_ADMIN_URL || options.env.DIRECT_URL || options.env.DATABASE_URL;
-      if (connStr) {
-        client = getAdminDb(connStr);
+    let client: any = null;
+    if (options.env) {
+      const adminConnStr = options.env.DATABASE_ADMIN_URL || options.env.DIRECT_URL || options.env.DATABASE_URL;
+      if (adminConnStr) {
+        client = getAdminDb(adminConnStr);
       }
-    } else if (!client && typeof process !== 'undefined' && process.env?.DATABASE_URL) {
-      client = adminDb || db;
     }
+    if (!client && typeof process !== 'undefined' && (process.env?.DATABASE_ADMIN_URL || process.env?.DIRECT_URL || process.env?.DATABASE_URL)) {
+      client = adminDb || options.dbClient || db;
+    }
+    if (!client) {
+      client = options.dbClient;
+    }
+
 
 
     if (client && typeof client.systemLog?.create === 'function') {
