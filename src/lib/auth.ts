@@ -25,9 +25,15 @@ const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
 export async function setSessionCookie(userId: string): Promise<void> {
   const cookieStore = await cookies();
   const signedToken = signToken(userId);
+  const isSecure =
+    process.env.COOKIE_SECURE === 'true' ||
+    (process.env.NODE_ENV === 'production' &&
+      process.env.COOKIE_SECURE !== 'false' &&
+      process.env.NEXT_PUBLIC_APP_URL?.startsWith('https'));
+
   cookieStore.set(SESSION_COOKIE_NAME, signedToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
     sameSite: 'lax',
     path: '/',
     maxAge: SESSION_MAX_AGE_SECONDS,
@@ -35,14 +41,31 @@ export async function setSessionCookie(userId: string): Promise<void> {
 }
 
 /**
- * Reads and cryptographically verifies the current active user ID from the incoming session cookie.
+ * Reads and cryptographically verifies the current active user ID from the incoming session cookie
+ * or fallback x-session-token authorization header.
  * 
  * @returns The authenticated operative's `userId`, or `null` if unauthenticated, tampered, or expired.
  */
 export async function getSessionUserId(): Promise<string | null> {
   const cookieStore = await cookies();
   const session = cookieStore.get(SESSION_COOKIE_NAME);
-  return verifyToken(session?.value);
+  const cookieVerified = verifyToken(session?.value);
+  if (cookieVerified) return cookieVerified;
+
+  try {
+    const { headers } = await import('next/headers');
+    const headerStore = await headers();
+    const headerToken =
+      headerStore.get('x-session-token') ||
+      headerStore.get('authorization')?.replace(/^Bearer\s+/i, '');
+    if (headerToken) {
+      return verifyToken(headerToken);
+    }
+  } catch {
+    // Ignore header resolution errors
+  }
+
+  return null;
 }
 
 /**

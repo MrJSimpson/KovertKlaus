@@ -4,7 +4,7 @@ import { verifyAdminSession } from '@/lib/adminAuth';
 import { sendClearanceConfirmationEmail } from '@/lib/email';
 import { logError, logInfo } from '@/lib/logger';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {

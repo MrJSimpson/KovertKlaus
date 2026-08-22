@@ -198,10 +198,20 @@ async function main() {
         passwordHash: initialAdminPassHash,
         role: 'SUPER_ADMIN',
         isActive: true,
-        requiresPasswordReset: true,
+        requiresPasswordReset: false,
       },
     });
     console.log('🎅 Seeded initial Super Admin (username: santa, email: admin@kovertklaus.com)');
+  } else {
+    await db.adminUser.update({
+      where: { id: existingAdmin.id },
+      data: {
+        passwordHash: initialAdminPassHash,
+        isActive: true,
+        requiresPasswordReset: false,
+      },
+    });
+    console.log('🔄 Reset password for Super Admin: santa');
   }
 
   // ---------------------------------------------------------------------------

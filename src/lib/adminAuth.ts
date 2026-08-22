@@ -79,9 +79,15 @@ export function validateNistPassword(
 export async function setAdminSessionCookie(adminId: string) {
   const cookieStore = await cookies();
   const signedToken = signToken(adminId);
+  const isSecure =
+    process.env.COOKIE_SECURE === 'true' ||
+    (process.env.NODE_ENV === 'production' &&
+      process.env.COOKIE_SECURE !== 'false' &&
+      process.env.NEXT_PUBLIC_APP_URL?.startsWith('https'));
+
   cookieStore.set(ADMIN_SESSION_COOKIE_NAME, signedToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 12, // 12 hours
@@ -89,12 +95,29 @@ export async function setAdminSessionCookie(adminId: string) {
 }
 
 /**
- * Retrieves and cryptographically verifies the current admin session ID from the HTTP-only cookie.
+ * Retrieves and cryptographically verifies the current admin session ID from the HTTP-only cookie
+ * or fallback x-admin-token authorization header.
  */
 export async function getAdminSessionId(): Promise<string | null> {
   const cookieStore = await cookies();
   const session = cookieStore.get(ADMIN_SESSION_COOKIE_NAME);
-  return verifyToken(session?.value);
+  const cookieVerified = verifyToken(session?.value);
+  if (cookieVerified) return cookieVerified;
+
+  try {
+    const { headers } = await import('next/headers');
+    const headerStore = await headers();
+    const headerToken =
+      headerStore.get('x-admin-token') ||
+      headerStore.get('authorization')?.replace(/^Bearer\s+/i, '');
+    if (headerToken) {
+      return verifyToken(headerToken);
+    }
+  } catch {
+    // Ignore header resolution errors
+  }
+
+  return null;
 }
 
 /**

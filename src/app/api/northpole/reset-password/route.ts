@@ -5,6 +5,7 @@ import {
   setAdminSessionCookie,
   validateNistPassword,
 } from '@/lib/adminAuth';
+import { signToken } from '@/lib/security';
 
 export async function POST(request: Request) {
   try {
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'NIST password update verified. North Pole administrative clearance activated.',
+      token: signToken(admin.id),
       admin: {
         id: admin.id,
         name: admin.name,

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
-import { isValidEmail } from '@/lib/security';
+import { isValidEmail, signToken } from '@/lib/security';
 import { setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Authentication successful',
+      token: signToken(user.id),
       user: {
         id: user.id,
         name: user.name,
