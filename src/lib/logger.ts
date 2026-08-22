@@ -149,14 +149,16 @@ export async function logSystemEvent(options: LogEntryOptions): Promise<void> {
     statusCode: options.statusCode,
   });
 
-  // 3. Level Filtering: In production, do NOT write INFO/DEBUG logs to PostgreSQL (avoids table bloat)
+  // 3. Level Filtering: Persist ERROR, WARN, and INFO events to PostgreSQL (capped by circular buffer).
+  // Only suppress verbose DEBUG telemetry in production.
   const isProd =
     (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') ||
     (options.env && options.env.MODE === 'production');
 
-  if (isProd && (level === 'INFO' || level === 'DEBUG')) {
+  if (isProd && level === 'DEBUG') {
     return;
   }
+
 
   // 4. Consecutive Burst Deduplication: Throttles identical error storms
   const dedupKey = `${level}:${category}:${message.slice(0, 120)}`;
