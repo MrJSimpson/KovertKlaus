@@ -1,21 +1,21 @@
 # Active Sprint Tracker
 
-**Active Sprint**: [Sprint 2026-W34](sprints/2026-W34.md)  
-**Status**: **COMPLETED ✅ (6/6 Action Items Verified)**  
+**Active Sprint**: [Sprint 2026-W35](sprints/2026-W35.md)  
+**Status**: **IN PROGRESS 🔄 (1/6 Action Items Verified)**  
 **Target Milestone**: `v0.1.0-prealpha`  
 **Ceremony Schedule**: Retrospectives & Planning held every Monday morning.
 
 ---
 
-### Quick Status Dashboard (Sprint W34: Aug 20 – Aug 24)
-- **Item 1: Semantic Versioning & Badges**: ✅ DONE
-- **Item 2: Sprint Documentation Framework**: ✅ DONE
-- **Item 3: Self-Describing TSDoc Codebase Audit**: ✅ DONE
-- **Item 4: P0-A Test Suite Expansion**: ✅ DONE
-- **Item 5: Architecture & ODT KB Sync**: ✅ DONE
-- **Item 6: Pre-Alpha Quality Gate Audit**: ✅ DONE
+### Quick Status Dashboard (Sprint W35: Aug 24 – Aug 31)
+- **Item 1: `/workshop/draw` Visual Playground**: ✅ DONE (Interactive SVG Graph, Presets & CSPRNG Trace)
+- **Item 2: `/workshop/lifecycle` 5-Stage Simulator**: ⏳ Planned
+- **Item 3: `/workshop/scraper` Fast-Failover Bench**: ⏳ Planned
+- **Item 4: Design Token & Theme Gallery**: ⏳ Planned
+- **Item 5: Dual Manifest & Limit Validator**: ⏳ Planned
+- **Item 6: Milestone & Countdown Unit Tests**: ⏳ Planned
 
-*For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W34.md](sprints/2026-W34.md).*
+*For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W35.md](sprints/2026-W35.md).*
 
 ---
 
@@ -24,7 +24,7 @@
 | Sprint | Date Range | Milestone | Theme / Focus | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | [**2026-W34**](sprints/2026-W34.md) | Aug 20 – Aug 24 | `v0.1.0-prealpha` | Pre-Alpha Foundations, Versioning & Governance | ✅ **COMPLETED** |
-| [**2026-W35**](sprints/2026-W35.md) | Aug 24 – Aug 31 | `v0.1.0-prealpha` | P0-A Internal QA Benches & Test Harness | 🔄 **UP NEXT** |
+| [**2026-W35**](sprints/2026-W35.md) | Aug 24 – Aug 31 | `v0.1.0-prealpha` | P0-A Internal QA Benches & Test Harness | 🔄 **IN PROGRESS** (1/6) |
 | [**2026-W36**](sprints/2026-W36.md) | Aug 31 – Sep 7 | `v0.1.0-prealpha` | P0-B Core Feature Completeness & Head Elf UX | ⏳ Planned |
 | [**2026-W37**](sprints/2026-W37.md) | Sep 7 – Sep 14 | `v0.1.0-prealpha` | P0-C Communications & Live Email Pipeline | ⏳ Planned |
 | [**2026-W38**](sprints/2026-W38.md) | Sep 14 – Sep 21 | `v0.1.0-prealpha` | Demerit Immunity, Carrier Webhooks & Governance | ⏳ Planned |
