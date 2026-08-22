@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { db } from '@/lib/db';
 import { isSafePublicUrl, sanitizeText, normalizeProductUrl } from '@/lib/security';
+import { logScraperEvent } from '@/lib/logger';
 
 export async function POST(request: Request) {
   try {
@@ -16,8 +17,10 @@ export async function POST(request: Request) {
     // SSRF Security Validation (OWASP A01: SSRF Protection)
     const ssrfCheck = isSafePublicUrl(formattedUrl);
     if (!ssrfCheck.safe) {
+      logScraperEvent(formattedUrl, 'BLOCKED_SSRF', { reason: ssrfCheck.error }).catch(() => {});
       return NextResponse.json({ error: ssrfCheck.error || 'Access to this URL is blocked for security reasons.' }, { status: 403 });
     }
+
 
     // Normalize URL to remove tracking parameters
     const normalizedUrl = normalizeProductUrl(formattedUrl);

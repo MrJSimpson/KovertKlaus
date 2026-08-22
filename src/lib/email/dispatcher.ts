@@ -1,3 +1,4 @@
+import { logEmailEvent } from '../logger';
 import { getEmailConfig, getResolvedEmailConfig } from './config';
 import { sendWithBrevo } from './providers/brevo';
 import { sendWithConsole } from './providers/console';
@@ -36,6 +37,12 @@ export async function sendEmail(
   const baseConfig = await getResolvedEmailConfig();
   const config: EmailConfig = { ...baseConfig, ...overrideConfig };
 
+  const targetRecipient = Array.isArray(message.to)
+    ? message.to.map((t) => (typeof t === 'string' ? t : t.email)).join(', ')
+    : typeof message.to === 'string'
+    ? message.to
+    : message.to.email;
+
   let lastResult: EmailResult | null = null;
   const backoffDelays = [500, 1500, 3000];
 
@@ -62,6 +69,12 @@ export async function sendEmail(
         if (attempt > 1) {
           console.log(`[EMAIL:RETRY] Dispatch succeeded on attempt ${attempt}/${maxRetries} via ${result.provider}`);
         }
+        logEmailEvent(config.provider, targetRecipient, message.subject, {
+          success: true,
+          attempts: attempt,
+          messageId: result.messageId,
+        }).catch(() => {});
+
         return { ...result, attempts: attempt, mode: result.provider };
       }
 
@@ -95,14 +108,22 @@ export async function sendEmail(
     }
   }
 
+  const finalError = lastResult?.error || 'Email dispatch failed after maximum retry attempts';
+  logEmailEvent(config.provider, targetRecipient, message.subject, {
+    success: false,
+    attempts: maxRetries,
+    error: finalError,
+  }).catch(() => {});
+
   return {
     success: false,
     provider: config.provider,
-    error: lastResult?.error || 'Email dispatch failed after maximum retry attempts',
+    error: finalError,
     attempts: maxRetries,
     mode: config.provider,
   };
 }
+
 
 /**
  * Dispatches an Exchange Recruitment / Invitation Email.

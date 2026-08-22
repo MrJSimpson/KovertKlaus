@@ -128,9 +128,11 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
     { label: '🎟️ Reservations', href: '/northpole/leads' },
     { label: '👥 User Roster', href: '/northpole/users' },
     { label: '🎯 Operations', href: '/northpole/operations' },
+    { label: '📜 System Logs', href: '/northpole/logs' },
     { label: '🎨 Themes', href: '/northpole/themes' },
     { label: '📖 Knowledge Base', href: '/northpole/knowledgebase' },
   ];
+
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">

@@ -48,6 +48,14 @@ enum WishlistType {
   WHITE_ELEPHANT
 }
 
+enum LogLevel {
+  ERROR
+  WARN
+  INFO
+  DEBUG
+}
+
+
 model User {
   id                             String            @id @default(uuid())
   email                          String            @unique
@@ -366,3 +374,22 @@ model SystemConfig {
   updatedAt                DateTime     @updatedAt
   updatedByAdminId         String?
 }
+
+model SystemLog {
+  id          String    @id @default(uuid())
+  level       LogLevel  @default(INFO)
+  category    String    // "EMAIL" | "AUTH" | "DB" | "SCRAPER" | "WORKER" | "OPERATION" | "ADMIN"
+  message     String    @db.Text
+  metadata    Json?     // Structured JSON payload (sanitized & size-capped at 2KB)
+  path        String?   // Request pathname (e.g. "/api/leads", "/api/operations")
+  method      String?   // HTTP method ("POST", "GET", "PATCH", "DELETE")
+  statusCode  Int?      // HTTP status code (e.g. 500, 400, 429)
+  ip          String?   // Client IP (if available)
+  userAgent   String?   // Client user-agent string
+  createdAt   DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([level, createdAt])
+  @@index([category, createdAt])
+}
+

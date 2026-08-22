@@ -25,6 +25,8 @@ import {
 import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
 import { evaluateMemberAudit } from './lib/demerits';
+import { logSystemEvent, logScraperEvent } from './lib/logger';
+
 
 const ADMIN_COOKIE_NAME = 'kovertklaus_admin_session';
 const USER_COOKIE_NAME = 'kovertklaus_session';
@@ -661,6 +663,108 @@ export default {
           return Response.json({ error: 'Unsupported action' }, { status: 400 });
         }
       }
+
+      // 7c. /api/northpole/logs (GET / DELETE)
+      if (pathname === '/api/northpole/logs') {
+        const adminId = getAdminIdFromRequest(request);
+        if (!adminId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+        if (request.method === 'GET') {
+          const query = (url.searchParams.get('q') || '').trim().toLowerCase();
+          const level = (url.searchParams.get('level') || '').trim().toUpperCase();
+          const category = (url.searchParams.get('category') || '').trim().toUpperCase();
+          const take = Math.min(100, Math.max(1, parseInt(url.searchParams.get('take') || '50', 10)));
+          const skip = Math.max(0, parseInt(url.searchParams.get('skip') || '0', 10));
+
+          const whereClause: any = {};
+
+          if (query) {
+            whereClause.OR = [
+              { message: { contains: query, mode: 'insensitive' } },
+              { path: { contains: query, mode: 'insensitive' } },
+              { category: { contains: query, mode: 'insensitive' } },
+            ];
+          }
+
+          if (level && ['ERROR', 'WARN', 'INFO', 'DEBUG'].includes(level)) {
+            whereClause.level = level;
+          }
+
+          if (category) {
+            whereClause.category = category;
+          }
+
+          const now = new Date();
+          const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+          const [logs, totalCount, error24hCount, warn24hCount, emailFailures24hCount, totalTableCount] = await Promise.all([
+            adminDb.systemLog.findMany({
+              where: whereClause,
+              orderBy: { createdAt: 'desc' },
+              take,
+              skip,
+            }),
+            adminDb.systemLog.count({ where: whereClause }),
+            adminDb.systemLog.count({
+              where: { level: 'ERROR', createdAt: { gte: twentyFourHoursAgo } },
+            }),
+            adminDb.systemLog.count({
+              where: { level: 'WARN', createdAt: { gte: twentyFourHoursAgo } },
+            }),
+            adminDb.systemLog.count({
+              where: { category: 'EMAIL', level: 'ERROR', createdAt: { gte: twentyFourHoursAgo } },
+            }),
+            adminDb.systemLog.count(),
+          ]);
+
+          const estimatedSizeBytes = totalTableCount * 450;
+
+          return Response.json({
+            success: true,
+            logs,
+            totalCount,
+            metrics: {
+              error24hCount,
+              warn24hCount,
+              emailFailures24hCount,
+              totalTableCount,
+              estimatedSizeBytes,
+              storageCapBytes: 2.5 * 1024 * 1024,
+            },
+          });
+        }
+
+        if (request.method === 'DELETE') {
+          const body = (await request.json().catch(() => ({}))) as {
+            action?: 'purge_by_days' | 'clear_all';
+            days?: number;
+          };
+
+          const action = body.action || 'purge_by_days';
+          const days = body.days || 14;
+
+          if (action === 'clear_all') {
+            const deleteResult = await adminDb.systemLog.deleteMany({});
+            return Response.json({
+              success: true,
+              message: `Successfully purged all ${deleteResult.count} log records.`,
+              deletedCount: deleteResult.count,
+            });
+          }
+
+          const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+          const deleteResult = await adminDb.systemLog.deleteMany({
+            where: { createdAt: { lt: cutoffDate } },
+          });
+
+          return Response.json({
+            success: true,
+            message: `Successfully purged ${deleteResult.count} log records older than ${days} days.`,
+            deletedCount: deleteResult.count,
+          });
+        }
+      }
+
 
       // =======================================================================
       // SECTION 2: USER APPLICATION & PUBLIC ENDPOINTS
@@ -1533,7 +1637,11 @@ export default {
 
         const formattedUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
         const ssrfCheck = isSafePublicUrl(formattedUrl);
-        if (!ssrfCheck.safe) return Response.json({ error: ssrfCheck.error || 'URL forbidden' }, { status: 403 });
+        if (!ssrfCheck.safe) {
+          logScraperEvent(formattedUrl, 'BLOCKED_SSRF', { reason: ssrfCheck.error }, { dbClient: db, env }).catch(() => {});
+          return Response.json({ error: ssrfCheck.error || 'URL forbidden' }, { status: 403 });
+        }
+
 
         const normalizedUrl = normalizeProductUrl(formattedUrl);
         const parsedUrl = new URL(normalizedUrl);
@@ -1742,6 +1850,22 @@ export default {
 
     } catch (err: any) {
       console.error('[Worker API Error]', err);
+      logSystemEvent({
+        level: 'ERROR',
+        category: 'WORKER',
+        message: `Unhandled Worker Exception on ${pathname}: ${err?.message || err}`,
+        metadata: {
+          stack: err?.stack,
+          url: request.url,
+          pathname,
+          method: request.method,
+        },
+        path: pathname,
+        method: request.method,
+        statusCode: 500,
+        env,
+      }).catch(() => {});
+
       await invalidateCachedDb().catch(() => {});
       await invalidateCachedAdminDb().catch(() => {});
       return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
@@ -1749,6 +1873,7 @@ export default {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
 
     // Never serve static HTML for unmatched API routes
     if (pathname.startsWith('/api/')) {
