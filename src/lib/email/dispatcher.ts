@@ -69,11 +69,17 @@ export async function sendEmail(
         if (attempt > 1) {
           console.log(`[EMAIL:RETRY] Dispatch succeeded on attempt ${attempt}/${maxRetries} via ${result.provider}`);
         }
-        logEmailEvent(config.provider, targetRecipient, message.subject, {
-          success: true,
-          attempts: attempt,
-          messageId: result.messageId,
-        }).catch(() => {});
+        await logEmailEvent(
+          config.provider,
+          targetRecipient,
+          message.subject,
+          {
+            success: true,
+            attempts: attempt,
+            messageId: result.messageId,
+          },
+          { dbClient: config.dbClient, env: config.env }
+        ).catch(() => {});
 
         return { ...result, attempts: attempt, mode: result.provider };
       }
@@ -109,11 +115,17 @@ export async function sendEmail(
   }
 
   const finalError = lastResult?.error || 'Email dispatch failed after maximum retry attempts';
-  logEmailEvent(config.provider, targetRecipient, message.subject, {
-    success: false,
-    attempts: maxRetries,
-    error: finalError,
-  }).catch(() => {});
+  await logEmailEvent(
+    config.provider,
+    targetRecipient,
+    message.subject,
+    {
+      success: false,
+      attempts: maxRetries,
+      error: finalError,
+    },
+    { dbClient: config.dbClient, env: config.env }
+  ).catch(() => {});
 
   return {
     success: false,

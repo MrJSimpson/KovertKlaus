@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isValidEmail, sanitizeText } from '@/lib/security';
 import { sendClearanceConfirmationEmail } from '@/lib/email';
+import { logError, logInfo } from '@/lib/logger';
 
 export const dynamic = 'force-static';
 
@@ -50,6 +51,22 @@ export async function POST(request: Request) {
       name: cleanName || lead.name || undefined,
     });
 
+    if (!emailResult.success) {
+      await logError('EMAIL', `Clearance briefing dispatch failed for ${cleanEmail}: ${emailResult.error}`, {
+        dbClient: db,
+        metadata: { email: cleanEmail, source: cleanSource, provider: emailResult.provider, error: emailResult.error },
+        path: '/api/leads',
+        statusCode: 500,
+      }).catch(() => {});
+    } else {
+      await logInfo('EMAIL', `Clearance briefing dispatched to ${cleanEmail} via ${emailResult.provider}`, {
+        dbClient: db,
+        metadata: { email: cleanEmail, source: cleanSource, provider: emailResult.provider },
+        path: '/api/leads',
+        statusCode: 200,
+      }).catch(() => {});
+    }
+
     return NextResponse.json({
       success: true,
       isNew,
@@ -63,6 +80,7 @@ export async function POST(request: Request) {
         status: lead.status,
       },
     });
+
   } catch (error: any) {
     console.error('[Leads API Error]:', error);
     return NextResponse.json(

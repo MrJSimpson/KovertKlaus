@@ -43,7 +43,11 @@ export interface EmailConfig {
   // Global defaults
   defaultFromEmail: string;
   defaultFromName: string;
+  // Edge runtime context & DB persistence bindings
+  dbClient?: any;
+  env?: Record<string, any>;
 }
+
 
 export interface InvitationEmailParams {
   recipientEmail?: string;

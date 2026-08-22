@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/adminDb';
 import { verifyAdminSession } from '@/lib/adminAuth';
 import { sendClearanceConfirmationEmail } from '@/lib/email';
+import { logError, logInfo } from '@/lib/logger';
 
 export const dynamic = 'force-static';
 
@@ -129,6 +130,22 @@ export async function POST(request: Request) {
         positionNumber: totalLeads,
       });
 
+      if (!emailResult.success) {
+        await logError('EMAIL', `Failed to resend clearance confirmation to ${lead.email}: ${emailResult.error}`, {
+          dbClient: adminDb,
+          metadata: { email: lead.email, leadId: lead.id, provider: emailResult.provider, error: emailResult.error },
+          path: '/api/northpole/leads',
+          statusCode: 500,
+        }).catch(() => {});
+      } else {
+        await logInfo('EMAIL', `Clearance confirmation re-dispatched to ${lead.email} via ${emailResult.provider}`, {
+          dbClient: adminDb,
+          metadata: { email: lead.email, leadId: lead.id, provider: emailResult.provider, attempts: emailResult.attempts },
+          path: '/api/northpole/leads',
+          statusCode: 200,
+        }).catch(() => {});
+      }
+
       return NextResponse.json({
         success: emailResult.success,
         emailResult,
@@ -137,6 +154,7 @@ export async function POST(request: Request) {
           : `Email dispatch failed: ${emailResult.error}`,
       });
     }
+
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
   } catch (error: any) {

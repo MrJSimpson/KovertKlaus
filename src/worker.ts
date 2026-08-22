@@ -25,7 +25,8 @@ import {
 import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
 import { evaluateMemberAudit } from './lib/demerits';
-import { logSystemEvent, logScraperEvent } from './lib/logger';
+import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
+
 
 
 const ADMIN_COOKIE_NAME = 'kovertklaus_admin_session';
@@ -112,8 +113,9 @@ async function resolveWorkerEmailConfig(
   };
 
   const resolved = await getResolvedEmailConfig(dbClient, envMap);
-  return { ...resolved, ...explicitOverride };
+  return { ...resolved, dbClient, env, ...explicitOverride };
 }
+
 
 
 export default {
@@ -651,6 +653,24 @@ export default {
               overrideConfig: emailConfig,
             });
 
+            if (!emailResult.success) {
+              await logError('EMAIL', `Failed to resend clearance confirmation to ${lead.email}: ${emailResult.error}`, {
+                dbClient: adminDb,
+                metadata: { email: lead.email, leadId: lead.id, provider: emailResult.provider, error: emailResult.error },
+                path: pathname,
+                statusCode: 500,
+                env,
+              }).catch(() => {});
+            } else {
+              await logInfo('EMAIL', `Clearance confirmation re-dispatched to ${lead.email} via ${emailResult.provider}`, {
+                dbClient: adminDb,
+                metadata: { email: lead.email, leadId: lead.id, provider: emailResult.provider, attempts: emailResult.attempts },
+                path: pathname,
+                statusCode: 200,
+                env,
+              }).catch(() => {});
+            }
+
             return Response.json({
               success: emailResult.success,
               emailResult,
@@ -805,9 +825,35 @@ export default {
             positionNumber: totalLeads + 1,
             overrideConfig: emailConfig,
           });
+
+          if (!emailResult?.success) {
+            await logError('EMAIL', `Clearance briefing dispatch failed for ${email}: ${emailResult?.error || 'Unknown error'}`, {
+              dbClient: db,
+              metadata: { email, source, provider: emailResult?.provider, error: emailResult?.error },
+              path: pathname,
+              statusCode: 500,
+              env,
+            }).catch(() => {});
+          } else {
+            await logInfo('EMAIL', `Clearance briefing dispatched to ${email} via ${emailResult.provider}`, {
+              dbClient: db,
+              metadata: { email, source, provider: emailResult.provider, position: totalLeads + 1 },
+              path: pathname,
+              statusCode: 200,
+              env,
+            }).catch(() => {});
+          }
         } catch (emailErr: any) {
           console.error('[Clearance Email Dispatch Error]', emailErr);
+          await logError('EMAIL', `Clearance email exception for ${email}: ${emailErr?.message || emailErr}`, {
+            dbClient: db,
+            metadata: { email, source, stack: emailErr?.stack },
+            path: pathname,
+            statusCode: 500,
+            env,
+          }).catch(() => {});
         }
+
 
         return Response.json({
           success: true,

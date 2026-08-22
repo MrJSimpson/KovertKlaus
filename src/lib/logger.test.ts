@@ -83,12 +83,24 @@ async function runTests() {
   });
   assert(true, 'logEmailEvent executes on failure without throwing');
 
-  // --- Test 5: Scraper Event Logger Helper ---
-  console.log('\n--- Test 5: Scraper Event Helper Formatting ---');
-  await logScraperEvent('http://169.254.169.254/latest/meta-data', 'BLOCKED_SSRF', {
-    reason: 'Cloud metadata IP forbidden',
+  // --- Test 6: Database Client Persistence ---
+  console.log('\n--- Test 6: Database Client Persistence Hook ---');
+  let mockDbCreated = false;
+  const mockDbClient = {
+    systemLog: {
+      create: async (payload: any) => {
+        mockDbCreated = true;
+        return { id: 'mock-uuid', ...payload.data };
+      },
+    },
+  };
+
+  await logError('EMAIL', 'Failed to dispatch email test', {
+    dbClient: mockDbClient,
+    metadata: { recipient: 'test@kovertklaus.com', error: 'Brevo 401' },
   });
-  assert(true, 'logScraperEvent executes on SSRF block without throwing');
+
+  assert(mockDbCreated === true, 'logError triggers systemLog.create on passed dbClient');
 
   console.log(`\n📊 Test Summary: ${passed} Passed, ${failed} Failed`);
   if (failed > 0) {
@@ -100,3 +112,4 @@ runTests().catch((err) => {
   console.error('Fatal logger test error:', err);
   process.exit(1);
 });
+

@@ -1,4 +1,5 @@
-import { db } from './db';
+import { db, getDb } from './db';
+import { adminDb, getAdminDb } from './adminDb';
 
 export type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
 export type LogCategory = 'EMAIL' | 'AUTH' | 'DB' | 'SCRAPER' | 'WORKER' | 'OPERATION' | 'ADMIN';
@@ -120,7 +121,7 @@ function writeToFileLog(entry: {
 /**
  * Core log ingestion engine.
  * Enforces production level filtering (WARN/ERROR only to PostgreSQL), metadata size bounding (max 2KB),
- * secret sanitization, deduplication, and non-blocking asynchronous database writes.
+ * secret sanitization, deduplication, edge DB resolution, and guaranteed database persistence.
  */
 export async function logSystemEvent(options: LogEntryOptions): Promise<void> {
   const level: LogLevel = options.level || 'INFO';
@@ -172,17 +173,22 @@ export async function logSystemEvent(options: LogEntryOptions): Promise<void> {
     dedupCache.set(dedupKey, { count: 1, lastLogged: now });
   }
 
-  // 5. Asynchronous Non-Blocking Database Persistence
+  // 5. Database Persistence with Deterministic Edge Auto-Resolution
   try {
     let client = options.dbClient;
-    if (!client && typeof process !== 'undefined' && process.env?.DATABASE_URL) {
-      client = db;
+    if (!client && options.env) {
+      const connStr = options.env.DATABASE_ADMIN_URL || options.env.DIRECT_URL || options.env.DATABASE_URL;
+      if (connStr) {
+        client = getAdminDb(connStr);
+      }
+    } else if (!client && typeof process !== 'undefined' && process.env?.DATABASE_URL) {
+      client = adminDb || db;
     }
 
+
     if (client && typeof client.systemLog?.create === 'function') {
-      // Execute asynchronously without awaiting so client response is never delayed
-      client.systemLog
-        .create({
+      try {
+        await client.systemLog.create({
           data: {
             level,
             category,
@@ -194,33 +200,32 @@ export async function logSystemEvent(options: LogEntryOptions): Promise<void> {
             ip: options.ip ? options.ip.slice(0, 64) : null,
             userAgent: options.userAgent ? options.userAgent.slice(0, 255) : null,
           },
-        })
-        .then(() => {
-          insertCounter++;
-          // Circular Buffer: Periodically prune oldest records if table exceeds 5,000 rows
-          if (insertCounter % 50 === 0 && typeof client.systemLog?.count === 'function') {
-            client.systemLog.count().then((count: number) => {
-              if (count > 5000) {
-                client.systemLog
-                  .findMany({
-                    select: { id: true },
-                    orderBy: { createdAt: 'asc' },
-                    take: 500,
-                  })
-                  .then((oldRecords: { id: string }[]) => {
-                    const idsToDelete = oldRecords.map((r: { id: string }) => r.id);
-                    client.systemLog.deleteMany({
-                      where: { id: { in: idsToDelete } },
-                    }).catch(() => {});
-                  })
-                  .catch(() => {});
-              }
-            }).catch(() => {});
-          }
-        })
-        .catch((dbErr: any) => {
-          console.warn('[SystemLog Ingestion Failed]', dbErr?.message || dbErr);
         });
+
+        insertCounter++;
+        // Circular Buffer: Periodically prune oldest records if table exceeds 5,000 rows
+        if (insertCounter % 50 === 0 && typeof client.systemLog?.count === 'function') {
+          client.systemLog.count().then((count: number) => {
+            if (count > 5000) {
+              client.systemLog
+                .findMany({
+                  select: { id: true },
+                  orderBy: { createdAt: 'asc' },
+                  take: 500,
+                })
+                .then((oldRecords: { id: string }[]) => {
+                  const idsToDelete = oldRecords.map((r: { id: string }) => r.id);
+                  client.systemLog.deleteMany({
+                    where: { id: { in: idsToDelete } },
+                  }).catch(() => {});
+                })
+                .catch(() => {});
+            }
+          }).catch(() => {});
+        }
+      } catch (dbErr: any) {
+        console.warn('[SystemLog Ingestion Failed]', dbErr?.message || dbErr);
+      }
     }
   } catch (err: any) {
     console.warn('[Logger Dispatch Exception]', err?.message || err);
@@ -278,7 +283,7 @@ export function logInfo(
 /**
  * Helper for logging transactional email dispatch outcomes and retries.
  */
-export function logEmailEvent(
+export async function logEmailEvent(
   provider: string,
   recipient: string,
   subject: string,
@@ -310,7 +315,7 @@ export function logEmailEvent(
 /**
  * Helper for logging scraper SSRF defenses, protocol blocks, or network timeouts.
  */
-export function logScraperEvent(
+export async function logScraperEvent(
   url: string,
   action: 'BLOCKED_SSRF' | 'TIMEOUT' | 'SCRAPE_SUCCESS' | 'SCRAPE_FAILURE',
   details?: Record<string, unknown>,

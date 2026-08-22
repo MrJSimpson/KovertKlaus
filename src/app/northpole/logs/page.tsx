@@ -58,11 +58,17 @@ export default function NorthPoleLogsPage() {
       if (selectedCategory !== 'ALL') params.set('category', selectedCategory);
       params.set('take', String(pageSize));
       params.set('skip', String(page * pageSize));
+      params.set('_t', String(Date.now()));
 
       const res = await fetch(`/api/northpole/logs?${params.toString()}`, {
+        cache: 'no-store',
         credentials: 'include',
-        headers: token ? { 'x-admin-token': token } : {},
+        headers: {
+          'Cache-Control': 'no-cache',
+          ...(token ? { 'x-admin-token': token } : {}),
+        },
       });
+
 
       if (!res.ok) {
         throw new Error(`Failed to load system logs (HTTP ${res.status})`);
