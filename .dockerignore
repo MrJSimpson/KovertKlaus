@@ -1,0 +1,8 @@
+node_modules
+.next
+.git
+out
+*.log
+.env
+.env*.local
+.kovertklaus.pid
