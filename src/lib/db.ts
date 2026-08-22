@@ -1,9 +1,24 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { neonConfig } from '@neondatabase/serverless';
 import pg from 'pg';
+import ws from 'ws';
+
+// In Node.js runtimes, configure ws constructor for Neon WebSocket communication
+if (typeof process !== 'undefined' && process.versions?.node) {
+  try {
+    neonConfig.webSocketConstructor = ws;
+  } catch {
+    // Ignore in non-Node runtimes
+  }
+}
+
+// Global Neon engine optimizations: fast pipelined handshakes
+neonConfig.pipelineConnect = 'password';
 
 let cachedDb: PrismaClient | null = null;
+
 let cachedPool: pg.Pool | null = null;
 let lastConnStr: string = '';
 
@@ -56,10 +71,17 @@ export function getDb(overrideConnStr?: string): PrismaClient {
 
   let adapter: any;
   if (isNeon) {
-    adapter = new PrismaNeon({
-      connectionString,
-      connectionTimeoutMillis: 15000, // 15s extended timeout for Neon cold starts
-    });
+    adapter = new PrismaNeon(
+      {
+        connectionString,
+        connectionTimeoutMillis: 15000, // 15s extended timeout for Neon compute cold starts
+        max: 10,
+      },
+      {
+        onPoolError: (err) => console.warn('[Neon Pool Warning]', err?.message || err),
+        onConnectionError: (err) => console.warn('[Neon Connection Warning]', err?.message || err),
+      }
+    );
   } else {
     const pool = new pg.Pool({
       connectionString,

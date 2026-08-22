@@ -9,7 +9,8 @@ const isStaticExport =
   fs.existsSync(path.join(process.cwd(), "wrangler.json"));
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['pg', 'pg-cloudflare', '@prisma/client', '@prisma/adapter-pg', 'bcryptjs'],
+  serverExternalPackages: ['pg', 'pg-cloudflare', '@prisma/client', '@prisma/adapter-pg', '@prisma/adapter-neon', '@neondatabase/serverless', 'ws', 'bcryptjs'],
+
   ...(isStaticExport
     ? {
         output: "export",
