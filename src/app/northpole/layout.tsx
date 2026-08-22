@@ -24,10 +24,14 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
   const [loading, setLoading] = useState(!isLoginPage && !getSavedAdmin());
 
   useEffect(() => {
+    // Non-blocking background pre-warming ping to ensure Neon compute is awake
+    fetch('/api/config').catch(() => {});
+
     if (isLoginPage) {
       setLoading(false);
       return;
     }
+
 
     async function checkAdminSession(retryCount = 0) {
       try {

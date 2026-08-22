@@ -7,6 +7,8 @@ let cachedDb: PrismaClient | null = null;
 let cachedPool: pg.Pool | null = null;
 let lastConnStr: string = '';
 
+const BACKOFF_DELAYS = [500, 1200, 2500];
+
 /**
  * Tears down active database connections and closes underlying connection pools
  * before wiping references to prevent socket and connection leaks.
@@ -56,7 +58,7 @@ export function getDb(overrideConnStr?: string): PrismaClient {
   if (isNeon) {
     adapter = new PrismaNeon({
       connectionString,
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 15000, // 15s extended timeout for Neon cold starts
     });
   } else {
     const pool = new pg.Pool({
@@ -66,7 +68,7 @@ export function getDb(overrideConnStr?: string): PrismaClient {
         : undefined,
       max: 10,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 10000,
     });
     cachedPool = pool;
     adapter = new PrismaPg(pool);
@@ -77,7 +79,11 @@ export function getDb(overrideConnStr?: string): PrismaClient {
   return cachedDb;
 }
 
-export async function withDbRetry<T>(fn: (client: PrismaClient) => Promise<T>, maxRetries = 2): Promise<T> {
+/**
+ * Executes a database callback function with automatic retry and exponential backoff
+ * to self-heal against Neon scale-to-zero compute cold starts and stale WebSocket drops.
+ */
+export async function withDbRetry<T>(fn: (client: PrismaClient) => Promise<T>, maxRetries = 3): Promise<T> {
   let attempt = 0;
   while (true) {
     try {
@@ -93,13 +99,18 @@ export async function withDbRetry<T>(fn: (client: PrismaClient) => Promise<T>, m
         err?.message?.includes('ECONNRESET') ||
         err?.message?.includes('ETIMEDOUT') ||
         err?.message?.includes('Connection lost') ||
+        err?.message?.includes('Can\'t reach database server') ||
+        err?.message?.includes('57P01') ||
+        err?.message?.includes('terminating connection') ||
         err?.name?.includes('PrismaClientInitializationError') ||
-        err?.name?.includes('PrismaClientRustPanicError');
+        err?.name?.includes('PrismaClientRustPanicError') ||
+        err?.name?.includes('PrismaClientUnknownRequestError');
 
       if (isConnError && attempt < maxRetries) {
-        console.warn(`[DB Retry] Connection issue detected (attempt ${attempt}/${maxRetries}), reconnecting...`, err.message);
+        const delay = BACKOFF_DELAYS[attempt - 1] || 1000;
+        console.warn(`[DB Retry] Neon cold start / connection drop detected (attempt ${attempt}/${maxRetries}), reconnecting in ${delay}ms...`, err?.message);
         await invalidateCachedDb();
-        await new Promise((r) => setTimeout(r, 400 * attempt));
+        await new Promise((r) => setTimeout(r, delay));
         continue;
       }
       throw err;
@@ -107,8 +118,64 @@ export async function withDbRetry<T>(fn: (client: PrismaClient) => Promise<T>, m
   }
 }
 
+/**
+ * Wraps a Prisma model delegate (e.g. db.user, db.exchange, db.systemLog) so that
+ * all queries automatically execute with transparent cold-start retry protection.
+ */
+function wrapModelDelegate(modelName: string): any {
+  return new Proxy({}, {
+    get(_target, method) {
+      return async (...args: any[]) => {
+        return withDbRetry(async (freshClient) => {
+          const delegate = (freshClient as any)[modelName];
+          if (delegate && typeof delegate[method] === 'function') {
+            return delegate[method](...args);
+          }
+          throw new Error(`Method ${String(method)} not found on model delegate ${modelName}`);
+        });
+      };
+    },
+  });
+}
+
 export const db = new Proxy({} as PrismaClient, {
   get(_target, prop) {
+    // Special top-level Prisma methods
+    if (prop === '$transaction') {
+      return async (arg: any, options?: any) => {
+        return withDbRetry(async (freshClient) => {
+          return freshClient.$transaction(arg, options);
+        });
+      };
+    }
+    if (prop === '$queryRaw' || prop === '$queryRawUnsafe') {
+      return async (...args: any[]) => {
+        return withDbRetry(async (freshClient) => {
+          return (freshClient as any)[prop](...args);
+        });
+      };
+    }
+    if (prop === '$executeRaw' || prop === '$executeRawUnsafe') {
+      return async (...args: any[]) => {
+        return withDbRetry(async (freshClient) => {
+          return (freshClient as any)[prop](...args);
+        });
+      };
+    }
+    if (prop === '$connect') {
+      return async () => {
+        return withDbRetry(async (freshClient) => freshClient.$connect());
+      };
+    }
+    if (prop === '$disconnect') {
+      return invalidateCachedDb;
+    }
+
+    // Wrap model delegates for transparent self-healing
+    if (typeof prop === 'string' && !prop.startsWith('_') && !prop.startsWith('$')) {
+      return wrapModelDelegate(prop);
+    }
+
     const client = getDb();
     const val = (client as any)[prop];
     if (typeof val === 'function') {
