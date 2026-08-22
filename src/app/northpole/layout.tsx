@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { APP_VERSION_LABEL } from '@/lib/version';
+import { ADMIN_TOKEN_KEY, ADMIN_USER_KEY } from '@/lib/constants/auth';
 
 function getSavedAdmin(): { id: string; name: string; email: string; role: string } | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem('kovertklaus_admin_user');
+    const raw = localStorage.getItem(ADMIN_USER_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -35,7 +36,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
     async function checkAdminSession(retryCount = 0) {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+        const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
         const res = await fetch('/api/northpole/me', {
           credentials: 'include',
           headers: token ? { 'x-admin-token': token } : {},
@@ -44,8 +45,8 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
         if (res.status === 401) {
           console.warn('[NorthPole Access Denied] 401 Unauthorized');
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('kovertklaus_admin_token');
-            localStorage.removeItem('kovertklaus_admin_user');
+            localStorage.removeItem(ADMIN_TOKEN_KEY);
+            localStorage.removeItem(ADMIN_USER_KEY);
           }
           window.location.href = '/northpole/login';
           return;
@@ -55,7 +56,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
         if (res.ok && json.authenticated && json.admin) {
           setAdmin(json.admin);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('kovertklaus_admin_user', JSON.stringify(json.admin));
+            localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(json.admin));
           }
           setLoading(false);
           return;
@@ -70,8 +71,8 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
         if (json.authenticated === false) {
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('kovertklaus_admin_token');
-            localStorage.removeItem('kovertklaus_admin_user');
+            localStorage.removeItem(ADMIN_TOKEN_KEY);
+            localStorage.removeItem(ADMIN_USER_KEY);
           }
           window.location.href = '/northpole/login';
           return;
@@ -94,7 +95,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
   async function handleLogout() {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       await fetch('/api/northpole/me', {
         method: 'DELETE',
         credentials: 'include',
@@ -104,8 +105,8 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
       // Ignore network errors
     } finally {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('kovertklaus_admin_token');
-        localStorage.removeItem('kovertklaus_admin_user');
+        localStorage.removeItem(ADMIN_TOKEN_KEY);
+        localStorage.removeItem(ADMIN_USER_KEY);
       }
       window.location.href = '/northpole/login';
     }

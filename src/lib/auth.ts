@@ -1,10 +1,12 @@
 import { cookies } from 'next/headers';
 import { signToken, verifyToken } from '@/lib/security';
+import { IS_SAAS } from '@/lib/config/mode';
 
 /**
  * Cookie identifier key for authenticated session persistence.
+ * Namespace-isolated between Self-Hosted and SaaS multi-tenant environments.
  */
-const SESSION_COOKIE_NAME = 'kovertklaus_session';
+export const SESSION_COOKIE_NAME = IS_SAAS ? 'kovert_saas_session' : 'kovertklaus_session';
 
 /**
  * Duration in seconds before session token invalidation (24 Hours).

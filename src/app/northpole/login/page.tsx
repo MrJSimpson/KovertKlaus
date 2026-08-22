@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ADMIN_TOKEN_KEY, ADMIN_USER_KEY } from '@/lib/constants/auth';
 
 export default function NorthPoleLoginPage() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export default function NorthPoleLoginPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+        const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
         const res = await fetch('/api/northpole/me', {
           credentials: 'include',
           headers: token ? { 'x-admin-token': token } : {},
@@ -71,10 +72,10 @@ export default function NorthPoleLoginPage() {
       }
 
       if (json.token) {
-        localStorage.setItem('kovertklaus_admin_token', json.token);
+        localStorage.setItem(ADMIN_TOKEN_KEY, json.token);
       }
       if (json.admin) {
-        localStorage.setItem('kovertklaus_admin_user', JSON.stringify(json.admin));
+        localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(json.admin));
       }
 
       window.location.href = '/northpole';
@@ -125,10 +126,10 @@ export default function NorthPoleLoginPage() {
       }
 
       if (json.token) {
-        localStorage.setItem('kovertklaus_admin_token', json.token);
+        localStorage.setItem(ADMIN_TOKEN_KEY, json.token);
       }
       if (json.admin) {
-        localStorage.setItem('kovertklaus_admin_user', JSON.stringify(json.admin));
+        localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(json.admin));
       }
 
       setResetSuccessMsg('✓ Password updated successfully! Activating clearance...');
