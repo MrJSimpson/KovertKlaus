@@ -1,5 +1,6 @@
 import { EmailConfig, EmailProviderType } from './types';
 import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
 
 /**
  * Loads and normalizes email dispatch configuration.
@@ -121,9 +122,10 @@ export async function getResolvedEmailConfig(
   const env = envOverride || (typeof process !== 'undefined' && process.env ? process.env : {});
   try {
     let client = dbClient;
-    if (!client && typeof process !== 'undefined' && process.env?.DATABASE_URL) {
-      client = db;
+    if (!client && typeof process !== 'undefined' && (process.env?.DATABASE_ADMIN_URL || process.env?.DIRECT_URL || process.env?.DATABASE_URL)) {
+      client = adminDb || db;
     }
+
     if (client && typeof client.systemConfig?.findUnique === 'function') {
       const config = await client.systemConfig.findUnique({
         where: { id: 'singleton' },

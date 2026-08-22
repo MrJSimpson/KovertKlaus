@@ -112,9 +112,14 @@ async function resolveWorkerEmailConfig(
     SMTP_FROM: env.SMTP_FROM,
   };
 
-  const resolved = await getResolvedEmailConfig(dbClient, envMap);
-  return { ...resolved, dbClient, env, ...explicitOverride };
+  // Prioritize admin connection pool for resolving SystemConfig secrets
+  const adminConnStr = env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL;
+  const configDbClient = dbClient || (adminConnStr ? getAdminDb(adminConnStr) : undefined);
+
+  const resolved = await getResolvedEmailConfig(configDbClient, envMap);
+  return { ...resolved, dbClient: configDbClient || dbClient, env, ...explicitOverride };
 }
+
 
 
 
