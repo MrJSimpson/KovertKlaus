@@ -18,7 +18,6 @@ if (typeof process !== 'undefined' && process.versions?.node) {
 neonConfig.pipelineConnect = 'password';
 
 let cachedAdminDb: PrismaClient | null = null;
-
 let cachedAdminPool: pg.Pool | null = null;
 let lastAdminConnStr: string = '';
 
@@ -53,7 +52,7 @@ export async function invalidateCachedAdminDb(): Promise<void> {
   }
 }
 
-export function getAdminDb(overrideConnStr?: string): PrismaClient {
+export function getRawAdminDb(overrideConnStr?: string): PrismaClient {
   const adminConnectionString =
     overrideConnStr ||
     process.env.DATABASE_ADMIN_URL ||
@@ -107,17 +106,22 @@ export function getAdminDb(overrideConnStr?: string): PrismaClient {
  * Executes an administrative database callback with automatic retry and exponential backoff
  * to self-heal against Neon scale-to-zero compute cold starts and stale WebSocket drops.
  */
-export async function withAdminDbRetry<T>(fn: (client: PrismaClient) => Promise<T>, maxRetries = 3): Promise<T> {
+export async function withAdminDbRetry<T>(
+  fn: (client: PrismaClient) => Promise<T>,
+  maxRetries = 3,
+  overrideConnStr?: string
+): Promise<T> {
   let attempt = 0;
   while (true) {
     try {
-      const client = getAdminDb();
+      const client = getRawAdminDb(overrideConnStr);
       return await fn(client);
     } catch (err: any) {
       attempt++;
       const isConnError =
         err?.message?.includes('socket') ||
         err?.message?.includes('connection') ||
+        err?.message?.includes('Connection terminated') ||
         err?.message?.includes('closed') ||
         err?.message?.includes('WebSocket') ||
         err?.message?.includes('ECONNRESET') ||
@@ -146,7 +150,7 @@ export async function withAdminDbRetry<T>(fn: (client: PrismaClient) => Promise<
  * Wraps an administrative Prisma model delegate (e.g. adminDb.systemConfig, adminDb.clearanceLead, adminDb.systemLog)
  * so that all queries automatically execute with transparent cold-start retry protection.
  */
-function wrapAdminModelDelegate(modelName: string): any {
+function wrapAdminModelDelegate(modelName: string, overrideConnStr?: string): any {
   return new Proxy({}, {
     get(_target, method) {
       return async (...args: any[]) => {
@@ -156,55 +160,62 @@ function wrapAdminModelDelegate(modelName: string): any {
             return delegate[method](...args);
           }
           throw new Error(`Method ${String(method)} not found on admin model delegate ${modelName}`);
-        });
+        }, 3, overrideConnStr);
       };
     },
   });
 }
 
-export const adminDb = new Proxy({} as PrismaClient, {
-  get(_target, prop) {
-    // Special top-level Prisma methods
-    if (prop === '$transaction') {
-      return async (arg: any, options?: any) => {
-        return withAdminDbRetry(async (freshClient) => {
-          return freshClient.$transaction(arg, options);
-        });
-      };
-    }
-    if (prop === '$queryRaw' || prop === '$queryRawUnsafe') {
-      return async (...args: any[]) => {
-        return withAdminDbRetry(async (freshClient) => {
-          return (freshClient as any)[prop](...args);
-        });
-      };
-    }
-    if (prop === '$executeRaw' || prop === '$executeRawUnsafe') {
-      return async (...args: any[]) => {
-        return withAdminDbRetry(async (freshClient) => {
-          return (freshClient as any)[prop](...args);
-        });
-      };
-    }
-    if (prop === '$connect') {
-      return async () => {
-        return withAdminDbRetry(async (freshClient) => freshClient.$connect());
-      };
-    }
-    if (prop === '$disconnect') {
-      return invalidateCachedAdminDb;
-    }
+/**
+ * Factory that returns a resilient self-healing Prisma Proxy for any admin connection string.
+ */
+export function getAdminDb(overrideConnStr?: string): PrismaClient {
+  return new Proxy({} as PrismaClient, {
+    get(_target, prop) {
+      // Special top-level Prisma methods
+      if (prop === '$transaction') {
+        return async (arg: any, options?: any) => {
+          return withAdminDbRetry(async (freshClient) => {
+            return freshClient.$transaction(arg, options);
+          }, 3, overrideConnStr);
+        };
+      }
+      if (prop === '$queryRaw' || prop === '$queryRawUnsafe') {
+        return async (...args: any[]) => {
+          return withAdminDbRetry(async (freshClient) => {
+            return (freshClient as any)[prop](...args);
+          }, 3, overrideConnStr);
+        };
+      }
+      if (prop === '$executeRaw' || prop === '$executeRawUnsafe') {
+        return async (...args: any[]) => {
+          return withAdminDbRetry(async (freshClient) => {
+            return (freshClient as any)[prop](...args);
+          }, 3, overrideConnStr);
+        };
+      }
+      if (prop === '$connect') {
+        return async () => {
+          return withAdminDbRetry(async (freshClient) => freshClient.$connect(), 3, overrideConnStr);
+        };
+      }
+      if (prop === '$disconnect') {
+        return invalidateCachedAdminDb;
+      }
 
-    // Wrap model delegates for transparent self-healing
-    if (typeof prop === 'string' && !prop.startsWith('_') && !prop.startsWith('$')) {
-      return wrapAdminModelDelegate(prop);
-    }
+      // Wrap model delegates for transparent self-healing
+      if (typeof prop === 'string' && !prop.startsWith('_') && !prop.startsWith('$')) {
+        return wrapAdminModelDelegate(prop, overrideConnStr);
+      }
 
-    const client = getAdminDb();
-    const val = (client as any)[prop];
-    if (typeof val === 'function') {
-      return val.bind(client);
-    }
-    return val;
-  },
-});
+      const client = getRawAdminDb(overrideConnStr);
+      const val = (client as any)[prop];
+      if (typeof val === 'function') {
+        return val.bind(client);
+      }
+      return val;
+    },
+  });
+}
+
+export const adminDb = getAdminDb();
