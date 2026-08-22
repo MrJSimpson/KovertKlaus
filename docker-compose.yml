@@ -26,7 +26,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public
+      - DATABASE_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
+      - DATABASE_ADMIN_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
+      - DIRECT_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
       - NODE_ENV=production
     depends_on:
       kovertklaus-db:

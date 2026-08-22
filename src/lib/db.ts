@@ -66,7 +66,15 @@ export function getRawDb(overrideConnStr?: string): PrismaClient {
   }
 
   const isNeon = connectionString.includes('neon.tech');
-  const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+  const isLocalOrInternal =
+    connectionString.includes('localhost') ||
+    connectionString.includes('127.0.0.1') ||
+    connectionString.includes('kovertklaus-db') ||
+    connectionString.includes('sslmode=disable');
+
+  const requiresSsl =
+    connectionString.includes('sslmode=require') ||
+    (!isLocalOrInternal && !connectionString.includes('sslmode=disable'));
 
   let adapter: any;
   if (isNeon) {
@@ -84,9 +92,7 @@ export function getRawDb(overrideConnStr?: string): PrismaClient {
   } else {
     const pool = new pg.Pool({
       connectionString,
-      ssl: !isLocalhost || connectionString.includes('sslmode=require')
-        ? { rejectUnauthorized: false }
-        : undefined,
+      ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,

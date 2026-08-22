@@ -68,7 +68,15 @@ export function getRawAdminDb(overrideConnStr?: string): PrismaClient {
   }
 
   const isNeon = adminConnectionString.includes('neon.tech');
-  const isLocalhost = adminConnectionString.includes('localhost') || adminConnectionString.includes('127.0.0.1');
+  const isLocalOrInternal =
+    adminConnectionString.includes('localhost') ||
+    adminConnectionString.includes('127.0.0.1') ||
+    adminConnectionString.includes('kovertklaus-db') ||
+    adminConnectionString.includes('sslmode=disable');
+
+  const requiresSsl =
+    adminConnectionString.includes('sslmode=require') ||
+    (!isLocalOrInternal && !adminConnectionString.includes('sslmode=disable'));
 
   let adapter: any;
   if (isNeon) {
@@ -86,9 +94,7 @@ export function getRawAdminDb(overrideConnStr?: string): PrismaClient {
   } else {
     const adminPool = new pg.Pool({
       connectionString: adminConnectionString,
-      ssl: !isLocalhost || adminConnectionString.includes('sslmode=require')
-        ? { rejectUnauthorized: false }
-        : undefined,
+      ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
       max: 5,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
