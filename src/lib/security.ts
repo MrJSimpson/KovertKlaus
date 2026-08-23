@@ -154,15 +154,31 @@ export function getNextMilestoneCountdown(mission?: {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  const cutoff = mission.inviteCutoffDate ? new Date(mission.inviteCutoffDate) : null;
-  const assign = mission.assignmentDate ? new Date(mission.assignmentDate) : null;
-  const ship = mission.shippingDate ? new Date(mission.shippingDate) : null;
-  const exec = mission.executionDate ? new Date(mission.executionDate) : null;
+  function parseLocalDateSafe(dateInput: string | Date | null | undefined): Date | null {
+    if (!dateInput) return null;
+    if (dateInput instanceof Date) {
+      const d = new Date(dateInput);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    const str = String(dateInput).trim();
+    const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const day = parseInt(match[3], 10);
+      return new Date(year, month, day, 0, 0, 0, 0);
+    }
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return null;
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
 
-  if (cutoff) cutoff.setHours(0, 0, 0, 0);
-  if (assign) assign.setHours(0, 0, 0, 0);
-  if (ship) ship.setHours(0, 0, 0, 0);
-  if (exec) exec.setHours(0, 0, 0, 0);
+  const cutoff = parseLocalDateSafe(mission.inviteCutoffDate);
+  const assign = parseLocalDateSafe(mission.assignmentDate);
+  const ship = parseLocalDateSafe(mission.shippingDate);
+  const exec = parseLocalDateSafe(mission.executionDate);
 
   const rawStatus = mission.status ? mission.status.toUpperCase() : 'RECRUITING';
 

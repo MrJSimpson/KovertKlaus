@@ -35,10 +35,17 @@ test('Lifecycle & Milestone Engine Test Suite', async (t) => {
     assert.equal(result.isToday, false);
   });
 
+  function toLocalDateString(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   await t.test('getNextMilestoneCountdown handles RECRUITING stage milestones', () => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + 10);
-    const dateStr = futureDate.toISOString().split('T')[0];
+    const dateStr = toLocalDateString(futureDate);
 
     const mission = {
       status: 'RECRUITING',
@@ -59,7 +66,7 @@ test('Lifecycle & Milestone Engine Test Suite', async (t) => {
 
   await t.test('getNextMilestoneCountdown handles Today milestone with celebratory label', () => {
     const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
+    const dateStr = toLocalDateString(today);
 
     const mission = {
       status: 'RECRUITING',
@@ -76,7 +83,7 @@ test('Lifecycle & Milestone Engine Test Suite', async (t) => {
   await t.test('getNextMilestoneCountdown handles Tomorrow milestone', () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split('T')[0];
+    const dateStr = toLocalDateString(tomorrow);
 
     const mission = {
       status: 'RECRUITING',

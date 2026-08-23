@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/adminDb';
 import { verifyAdminSession } from '@/lib/adminAuth';
+import { IS_SAAS } from '@/lib/config/mode';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ export async function GET() {
           defaultBudgetMin: 0.0,
           defaultBudgetMax: 50.0,
           defaultCurrency: 'USD',
-          appMode: 'selfhosted',
+          appMode: IS_SAAS ? 'saas' : 'selfhosted',
           altHome: '',
           emailProvider: 'auto',
           emailFrom: 'admin@kovertklaus.com',
@@ -60,7 +61,10 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      config,
+      config: {
+        ...config,
+        appMode: IS_SAAS ? 'saas' : 'selfhosted',
+      },
       themes,
       stats: {
         totalUsers,
@@ -124,7 +128,7 @@ export async function PATCH(request: Request) {
     if (maintenanceMode !== undefined) updateData.maintenanceMode = Boolean(maintenanceMode);
     if (maintenanceMessage !== undefined) updateData.maintenanceMessage = maintenanceMessage;
     if (altHome !== undefined) updateData.altHome = altHome;
-    if (appMode !== undefined) updateData.appMode = appMode;
+    // appMode is an immutable environment invariant (IS_SAAS) and cannot be mutated by DB updates
 
     if (emailProvider !== undefined) updateData.emailProvider = emailProvider;
     if (emailFrom !== undefined) updateData.emailFrom = emailFrom;

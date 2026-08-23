@@ -386,15 +386,16 @@ export default function NorthPoleConfigPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
           <div>
-            <label className="block text-gray-300 font-bold mb-1">APPLICATION MODE (APP_MODE)</label>
-            <select
-              value={appMode}
-              onChange={(e) => setAppMode(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-red-500"
-            >
-              <option value="selfhosted">Self-Hosted (Unlimited Family / Home-Lab Mode)</option>
-              <option value="saas">Commercial SaaS (kovertklaus.com Cloud Mode)</option>
-            </select>
+            <label className="block text-gray-300 font-bold mb-1">SYSTEM ENVIRONMENT MODE</label>
+            <div className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono font-bold flex items-center justify-between">
+              <span className={appMode === 'saas' ? 'text-sky-300' : 'text-emerald-400'}>
+                {appMode === 'saas' ? 'COMMERCIAL SAAS (Cloud)' : 'SELF-HOSTED (Docker / Home-Lab)'}
+              </span>
+              <span className="text-[10px] text-gray-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                ENV INVARIANT
+              </span>
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1">Immutable deployment mode set via environment variables.</p>
           </div>
 
           <div>

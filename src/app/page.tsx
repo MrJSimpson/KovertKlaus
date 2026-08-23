@@ -1,11 +1,12 @@
 import React from 'react';
-import fs from 'fs';
-import path from 'path';
 import { AppHomeLanding, ComingSoonLanding } from '@/components/landing';
+import { db } from '@/lib/db';
+import { IS_SAAS } from '@/lib/config/mode';
+
+export const dynamic = 'force-dynamic';
 
 /**
- * Registry mapping ALT_HOME environment values to landing page components.
- * To add a new alternate homepage, register its key and component here.
+ * Registry mapping ALT_HOME values to landing page components.
  */
 const ALT_HOME_REGISTRY: Record<string, React.ComponentType> = {
   coming_soon: ComingSoonLanding,
@@ -18,23 +19,38 @@ const ALT_HOME_REGISTRY: Record<string, React.ComponentType> = {
 };
 
 /**
- * Dynamic Start Page Controller (Single-Codebase Open-Core Router)
+ * Dynamic Start Page Controller
  * 
- * - Reads `ALT_HOME` (or `NEXT_PUBLIC_ALT_HOME`) from environment variables.
- * - For Cloudflare SaaS pre-launch distribution (`wrangler.json` present), defaults to `coming_soon`
- *   unless explicitly overridden.
- * - For self-hosted/dev distribution, defaults to `AppHomeLanding`.
+ * 1. Checks `process.env.ALT_HOME` or `process.env.NEXT_PUBLIC_ALT_HOME` if explicitly set.
+ * 2. Otherwise queries `db.systemConfig.findFirst()` to check `altHome` setting saved by Admin.
+ * 3. Default fallback:
+ *    - In commercial SaaS mode (`IS_SAAS`), defaults to `coming_soon` pre-launch landing.
+ *    - In self-hosted mode, defaults to `AppHomeLanding`.
  */
-export default function Page() {
-  const isCloudflareSaaS = typeof process !== 'undefined' && fs.existsSync(path.join(process.cwd(), 'wrangler.json'));
-  
-  const rawAltHome = process.env.ALT_HOME || process.env.NEXT_PUBLIC_ALT_HOME;
-  const altHome = (
-    rawAltHome !== undefined ? rawAltHome : (isCloudflareSaaS ? 'coming_soon' : '')
-  ).trim().toLowerCase();
+export default async function Page() {
+  let resolvedAltHome = '';
 
-  if (altHome && ALT_HOME_REGISTRY[altHome]) {
-    const AltLandingPage = ALT_HOME_REGISTRY[altHome];
+  const rawEnvAltHome = process.env.ALT_HOME || process.env.NEXT_PUBLIC_ALT_HOME;
+  if (rawEnvAltHome !== undefined && rawEnvAltHome !== '') {
+    resolvedAltHome = rawEnvAltHome.trim().toLowerCase();
+  } else {
+    try {
+      const config = await db.systemConfig.findFirst();
+      if (config && config.altHome) {
+        resolvedAltHome = config.altHome.trim().toLowerCase();
+      }
+    } catch {
+      // Fall back if database is initializing
+    }
+  }
+
+  // If still empty, apply mode-appropriate default
+  if (!resolvedAltHome) {
+    resolvedAltHome = IS_SAAS ? 'coming_soon' : 'app_home';
+  }
+
+  if (resolvedAltHome && ALT_HOME_REGISTRY[resolvedAltHome]) {
+    const AltLandingPage = ALT_HOME_REGISTRY[resolvedAltHome];
     return <AltLandingPage />;
   }
 
