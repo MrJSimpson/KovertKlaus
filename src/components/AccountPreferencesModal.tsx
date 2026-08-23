@@ -1,5 +1,7 @@
 'use client';
 
+import { USER_ID_KEY } from '@/lib/constants/auth';
+
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { generateRandomCodename } from '@/lib/codenameGenerator';
@@ -117,7 +119,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
     setErrorMessage('');
 
     try {
-      const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_user_id') : undefined;
+      const savedUserId = typeof window !== 'undefined' ? localStorage.getItem(USER_ID_KEY) : undefined;
 
       const payload: any = {
         userId: savedUserId,

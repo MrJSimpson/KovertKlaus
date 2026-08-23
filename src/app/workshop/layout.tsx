@@ -1,5 +1,7 @@
 'use client';
 
+import { USER_ID_KEY } from '@/lib/constants/auth';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -55,7 +57,7 @@ export default function WorkshopLayout({ children }: { children: React.ReactNode
         throw new Error(json.error || 'Authentication failed');
       }
 
-      localStorage.setItem('kovertklaus_user_id', json.user.id);
+      localStorage.setItem(USER_ID_KEY, json.user.id);
       localStorage.setItem('kovertklaus_user_name', json.user.name);
 
       await checkWorkshopAccess();

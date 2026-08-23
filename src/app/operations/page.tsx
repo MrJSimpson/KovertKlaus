@@ -1,5 +1,7 @@
 'use client';
 
+import { USER_ID_KEY } from '@/lib/constants/auth';
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
@@ -60,14 +62,14 @@ export default function OperationCenterPage() {
 
   async function fetchOperations() {
     setLoading(true);
-    let activeUserId = localStorage.getItem('kovertklaus_user_id');
+    let activeUserId = localStorage.getItem(USER_ID_KEY);
 
     try {
       const meRes = await fetch('/api/users/me');
       const meJson = await meRes.json();
       if (meRes.ok && meJson.authenticated && meJson.user) {
         activeUserId = meJson.user.id;
-        localStorage.setItem('kovertklaus_user_id', meJson.user.id);
+        localStorage.setItem(USER_ID_KEY, meJson.user.id);
         localStorage.setItem('kovertklaus_user_name', meJson.user.name);
       }
     } catch {
@@ -124,7 +126,7 @@ export default function OperationCenterPage() {
     } catch {
       // Ignore network errors on logout
     } finally {
-      localStorage.removeItem('kovertklaus_user_id');
+      localStorage.removeItem(USER_ID_KEY);
       localStorage.removeItem('kovertklaus_user_name');
       window.location.href = '/';
     }

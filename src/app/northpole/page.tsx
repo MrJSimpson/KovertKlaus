@@ -1,5 +1,7 @@
 'use client';
 
+import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -37,7 +39,7 @@ export default function NorthPoleDashboard() {
   useEffect(() => {
     async function fetchDashboardData(retryCount = 0) {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+        const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
         const res = await fetch('/api/northpole/config', {
           credentials: 'include',
           headers: token ? { 'x-admin-token': token } : {},

@@ -1,5 +1,7 @@
 'use client';
 
+import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
+
 import { useState, useEffect } from 'react';
 
 interface ThemeOption {
@@ -58,7 +60,7 @@ export default function NorthPoleConfigPage() {
   useEffect(() => {
     async function fetchConfig(retryCount = 0) {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+        const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
         const res = await fetch('/api/northpole/config', {
           credentials: 'include',
           headers: token ? { 'x-admin-token': token } : {},
@@ -126,7 +128,7 @@ export default function NorthPoleConfigPage() {
     setErrorMessage('');
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch('/api/northpole/config', {
         method: 'PATCH',
         credentials: 'include',
@@ -228,7 +230,7 @@ export default function NorthPoleConfigPage() {
     setTestEmailResult(null);
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch('/api/northpole/email/test', {
         method: 'POST',
         credentials: 'include',

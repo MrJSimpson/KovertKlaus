@@ -4,7 +4,7 @@ import { adminDb } from '@/lib/adminDb';
 import { IS_SAAS } from '@/lib/config/mode';
 import { signToken, verifyToken } from '@/lib/security';
 
-const ADMIN_SESSION_COOKIE_NAME = IS_SAAS ? 'kovert_saas_admin_session' : 'kovertklaus_admin_session';
+export const ADMIN_SESSION_COOKIE_NAME = IS_SAAS ? 'kovert_saas_admin_session' : 'kovertklaus_admin_session';
 
 export const DEFAULT_ADMIN_USERNAME = 'santa';
 export const DEFAULT_ADMIN_EMAIL = 'admin@kovertklaus.com';

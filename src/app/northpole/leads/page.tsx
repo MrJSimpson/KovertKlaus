@@ -1,5 +1,7 @@
 'use client';
 
+import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
+
 import { useState, useEffect } from 'react';
 
 interface ClearanceLeadRecord {
@@ -35,7 +37,7 @@ export default function NorthPoleLeadsPage() {
       if (statusFilter !== 'ALL') {
         url += `&status=${statusFilter}`;
       }
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch(url, {
         credentials: 'include',
         headers: token ? { 'x-admin-token': token } : {},
@@ -72,7 +74,7 @@ export default function NorthPoleLeadsPage() {
   async function handleDeleteLead(lead: ClearanceLeadRecord) {
     setDeletingId(lead.id);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch(`/api/northpole/leads?id=${encodeURIComponent(lead.id)}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -101,7 +103,7 @@ export default function NorthPoleLeadsPage() {
   async function handleResendConfirmation(lead: ClearanceLeadRecord) {
     setResendingId(lead.id);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch('/api/northpole/leads', {
         method: 'POST',
         credentials: 'include',

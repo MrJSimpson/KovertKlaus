@@ -1,5 +1,7 @@
 'use client';
 
+import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
+
 import { useState, useEffect } from 'react';
 
 interface ThemePresetRecord {
@@ -27,7 +29,7 @@ export default function NorthPoleThemesPage() {
   async function fetchThemes(retryCount = 0) {
     if (retryCount === 0) setLoading(true);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch('/api/northpole/config', {
         credentials: 'include',
         headers: token ? { 'x-admin-token': token } : {},
@@ -60,7 +62,7 @@ export default function NorthPoleThemesPage() {
     setActivating(themeId);
     setSuccessMsg(null);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch('/api/northpole/config', {
         method: 'PATCH',
         credentials: 'include',

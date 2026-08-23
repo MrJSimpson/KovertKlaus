@@ -5,6 +5,7 @@ import { validateOperationConfig, CreateOperationInput } from '@/lib/validations
 import { generateInviteCode } from '@/lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
 import { sendAssignmentEmail, sendNudgeEmail } from '@/lib/email';
+import { IS_SAAS } from '@/lib/config/mode';
 
 export const dynamic = 'force-dynamic';
 
@@ -488,7 +489,7 @@ export async function POST(request: Request) {
     }
 
     // Hardening S2: SaaS Quota Server Environment Variable Check
-    const isSaasMode = process.env.SAAS_MODE === 'true' || process.env.NEXT_PUBLIC_SAAS_MODE === 'true';
+    const isSaasMode = IS_SAAS;
     let paymentStatus: 'FREE_ANNUAL' | 'PAID' | 'EXEMPT_SELF_HOSTED' = 'EXEMPT_SELF_HOSTED';
     let isFreeAnnualExchange = false;
 

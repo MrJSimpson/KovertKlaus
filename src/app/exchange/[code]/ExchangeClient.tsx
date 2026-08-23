@@ -1,5 +1,7 @@
 'use client';
 
+import { USER_ID_KEY } from '@/lib/constants/auth';
+
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -142,16 +144,16 @@ export default function OperationCommandCenterPage() {
         if (res.ok && json.authenticated && json.user) {
           setUserId(json.user.id);
           setUserName(json.user.name);
-          localStorage.setItem('kovertklaus_user_id', json.user.id);
+          localStorage.setItem(USER_ID_KEY, json.user.id);
           localStorage.setItem('kovertklaus_user_name', json.user.name);
         } else {
-          const savedUserId = localStorage.getItem('kovertklaus_user_id');
+          const savedUserId = localStorage.getItem(USER_ID_KEY);
           const savedUserName = localStorage.getItem('kovertklaus_user_name');
           if (savedUserId) setUserId(savedUserId);
           if (savedUserName) setUserName(savedUserName);
         }
       } catch {
-        const savedUserId = localStorage.getItem('kovertklaus_user_id');
+        const savedUserId = localStorage.getItem(USER_ID_KEY);
         const savedUserName = localStorage.getItem('kovertklaus_user_name');
         if (savedUserId) setUserId(savedUserId);
         if (savedUserName) setUserName(savedUserName);
@@ -463,7 +465,7 @@ export default function OperationCommandCenterPage() {
     } catch {
       // Ignore network errors on logout
     } finally {
-      localStorage.removeItem('kovertklaus_user_id');
+      localStorage.removeItem(USER_ID_KEY);
       localStorage.removeItem('kovertklaus_user_name');
       window.location.href = '/';
     }

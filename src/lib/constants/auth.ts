@@ -10,5 +10,6 @@ export const ADMIN_USER_KEY = IS_SAAS ? 'kovert_saas_admin_user' : 'kovertklaus_
 /**
  * LocalStorage keys for regular operative authentication persistence.
  */
+export const USER_ID_KEY = IS_SAAS ? 'kovert_saas_user_id' : 'kovertklaus_user_id';
 export const USER_TOKEN_KEY = IS_SAAS ? 'kovert_saas_user_token' : 'kovertklaus_user_token';
 export const USER_INFO_KEY = IS_SAAS ? 'kovert_saas_user_info' : 'kovertklaus_user_info';

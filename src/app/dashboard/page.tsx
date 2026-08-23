@@ -1,5 +1,7 @@
 'use client';
 
+import { USER_ID_KEY } from '@/lib/constants/auth';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -108,20 +110,20 @@ export default function DashboardPage() {
 
   async function fetchUserData() {
     setLoading(true);
-    const savedUserId = localStorage.getItem('kovertklaus_user_id');
+    const savedUserId = localStorage.getItem(USER_ID_KEY);
 
     try {
       const url = savedUserId ? `/api/users/me?userId=${savedUserId}` : '/api/users/me';
       const res = await fetch(url);
       const json = await res.json();
       if (!res.ok || (!json.success && !json.authenticated) || !json.user) {
-        localStorage.removeItem('kovertklaus_user_id');
+        localStorage.removeItem(USER_ID_KEY);
         localStorage.removeItem('kovertklaus_user_name');
         router.push('/');
         return;
       }
 
-      localStorage.setItem('kovertklaus_user_id', json.user.id);
+      localStorage.setItem(USER_ID_KEY, json.user.id);
       localStorage.setItem('kovertklaus_user_name', json.user.name);
       setUser(json.user);
       /*
@@ -268,7 +270,7 @@ export default function DashboardPage() {
     } catch {
       // Ignore network errors on logout
     } finally {
-      localStorage.removeItem('kovertklaus_user_id');
+      localStorage.removeItem(USER_ID_KEY);
       localStorage.removeItem('kovertklaus_user_name');
       window.location.href = '/';
     }

@@ -1,5 +1,7 @@
 'use client';
 
+import { USER_ID_KEY } from '@/lib/constants/auth';
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatCodename } from '@/lib/security';
@@ -51,7 +53,7 @@ export default function OpKitsPage() {
 
   async function fetchOpKits() {
     setLoading(true);
-    const userId = localStorage.getItem('kovertklaus_user_id');
+    const userId = localStorage.getItem(USER_ID_KEY);
     if (!userId) {
       setLoading(false);
       return;
@@ -80,7 +82,7 @@ export default function OpKitsPage() {
     e.preventDefault();
     if (!newOpKitName.trim()) return;
 
-    const userId = localStorage.getItem('kovertklaus_user_id');
+    const userId = localStorage.getItem(USER_ID_KEY);
     if (!userId) return;
 
     try {
@@ -110,7 +112,7 @@ export default function OpKitsPage() {
   async function handleRenameOpKit(id: string) {
     if (!editingName.trim()) return;
     const cleanName = editingName.trim();
-    const userId = localStorage.getItem('kovertklaus_user_id');
+    const userId = localStorage.getItem(USER_ID_KEY);
     setEditingOpKitId(null);
     setEditingName('');
 
@@ -136,7 +138,7 @@ export default function OpKitsPage() {
       return;
     }
     if (confirm(`Are you sure you want to delete "${kit?.name}"?`)) {
-      const userId = localStorage.getItem('kovertklaus_user_id');
+      const userId = localStorage.getItem(USER_ID_KEY);
       try {
         await fetch(`/api/opkits?wishlistId=${id}&userId=${userId}`, {
           method: 'DELETE',
@@ -164,7 +166,7 @@ export default function OpKitsPage() {
       return;
     }
 
-    const userId = localStorage.getItem('kovertklaus_user_id');
+    const userId = localStorage.getItem(USER_ID_KEY);
     setScraping(true);
 
     try {
@@ -214,7 +216,7 @@ export default function OpKitsPage() {
   // Remove OpTool
   async function handleRemoveOpTool(opToolId: string) {
     if (!selectedOpKit) return;
-    const userId = localStorage.getItem('kovertklaus_user_id');
+    const userId = localStorage.getItem(USER_ID_KEY);
     setValidationError('');
 
     try {
@@ -243,7 +245,7 @@ export default function OpKitsPage() {
     } catch {
       // Ignore network errors on logout
     } finally {
-      localStorage.removeItem('kovertklaus_user_id');
+      localStorage.removeItem(USER_ID_KEY);
       localStorage.removeItem('kovertklaus_user_name');
       window.location.href = '/';
     }

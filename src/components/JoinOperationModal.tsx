@@ -1,5 +1,7 @@
 'use client';
 
+import { USER_ID_KEY } from '@/lib/constants/auth';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
@@ -32,7 +34,7 @@ export function JoinOperationModal({
     setError('');
 
     try {
-      const activeUserId = userId || localStorage.getItem('kovertklaus_user_id');
+      const activeUserId = userId || localStorage.getItem(USER_ID_KEY);
       if (!activeUserId) {
         throw new Error('Authentication required. Please sign in to join an operation.');
       }

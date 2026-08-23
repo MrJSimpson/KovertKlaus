@@ -1,5 +1,7 @@
 'use client';
 
+import { USER_ID_KEY } from '@/lib/constants/auth';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -109,13 +111,13 @@ export function AppHomeLanding() {
 
   async function checkCurrentUser() {
     try {
-      const savedUserId = localStorage.getItem('kovertklaus_user_id');
+      const savedUserId = localStorage.getItem(USER_ID_KEY);
       const url = savedUserId ? `/api/users/me?userId=${savedUserId}` : '/api/users/me';
       const res = await fetch(url);
       const json = await res.json();
       if (json.authenticated && json.user) {
         setCurrentUser({ id: json.user.id, name: json.user.name, codename: json.user.codename });
-        localStorage.setItem('kovertklaus_user_id', json.user.id);
+        localStorage.setItem(USER_ID_KEY, json.user.id);
         localStorage.setItem('kovertklaus_user_name', json.user.name);
       } else {
         setCurrentUser(null);
@@ -131,7 +133,7 @@ export function AppHomeLanding() {
     } catch {
       // Ignore network errors on logout
     }
-    localStorage.removeItem('kovertklaus_user_id');
+    localStorage.removeItem(USER_ID_KEY);
     localStorage.removeItem('kovertklaus_user_name');
     setCurrentUser(null);
   }
@@ -153,7 +155,7 @@ export function AppHomeLanding() {
         throw new Error(json.error || 'Invalid email or password');
       }
 
-      localStorage.setItem('kovertklaus_user_id', json.user.id);
+      localStorage.setItem(USER_ID_KEY, json.user.id);
       localStorage.setItem('kovertklaus_user_name', json.user.name);
       setCurrentUser({ id: json.user.id, name: json.user.name, codename: json.user.codename });
       setLoginModalOpen(false);
@@ -193,7 +195,7 @@ export function AppHomeLanding() {
       }
 
       const user = json.data;
-      localStorage.setItem('kovertklaus_user_id', user.id);
+      localStorage.setItem(USER_ID_KEY, user.id);
       localStorage.setItem('kovertklaus_user_name', user.name);
       setCurrentUser({ id: user.id, name: user.name, codename: user.codename });
       setLoginModalOpen(false);

@@ -1,5 +1,7 @@
 'use client';
 
+import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
+
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -46,7 +48,7 @@ export default function NorthPoleUsersPage() {
       if (isWorkshop) {
         url += '&workshop=true';
       }
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch(url, {
         credentials: 'include',
         headers: token ? { 'x-admin-token': token } : {},
@@ -91,7 +93,7 @@ export default function NorthPoleUsersPage() {
   async function handleUpdateUser(userId: string, patchData: Record<string, any>) {
     setUpdatingId(userId);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch('/api/northpole/users', {
         method: 'PATCH',
         credentials: 'include',

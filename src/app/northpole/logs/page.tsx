@@ -1,5 +1,7 @@
 'use client';
 
+import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
@@ -51,7 +53,7 @@ export default function NorthPoleLogsPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const params = new URLSearchParams();
       if (searchQuery.trim()) params.set('q', searchQuery.trim());
       if (selectedLevel !== 'ALL') params.set('level', selectedLevel);
@@ -96,7 +98,7 @@ export default function NorthPoleLogsPage() {
   async function handlePurgeLogs(action: 'purge_by_days' | 'clear_all') {
     setPurging(true);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('kovertklaus_admin_token') : null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
       const res = await fetch('/api/northpole/logs', {
         method: 'DELETE',
         credentials: 'include',

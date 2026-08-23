@@ -26,11 +26,11 @@ import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
 import { evaluateMemberAudit } from './lib/demerits';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
+import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
+import { SESSION_COOKIE_NAME } from './lib/auth';
 
-
-
-const ADMIN_COOKIE_NAME = 'kovertklaus_admin_session';
-const USER_COOKIE_NAME = 'kovertklaus_session';
+const ADMIN_COOKIE_NAME = ADMIN_SESSION_COOKIE_NAME;
+const USER_COOKIE_NAME = SESSION_COOKIE_NAME;
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
