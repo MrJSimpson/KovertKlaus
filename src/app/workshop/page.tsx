@@ -79,6 +79,14 @@ export default function WorkshopHubPage() {
       description:
         'Compare Klaus Mode 🎄 vs Kovert Mode ❄️ across all 4 seasonal themes, animated light strands, typography, buttons, badges, and card tokens.',
     },
+    {
+      title: '📋 Dual Manifest & Limit Validator',
+      path: '/workshop/manifest',
+      badge: 'ANTI-OVERWISHING',
+      color: 'border-emerald-500/40 text-emerald-300',
+      description:
+        'Test Secret Santa vs White Elephant rules, +20% anti-overwishing hard caps, buyer cart spend tallying, and pre-draw eligibility.',
+    },
   ];
 
   return (
