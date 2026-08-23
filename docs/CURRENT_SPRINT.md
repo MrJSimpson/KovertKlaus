@@ -1,7 +1,7 @@
 # Active Sprint Tracker
 
 **Active Sprint**: [Sprint 2026-W35](sprints/2026-W35.md)  
-**Status**: **IN PROGRESS 🔄 (1/6 Action Items Verified)**  
+**Status**: **COMPLETED ✅ (6/6 Action Items Verified & Live)**  
 **Target Milestone**: `v0.1.0-prealpha`  
 **Ceremony Schedule**: Retrospectives & Planning held every Monday morning.
 
@@ -12,8 +12,8 @@
 - **Item 2: `/workshop/lifecycle` 5-Stage Simulator**: ✅ DONE (Virtual Time-Shift Calendar, 4 Jumps & Countdown Badges)
 - **Item 3: `/workshop/scraper` Fast-Failover Bench**: ✅ DONE (OpenGraph Scraper, SSRF Defense & Tracking Normalizer)
 - **Item 4: Design Token & Theme Gallery**: ✅ DONE (`/workshop/theme` Klaus vs Kovert, 4 Seasons & Animated Strands)
-- **Item 5: Dual Manifest & Limit Validator**: ⏳ Planned
-- **Item 6: Milestone & Countdown Unit Tests**: ✅ DONE (69/69 Passing Tests across all 6 suites)
+- **Item 5: Dual Manifest & Limit Validator**: ✅ DONE (`/workshop/manifest` +20% Anti-Overwishing, Buyer Tally & Importer)
+- **Item 6: Milestone & Countdown Unit Tests**: ✅ DONE (75/75 Passing Tests across all 7 suites)
 
 *For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W35.md](sprints/2026-W35.md).*
 
