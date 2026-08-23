@@ -61,6 +61,8 @@ model User {
   email                          String            @unique
   name                           String
   codename                       String?
+  preferredCodename              String?
+  autoRandomizeCodename          Boolean           @default(false)
   passwordHash                   String
   streetAddress                  String?
   addressLine2                   String?
@@ -208,6 +210,7 @@ model ExchangeMember {
   id                 String         @id @default(uuid())
   exchangeId         String
   userId             String
+  codename           String?
   wishlistId         String?
   role               MemberRole     @default(MEMBER)
   targetUserId       String?
@@ -223,6 +226,8 @@ model ExchangeMember {
   wishlist Wishlist? @relation(fields: [wishlistId], references: [id])
 
   @@unique([exchangeId, userId])
+  @@index([exchangeId, codename])
+  @@index([exchangeId])
   @@index([userId])
   @@index([targetUserId])
 }

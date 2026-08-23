@@ -46,11 +46,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Enroll Member into Exchange
+    // 4. Resolve Unique Event-Scoped Codename
+    const user = await db.user.findUnique({
+      where: { id: activeUserId },
+      select: { name: true, codename: true, preferredCodename: true, autoRandomizeCodename: true },
+    });
+
+    const existingRosterCodenames = exchange.members
+      .map((m: any) => m.codename)
+      .filter(Boolean) as string[];
+
+    const { customCodename, randomizeCodename } = body as { customCodename?: string; randomizeCodename?: boolean };
+    const preferred = customCodename || user?.preferredCodename || user?.codename || user?.name || 'Agent';
+    const shouldRandomize = Boolean(randomizeCodename || user?.autoRandomizeCodename);
+
+    const { resolveUniqueCodename } = await import('@/lib/codename');
+    const resolution = resolveUniqueCodename(preferred, existingRosterCodenames, shouldRandomize);
+
+    // 5. Enroll Member into Exchange with Unique Codename
     const newMember = await db.exchangeMember.create({
       data: {
         exchangeId: exchange.id,
         userId: activeUserId,
+        codename: resolution.codename,
         wishlistId: wishlistId || null,
         role: 'MEMBER',
       },
@@ -67,7 +85,12 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Member successfully enrolled in exchange!',
-      data: newMember,
+      data: {
+        ...newMember,
+        assignedCodename: resolution.codename,
+        wasCollided: resolution.wasCollided,
+        isRandomized: resolution.isRandomized,
+      },
     });
   } catch {
     return NextResponse.json({ error: 'Failed to accept invitation' }, { status: 500 });

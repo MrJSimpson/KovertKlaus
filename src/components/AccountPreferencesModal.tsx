@@ -4,7 +4,7 @@ import { USER_ID_KEY } from '@/lib/constants/auth';
 
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
-import { generateRandomCodename } from '@/lib/codenameGenerator';
+import { generateRandomCodename } from '@/lib/codename';
 import { Card, Button, Badge } from '@/components/ui';
 
 export interface AccountPreferencesModalProps {
@@ -26,6 +26,8 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [codename, setCodename] = useState('');
+  const [preferredCodename, setPreferredCodename] = useState('');
+  const [autoRandomizeCodename, setAutoRandomizeCodename] = useState(false);
   
   // Shipping State
   const [streetAddress, setStreetAddress] = useState('');
@@ -78,6 +80,8 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
         // Strip legacy Agent- prefix if provided for clean input display
         let rawCodename = (data.user.codename || '').replace(/^(agent[-:\s]+)/i, '').trim();
         setCodename(rawCodename);
+        setPreferredCodename(data.user.preferredCodename || rawCodename);
+        setAutoRandomizeCodename(Boolean(data.user.autoRandomizeCodename));
         
         setStreetAddress(data.user.streetAddress || '');
         setAddressLine2(data.user.addressLine2 || '');
@@ -124,7 +128,9 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
       const payload: any = {
         userId: savedUserId,
         name,
-        codename,
+        codename: preferredCodename || codename,
+        preferredCodename: preferredCodename || codename,
+        autoRandomizeCodename,
         streetAddress,
         addressLine2,
         city,
@@ -287,10 +293,10 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
 
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className={`block text-xs font-semibold ${theme.textLabel}`}>Operative Codename</label>
+                      <label className={`block text-xs font-semibold ${theme.textLabel}`}>Preferred Operative Codename</label>
                       <button
                         type="button"
-                        onClick={() => setCodename(generateRandomCodename())}
+                        onClick={() => setPreferredCodename(generateRandomCodename())}
                         className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
                       >
                         🎲 Randomize Call Sign
@@ -302,12 +308,34 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                       </span>
                       <input
                         type="text"
-                        value={codename}
-                        onChange={(e) => setCodename(e.target.value)}
+                        value={preferredCodename}
+                        onChange={(e) => setPreferredCodename(e.target.value)}
                         placeholder="e.g. Viper, Phoenix, Sentinel"
                         className={`flex-1 border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
+                    <p className={`text-[11px] mt-1 ${theme.textSubLabel}`}>
+                      Your default identity across holiday operations. You can adjust this for individual missions.
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoRandomizeCodename}
+                        onChange={(e) => setAutoRandomizeCodename(e.target.checked)}
+                        className="mt-0.5 rounded text-sky-500 focus:ring-0"
+                      />
+                      <div>
+                        <span className={`text-xs font-bold block ${theme.textLabel}`}>
+                          🎲 Always randomize codename when joining operations (Stealth Mode)
+                        </span>
+                        <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>
+                          When enabled, you will be assigned a fresh random tactical callsign on every new mission for maximum secrecy.
+                        </span>
+                      </div>
+                    </label>
                   </div>
                 </div>
               )}
@@ -377,19 +405,23 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
 
                     <div>
                       <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Country</label>
-                      <input
-                        type="text"
+                      <select
                         value={country}
                         onChange={(e) => setCountry(e.target.value)}
                         className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
-                      />
+                      >
+                        <option value="US">United States (US)</option>
+                        <option value="CA">Canada (CA)</option>
+                        <option value="GB">United Kingdom (GB)</option>
+                        <option value="AU">Australia (AU)</option>
+                      </select>
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Courier Delivery Notes (Gate Code / Drop-off Instructions)</label>
-                      <textarea
-                        rows={2}
-                        placeholder="e.g. Gate code #4012. Leave package on side porch by red bench."
+                      <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Courier Delivery Notes (Gate Code / Drop Location)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Leave package on front porch behind planter."
                         value={deliveryNotes}
                         onChange={(e) => setDeliveryNotes(e.target.value)}
                         className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
@@ -403,211 +435,169 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
               {activeTab === 'dossier' && (
                 <div className="space-y-6">
                   <p className={`text-xs ${theme.textSubLabel}`}>
-                    Configure optional sizing metrics for apparel & body measurements. Unselected metrics remain <strong>CONFIDENTIAL</strong>.
+                    Provide sizing and preferences so your Secret Santa can find gifts that fit your style.
                   </p>
 
-                  {/* Section 1: Standardized Letter Apparel & Footwear */}
+                  {/* Section A: Sizing */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <span className={`text-xs font-extrabold uppercase tracking-wider ${theme.textHeading}`}>
-                        👕 Standardized Apparel & Footwear
-                      </span>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
+                    <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-2">
+                      <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>👕 Clothing & Sizing</h4>
+                      <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={allowOperatorViewSizes}
                           onChange={(e) => setAllowOperatorViewSizes(e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-stone-300 accent-red-600 cursor-pointer"
+                          className="rounded text-sky-500 focus:ring-0"
                         />
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          Allow your assigned Secret Santa (Elf Agent) to view clothing &amp; shoe sizes
-                        </span>
+                        <span className={`text-[11px] ${theme.textSubLabel}`}>Visible to Buyer</span>
                       </label>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Top Half Size (Shirts)</label>
-                        <select
+                        <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>Top / Shirt Size</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. L, Men's XL, Women's M"
                           value={topHalfSize}
                           onChange={(e) => setTopHalfSize(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
-                        >
-                          <option value="">CONFIDENTIAL (Unspecified)</option>
-                          <option value="XXS">XXS (Double Extra Small)</option>
-                          <option value="XS">XS (Extra Small)</option>
-                          <option value="S">S (Small)</option>
-                          <option value="M">M (Medium)</option>
-                          <option value="L">L (Large)</option>
-                          <option value="XL">XL (Extra Large)</option>
-                          <option value="2XL">2XL (Double Large)</option>
-                          <option value="3XL">3XL (Triple Large)</option>
-                          <option value="4XL">4XL (Quadruple Large)</option>
-                        </select>
+                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                        />
                       </div>
-
                       <div>
-                        <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Bottom Half Size (Pants)</label>
-                        <select
+                        <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>Bottom / Pants Size</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 34x32, 10, Medium"
                           value={bottomHalfSize}
                           onChange={(e) => setBottomHalfSize(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
-                        >
-                          <option value="">CONFIDENTIAL (Unspecified)</option>
-                          <option value="XXS">XXS (Double Extra Small)</option>
-                          <option value="XS">XS (Extra Small)</option>
-                          <option value="S">S (Small)</option>
-                          <option value="M">M (Medium)</option>
-                          <option value="L">L (Large)</option>
-                          <option value="XL">XL (Extra Large)</option>
-                          <option value="2XL">2XL (Double Large)</option>
-                          <option value="3XL">3XL (Triple Large)</option>
-                          <option value="4XL">4XL (Quadruple Large)</option>
-                        </select>
+                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                        />
                       </div>
-
                       <div>
-                        <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Shoe Size (US Dual-Gender)</label>
-                        <select
+                        <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>Shoe Size</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 10.5 Men, 8 Women"
                           value={shoeSize}
                           onChange={(e) => setShoeSize(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
-                        >
-                          <option value="">CONFIDENTIAL (Unspecified)</option>
-                          <option value="US 5M / 6.5W">US 5M / 6.5W</option>
-                          <option value="US 5.5M / 7W">US 5.5M / 7W</option>
-                          <option value="US 6M / 7.5W">US 6M / 7.5W</option>
-                          <option value="US 6.5M / 8W">US 6.5M / 8W</option>
-                          <option value="US 7M / 8.5W">US 7M / 8.5W</option>
-                          <option value="US 7.5M / 9W">US 7.5M / 9W</option>
-                          <option value="US 8M / 9.5W">US 8M / 9.5W</option>
-                          <option value="US 8.5M / 10W">US 8.5M / 10W</option>
-                          <option value="US 9M / 10.5W">US 9M / 10.5W</option>
-                          <option value="US 9.5M / 11W">US 9.5M / 11W</option>
-                          <option value="US 10M / 11.5W">US 10M / 11.5W</option>
-                          <option value="US 10.5M / 12W">US 10.5M / 12W</option>
-                          <option value="US 11M / 12.5W">US 11M / 12.5W</option>
-                          <option value="US 11.5M / 13W">US 11.5M / 13W</option>
-                          <option value="US 12M / 13.5W">US 12M / 13.5W</option>
-                          <option value="US 13M / 14.5W">US 13M / 14.5W</option>
-                          <option value="US 14M / 15.5W">US 14M / 15.5W</option>
-                        </select>
+                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                        />
                       </div>
                     </div>
                   </div>
 
-                  {/* Section 2: Body Measurements */}
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <span className={`text-xs font-extrabold uppercase tracking-wider ${theme.textHeading}`}>
-                        📏 Body Measurements (Optional)
-                      </span>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
+                  {/* Section B: Tailored Measurements */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-2">
+                      <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>📐 Tailored Measurements</h4>
+                      <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={allowOperatorViewMeasurements}
                           onChange={(e) => setAllowOperatorViewMeasurements(e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-stone-300 accent-red-600 cursor-pointer"
+                          className="rounded text-sky-500 focus:ring-0"
                         />
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          Allow your assigned Secret Santa (Elf Agent) to view body measurements
-                        </span>
+                        <span className={`text-[11px] ${theme.textSubLabel}`}>Visible to Buyer</span>
                       </label>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Chest / Bust</label>
+                        <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>Chest / Bust (in)</label>
                         <input
                           type="text"
-                          placeholder="e.g. 38 in / 96 cm"
+                          placeholder="e.g. 40 in"
                           value={chestBustMeasurement}
                           onChange={(e) => setChestBustMeasurement(e.target.value)}
-                          className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
-
                       <div>
-                        <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Waist</label>
+                        <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>Waist (in)</label>
                         <input
                           type="text"
-                          placeholder="e.g. 32 in / 81 cm"
+                          placeholder="e.g. 34 in"
                           value={waistMeasurement}
                           onChange={(e) => setWaistMeasurement(e.target.value)}
-                          className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
-
                       <div>
-                        <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Inseam Length</label>
+                        <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>Inseam (in)</label>
                         <input
                           type="text"
-                          placeholder="e.g. 30 in / 76 cm"
+                          placeholder="e.g. 32 in"
                           value={inseamMeasurement}
                           onChange={(e) => setInseamMeasurement(e.target.value)}
-                          className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Section 3: Allergies & Dietary Restrictions */}
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <span className={`text-xs font-extrabold uppercase tracking-wider ${theme.textHeading}`}>
-                        ⚠️ Dietary Restrictions & Allergies
-                      </span>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
+                  {/* Section C: Dietary & Allergies */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-2">
+                      <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>🥜 Allergies & Dietary Restrictions</h4>
+                      <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={allowOperatorViewAllergies}
                           onChange={(e) => setAllowOperatorViewAllergies(e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-stone-300 accent-red-600 cursor-pointer"
+                          className="rounded text-sky-500 focus:ring-0"
                         />
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          Allow your assigned Secret Santa (Elf Agent) to view allergies &amp; dietary notes
-                        </span>
+                        <span className={`text-[11px] ${theme.textSubLabel}`}>Visible to Buyer</span>
                       </label>
                     </div>
 
                     <div>
                       <input
                         type="text"
-                        placeholder="e.g. Peanut allergy, Gluten-Free, No alcohol"
+                        placeholder="e.g. Peanut allergy, Gluten-free, Vegetarian"
                         value={allergiesDiet}
                         onChange={(e) => setAllergiesDiet(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
                   </div>
 
-                  {/* Section 4: Favorite Colors, Hobbies & Fandoms */}
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <span className={`text-xs font-extrabold uppercase tracking-wider ${theme.textHeading}`}>
-                        🎨 Favorite Colors, Hobbies & Fandoms
-                      </span>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
+                  {/* Section D: Hobbies & Favorites */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-2">
+                      <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>🎨 Favorite Colors & Hobbies</h4>
+                      <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={allowOperatorViewFavorites}
                           onChange={(e) => setAllowOperatorViewFavorites(e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-stone-300 accent-red-600 cursor-pointer"
+                          className="rounded text-sky-500 focus:ring-0"
                         />
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          Allow your assigned Secret Santa (Elf Agent) to view favorite colors &amp; hobbies
-                        </span>
+                        <span className={`text-[11px] ${theme.textSubLabel}`}>Visible to Buyer</span>
                       </label>
                     </div>
 
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="e.g. Forest Green, Sci-Fi novels, Espresso coffee, Board games"
-                        value={favoriteHobbies}
-                        onChange={(e) => setFavoriteHobbies(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>Favorite Colors</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Forest Green, Navy Blue"
+                          value={favoriteColors}
+                          onChange={(e) => setFavoriteColors(e.target.value)}
+                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>Hobbies & Interests</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Coffee brewing, Board games, Sci-Fi"
+                          value={favoriteHobbies}
+                          onChange={(e) => setFavoriteHobbies(e.target.value)}
+                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -616,100 +606,83 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
               {/* TAB 4: SECURITY & COMPLIANCE */}
               {activeTab === 'security' && (
                 <div className="space-y-6">
-                  {/* Demerits & Penalty Ledger */}
-                  <Card variant="inner" className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold ${theme.textLabel}`}>Santa's Naughty List (Coal Citations) Record</span>
-                      <Badge variant={demerits === 0 ? 'code' : demerits >= 3 ? 'rose' : 'amber'}>
-                        {demerits === 0
-                          ? '0 Coal Citations (Clean Standing 🟢)'
-                          : demerits >= 3
-                          ? `${demerits} Coal Citations (Remote Restricted 🔴)`
-                          : `${demerits} Coal Citation(s) (Caution 🟡)`}
-                      </Badge>
-                    </div>
-                    <p className={`text-xs ${theme.textSubLabel}`}>
-                      Keep your holiday commitments to stay on Santa’s Nice List! Accumulating 3+ coal citations restricts remote physical gifting privileges. Carrier tracking waivers automatically protect against loss.
-                    </p>
-                  </Card>
-
-                  {/* Email Notifications */}
-                  <div className="flex items-center justify-between p-4 rounded-2xl border border-stone-200 dark:border-slate-800">
+                  {/* Demerit Citations Gauge */}
+                  <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 flex items-center justify-between">
                     <div>
-                      <span className={`text-xs font-bold block ${theme.textLabel}`}>Encrypted Email Alerts</span>
-                      <span className={`text-[11px] ${theme.textSubLabel}`}>Receive draw updates, shipping notifications, and anonymous intel alerts.</span>
+                      <span className={`text-xs font-bold block ${theme.textLabel}`}>Coal Citations (Demerit Score)</span>
+                      <span className={`text-[11px] ${theme.textSubLabel}`}>
+                        {demerits === 0 ? 'Exemplary record. No demerits issued.' : `${demerits} demerit citations on record.`}
+                      </span>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={emailNotifications}
-                      onChange={(e) => setEmailNotifications(e.target.checked)}
-                      className="h-5 w-5 rounded border-stone-300 accent-red-600 cursor-pointer"
-                    />
+                    <span className={`px-3 py-1 rounded-xl text-xs font-mono font-bold ${
+                      demerits === 0 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30'
+                    }`}>
+                      {demerits === 0 ? '0 COAL CITATIONS' : `${demerits} COAL CITATIONS`}
+                    </span>
                   </div>
 
-                  {/* Change Password */}
-                  <div className="space-y-3 pt-2 border-t border-stone-200 dark:border-slate-800">
-                    <h3 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>Security & Password Update</h3>
+                  {/* Password Rotation */}
+                  <div className="space-y-3 pt-2">
+                    <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>🔑 Rotate Secret Password</h4>
                     <div>
-                      <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>Current Password</label>
+                      <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>Current Password</label>
                       <input
                         type="password"
-                        placeholder="Enter current password"
+                        placeholder="••••••••"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
-
                     <div>
-                      <label className={`block text-xs font-semibold mb-1 ${theme.textLabel}`}>New Password</label>
+                      <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>New Password (Min 10 characters)</label>
                       <input
                         type="password"
-                        placeholder="Enter new strong password"
+                        placeholder="••••••••"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
+                  </div>
 
-                    {newPassword.length > 0 && (
-                      <div className="p-3.5 rounded-2xl bg-stone-100 dark:bg-slate-900 border border-stone-200 dark:border-slate-800 text-[11px] space-y-1.5 font-mono">
-                        <div className="font-bold mb-1 text-slate-700 dark:text-slate-300">Password Security Requirements:</div>
-                        <div className={newPassword.length >= 10 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
-                          {newPassword.length >= 10 ? '✓' : '○'} Minimum 10 characters long
-                        </div>
-                        <div className={/[A-Z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
-                          {/[A-Z]/.test(newPassword) ? '✓' : '○'} At least 1 uppercase letter (A-Z)
-                        </div>
-                        <div className={/[a-z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
-                          {/[a-z]/.test(newPassword) ? '✓' : '○'} At least 1 lowercase letter (a-z)
-                        </div>
-                        <div className={/[0-9]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
-                          {/[0-9]/.test(newPassword) ? '✓' : '○'} At least 1 number (0-9)
-                        </div>
-                        <div className={/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
-                          {/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(newPassword) ? '✓' : '○'} At least 1 special character (!@#$%^&*)
-                        </div>
-                      </div>
-                    )}
+                  {/* Notifications */}
+                  <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={emailNotifications}
+                        onChange={(e) => setEmailNotifications(e.target.checked)}
+                        className="rounded text-sky-500 focus:ring-0"
+                      />
+                      <span className={`text-xs font-bold ${theme.textLabel}`}>
+                        Receive transactional email alerts for invitations and target reveals
+                      </span>
+                    </label>
                   </div>
                 </div>
               )}
             </>
           )}
 
-          {/* Footer Actions */}
+          {/* Footer Buttons */}
           <div className="pt-4 border-t border-stone-200 dark:border-slate-800 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className={`px-5 py-2.5 rounded-xl font-bold text-xs border transition-all cursor-pointer ${theme.btnToggle}`}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer"
             >
               Cancel
             </button>
-            <Button type="submit" disabled={saving || loading} variant="primary">
-              {saving ? 'Saving Changes...' : 'Save Profile Preferences'}
-            </Button>
+            <button
+              type="submit"
+              disabled={saving || loading}
+              className={`px-6 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer ${
+                saving ? 'opacity-50' : theme.btnPrimary
+              }`}
+            >
+              {saving ? '💾 Saving Changes...' : '💾 Save Preferences'}
+            </button>
           </div>
         </form>
       </div>
