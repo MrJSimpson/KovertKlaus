@@ -90,22 +90,28 @@ export function formatCodename(codename?: string | null, fallbackName?: string |
 export function formatDateString(dateInput?: string | Date | null): string {
   if (!dateInput) return 'N/A';
   try {
-    const d = new Date(dateInput);
-    if (isNaN(d.getTime())) return 'N/A';
-    const str = typeof dateInput === 'string' ? dateInput : d.toISOString();
-    if (str.includes('T')) {
-      const dateOnly = str.split('T')[0];
-      const [year, month, day] = dateOnly.split('-').map(Number);
+    const str = typeof dateInput === 'string' ? dateInput.trim() : (dateInput instanceof Date && !isNaN(dateInput.getTime()) ? dateInput.toISOString() : '');
+    if (!str) return 'N/A';
+
+    // Handle YYYY-MM-DD format (with or without time / ISO suffix)
+    const dateMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (dateMatch) {
+      const year = parseInt(dateMatch[1], 10);
+      const month = parseInt(dateMatch[2], 10);
+      const day = parseInt(dateMatch[3], 10);
       if (year && month && day) {
         const localDate = new Date(year, month - 1, day);
-        return localDate.toLocaleDateString(undefined, {
+        return localDate.toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
           day: 'numeric',
         });
       }
     }
-    return d.toLocaleDateString(undefined, {
+
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

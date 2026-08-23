@@ -1,14 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useTheme } from '@/context/ThemeContext';
+import { getNextMilestoneCountdown, formatDateString } from '@/lib/security';
 
 export type OperationPhase = 'RECRUITING' | 'SETUP' | 'ASSIGNED' | 'EXECUTED' | 'COMPLETED';
 
-export default function WorkshopLifecycleBench() {
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+const STAGE_METADATA: Record<OperationPhase, { title: string; desc: string; color: string }> = {
+  RECRUITING: {
+    title: 'Stage 1: Recruiting & Enlistment',
+    desc: 'Operatives accept mission invites, join the roster, and build their classified wishlists.',
+    color: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+  },
+  SETUP: {
+    title: 'Stage 2: Setup & Matching Rules',
+    desc: 'Recruitment is locked. OpsLeader configures bidirectional exclusion rules (A ⇔ B) before the draw.',
+    color: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+  },
+  ASSIGNED: {
+    title: 'Stage 3: Assigned & OpKit Acquisition',
+    desc: 'Sattolo derangement executed! Operatives inspect target wishlists and acquire classified OpKits.',
+    color: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+  },
+  EXECUTED: {
+    title: 'Stage 4: Shipped & Pre-Exchange',
+    desc: 'OpKits in transit. Tracking numbers verified. Agents countdown to Exchange Day.',
+    color: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+  },
+  COMPLETED: {
+    title: 'Stage 5: Completed & AAR Debrief',
+    desc: 'Mission accomplished! After-Action Reports posted, gifts unwrapped, demerits/rehabilitation resolved.',
+    color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+  },
+};
 
-  // Virtual Date Simulation Engine
+export default function WorkshopLifecycleBench() {
+  const { theme, isDarkMode } = useTheme();
+
+  // Virtual Date Simulation Engine (Defaulting to Mid-November 2026)
   const [virtualDate, setVirtualDate] = useState<string>('2026-11-15');
 
   // Operation Stage & Schedule State
@@ -19,10 +49,14 @@ export default function WorkshopLifecycleBench() {
   const [shippingDate, setShippingDate] = useState<string>('2026-12-10');
   const [executionDate, setExecutionDate] = useState<string>('2026-12-25');
 
+  // Simulated Interactive Modals
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+
   // Simulated Log Output
   const [eventLogs, setEventLogs] = useState<string[]>([
-    'SYSTEM: Initialized Workshop Lifecycle Simulation Harness.',
-    'STATUS: Operation created in RECRUITING stage.',
+    'SYSTEM: Initialized Workshop 5-Stage Lifecycle Simulation Harness.',
+    'STATUS: Simulated Operation initialized in RECRUITING stage.',
+    'VIRTUAL CLOCK: Running at Nov 15, 2026 baseline.',
   ]);
 
   const addLog = (msg: string) => {
@@ -30,54 +64,59 @@ export default function WorkshopLifecycleBench() {
     setEventLogs((prev) => [`[${time}] ${msg}`, ...prev]);
   };
 
-  const calculateDaysRemaining = (targetDateStr: string) => {
-    const vDate = new Date(virtualDate);
-    const tDate = new Date(targetDateStr);
+  // Helper to compute virtual days remaining
+  const calculateVirtualDaysRemaining = (targetDateStr: string) => {
+    const [vY, vM, vD] = virtualDate.split('-').map(Number);
+    const [tY, tM, tD] = targetDateStr.split('-').map(Number);
+    const vDate = new Date(vY, vM - 1, vD);
+    const tDate = new Date(tY, tM - 1, tD);
     const diffTime = tDate.getTime() - vDate.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const getBadgeStyle = (days: number) => {
-    if (days < 0) return 'bg-gray-800 text-gray-400 border-gray-700';
+    if (days < 0) return 'bg-slate-800 text-gray-400 border-slate-700';
     if (days === 0)
-      return isDarkMode
-        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 animate-pulse'
-        : 'bg-emerald-100 text-emerald-950 border-emerald-300 animate-pulse';
+      return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-lg shadow-emerald-950/40 animate-pulse';
     if (days <= 3)
-      return isDarkMode
-        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-        : 'bg-amber-100 text-amber-950 border-amber-300';
-    return isDarkMode
-      ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-      : 'bg-red-50 text-red-700 border-red-200';
+      return 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-lg shadow-amber-950/40';
+    return 'bg-sky-500/10 text-sky-300 border-sky-500/30';
   };
 
   const handleAdvancePhase = (nextPhase: OperationPhase) => {
     setPhase(nextPhase);
-    if (nextPhase === 'SETUP') setInviteCutoffDate(virtualDate);
-    if (nextPhase === 'ASSIGNED') setAssignmentDate(virtualDate);
-    if (nextPhase === 'EXECUTED') setShippingDate(virtualDate);
-    if (nextPhase === 'COMPLETED') setExecutionDate(virtualDate);
-
-    addLog(`ACTION: Advanced Operation stage to [${nextPhase}]. Milestone target date updated to virtual today (${virtualDate}).`);
+    addLog(`ACTION: Transitioned Operation stage to [${nextPhase}].`);
   };
+
+  // Simulated Mission Object for JSON trace
+  const simulatedMission = {
+    title: opName,
+    status: phase,
+    inviteCutoffDate,
+    assignmentDate,
+    shippingDate,
+    executionDate,
+    virtualSystemDate: virtualDate,
+  };
+
+  const countdownInfo = getNextMilestoneCountdown(simulatedMission);
 
   return (
     <div className="space-y-6 pb-12">
-      {/* HUD Header */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-3 w-3 rounded-full bg-amber-500 animate-pulse inline-block"></span>
             <span className="text-xs px-2 py-0.5 rounded font-mono uppercase bg-amber-950/80 text-amber-300 border border-amber-500/30">
-              WORKSHOP LAB // 5-PHASE SCHEDULE SIMULATOR
+              WORKSHOP LAB // 5-STAGE MISSION LIFECYCLE
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 text-white flex items-center gap-2">
-            <span>Dynamic Lifecycle & Virtual Date Simulator</span>
+            <span>5-Stage Mission Phase & Time-Shift Simulator</span>
           </h1>
           <p className="text-gray-400 text-xs font-mono mt-1">
-            Simulate virtual calendar timelines, milestone countdown badges, and phase-scoped OpsLeader admin controls.
+            Simulate virtual calendar timelines, inspect milestone countdown badges, and test phase-scoped OpsLeader admin controls.
           </p>
         </div>
 
@@ -86,7 +125,7 @@ export default function WorkshopLifecycleBench() {
             href="/workshop/draw"
             className="bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
           >
-            🎯 Sattolo
+            🎯 Draw & Swap
           </Link>
           <Link
             href="/workshop/scraper"
@@ -98,20 +137,51 @@ export default function WorkshopLifecycleBench() {
             href="/workshop"
             className="bg-slate-800 hover:bg-slate-700 text-gray-300 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
           >
-            ← Hub
+            ← Workshop Hub
           </Link>
         </div>
       </div>
 
-      {/* Main Harness Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* 5-Stage Progression Timeline Step Bar */}
+      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+        <div className="flex items-center justify-between text-xs font-mono text-gray-400 mb-2 px-1">
+          <span>MISSION STAGE PROGRESSION</span>
+          <span className="text-amber-400 font-bold">{phase}</span>
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {(['RECRUITING', 'SETUP', 'ASSIGNED', 'EXECUTED', 'COMPLETED'] as OperationPhase[]).map((stage, idx) => {
+            const isCurrent = phase === stage;
+            const isPassed =
+              ['RECRUITING', 'SETUP', 'ASSIGNED', 'EXECUTED', 'COMPLETED'].indexOf(phase) >= idx;
+            return (
+              <button
+                key={stage}
+                onClick={() => handleAdvancePhase(stage)}
+                className={`py-2 px-2 rounded-xl text-[11px] font-mono font-bold text-center border transition-all cursor-pointer ${
+                  isCurrent
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-950/60 scale-[1.02]'
+                    : isPassed
+                    ? 'bg-slate-800 text-emerald-300 border-emerald-500/40'
+                    : 'bg-slate-950 text-gray-500 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="text-[10px] opacity-75">{idx + 1}. STAGE</div>
+                <div className="truncate">{stage}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Simulator Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Column: Virtual Time Control & Target Dates */}
         <div className="lg:col-span-1 space-y-6">
           
           {/* Virtual Clock Panel */}
-          <div className="p-6 rounded-2xl border-2 bg-slate-900 border-amber-500/40">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-2">
+          <div className="p-6 rounded-2xl border bg-slate-900 border-amber-500/40 shadow-xl">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-2">
               <span>📅 VIRTUAL SYSTEM DATE OVERRIDE</span>
             </h2>
             <p className="text-xs text-gray-400 mb-4">
@@ -133,32 +203,55 @@ export default function WorkshopLifecycleBench() {
               </div>
 
               {/* Quick Preset Buttons */}
-              <div className="space-y-2 pt-2 border-t border-gray-800">
-                <span className="text-[11px] text-gray-400 block font-sans">Timeline Quick Presets:</span>
+              <div className="space-y-2 pt-2 border-t border-slate-800">
+                <span className="text-[11px] text-gray-400 block font-sans">1-Click Milestone Jumps:</span>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => { setVirtualDate('2026-11-20'); addLog('PRESET: Jumped to RSVP Cutoff Day (Nov 20)'); }}
-                    className="bg-slate-800 hover:bg-slate-700 text-sky-300 px-2 py-1.5 rounded text-[11px] text-left border border-slate-700 cursor-pointer"
+                    onClick={() => {
+                      setVirtualDate('2026-11-20');
+                      setPhase('RECRUITING');
+                      addLog('PRESET: Jumped to RSVP Cutoff Day (Nov 20, 2026)');
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 text-sky-300 p-2 rounded-lg text-[11px] text-left border border-slate-700 cursor-pointer"
                   >
-                    RSVP Cutoff (Nov 20)
+                    <div className="font-bold">RSVP Cutoff</div>
+                    <div className="text-[10px] text-gray-400">Nov 20, 2026</div>
                   </button>
+
                   <button
-                    onClick={() => { setVirtualDate('2026-11-25'); addLog('PRESET: Jumped to Draw Day (Nov 25)'); }}
-                    className="bg-slate-800 hover:bg-slate-700 text-amber-300 px-2 py-1.5 rounded text-[11px] text-left border border-slate-700 cursor-pointer"
+                    onClick={() => {
+                      setVirtualDate('2026-11-25');
+                      setPhase('SETUP');
+                      addLog('PRESET: Jumped to Draw Day (Nov 25, 2026)');
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 text-amber-300 p-2 rounded-lg text-[11px] text-left border border-slate-700 cursor-pointer"
                   >
-                    Draw Day (Nov 25)
+                    <div className="font-bold">Draw Day 🎲</div>
+                    <div className="text-[10px] text-gray-400">Nov 25, 2026</div>
                   </button>
+
                   <button
-                    onClick={() => { setVirtualDate('2026-12-10'); addLog('PRESET: Jumped to Shipping Deadline (Dec 10)'); }}
-                    className="bg-slate-800 hover:bg-slate-700 text-purple-300 px-2 py-1.5 rounded text-[11px] text-left border border-slate-700 cursor-pointer"
+                    onClick={() => {
+                      setVirtualDate('2026-12-08');
+                      setPhase('ASSIGNED');
+                      addLog('PRESET: Jumped to 2-Day Urgent Ship Window (Dec 8, 2026)');
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 text-rose-300 p-2 rounded-lg text-[11px] text-left border border-slate-700 cursor-pointer"
                   >
-                    Ship Deadline (Dec 10)
+                    <div className="font-bold">Ship Urgent ⏳</div>
+                    <div className="text-[10px] text-gray-400">Dec 8 (2d left)</div>
                   </button>
+
                   <button
-                    onClick={() => { setVirtualDate('2026-12-25'); addLog('PRESET: Jumped to Exchange Day (Dec 25)'); }}
-                    className="bg-slate-800 hover:bg-slate-700 text-emerald-300 px-2 py-1.5 rounded text-[11px] text-left border border-slate-700 cursor-pointer"
+                    onClick={() => {
+                      setVirtualDate('2026-12-25');
+                      setPhase('EXECUTED');
+                      addLog('PRESET: Jumped to Exchange Day! (Dec 25, 2026)');
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 text-emerald-300 p-2 rounded-lg text-[11px] text-left border border-slate-700 cursor-pointer"
                   >
-                    Exchange Day! (Dec 25)
+                    <div className="font-bold">Exchange Day! 🎉</div>
+                    <div className="text-[10px] text-gray-400">Dec 25, 2026</div>
                   </button>
                 </div>
               </div>
@@ -166,9 +259,9 @@ export default function WorkshopLifecycleBench() {
           </div>
 
           {/* Operation Milestone Target Dates */}
-          <div className="p-6 rounded-2xl border-2 bg-slate-900 border-slate-800">
+          <div className="p-6 rounded-2xl border bg-slate-900 border-slate-800">
             <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-4">
-              🎯 OPERATION TARGET MILESTONES
+              🎯 OPERATION TARGET SCHEDULE
             </h2>
 
             <div className="space-y-4 font-mono text-xs">
@@ -215,61 +308,38 @@ export default function WorkshopLifecycleBench() {
         {/* Center & Right Column: Stage Console & Live Badge Output */}
         <div className="lg:col-span-2 space-y-6">
 
-          {/* Operation Header & Stage Selector */}
-          <div className="p-6 rounded-2xl border-2 bg-slate-900 border-slate-800">
+          {/* Operation Header & Stage Description */}
+          <div className="p-6 rounded-2xl border bg-slate-900 border-slate-800">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <div className="text-[11px] font-mono text-slate-400 uppercase tracking-widest">ACTIVE STAGE PREVIEW</div>
+                <div className="text-[11px] font-mono text-slate-400 uppercase tracking-widest">
+                  OPERATION SCHEDULE MONITOR
+                </div>
                 <h2 className="text-xl font-black text-white mt-1">{opName}</h2>
+                <p className="text-xs text-gray-400 mt-1">{STAGE_METADATA[phase].desc}</p>
               </div>
 
               {/* Stage Badge Pill */}
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-gray-400">STAGE:</span>
-                <span className={`font-mono text-xs font-bold px-3 py-1.5 rounded-full border shadow-md ${
-                  phase === 'RECRUITING' ? 'bg-sky-500/20 text-sky-300 border-sky-500/40' :
-                  phase === 'SETUP' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
-                  phase === 'ASSIGNED' ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' :
-                  phase === 'EXECUTED' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
-                  'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                }`}>
+                <span className={`font-mono text-xs font-bold px-3 py-1.5 rounded-full border shadow-md ${STAGE_METADATA[phase].color}`}>
                   {phase}
                 </span>
-              </div>
-            </div>
-
-            {/* Stage Selector Buttons */}
-            <div className="mt-6 pt-4 border-t border-gray-800">
-              <label className="block text-xs font-mono text-gray-400 mb-2">MANUALLY SWITCH STAGE:</label>
-              <div className="flex flex-wrap gap-2">
-                {(['RECRUITING', 'SETUP', 'ASSIGNED', 'EXECUTED', 'COMPLETED'] as OperationPhase[]).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => handleAdvancePhase(p)}
-                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all cursor-pointer ${
-                      phase === p
-                        ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-950/60'
-                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
               </div>
             </div>
           </div>
 
           {/* Dynamic Milestone Badges Real-Time Monitor */}
-          <div className="p-6 rounded-2xl border-2 bg-slate-900 border-amber-500/30">
-            <h3 className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <div className="p-6 rounded-2xl border bg-slate-900 border-amber-500/30">
+            <h3 className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider mb-4 flex items-center justify-between">
               <span>⏱️ REAL-TIME MILESTONE COUNTDOWN BADGES</span>
+              <span className="text-[11px] font-normal text-gray-400">Virtual Date: {virtualDate}</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
               
               {/* RSVP Badge */}
               {(() => {
-                const days = calculateDaysRemaining(inviteCutoffDate);
+                const days = calculateVirtualDaysRemaining(inviteCutoffDate);
                 return (
                   <div className={`p-4 rounded-xl border ${getBadgeStyle(days)}`}>
                     <div className="text-[11px] opacity-80 uppercase">RSVP CUTOFF BADGE</div>
@@ -283,7 +353,7 @@ export default function WorkshopLifecycleBench() {
 
               {/* Assignment Badge */}
               {(() => {
-                const days = calculateDaysRemaining(assignmentDate);
+                const days = calculateVirtualDaysRemaining(assignmentDate);
                 return (
                   <div className={`p-4 rounded-xl border ${getBadgeStyle(days)}`}>
                     <div className="text-[11px] opacity-80 uppercase">TARGET DRAW BADGE</div>
@@ -297,7 +367,7 @@ export default function WorkshopLifecycleBench() {
 
               {/* Shipping Badge */}
               {(() => {
-                const days = calculateDaysRemaining(shippingDate);
+                const days = calculateVirtualDaysRemaining(shippingDate);
                 return (
                   <div className={`p-4 rounded-xl border ${getBadgeStyle(days)}`}>
                     <div className="text-[11px] opacity-80 uppercase">SHIPPING DEADLINE BADGE</div>
@@ -311,7 +381,7 @@ export default function WorkshopLifecycleBench() {
 
               {/* Exchange Badge */}
               {(() => {
-                const days = calculateDaysRemaining(executionDate);
+                const days = calculateVirtualDaysRemaining(executionDate);
                 return (
                   <div className={`p-4 rounded-xl border ${getBadgeStyle(days)}`}>
                     <div className="text-[11px] opacity-80 uppercase">EXCHANGE EVENT BADGE</div>
@@ -326,11 +396,11 @@ export default function WorkshopLifecycleBench() {
             </div>
           </div>
 
-          {/* Phase-Scoped OpsLeader Console Preview */}
-          <div className="p-6 rounded-2xl border-2 bg-slate-900 border-slate-800">
+          {/* Phase-Scoped OpsLeader Console Action Suite */}
+          <div className="p-6 rounded-2xl border bg-slate-900 border-slate-800">
             <h3 className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between">
               <span>🎖️ PHASE-SCOPED OPSLEADER CONSOLE BUTTONS</span>
-              <span className="text-xs text-amber-400">{phase} PERMISSIONS</span>
+              <span className="text-xs text-amber-400">{phase} ACTIONS</span>
             </h3>
             <p className="text-xs text-gray-400 mb-4">
               Verifies that only authorized OpsLeader action buttons appear for the current stage.
@@ -339,10 +409,22 @@ export default function WorkshopLifecycleBench() {
             <div className="flex flex-wrap gap-3 font-mono text-xs">
               {phase === 'RECRUITING' && (
                 <>
-                  <button onClick={() => addLog('DISPATCH: Opened Invite Agent Modal')} className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
+                  <button
+                    onClick={() => {
+                      setActiveModal('INVITE');
+                      addLog('ACTION: Triggered [Invite Agent Modal]');
+                    }}
+                    className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                  >
                     ➕ Invite Agent
                   </button>
-                  <button onClick={() => handleAdvancePhase('SETUP')} className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
+                  <button
+                    onClick={() => {
+                      handleAdvancePhase('SETUP');
+                      addLog('ACTION: Closed Recruitment -> Advanced to SETUP stage.');
+                    }}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                  >
                     🔒 Close Recruitment
                   </button>
                 </>
@@ -350,38 +432,77 @@ export default function WorkshopLifecycleBench() {
 
               {phase === 'SETUP' && (
                 <>
-                  <button onClick={() => addLog('DISPATCH: Opened Emergency Invite Modal')} className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
-                    ⚡ Emergency Invite
+                  <button
+                    onClick={() => {
+                      setActiveModal('RULES');
+                      addLog('ACTION: Opened [Bidirectional Match Rules Editor (A ⇔ B)]');
+                    }}
+                    className="bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                  >
+                    🚫 Match Rules (A ⇔ B)
                   </button>
-                  <button onClick={() => addLog('DISPATCH: Opened Bidirectional Matching Rules Modal')} className="bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
-                    🚫 Matching Rules ($A \iff B$)
-                  </button>
-                  <button onClick={() => handleAdvancePhase('ASSIGNED')} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
-                    🎲 Initiate Target Assignments
+                  <button
+                    onClick={() => {
+                      handleAdvancePhase('ASSIGNED');
+                      addLog('ACTION: Executed Sattolo Derangement -> Advanced to ASSIGNED stage.');
+                    }}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                  >
+                    🎲 Execute Sattolo Target Draw
                   </button>
                 </>
               )}
 
               {(phase === 'ASSIGNED' || phase === 'EXECUTED') && (
                 <>
-                  <button onClick={() => addLog('DISPATCH: Opened OpTeam Broadcast Alert Modal')} className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
-                    📢 Send OpTeam Broadcast
+                  <button
+                    onClick={() => {
+                      setActiveModal('BROADCAST');
+                      addLog('ACTION: Opened [OpTeam Broadcast Alert Modal]');
+                    }}
+                    className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                  >
+                    📢 OpTeam Broadcast Alert
                   </button>
-                  <button onClick={() => addLog('DISPATCH: Opened Target Swap Dropdown Modal')} className="bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
-                    🎯 Target Swap Console
+                  <button
+                    onClick={() => {
+                      setActiveModal('SWAP');
+                      addLog('ACTION: Opened [2-Way Cascade Target Swap Console]');
+                    }}
+                    className="bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                  >
+                    🎯 2-Way Target Swap Console
                   </button>
-                  <button onClick={() => handleAdvancePhase('COMPLETED')} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
-                    🏁 End Operation
+                  <button
+                    onClick={() => {
+                      handleAdvancePhase('COMPLETED');
+                      addLog('ACTION: Ended Operation -> Advanced to COMPLETED stage.');
+                    }}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                  >
+                    🏁 End Operation Event
                   </button>
                 </>
               )}
 
               {phase === 'COMPLETED' && (
                 <>
-                  <button onClick={() => addLog('DISPATCH: Opened Demerit Citation Console')} className="bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
+                  <button
+                    onClick={() => {
+                      setActiveModal('DEMERIT');
+                      addLog('ACTION: Opened [Demerit Penalty & Coal Citation Console]');
+                    }}
+                    className="bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                  >
                     ⚠️ Issue Demerit Citation
                   </button>
-                  <button onClick={() => addLog('DISPATCH: Opened AAR Debrief Photo Upload')} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer">
+                  <button
+                    onClick={() => {
+                      setActiveModal('AAR');
+                      addLog('ACTION: Opened [After-Action Report Debrief Photo Feed]');
+                    }}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                  >
                     📸 View AAR Debrief Feed
                   </button>
                 </>
@@ -389,15 +510,41 @@ export default function WorkshopLifecycleBench() {
             </div>
           </div>
 
+          {/* Modal Preview Staging Box (if active) */}
+          {activeModal && (
+            <div className="p-4 rounded-xl bg-slate-950 border border-amber-500/50 flex items-center justify-between">
+              <div className="text-xs font-mono text-amber-300">
+                <span className="font-bold">MODAL STAGED:</span> [{activeModal}] Dispatch handler confirmed active.
+              </div>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="text-xs text-gray-400 hover:text-white underline cursor-pointer"
+              >
+                Dismiss Preview
+              </button>
+            </div>
+          )}
+
           {/* Event Log Output Terminal */}
-          <div className="bg-slate-950 border border-gray-800 rounded-xl p-4 font-mono text-xs">
-            <div className="flex items-center justify-between text-gray-400 border-b border-gray-800 pb-2 mb-3">
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs">
+            <div className="flex items-center justify-between text-gray-400 border-b border-slate-800 pb-2 mb-3">
               <span>🖥️ SIMULATION EVENT LOG</span>
-              <button onClick={() => setEventLogs([])} className="text-[11px] text-gray-500 hover:text-red-400 cursor-pointer">Clear Terminal</button>
+              <button onClick={() => setEventLogs([])} className="text-[11px] text-gray-500 hover:text-rose-400 cursor-pointer">
+                Clear Terminal
+              </button>
             </div>
             <div className="h-32 overflow-y-auto space-y-1 text-slate-300">
               {eventLogs.map((log, idx) => (
-                <div key={idx} className={log.includes('ACTION') ? 'text-amber-300' : log.includes('TIME') ? 'text-sky-300' : 'text-gray-400'}>
+                <div
+                  key={idx}
+                  className={
+                    log.includes('ACTION')
+                      ? 'text-amber-300'
+                      : log.includes('TIME') || log.includes('PRESET')
+                      ? 'text-sky-300'
+                      : 'text-gray-400'
+                  }
+                >
                   {log}
                 </div>
               ))}
