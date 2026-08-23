@@ -10,10 +10,10 @@
 ### Quick Status Dashboard (Sprint W35: Aug 24 – Aug 31)
 - **Item 1: `/workshop/draw` Visual Playground**: ✅ DONE (Interactive SVG Graph, Presets & CSPRNG Trace)
 - **Item 2: `/workshop/lifecycle` 5-Stage Simulator**: ✅ DONE (Virtual Time-Shift Calendar, 4 Jumps & Countdown Badges)
-- **Item 3: `/workshop/scraper` Fast-Failover Bench**: ⏳ Planned
+- **Item 3: `/workshop/scraper` Fast-Failover Bench**: ✅ DONE (OpenGraph Scraper, SSRF Defense & Tracking Normalizer)
 - **Item 4: Design Token & Theme Gallery**: ⏳ Planned
 - **Item 5: Dual Manifest & Limit Validator**: ⏳ Planned
-- **Item 6: Milestone & Countdown Unit Tests**: ✅ DONE (52/52 Passing Tests across all suites)
+- **Item 6: Milestone & Countdown Unit Tests**: ✅ DONE (64/64 Passing Tests across all 5 suites)
 
 *For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W35.md](sprints/2026-W35.md).*
 
