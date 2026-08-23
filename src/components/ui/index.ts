@@ -4,3 +4,4 @@ export * from './Button';
 export * from './Badge';
 export * from './SectionHeader';
 export * from './FilterBar';
+export * from './SeasonalLightsStrand';

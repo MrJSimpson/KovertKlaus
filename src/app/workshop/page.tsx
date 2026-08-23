@@ -71,6 +71,14 @@ export default function WorkshopHubPage() {
       description:
         'Preview and test-fire live email dispatches across all 6 branded encrypted templates (Invitations, Target Reveals, Nudges, Onboarding, Broadcasts, Waitlist).',
     },
+    {
+      title: '🎨 Design Token & Theme Inspection Gallery',
+      path: '/workshop/theme',
+      badge: 'DESIGN SYSTEM',
+      color: 'border-rose-500/40 text-rose-300',
+      description:
+        'Compare Klaus Mode 🎄 vs Kovert Mode ❄️ across all 4 seasonal themes, animated light strands, typography, buttons, badges, and card tokens.',
+    },
   ];
 
   return (
