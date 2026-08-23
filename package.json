@@ -11,9 +11,12 @@
     "start:linux": "./start.sh",
     "stop:linux": "./stop.sh",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:setup": "prisma db push && tsx prisma/seed.ts",
+    "db:seed": "tsx --env-file=.env prisma/seed.ts",
+    "db:setup": "prisma db push && tsx --env-file=.env prisma/seed.ts",
     "lint": "eslint"
+  },
+  "prisma": {
+    "seed": "tsx --env-file=.env prisma/seed.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
