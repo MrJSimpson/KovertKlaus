@@ -20,7 +20,7 @@
 
 import { getSecureRandomInt } from './security';
 
-export const MIN_PARTICIPANTS = 5;
+export const MIN_PARTICIPANTS = 4;
 
 export interface FieldAgent {
   /** Unique user / member identifier */
@@ -120,7 +120,7 @@ export function isMatchBlocked(
  * @returns Array of 1-to-1 LinkedAssignment mappings
  * 
  * @throws {Error} If operation is White Elephant (digital draw forbidden).
- * @throws {Error} If fewer than 5 eligible operatives have attached wishlists.
+ * @throws {Error} If fewer than 4 eligible operatives have attached wishlists.
  * @throws {Error} If exclusion rules make valid derangement mathematically impossible (over-constrained).
  */
 export function executeLinkedListDraw(
@@ -310,7 +310,7 @@ export function evaluateDrawFeasibility(
       isFeasible: false,
       status: 'TOO_FEW_AGENTS',
       headline: '🎅 Workshop Roster Needs More Operatives!',
-      message: `Santa's Workshop requires at least ${MIN_PARTICIPANTS} active Elf Agents with attached Wishlists to launch a Secret Santa mission (${n}/${MIN_PARTICIPANTS} enlisted). Enlist more operatives to begin!`,
+      message: `Santa's Workshop requires at least ${MIN_PARTICIPANTS} active Elf Agents with attached Wishlists to launch a Secret Santa mission (${n}/${MIN_PARTICIPANTS} enlisted). Perfect for families and squads of 4 or more!`,
       themeColor: 'amber',
     };
   }

@@ -162,7 +162,7 @@ export function PreventativeMatchModal({
         </div>
 
         <p className={`text-xs mb-3 ${theme.textSubLabel}`}>
-          Specify pairs of operatives who <strong>cannot</strong> be assigned to each other. Rules are <strong>100% bidirectional</strong> (if Agent A cannot give to Agent B, Agent B cannot give to Agent A).
+          Specify pairs of operatives who <strong>cannot</strong> be assigned to each other. Rules are <strong>100% bidirectional</strong> (e.g. spouses/partners). KovertKlaus requires a minimum of 4 participants to preserve gifting mystery and ensure clean cyclical matches.
         </p>
 
         {/* Festive Live Feasibility Status Banner */}

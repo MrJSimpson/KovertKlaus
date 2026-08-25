@@ -97,6 +97,7 @@ export default function FeaturesPage() {
             <ul className={`text-xs space-y-2 font-mono ${isDarkMode ? 'text-sky-300' : 'text-emerald-800'}`}>
               <li>✓ Guaranteed 1-to-1 cyclic mapping (A₁ ➔ A₂ ➔ ... ➔ A♙ ➔ A₁)</li>
               <li>✓ Zero self-assignment probability</li>
+              <li>✓ Optimized for groups of 4 or more — provides genuine secrecy, surprising pairings, and intelligent couple filtering without awkward 3-person spoilers</li>
               <li>✓ Zero chain predictability — knowing your assignment reveals zero mathematical clues about other pairs</li>
             </ul>
           </div>

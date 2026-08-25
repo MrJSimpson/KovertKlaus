@@ -485,7 +485,7 @@ export function AppHomeLanding() {
             </h1>
 
             <p className={`text-lg max-w-2xl leading-relaxed ${theme.heroSubtext}`}>
-              Bring your family, friends, or co-workers together! Create a gift exchange in 60 seconds, build your custom wishlist, and enjoy a completely stress-free experience from start to delivery.
+              Bring your family, friends, or co-workers together! Perfect for squads and families of 4 or more operatives. Create a gift exchange in 60 seconds, build your custom wishlist, and enjoy a completely stress-free experience from start to delivery.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-4">
@@ -593,7 +593,7 @@ export function AppHomeLanding() {
               </div>
               <h3 className="text-xl font-bold mb-2">Create Your Exchange</h3>
               <p className={`text-xs leading-relaxed ${theme.textSubLabel}`}>
-                Set a gift budget ($25–$50) and exchange date in 60 seconds. Invite your group with a simple code or direct link.
+                Set a gift budget ($25–$50) and exchange date in 60 seconds. Perfect for groups of 4 or more! Invite your family and friends with a simple code or direct link.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-stone-200 dark:border-slate-800 text-[11px] font-bold text-red-700 dark:text-sky-400">

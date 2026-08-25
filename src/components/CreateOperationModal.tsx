@@ -58,8 +58,8 @@ export function CreateOperationModal({
         throw new Error('Operation title is required.');
       }
 
-      if (maxParticipants < 2 || maxParticipants > 25) {
-        throw new Error('Max Operative capacity must be between 2 and 25 agents.');
+      if (maxParticipants < 4 || maxParticipants > 25) {
+        throw new Error('Max Operative capacity must be between 4 and 25 agents. (KovertKlaus is optimized for families and groups of 4 or more!)');
       }
 
       if (isLocalOnly && !eventLocation.trim()) {
@@ -302,11 +302,11 @@ export function CreateOperationModal({
 
           {/* Max Participants */}
           <div>
-            <label className="block text-slate-500 mb-1">Max Operatives * (Required - Max 25)</label>
+            <label className="block text-slate-500 mb-1">Max Operatives * (Min 4, Max 25 — Ideal for squads &amp; families of 4+)</label>
             <input
               type="number"
               required
-              min={2}
+              min={4}
               max={25}
               value={maxParticipants}
               onChange={(e) => setMaxParticipants(Number(e.target.value))}

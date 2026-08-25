@@ -68,18 +68,17 @@ test('Exclusion Rule Index Pre-Compilation', async (t) => {
   });
 });
 
-test('Linked-List Protocol - Cyclic Derangement (5 agents)', () => {
+test('Linked-List Protocol - Cyclic Derangement (4 agents)', () => {
   const agents: FieldAgent[] = [
     { id: '1', name: 'Agent Alpha', hasWishlistAttached: true },
     { id: '2', name: 'Agent Bravo', hasWishlistAttached: true },
     { id: '3', name: 'Agent Charlie', hasWishlistAttached: true },
     { id: '4', name: 'Agent Delta', hasWishlistAttached: true },
-    { id: '5', name: 'Agent Echo', hasWishlistAttached: true },
   ];
 
   const results = executeLinkedListDraw(agents);
 
-  assert.strictEqual(results.length, 5);
+  assert.strictEqual(results.length, 4);
 
   // Verify no self-assignment
   for (const { agentId, targetId } of results) {
@@ -90,8 +89,8 @@ test('Linked-List Protocol - Cyclic Derangement (5 agents)', () => {
   const givers = new Set(results.map((r) => r.agentId));
   const receivers = new Set(results.map((r) => r.targetId));
 
-  assert.strictEqual(givers.size, 5);
-  assert.strictEqual(receivers.size, 5);
+  assert.strictEqual(givers.size, 4);
+  assert.strictEqual(receivers.size, 4);
 });
 
 test('Linked-List Protocol - Drops agents without wishlists when requested', () => {
@@ -101,12 +100,11 @@ test('Linked-List Protocol - Drops agents without wishlists when requested', () 
     { id: '3', name: 'Agent Charlie', hasWishlistAttached: true },
     { id: '4', name: 'Agent Delta', hasWishlistAttached: true },
     { id: '5', name: 'Agent Echo', hasWishlistAttached: true },
-    { id: '6', name: 'Agent Foxtrot', hasWishlistAttached: true },
   ];
 
   const results = executeLinkedListDraw(agents, { dropAgentsWithoutWishlists: true });
 
-  assert.strictEqual(results.length, 5);
+  assert.strictEqual(results.length, 4);
   const givers = results.map((r) => r.agentId);
   assert.ok(!givers.includes('2'), 'Agent Bravo without wishlist was not dropped!');
 });
@@ -259,13 +257,12 @@ test('Target Swap Engine - Executes 2-Way Cascade Target Swap', () => {
 });
 
 test('Feasibility Evaluator - evaluateDrawFeasibility', async (t) => {
-  await t.test('Identifies optimal feasibility for standard groups of >=5 agents', () => {
+  await t.test('Identifies optimal feasibility for standard groups of >=4 agents', () => {
     const agents: FieldAgent[] = [
       { id: '1', name: 'Joshua', hasWishlistAttached: true },
       { id: '2', name: 'Shannon', hasWishlistAttached: true },
       { id: '3', name: 'Zach', hasWishlistAttached: true },
       { id: '4', name: 'Matthew', hasWishlistAttached: true },
-      { id: '5', name: 'Leslie', hasWishlistAttached: true },
     ];
     const exclusions: ExclusionRuleInput[] = [{ agentId: '1', restrictedAgentId: '2' }];
     const res = evaluateDrawFeasibility(agents, exclusions);
@@ -276,12 +273,11 @@ test('Feasibility Evaluator - evaluateDrawFeasibility', async (t) => {
     assert.match(res.headline, /Sleigh Cleared/i);
   });
 
-  await t.test('Catches groups with fewer than 5 active agents', () => {
+  await t.test('Catches groups with fewer than 4 active agents', () => {
     const agents: FieldAgent[] = [
       { id: '1', name: 'Elf A', hasWishlistAttached: true },
       { id: '2', name: 'Elf B', hasWishlistAttached: true },
       { id: '3', name: 'Elf C', hasWishlistAttached: true },
-      { id: '4', name: 'Elf D', hasWishlistAttached: true },
     ];
     const res = evaluateDrawFeasibility(agents, []);
 
@@ -297,13 +293,11 @@ test('Feasibility Evaluator - evaluateDrawFeasibility', async (t) => {
       { id: '2', name: 'Elf B', hasWishlistAttached: true },
       { id: '3', name: 'Elf C', hasWishlistAttached: true },
       { id: '4', name: 'Elf D', hasWishlistAttached: true },
-      { id: '5', name: 'Elf E', hasWishlistAttached: true },
     ];
     const exclusions: ExclusionRuleInput[] = [
       { agentId: '1', restrictedAgentId: '2' },
       { agentId: '1', restrictedAgentId: '3' },
       { agentId: '1', restrictedAgentId: '4' },
-      { agentId: '1', restrictedAgentId: '5' },
     ];
     const res = evaluateDrawFeasibility(agents, exclusions);
 

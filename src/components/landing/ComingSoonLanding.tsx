@@ -182,7 +182,7 @@ export function ComingSoonLanding() {
               🎯 <span className="text-slate-300 font-bold">Target Launch: Nov 1, 2026</span>
             </span>
             <span className="inline-flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 px-3 py-1 rounded-full">
-              🎁 <span className="text-emerald-400 font-bold">100% Free Tier</span>
+              🎁 <span className="text-emerald-400 font-bold">100% Free for Families (4+ Operatives)</span>
             </span>
             <span className="inline-flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 px-3 py-1 rounded-full">
               ⚡ <span className="text-sky-400 font-bold">&lt; 60s Setup</span>
@@ -247,9 +247,9 @@ export function ComingSoonLanding() {
           </div>
           <div className="bg-slate-900/60 border border-slate-800/60 p-4 rounded-xl space-y-1.5">
             <span className="text-xl">🔀</span>
-            <h4 className="font-bold text-slate-200 text-sm">Derangement Logic</h4>
+            <h4 className="font-bold text-slate-200 text-sm">Derangement Logic (4+ Groups)</h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Cryptographic Sattolo cyclic draws guarantee no self-draws and enforce exclusion blocks.
+              Cryptographic Sattolo cyclic draws guarantee no self-draws and enforce exclusion blocks for groups of 4+.
             </p>
           </div>
           <div className="bg-slate-900/60 border border-slate-800/60 p-4 rounded-xl space-y-1.5">

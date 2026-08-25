@@ -1162,7 +1162,7 @@ export default {
             const ex = await db.exchange.findUnique({ where: { id: operationId }, include: { members: true, exclusionRules: true, organizer: true } });
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can trigger draws' }, { status: 403 });
-            if (ex.members.length < 5) return Response.json({ error: 'At least 5 members required' }, { status: 400 });
+            if (ex.members.length < 4) return Response.json({ error: 'At least 4 members required. Perfect for families and groups of 4 or more!' }, { status: 400 });
 
             const agents = ex.members.map((m) => ({ id: m.userId, name: m.userId, hasWishlistAttached: !!m.wishlistId }));
             const exclusionRules = ex.exclusionRules.map((r) => ({ agentId: r.memberId, restrictedAgentId: r.restrictedMemberId }));
