@@ -20,6 +20,8 @@
 
 import { getSecureRandomInt } from './security';
 
+export const MIN_PARTICIPANTS = 5;
+
 export interface FieldAgent {
   /** Unique user / member identifier */
   id: string;
@@ -118,7 +120,7 @@ export function isMatchBlocked(
  * @returns Array of 1-to-1 LinkedAssignment mappings
  * 
  * @throws {Error} If operation is White Elephant (digital draw forbidden).
- * @throws {Error} If fewer than 2 eligible operatives have attached wishlists.
+ * @throws {Error} If fewer than 5 eligible operatives have attached wishlists.
  * @throws {Error} If exclusion rules make valid derangement mathematically impossible (over-constrained).
  */
 export function executeLinkedListDraw(
@@ -139,9 +141,9 @@ export function executeLinkedListDraw(
     eligibleAgents = eligibleAgents.filter((a) => a.hasWishlistAttached);
   }
 
-  if (eligibleAgents.length < 2) {
+  if (eligibleAgents.length < MIN_PARTICIPANTS) {
     throw new Error(
-      "Target assignment requires at least 2 active Field Agents with attached wishlists."
+      `Target assignment requires at least ${MIN_PARTICIPANTS} active Field Agents with attached wishlists.`
     );
   }
 
@@ -303,28 +305,17 @@ export function evaluateDrawFeasibility(
   const eligibleAgents = agents.filter((a) => a.hasWishlistAttached !== false);
   const n = eligibleAgents.length;
 
-  if (n < 2) {
+  if (n < MIN_PARTICIPANTS) {
     return {
       isFeasible: false,
       status: 'TOO_FEW_AGENTS',
-      headline: '🎅 Workshop Roster Needs Operatives!',
-      message: 'Santa needs at least 2 active Elf Agents with attached Wishlists before launching Secret Santa assignments.',
+      headline: '🎅 Workshop Roster Needs More Operatives!',
+      message: `Santa's Workshop requires at least ${MIN_PARTICIPANTS} active Elf Agents with attached Wishlists to launch a Secret Santa mission (${n}/${MIN_PARTICIPANTS} enlisted). Enlist more operatives to begin!`,
       themeColor: 'amber',
     };
   }
 
   const blockedSet = buildExclusionIndex(exclusionRules);
-
-  // Special Case: 3-Agent Paradox (In N=3, any exclusion rule prevents a single 3-cycle)
-  if (n === 3 && exclusionRules.length > 0) {
-    return {
-      isFeasible: false,
-      status: 'THREE_AGENT_PARADOX',
-      headline: '☃️ The 3-Elf Paradox! ❄️',
-      message: 'In a 3-agent mission, gifts must flow in a continuous 3-way circle (A ➔ B ➔ C ➔ A). Adding a blocked pair leaves an elf out in the cold! Add a 4th operative or remove the couple restriction.',
-      themeColor: 'rose',
-    };
-  }
 
   // Check if any agent is completely trapped (has 0 possible targets)
   for (const agent of eligibleAgents) {

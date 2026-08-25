@@ -165,8 +165,8 @@ export async function POST(request: Request) {
         }, { status: 409 });
       }
 
-      if (ex.members.length < 2) {
-        return NextResponse.json({ error: 'At least 2 members are required to execute a target draw' }, { status: 400 });
+      if (ex.members.length < 5) {
+        return NextResponse.json({ error: 'At least 5 members are required to execute a target draw' }, { status: 400 });
       }
 
       const agentsForDraw = ex.members.map((a) => ({

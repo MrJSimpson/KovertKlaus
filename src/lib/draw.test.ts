@@ -68,17 +68,18 @@ test('Exclusion Rule Index Pre-Compilation', async (t) => {
   });
 });
 
-test('Linked-List Protocol - Cyclic Derangement (4 agents)', () => {
+test('Linked-List Protocol - Cyclic Derangement (5 agents)', () => {
   const agents: FieldAgent[] = [
     { id: '1', name: 'Agent Alpha', hasWishlistAttached: true },
     { id: '2', name: 'Agent Bravo', hasWishlistAttached: true },
     { id: '3', name: 'Agent Charlie', hasWishlistAttached: true },
     { id: '4', name: 'Agent Delta', hasWishlistAttached: true },
+    { id: '5', name: 'Agent Echo', hasWishlistAttached: true },
   ];
 
   const results = executeLinkedListDraw(agents);
 
-  assert.strictEqual(results.length, 4);
+  assert.strictEqual(results.length, 5);
 
   // Verify no self-assignment
   for (const { agentId, targetId } of results) {
@@ -89,8 +90,8 @@ test('Linked-List Protocol - Cyclic Derangement (4 agents)', () => {
   const givers = new Set(results.map((r) => r.agentId));
   const receivers = new Set(results.map((r) => r.targetId));
 
-  assert.strictEqual(givers.size, 4);
-  assert.strictEqual(receivers.size, 4);
+  assert.strictEqual(givers.size, 5);
+  assert.strictEqual(receivers.size, 5);
 });
 
 test('Linked-List Protocol - Drops agents without wishlists when requested', () => {
@@ -98,11 +99,14 @@ test('Linked-List Protocol - Drops agents without wishlists when requested', () 
     { id: '1', name: 'Agent Alpha', hasWishlistAttached: true },
     { id: '2', name: 'Agent Bravo', hasWishlistAttached: false },
     { id: '3', name: 'Agent Charlie', hasWishlistAttached: true },
+    { id: '4', name: 'Agent Delta', hasWishlistAttached: true },
+    { id: '5', name: 'Agent Echo', hasWishlistAttached: true },
+    { id: '6', name: 'Agent Foxtrot', hasWishlistAttached: true },
   ];
 
   const results = executeLinkedListDraw(agents, { dropAgentsWithoutWishlists: true });
 
-  assert.strictEqual(results.length, 2);
+  assert.strictEqual(results.length, 5);
   const givers = results.map((r) => r.agentId);
   assert.ok(!givers.includes('2'), 'Agent Bravo without wishlist was not dropped!');
 });
@@ -111,6 +115,9 @@ test('Linked-List Protocol - Rejects digital draw for White Elephant', () => {
   const agents: FieldAgent[] = [
     { id: '1', name: 'Agent Alpha', hasWishlistAttached: true },
     { id: '2', name: 'Agent Bravo', hasWishlistAttached: true },
+    { id: '3', name: 'Agent Charlie', hasWishlistAttached: true },
+    { id: '4', name: 'Agent Delta', hasWishlistAttached: true },
+    { id: '5', name: 'Agent Echo', hasWishlistAttached: true },
   ];
 
   assert.throws(() => {
@@ -124,6 +131,7 @@ test('Linked-List Protocol - Respects Bidirectional Exclusion Rules', () => {
     { id: '2', name: 'Han', hasWishlistAttached: true },
     { id: '3', name: 'Leia', hasWishlistAttached: true },
     { id: '4', name: 'Luke', hasWishlistAttached: true },
+    { id: '5', name: 'Lando', hasWishlistAttached: true },
   ];
 
   // Block Chewie <-> Han
@@ -180,11 +188,17 @@ test('Linked-List Protocol - Throws Error on Over-Constrained Operations', () =>
   const agents: FieldAgent[] = [
     { id: '1', name: 'Chewie', hasWishlistAttached: true },
     { id: '2', name: 'Han', hasWishlistAttached: true },
+    { id: '3', name: 'Leia', hasWishlistAttached: true },
+    { id: '4', name: 'Luke', hasWishlistAttached: true },
+    { id: '5', name: 'Lando', hasWishlistAttached: true },
   ];
 
-  // Impossible exclusion rule for 2 agents
+  // Impossible hub exclusion rule: Chewie blocked against all other 4 agents
   const exclusions: ExclusionRuleInput[] = [
     { agentId: '1', restrictedAgentId: '2' },
+    { agentId: '1', restrictedAgentId: '3' },
+    { agentId: '1', restrictedAgentId: '4' },
+    { agentId: '1', restrictedAgentId: '5' },
   ];
 
   assert.throws(() => {
@@ -198,13 +212,15 @@ test('Candidate Filtering - getValidSwapCandidates excludes self, current target
     { id: '2', name: 'Han', hasWishlistAttached: true },
     { id: '3', name: 'Leia', hasWishlistAttached: true },
     { id: '4', name: 'Luke', hasWishlistAttached: true },
+    { id: '5', name: 'Lando', hasWishlistAttached: true },
   ];
 
   const currentAssignments: LinkedAssignment[] = [
     { agentId: '1', targetId: '2' }, // Chewie -> Han
-    { agentId: '2', targetId: '1' }, // Han -> Chewie
+    { agentId: '2', targetId: '3' }, // Han -> Leia
     { agentId: '3', targetId: '4' }, // Leia -> Luke
-    { agentId: '4', targetId: '3' }, // Luke -> Leia
+    { agentId: '4', targetId: '5' }, // Luke -> Lando
+    { agentId: '5', targetId: '1' }, // Lando -> Chewie
   ];
 
   // Block Chewie <-> Luke
@@ -212,16 +228,16 @@ test('Candidate Filtering - getValidSwapCandidates excludes self, current target
     { agentId: '1', restrictedAgentId: '4' },
   ];
 
-  // Ask for candidates for Chewie (id '1'), whose current target is Han (id '2')
-  const candidates = getValidSwapCandidates(agents, currentAssignments, '1', exclusions);
-
-  // Candidates should EXCLUDE:
+  // Candidates for Chewie (id '1') should EXCLUDE:
   // - Chewie (self, id '1')
   // - Han (current target, id '2')
   // - Luke (exclusion rule, id '4')
-  // ONLY candidate remaining should be Leia (id '3')
-  assert.strictEqual(candidates.length, 1);
-  assert.strictEqual(candidates[0].id, '3');
+  // Remaining valid candidates: Leia (id '3') and Lando (id '5')
+  const candidates = getValidSwapCandidates(agents, currentAssignments, '1', exclusions);
+
+  assert.strictEqual(candidates.length, 2);
+  assert.ok(candidates.some((c) => c.id === '3'));
+  assert.ok(candidates.some((c) => c.id === '5'));
 });
 
 test('Target Swap Engine - Executes 2-Way Cascade Target Swap', () => {
@@ -243,12 +259,13 @@ test('Target Swap Engine - Executes 2-Way Cascade Target Swap', () => {
 });
 
 test('Feasibility Evaluator - evaluateDrawFeasibility', async (t) => {
-  await t.test('Identifies optimal feasibility for standard groups', () => {
+  await t.test('Identifies optimal feasibility for standard groups of >=5 agents', () => {
     const agents: FieldAgent[] = [
       { id: '1', name: 'Joshua', hasWishlistAttached: true },
       { id: '2', name: 'Shannon', hasWishlistAttached: true },
       { id: '3', name: 'Zach', hasWishlistAttached: true },
       { id: '4', name: 'Matthew', hasWishlistAttached: true },
+      { id: '5', name: 'Leslie', hasWishlistAttached: true },
     ];
     const exclusions: ExclusionRuleInput[] = [{ agentId: '1', restrictedAgentId: '2' }];
     const res = evaluateDrawFeasibility(agents, exclusions);
@@ -259,8 +276,13 @@ test('Feasibility Evaluator - evaluateDrawFeasibility', async (t) => {
     assert.match(res.headline, /Sleigh Cleared/i);
   });
 
-  await t.test('Catches groups with fewer than 2 active agents', () => {
-    const agents: FieldAgent[] = [{ id: '1', name: 'Solo Elf', hasWishlistAttached: true }];
+  await t.test('Catches groups with fewer than 5 active agents', () => {
+    const agents: FieldAgent[] = [
+      { id: '1', name: 'Elf A', hasWishlistAttached: true },
+      { id: '2', name: 'Elf B', hasWishlistAttached: true },
+      { id: '3', name: 'Elf C', hasWishlistAttached: true },
+      { id: '4', name: 'Elf D', hasWishlistAttached: true },
+    ];
     const res = evaluateDrawFeasibility(agents, []);
 
     assert.strictEqual(res.isFeasible, false);
@@ -269,32 +291,19 @@ test('Feasibility Evaluator - evaluateDrawFeasibility', async (t) => {
     assert.match(res.headline, /Workshop Roster/i);
   });
 
-  await t.test('Catches the 3-agent couple paradox', () => {
-    const agents: FieldAgent[] = [
-      { id: '1', name: 'Joshua', hasWishlistAttached: true },
-      { id: '2', name: 'Shannon', hasWishlistAttached: true },
-      { id: '3', name: 'Zach', hasWishlistAttached: true },
-    ];
-    const exclusions: ExclusionRuleInput[] = [{ agentId: '1', restrictedAgentId: '2' }];
-    const res = evaluateDrawFeasibility(agents, exclusions);
-
-    assert.strictEqual(res.isFeasible, false);
-    assert.strictEqual(res.status, 'THREE_AGENT_PARADOX');
-    assert.strictEqual(res.themeColor, 'rose');
-    assert.match(res.headline, /3-Elf Paradox/i);
-  });
-
   await t.test('Identifies trapped operatives with 0 valid recipients', () => {
     const agents: FieldAgent[] = [
       { id: '1', name: 'Trapped Elf', hasWishlistAttached: true },
       { id: '2', name: 'Elf B', hasWishlistAttached: true },
       { id: '3', name: 'Elf C', hasWishlistAttached: true },
       { id: '4', name: 'Elf D', hasWishlistAttached: true },
+      { id: '5', name: 'Elf E', hasWishlistAttached: true },
     ];
     const exclusions: ExclusionRuleInput[] = [
       { agentId: '1', restrictedAgentId: '2' },
       { agentId: '1', restrictedAgentId: '3' },
       { agentId: '1', restrictedAgentId: '4' },
+      { agentId: '1', restrictedAgentId: '5' },
     ];
     const res = evaluateDrawFeasibility(agents, exclusions);
 
