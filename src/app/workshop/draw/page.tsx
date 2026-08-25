@@ -38,6 +38,12 @@ interface PresetScenario {
 }
 
 /**
+ * Threshold for visual graph rendering. Rosters > MAX_GRAPH_AGENTS switch to searchable paginated list.
+ */
+export const MAX_GRAPH_AGENTS = 20;
+export const MATCH_PAGE_SIZE = 20;
+
+/**
  * Pre-configured test scenarios for 1-click instant simulation.
  */
 const PRESET_SCENARIOS: PresetScenario[] = [
@@ -79,7 +85,7 @@ const PRESET_SCENARIOS: PresetScenario[] = [
   {
     id: 'squadron-twelve',
     name: 'Squadron Alpha Deployment',
-    badge: 'LARGE SQUADRON (12 AGENTS)',
+    badge: '12 AGENTS (GRAPH MODE)',
     badgeColor: 'bg-sky-950 text-sky-300 border-sky-500/40',
     description: '12 operatives across 4 departments with multiple cross-department blocks.',
     agents: [
@@ -100,6 +106,24 @@ const PRESET_SCENARIOS: PresetScenario[] = [
       { agentId: '20', restrictedAgentId: '21' },
       { agentId: '22', restrictedAgentId: '23' },
       { agentId: '24', restrictedAgentId: '25' },
+    ],
+  },
+  {
+    id: 'mega-squadron-24',
+    name: 'Mega Squadron (24 Agents)',
+    badge: '24 AGENTS (>20 ROSTER MODE)',
+    badgeColor: 'bg-amber-950 text-amber-300 border-amber-500/40',
+    description: '24 operatives demonstrating the searchable 20-per-page paginated roster view.',
+    agents: Array.from({ length: 24 }, (_, i) => ({
+      id: `agent-${i + 1}`,
+      name: `Operative ${String.fromCharCode(65 + (i % 26))}${i >= 26 ? Math.floor(i / 26) : ''} Simpson`,
+      codename: `Klaus-${i + 1}`,
+      hasWishlistAttached: true,
+    })),
+    exclusionRules: [
+      { agentId: 'agent-1', restrictedAgentId: 'agent-2' },
+      { agentId: 'agent-3', restrictedAgentId: 'agent-4' },
+      { agentId: 'agent-5', restrictedAgentId: 'agent-6' },
     ],
   },
   {
@@ -192,6 +216,9 @@ export default function WorkshopDrawBench() {
   const [showTraceModal, setShowTraceModal] = useState(false);
   const [drawTimestamp, setDrawTimestamp] = useState<number | null>(null);
 
+  const [matchSearchQuery, setMatchSearchQuery] = useState('');
+  const [matchCurrentPage, setMatchCurrentPage] = useState(1);
+
   const handleLoadPreset = (preset: PresetScenario) => {
     setActivePresetId(preset.id);
     setAgents(preset.agents);
@@ -201,6 +228,8 @@ export default function WorkshopDrawBench() {
     setSwapSuccessMsg(null);
     setOriginatorId('');
     setSelectedNewTargetId('');
+    setMatchSearchQuery('');
+    setMatchCurrentPage(1);
   };
 
   const addAgent = (e: React.FormEvent) => {
@@ -218,6 +247,7 @@ export default function WorkshopDrawBench() {
     setNewAgentCodename('');
     setActivePresetId('custom');
     setAssignments(null);
+    setMatchCurrentPage(1);
   };
 
   const removeAgent = (id: string) => {
@@ -225,6 +255,7 @@ export default function WorkshopDrawBench() {
     setExclusionRules(exclusionRules.filter((r) => r.agentId !== id && r.restrictedAgentId !== id));
     setActivePresetId('custom');
     setAssignments(null);
+    setMatchCurrentPage(1);
   };
 
   const handleAddExclusionRule = (e: React.FormEvent) => {
@@ -312,6 +343,33 @@ export default function WorkshopDrawBench() {
     if (!assignments || !originatorId) return [];
     return getValidSwapCandidates(agents, assignments, originatorId, exclusionRules);
   }, [agents, assignments, originatorId, exclusionRules]);
+
+  const isLargeRoster = agents.length > MAX_GRAPH_AGENTS;
+
+  const filteredMatches = useMemo(() => {
+    if (!assignments) return [];
+    if (!matchSearchQuery.trim()) return assignments;
+    const q = matchSearchQuery.toLowerCase().trim();
+    return assignments.filter(({ agentId, targetId }) => {
+      const giver = agents.find((a) => a.id === agentId);
+      const receiver = agents.find((a) => a.id === targetId);
+      return (
+        (giver?.name && giver.name.toLowerCase().includes(q)) ||
+        (giver?.codename && giver.codename.toLowerCase().includes(q)) ||
+        (receiver?.name && receiver.name.toLowerCase().includes(q)) ||
+        (receiver?.codename && receiver.codename.toLowerCase().includes(q))
+      );
+    });
+  }, [assignments, agents, matchSearchQuery]);
+
+  const totalMatchPages = useMemo(() => {
+    return Math.ceil(filteredMatches.length / MATCH_PAGE_SIZE) || 1;
+  }, [filteredMatches]);
+
+  const paginatedMatches = useMemo(() => {
+    const startIndex = (matchCurrentPage - 1) * MATCH_PAGE_SIZE;
+    return filteredMatches.slice(startIndex, startIndex + MATCH_PAGE_SIZE);
+  }, [filteredMatches, matchCurrentPage]);
 
   const SVG_SIZE = 560;
   const SVG_CENTER = SVG_SIZE / 2;
@@ -577,35 +635,49 @@ export default function WorkshopDrawBench() {
           )}
 
           <div className="p-6 rounded-3xl border-2 bg-slate-900 border-emerald-500/30 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
               <div>
                 <h2 className="text-sm font-black text-white font-mono flex items-center gap-2">
-                  <span>🎨 INTERACTIVE CYCLIC GRAPH CANVAS</span>
+                  <span>
+                    {!isLargeRoster
+                      ? '🎨 INTERACTIVE CYCLIC GRAPH CANVAS'
+                      : `📋 SEARCHABLE MATCH ROSTER (${agents.length} Operatives)`}
+                  </span>
                 </h2>
                 <p className="text-[11px] text-gray-400 font-mono mt-0.5">
-                  Click any node to stage as Originating Operator for 2-way swapping
+                  {!isLargeRoster
+                    ? 'Click any node to stage as Originating Operator for 2-way swapping (active for ≤20 agents)'
+                    : `Displaying searchable match list (${MATCH_PAGE_SIZE} per page) replacing graph canvas for rosters > 20 participants`}
                 </p>
               </div>
-              <div className="flex items-center gap-3 text-[10px] font-mono">
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500"></span> Gift Arrow (A → B)
-                </span>
-                <span className="flex items-center gap-1 text-purple-400">
-                  <span className="h-2 w-2 rounded-full bg-purple-500"></span> Blocked (A ⇔ B)
-                </span>
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                {!isLargeRoster ? (
+                  <>
+                    <span className="flex items-center gap-1 text-emerald-400">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500"></span> Gift Arrow (A → B)
+                    </span>
+                    <span className="flex items-center gap-1 text-purple-400">
+                      <span className="h-2 w-2 rounded-full bg-purple-500"></span> Blocked (A ⇔ B)
+                    </span>
+                  </>
+                ) : (
+                  <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-500/40">
+                    ROSTER MODE (&gt;20)
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="relative w-full flex items-center justify-center bg-slate-950 rounded-2xl border border-slate-800/80 p-4 overflow-hidden">
+            <div className="relative w-full flex items-center justify-center bg-slate-950 rounded-2xl border border-slate-800/80 p-4 overflow-hidden min-h-[380px]">
               {!assignments ? (
                 <div className="py-24 text-center space-y-3 font-mono text-xs text-gray-500">
                   <div className="text-4xl animate-bounce">🎁</div>
                   <div className="text-gray-300 font-bold">No Active Assignment Cycle Generated</div>
                   <p className="max-w-sm mx-auto text-[11px] text-gray-500">
-                    Click "RUN CSPRNG SATTOLO DERANGEMENT" above to compute a single unbroken gift cycle.
+                    Click &quot;RUN CSPRNG SATTOLO DERANGEMENT&quot; above to compute a single unbroken gift cycle.
                   </p>
                 </div>
-              ) : (
+              ) : !isLargeRoster ? (
                 <svg
                   viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`}
                   className="w-full max-w-[500px] h-auto select-none"
@@ -762,6 +834,127 @@ export default function WorkshopDrawBench() {
                     );
                   })}
                 </svg>
+              ) : (
+                <div className="w-full space-y-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 p-3 rounded-xl font-mono text-xs">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={matchSearchQuery}
+                        onChange={(e) => {
+                          setMatchSearchQuery(e.target.value);
+                          setMatchCurrentPage(1);
+                        }}
+                        placeholder="🔍 Search matches by agent name or codename..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 font-mono"
+                      />
+                      {matchSearchQuery && (
+                        <button
+                          onClick={() => {
+                            setMatchSearchQuery('');
+                            setMatchCurrentPage(1);
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-gray-400 font-bold whitespace-nowrap">
+                      Showing {filteredMatches.length === 0 ? 0 : (matchCurrentPage - 1) * MATCH_PAGE_SIZE + 1} -{' '}
+                      {Math.min(matchCurrentPage * MATCH_PAGE_SIZE, filteredMatches.length)} of {filteredMatches.length} Matches
+                    </div>
+                  </div>
+
+                  {filteredMatches.length === 0 ? (
+                    <div className="py-12 text-center text-gray-400 font-mono text-xs">
+                      No matches found for &quot;{matchSearchQuery}&quot;.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 gap-2 max-h-[440px] overflow-y-auto pr-1">
+                        {paginatedMatches.map(({ agentId, targetId }, idx) => {
+                          const giver = agents.find((a) => a.id === agentId);
+                          const receiver = agents.find((a) => a.id === targetId);
+                          const isSelectedOriginator = agentId === originatorId;
+                          const isHovered = hoveredAgentId === agentId || hoveredAgentId === targetId;
+
+                          return (
+                            <div
+                              key={`match-${agentId}-${targetId}`}
+                              onClick={() => {
+                                setOriginatorId(agentId);
+                                setSelectedNewTargetId('');
+                              }}
+                              onMouseEnter={() => setHoveredAgentId(agentId)}
+                              onMouseLeave={() => setHoveredAgentId(null)}
+                              className={`p-3 rounded-xl border text-xs font-mono transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                                isSelectedOriginator
+                                  ? 'bg-amber-950/40 border-amber-500 shadow-md ring-1 ring-amber-500/50'
+                                  : isHovered
+                                  ? 'bg-slate-900 border-sky-500/50'
+                                  : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <span className="text-[10px] font-bold text-gray-500 w-7 shrink-0">
+                                  #{(matchCurrentPage - 1) * MATCH_PAGE_SIZE + idx + 1}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-white font-bold truncate block">{giver?.name || 'Unknown'}</span>
+                                  <span className="text-[10px] text-emerald-400 font-semibold">{giver?.codename || 'No Codename'}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-center px-2 text-amber-400 font-black shrink-0">
+                                <span>➔</span>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-white font-bold truncate block">{receiver?.name || 'Unknown'}</span>
+                                  <span className="text-[10px] text-sky-400 font-semibold">{receiver?.codename || 'No Codename'}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  className={`text-[10px] font-bold px-2 py-1 rounded border transition-colors shrink-0 ${
+                                    isSelectedOriginator
+                                      ? 'bg-amber-500 text-slate-950 border-amber-400 font-black'
+                                      : 'bg-slate-900 text-gray-300 border-slate-700 hover:border-amber-500/60 hover:text-amber-300'
+                                  }`}
+                                >
+                                  {isSelectedOriginator ? 'Staged' : 'Select'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {totalMatchPages > 1 && (
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs font-mono">
+                          <button
+                            onClick={() => setMatchCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={matchCurrentPage === 1}
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 transition-colors"
+                          >
+                            ← Prev (20)
+                          </button>
+                          <span className="text-gray-400 font-bold">
+                            Page {matchCurrentPage} of {totalMatchPages}
+                          </span>
+                          <button
+                            onClick={() => setMatchCurrentPage((p) => Math.min(totalMatchPages, p + 1))}
+                            disabled={matchCurrentPage === totalMatchPages}
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 transition-colors"
+                          >
+                            Next (20) →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
