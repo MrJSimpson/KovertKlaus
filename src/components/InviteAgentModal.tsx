@@ -8,6 +8,7 @@ interface InviteAgentModalProps {
   onClose: () => void;
   operationId: string;
   operationTitle: string;
+  operationCode?: string;
   opsLeaderUserId: string;
   onSuccess?: () => void;
 }
@@ -17,6 +18,7 @@ export function InviteAgentModal({
   onClose,
   operationId,
   operationTitle,
+  operationCode,
   opsLeaderUserId,
   onSuccess,
 }: InviteAgentModalProps) {
@@ -25,8 +27,21 @@ export function InviteAgentModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
+
+  const joinUrl = typeof window !== 'undefined' && operationCode
+    ? `${window.location.origin}/exchange/${operationCode}`
+    : `https://kovertklaus.com/exchange/${operationCode || ''}`;
+
+  const handleCopyLink = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(joinUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,9 +99,38 @@ export function InviteAgentModal({
           </button>
         </div>
 
-        <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
+        <p className={`text-xs mb-3 ${theme.textSubLabel}`}>
           Invite an operative to join <strong className={theme.textLabel}>"{operationTitle}"</strong>.
         </p>
+
+        {/* 1-Click Shareable Mission Link & Code */}
+        <div className="mb-4 p-3.5 rounded-2xl border bg-stone-50 dark:bg-slate-900/60 border-stone-200 dark:border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              Shareable Mission Link & Code
+            </span>
+            {operationCode && (
+              <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                Code: {operationCode}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={joinUrl}
+              className="flex-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-[11px] font-mono select-all focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="px-3 py-1.5 rounded-xl font-bold text-[11px] bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all cursor-pointer shadow-sm shrink-0"
+            >
+              {copied ? '✓ Copied!' : '📋 Copy'}
+            </button>
+          </div>
+        </div>
 
         {error && (
           <div className={`p-4 mb-4 rounded-xl text-xs font-semibold ${theme.alertWarning}`}>

@@ -264,7 +264,7 @@ export function AppHomeLanding() {
             giftingType: 'SINGLE',
             isLocalOnly: false,
             isWhiteElephant: false,
-            maxParticipants: 5,
+            maxParticipants: 10,
             inviteCutoffDate: calculatedDates.inviteCutoffDate,
             assignmentDate: calculatedDates.assignmentDate,
             shippingDate: calculatedDates.shippingDate,

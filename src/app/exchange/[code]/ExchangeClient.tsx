@@ -1345,6 +1345,7 @@ export default function OperationCommandCenterPage() {
         onClose={() => setInviteModalOpen(false)}
         operationId={operation?.id || ''}
         operationTitle={operation?.title || ''}
+        operationCode={operation?.code || code}
         opsLeaderUserId={userId || ''}
         onSuccess={() => fetchExchangeDetails()}
       />
