@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
 import { getNextMilestoneCountdown, formatDateString } from '@/lib/security';
@@ -40,6 +40,8 @@ export default function WorkshopLifecycleBench() {
 
   // Virtual Date Simulation Engine (Defaulting to Mid-November 2026)
   const [virtualDate, setVirtualDate] = useState<string>('2026-11-15');
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [autoSyncStage, setAutoSyncStage] = useState<boolean>(true);
 
   // Operation Stage & Schedule State
   const [phase, setPhase] = useState<OperationPhase>('RECRUITING');
@@ -63,6 +65,51 @@ export default function WorkshopLifecycleBench() {
     const time = new Date().toLocaleTimeString();
     setEventLogs((prev) => [`[${time}] ${msg}`, ...prev]);
   };
+
+  // Helper to step date by delta days
+  const handleStepDays = (delta: number) => {
+    const [y, m, d] = virtualDate.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    dateObj.setDate(dateObj.getDate() + delta);
+    const newY = dateObj.getFullYear();
+    const newM = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const newD = String(dateObj.getDate()).padStart(2, '0');
+    const nextDateStr = `${newY}-${newM}-${newD}`;
+    setVirtualDate(nextDateStr);
+
+    let logMsg = `TIME SHIFT: Moved virtual date by ${delta > 0 ? `+${delta}` : delta} day(s) ➔ ${nextDateStr}`;
+
+    if (autoSyncStage) {
+      let computedStage: OperationPhase = 'RECRUITING';
+      if (nextDateStr >= executionDate) {
+        computedStage = 'COMPLETED';
+      } else if (nextDateStr >= shippingDate) {
+        computedStage = 'EXECUTED';
+      } else if (nextDateStr >= assignmentDate) {
+        computedStage = 'ASSIGNED';
+      } else if (nextDateStr >= inviteCutoffDate) {
+        computedStage = 'SETUP';
+      } else {
+        computedStage = 'RECRUITING';
+      }
+
+      if (computedStage !== phase) {
+        setPhase(computedStage);
+        logMsg += ` (Auto-advanced mission stage to [${computedStage}])`;
+      }
+    }
+
+    addLog(logMsg);
+  };
+
+  // Auto-play timeline simulation ticker effect
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      handleStepDays(1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isPlaying, virtualDate, autoSyncStage, phase, inviteCutoffDate, assignmentDate, shippingDate, executionDate]);
 
   // Helper to compute virtual days remaining
   const calculateVirtualDaysRemaining = (targetDateStr: string) => {
@@ -200,6 +247,75 @@ export default function WorkshopLifecycleBench() {
                   }}
                   className="w-full bg-slate-950 border border-amber-500/40 rounded-lg px-3 py-2 text-amber-300 font-bold focus:outline-none focus:border-amber-400"
                 />
+              </div>
+
+              {/* Day-by-Day Stepping Controls */}
+              <div className="pt-2 pb-1 space-y-2 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
+                    <span>⚡ TIMELINE STEPPER</span>
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-normal">Step day-by-day</span>
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5 font-mono">
+                  <button
+                    onClick={() => handleStepDays(-7)}
+                    className="bg-slate-800 hover:bg-slate-700 text-gray-300 py-2 px-1 rounded-lg text-xs font-bold border border-slate-700 hover:border-slate-600 transition-all cursor-pointer text-center"
+                    title="Rewind 7 Days"
+                  >
+                    -7d ⏪
+                  </button>
+                  <button
+                    onClick={() => handleStepDays(-1)}
+                    className="bg-slate-800 hover:bg-slate-700 text-gray-300 py-2 px-1 rounded-lg text-xs font-bold border border-slate-700 hover:border-slate-600 transition-all cursor-pointer text-center"
+                    title="Rewind 1 Day"
+                  >
+                    -1 Day ◀
+                  </button>
+                  <button
+                    onClick={() => handleStepDays(1)}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 py-2 px-1 rounded-lg text-xs font-black border border-amber-400 shadow-md shadow-amber-950/50 transition-all cursor-pointer text-center"
+                    title="Advance 1 Day Forward"
+                  >
+                    +1 Day ▶
+                  </button>
+                  <button
+                    onClick={() => handleStepDays(7)}
+                    className="bg-slate-800 hover:bg-slate-700 text-amber-300 py-2 px-1 rounded-lg text-xs font-bold border border-slate-700 hover:border-slate-600 transition-all cursor-pointer text-center"
+                    title="Advance 7 Days Forward"
+                  >
+                    +7d ⏩
+                  </button>
+                </div>
+
+                {/* Auto Play / Pause Simulator Toggle */}
+                <div className="pt-1">
+                  <button
+                    onClick={() => {
+                      setIsPlaying(!isPlaying);
+                      addLog(isPlaying ? 'TICKER: Paused automated date ticker.' : 'TICKER: Started automated +1 day/sec simulation ticker.');
+                    }}
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center gap-2 cursor-pointer border ${
+                      isPlaying
+                        ? 'bg-rose-950 text-rose-200 border-rose-500 shadow-lg shadow-rose-950/50 animate-pulse'
+                        : 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border-emerald-500/40 shadow-lg shadow-emerald-950/40'
+                    }`}
+                  >
+                    <span>{isPlaying ? '⏸️ PAUSE SIMULATION TICKER' : '▶️ AUTO-PLAY TICKER (+1 Day / sec)'}</span>
+                  </button>
+                </div>
+
+                {/* Auto-Sync Stage Checkbox */}
+                <label className="flex items-start gap-2 pt-1 cursor-pointer select-none text-[11px] text-gray-400 font-sans leading-tight">
+                  <input
+                    type="checkbox"
+                    checked={autoSyncStage}
+                    onChange={(e) => setAutoSyncStage(e.target.checked)}
+                    className="accent-amber-500 w-3.5 h-3.5 rounded mt-0.5"
+                  />
+                  <span>Auto-advance mission phase (1-5) as calendar crosses deadlines</span>
+                </label>
               </div>
 
               {/* Quick Preset Buttons */}
