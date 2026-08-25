@@ -139,6 +139,7 @@ export function getNextMilestoneCountdown(mission?: {
   assignmentDate?: string | Date | null;
   shippingDate?: string | Date | null;
   executionDate?: string | Date | null;
+  virtualSystemDate?: string | Date | null;
 } | null): OperationPhaseInfo {
   if (!mission) {
     return {
@@ -150,9 +151,6 @@ export function getNextMilestoneCountdown(mission?: {
       isToday: false,
     };
   }
-
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
 
   function parseLocalDateSafe(dateInput: string | Date | null | undefined): Date | null {
     if (!dateInput) return null;
@@ -174,6 +172,9 @@ export function getNextMilestoneCountdown(mission?: {
     d.setHours(0, 0, 0, 0);
     return d;
   }
+
+  const now = parseLocalDateSafe(mission.virtualSystemDate) || new Date();
+  now.setHours(0, 0, 0, 0);
 
   const cutoff = parseLocalDateSafe(mission.inviteCutoffDate);
   const assign = parseLocalDateSafe(mission.assignmentDate);
@@ -325,6 +326,30 @@ export function sanitizeInviteCode(code: string): string | null {
 }
 
 /**
+ * Safely fills a typed array with cryptographically secure random bytes
+ * across Browser, Edge Worker (Cloudflare Workers), and Node.js environments.
+ */
+function fillCryptoRandom(buffer: ArrayBufferView): void {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(buffer as any);
+    return;
+  }
+  if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.getRandomValues === 'function') {
+    window.crypto.getRandomValues(buffer as any);
+    return;
+  }
+  if (crypto && typeof (crypto as any).getRandomValues === 'function') {
+    (crypto as any).getRandomValues(buffer as any);
+    return;
+  }
+  if (crypto && typeof (crypto as any).randomFillSync === 'function') {
+    (crypto as any).randomFillSync(buffer);
+    return;
+  }
+  throw new Error('Web Crypto API is not available in the current environment.');
+}
+
+/**
  * Returns a cryptographically secure, uniformly distributed random integer
  * in the half-open interval [0, maxExclusive) using rejection sampling to eliminate modulo bias.
  *
@@ -340,7 +365,7 @@ export function getSecureRandomInt(maxExclusive: number): number {
 
   let randomVal: number;
   do {
-    crypto.getRandomValues(buffer);
+    fillCryptoRandom(buffer);
     randomVal = buffer[0];
   } while (randomVal >= limit);
 
@@ -356,7 +381,7 @@ export function getSecureRandomInt(maxExclusive: number): number {
 export function generateInviteCode(): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
+  fillCryptoRandom(bytes);
 
   let part1 = '';
   let part2 = '';
