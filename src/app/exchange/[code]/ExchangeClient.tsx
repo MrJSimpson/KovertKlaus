@@ -2,11 +2,12 @@
 
 import { USER_ID_KEY } from '@/lib/constants/auth';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename, formatDateString } from '@/lib/security';
 import { useTheme } from '@/context/ThemeContext';
+import { evaluateDrawFeasibility, FieldAgent, ExclusionRuleInput } from '@/lib/draw';
 import { InviteAgentModal } from '@/components/InviteAgentModal';
 import { PreventativeMatchModal, OperationExclusionRule } from '@/components/PreventativeMatchModal';
 import { ManageAssignmentsModal } from '@/components/ManageAssignmentsModal';
@@ -128,6 +129,22 @@ export default function OperationCommandCenterPage() {
   const [scraping, setScraping] = useState(false);
   const [userOpKit, setUserOpKit] = useState<Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>>([]);
   const [validationError, setValidationError] = useState('');
+
+  const feasibility = useMemo(() => {
+    if (!operation) return null;
+    const memberList = operation.members || operation.agents || [];
+    const fieldAgents: FieldAgent[] = memberList.map((m) => ({
+      id: m.userId,
+      name: m.user?.name || m.user?.codename || m.userId,
+      codename: m.user?.codename,
+      hasWishlistAttached: true,
+    }));
+    const exclusionInputs: ExclusionRuleInput[] = (operation.exclusionRules || []).map((r) => ({
+      agentId: r.agentId,
+      restrictedAgentId: r.restrictedAgentId,
+    }));
+    return evaluateDrawFeasibility(fieldAgents, exclusionInputs);
+  }, [operation]);
 
   // Anonymous Intel Messaging State (Note: Initial seed message serves as a placeholder until live IntelMessage DB stream sync)
   const [intelMessageText, setIntelMessageText] = useState('');
@@ -689,17 +706,53 @@ export default function OperationCommandCenterPage() {
 
                   {/* PHASE 2: ASSIGNMENT */}
                   {operation.status === 'SETUP' && !operation.isWhiteElephant && (
-                    <>
-                      <button onClick={() => setInviteModalOpen(true)} className={theme.btnSecondary}>
-                        🚨 Emergency Invite
-                      </button>
-                      <button onClick={() => setPreventativeModalOpen(true)} className={theme.btnPurple}>
-                        🚫 Matching Rules ({operation.exclusionRules?.length || 0})
-                      </button>
-                      <button onClick={handleTriggerDraw} disabled={drawingTargets} className={theme.btnEmerald}>
-                        {drawingTargets ? 'Executing Draw...' : '🎯 Initiate Assignments'}
-                      </button>
-                    </>
+                    <div className="w-full space-y-3">
+                      {/* Festive Live Feasibility Status Banner */}
+                      {feasibility && (
+                        <div
+                          className={`p-3.5 rounded-2xl border text-xs font-mono transition-all ${
+                            feasibility.themeColor === 'emerald'
+                              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200'
+                              : feasibility.themeColor === 'amber'
+                              ? 'bg-amber-950/80 border-amber-500/50 text-amber-200'
+                              : 'bg-rose-950/80 border-rose-500/50 text-rose-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between font-bold text-xs">
+                            <span className="flex items-center gap-1.5">{feasibility.headline}</span>
+                            <span className="text-[10px] opacity-80 uppercase">
+                              {(operation.members || operation.agents || []).length} / 4 Enlisted
+                            </span>
+                          </div>
+                          <p className="text-[11px] mt-1 opacity-90 leading-snug">
+                            {feasibility.message}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-3">
+                        <button onClick={() => setInviteModalOpen(true)} className={theme.btnSecondary}>
+                          🚨 Emergency Invite
+                        </button>
+                        <button onClick={() => setPreventativeModalOpen(true)} className={theme.btnPurple}>
+                          🚫 Matching Rules ({operation.exclusionRules?.length || 0})
+                        </button>
+                        <button
+                          onClick={handleTriggerDraw}
+                          disabled={drawingTargets || !feasibility?.isFeasible}
+                          className={`${theme.btnEmerald} ${
+                            !feasibility?.isFeasible ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          title={
+                            !feasibility?.isFeasible
+                              ? feasibility?.message || 'Draw is locked until requirements are satisfied.'
+                              : 'Execute Sattolo cyclic derangement'
+                          }
+                        >
+                          {drawingTargets ? 'Executing Draw...' : '🎯 Initiate Assignments'}
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   {/* PHASE 3: EXECUTION / SHIPPING */}
