@@ -6,6 +6,7 @@ import {
   executeTargetSwap,
   isMatchBlocked,
   buildExclusionIndex,
+  evaluateDrawFeasibility,
   FieldAgent,
   LinkedAssignment,
   ExclusionRuleInput,
@@ -240,3 +241,68 @@ test('Target Swap Engine - Executes 2-Way Cascade Target Swap', () => {
   // Leia gets Han ('2') (displaced target cascade)
   assert.strictEqual(leiaNewTarget, '2');
 });
+
+test('Feasibility Evaluator - evaluateDrawFeasibility', async (t) => {
+  await t.test('Identifies optimal feasibility for standard groups', () => {
+    const agents: FieldAgent[] = [
+      { id: '1', name: 'Joshua', hasWishlistAttached: true },
+      { id: '2', name: 'Shannon', hasWishlistAttached: true },
+      { id: '3', name: 'Zach', hasWishlistAttached: true },
+      { id: '4', name: 'Matthew', hasWishlistAttached: true },
+    ];
+    const exclusions: ExclusionRuleInput[] = [{ agentId: '1', restrictedAgentId: '2' }];
+    const res = evaluateDrawFeasibility(agents, exclusions);
+
+    assert.strictEqual(res.isFeasible, true);
+    assert.strictEqual(res.status, 'OPTIMAL');
+    assert.strictEqual(res.themeColor, 'emerald');
+    assert.match(res.headline, /Sleigh Cleared/i);
+  });
+
+  await t.test('Catches groups with fewer than 2 active agents', () => {
+    const agents: FieldAgent[] = [{ id: '1', name: 'Solo Elf', hasWishlistAttached: true }];
+    const res = evaluateDrawFeasibility(agents, []);
+
+    assert.strictEqual(res.isFeasible, false);
+    assert.strictEqual(res.status, 'TOO_FEW_AGENTS');
+    assert.strictEqual(res.themeColor, 'amber');
+    assert.match(res.headline, /Workshop Roster/i);
+  });
+
+  await t.test('Catches the 3-agent couple paradox', () => {
+    const agents: FieldAgent[] = [
+      { id: '1', name: 'Joshua', hasWishlistAttached: true },
+      { id: '2', name: 'Shannon', hasWishlistAttached: true },
+      { id: '3', name: 'Zach', hasWishlistAttached: true },
+    ];
+    const exclusions: ExclusionRuleInput[] = [{ agentId: '1', restrictedAgentId: '2' }];
+    const res = evaluateDrawFeasibility(agents, exclusions);
+
+    assert.strictEqual(res.isFeasible, false);
+    assert.strictEqual(res.status, 'THREE_AGENT_PARADOX');
+    assert.strictEqual(res.themeColor, 'rose');
+    assert.match(res.headline, /3-Elf Paradox/i);
+  });
+
+  await t.test('Identifies trapped operatives with 0 valid recipients', () => {
+    const agents: FieldAgent[] = [
+      { id: '1', name: 'Trapped Elf', hasWishlistAttached: true },
+      { id: '2', name: 'Elf B', hasWishlistAttached: true },
+      { id: '3', name: 'Elf C', hasWishlistAttached: true },
+      { id: '4', name: 'Elf D', hasWishlistAttached: true },
+    ];
+    const exclusions: ExclusionRuleInput[] = [
+      { agentId: '1', restrictedAgentId: '2' },
+      { agentId: '1', restrictedAgentId: '3' },
+      { agentId: '1', restrictedAgentId: '4' },
+    ];
+    const res = evaluateDrawFeasibility(agents, exclusions);
+
+    assert.strictEqual(res.isFeasible, false);
+    assert.strictEqual(res.status, 'TRAPPED_AGENT');
+    assert.strictEqual(res.themeColor, 'rose');
+    assert.strictEqual(res.trappedAgentName, 'Trapped Elf');
+    assert.match(res.headline, /Tangled Ribbons/i);
+  });
+});
+

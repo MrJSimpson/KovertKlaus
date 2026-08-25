@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import {
   executeLinkedListDraw,
+  evaluateDrawFeasibility,
   FieldAgent,
   LinkedAssignment,
   ExclusionRuleInput,
@@ -371,6 +372,10 @@ export default function WorkshopDrawBench() {
     return filteredMatches.slice(startIndex, startIndex + MATCH_PAGE_SIZE);
   }, [filteredMatches, matchCurrentPage]);
 
+  const feasibility = useMemo(() => {
+    return evaluateDrawFeasibility(agents, exclusionRules);
+  }, [agents, exclusionRules]);
+
   const SVG_SIZE = 560;
   const SVG_CENTER = SVG_SIZE / 2;
   const SVG_RADIUS = 190;
@@ -474,6 +479,24 @@ export default function WorkshopDrawBench() {
                 <span className="text-gray-400 block text-[10px]">BLOCKED PAIRS (A ⇔ B)</span>
                 <span className="text-purple-400 font-black text-base">{exclusionRules.length} Pairs</span>
               </div>
+            </div>
+
+            {/* Festive Live Feasibility Status Pill */}
+            <div
+              className={`p-3 rounded-xl border text-xs font-mono transition-all ${
+                feasibility.themeColor === 'emerald'
+                  ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
+                  : feasibility.themeColor === 'amber'
+                  ? 'bg-amber-950/80 border-amber-500/40 text-amber-200'
+                  : 'bg-rose-950/80 border-rose-500/40 text-rose-200'
+              }`}
+            >
+              <div className="font-bold text-xs flex items-center gap-1.5">
+                <span>{feasibility.headline}</span>
+              </div>
+              <p className="text-[10px] mt-1 opacity-90 leading-snug">
+                {feasibility.message}
+              </p>
             </div>
 
             <button

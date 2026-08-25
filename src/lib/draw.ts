@@ -281,3 +281,86 @@ export function executeTargetSwap(
   });
 }
 
+export interface DrawFeasibilityResult {
+  isFeasible: boolean;
+  status: 'OPTIMAL' | 'TOO_FEW_AGENTS' | 'OVER_CONSTRAINED' | 'TRAPPED_AGENT' | 'THREE_AGENT_PARADOX';
+  headline: string;
+  message: string;
+  themeColor: 'emerald' | 'amber' | 'rose';
+  trappedAgentName?: string;
+}
+
+/**
+ * Pre-evaluates whether a proposed roster and set of exclusion rules can mathematically
+ * generate a valid, unbroken Secret Santa cyclic derangement.
+ * 
+ * Returns festive, user-friendly diagnostic messages to guide the Head Elf in real time.
+ */
+export function evaluateDrawFeasibility(
+  agents: FieldAgent[],
+  exclusionRules: ExclusionRuleInput[] = []
+): DrawFeasibilityResult {
+  const eligibleAgents = agents.filter((a) => a.hasWishlistAttached !== false);
+  const n = eligibleAgents.length;
+
+  if (n < 2) {
+    return {
+      isFeasible: false,
+      status: 'TOO_FEW_AGENTS',
+      headline: '🎅 Workshop Roster Needs Operatives!',
+      message: 'Santa needs at least 2 active Elf Agents with attached Wishlists before launching Secret Santa assignments.',
+      themeColor: 'amber',
+    };
+  }
+
+  const blockedSet = buildExclusionIndex(exclusionRules);
+
+  // Special Case: 3-Agent Paradox (In N=3, any exclusion rule prevents a single 3-cycle)
+  if (n === 3 && exclusionRules.length > 0) {
+    return {
+      isFeasible: false,
+      status: 'THREE_AGENT_PARADOX',
+      headline: '☃️ The 3-Elf Paradox! ❄️',
+      message: 'In a 3-agent mission, gifts must flow in a continuous 3-way circle (A ➔ B ➔ C ➔ A). Adding a blocked pair leaves an elf out in the cold! Add a 4th operative or remove the couple restriction.',
+      themeColor: 'rose',
+    };
+  }
+
+  // Check if any agent is completely trapped (has 0 possible targets)
+  for (const agent of eligibleAgents) {
+    const validTargets = eligibleAgents.filter(
+      (candidate) => candidate.id !== agent.id && !blockedSet.has(`${agent.id}:${candidate.id}`)
+    );
+    if (validTargets.length === 0) {
+      return {
+        isFeasible: false,
+        status: 'TRAPPED_AGENT',
+        headline: '🎀 Tangled Ribbons Detected!',
+        message: `${agent.name} (${agent.codename || 'Elf Agent'}) is blocked from all other operatives in the workshop! Untangle a few restrictions so they can receive and give a gift.`,
+        themeColor: 'rose',
+        trappedAgentName: agent.name,
+      };
+    }
+  }
+
+  // Pre-flight simulation check: Attempt derangement using the robust CSPRNG engine
+  try {
+    executeLinkedListDraw(eligibleAgents, { exclusionRules });
+    return {
+      isFeasible: true,
+      status: 'OPTIMAL',
+      headline: '✨ Sleigh Cleared for Takeoff! 🎄',
+      message: `All ${n} Elf Agents have verified secret target routes with zero rule conflicts. Ready for matching!`,
+      themeColor: 'emerald',
+    };
+  } catch {
+    return {
+      isFeasible: false,
+      status: 'OVER_CONSTRAINED',
+      headline: '🎀 Ribbons a Bit Too Tight!',
+      message: "These preventative match rules make an unbroken Secret Santa circle mathematically impossible. Untangle a few blocked pairs to clear Santa's flight path!",
+      themeColor: 'rose',
+    };
+  }
+}
+

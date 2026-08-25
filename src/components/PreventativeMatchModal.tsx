@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTheme } from '@/context/ThemeContext';
+import { evaluateDrawFeasibility, FieldAgent, ExclusionRuleInput } from '@/lib/draw';
 
 export interface OperationAgentUser {
   id: string;
@@ -42,6 +43,20 @@ export function PreventativeMatchModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  const feasibility = useMemo(() => {
+    const fieldAgents: FieldAgent[] = agents.map((a) => ({
+      id: a.id,
+      name: a.name,
+      codename: a.codename,
+      hasWishlistAttached: true,
+    }));
+    const exclusionInputs: ExclusionRuleInput[] = exclusionRules.map((r) => ({
+      agentId: r.agentId,
+      restrictedAgentId: r.restrictedAgentId,
+    }));
+    return evaluateDrawFeasibility(fieldAgents, exclusionInputs);
+  }, [agents, exclusionRules]);
 
   if (!isOpen) return null;
 
@@ -146,9 +161,27 @@ export function PreventativeMatchModal({
           </button>
         </div>
 
-        <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
+        <p className={`text-xs mb-3 ${theme.textSubLabel}`}>
           Specify pairs of operatives who <strong>cannot</strong> be assigned to each other. Rules are <strong>100% bidirectional</strong> (if Agent A cannot give to Agent B, Agent B cannot give to Agent A).
         </p>
+
+        {/* Festive Live Feasibility Status Banner */}
+        <div
+          className={`p-3.5 mb-4 rounded-2xl border text-xs font-mono transition-all ${
+            feasibility.themeColor === 'emerald'
+              ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-200'
+              : feasibility.themeColor === 'amber'
+              ? 'bg-amber-950/70 border-amber-500/50 text-amber-200'
+              : 'bg-rose-950/70 border-rose-500/50 text-rose-200'
+          }`}
+        >
+          <div className="flex items-center gap-2 font-bold text-xs">
+            <span>{feasibility.headline}</span>
+          </div>
+          <p className="text-[11px] mt-1 opacity-90 leading-snug">
+            {feasibility.message}
+          </p>
+        </div>
 
         {error && (
           <div className={`p-4 mb-4 rounded-xl text-xs font-semibold ${theme.alertWarning}`}>
