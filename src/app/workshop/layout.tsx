@@ -192,6 +192,7 @@ export default function WorkshopLayout({ children }: { children: React.ReactNode
   const navItems = [
     { label: '🧪 Workshop Hub', href: '/workshop' },
     { label: '🎯 Sattolo & Swap Bench', href: '/workshop/draw' },
+    { label: '🏷️ White Elephant Board', href: '/workshop/party' },
     { label: '⏰ Schedule Simulator', href: '/workshop/lifecycle' },
     { label: '🔎 Scraper Bench', href: '/workshop/scraper' },
     { label: '📧 Email Simulator', href: '/workshop/email' },

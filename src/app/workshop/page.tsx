@@ -87,6 +87,14 @@ export default function WorkshopHubPage() {
       description:
         'Test Secret Santa vs White Elephant rules, +20% anti-overwishing hard caps, buyer cart spend tallying, and pre-draw eligibility.',
     },
+    {
+      title: '🏷️ Labeled Blind Mystery White Elephant Board',
+      path: '/workshop/party',
+      badge: 'PARTY REFEREE',
+      color: 'border-purple-500/40 text-purple-300',
+      description:
+        'In-person living room party referee: gifts remain wrapped and labeled "FROM: AGENT <NAME>", tracking turn queue, 3-swap freeze, and grand unboxing.',
+    },
   ];
 
   return (
