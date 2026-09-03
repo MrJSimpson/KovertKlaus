@@ -106,7 +106,7 @@ export function renderBaseEmail({
  * Generates an Invitation email template.
  */
 export function getInvitationEmailTemplate(params: InvitationEmailParams): { subject: string; html: string; text: string } {
-  const { organizerName, exchangeTitle, inviteCode, joinUrl, budgetMin, budgetMax, isLatePass } = params;
+  const { organizerName, exchangeTitle, inviteCode, joinUrl, budgetMin, budgetMax, isLatePass, kdmToken, isCovertDelivery } = params;
   
   const budgetText = budgetMin && budgetMax
     ? `$${budgetMin} – $${budgetMax}`
@@ -114,14 +114,22 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
     ? `Up to $${budgetMax}`
     : 'OpsLeader Discretion';
 
-  const subject = isLatePass
+  let subject = isLatePass
     ? `🚨 [LATE PASS] Mission Invitation: "${exchangeTitle}"`
     : `📩 Mission Recruitment: Join "${exchangeTitle}" on KovertKlaus`;
+
+  if (isCovertDelivery) {
+    subject = `🕶️ Kovert Delivery Invitation: "${exchangeTitle}" (Classified Key Enclosed)`;
+  }
 
   const bodyHtml = `
     <p>Agent, you have been officially recruited by <strong>${organizerName}</strong> to join the classified gift exchange operation: <strong>${exchangeTitle}</strong>.</p>
     
-    ${isLatePass ? `
+    ${isCovertDelivery ? `
+    <div style="background-color: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+      <strong style="color: #fbbf24;">🕶️ KOVERT DELIVERY MISSION</strong>
+      <p style="margin: 4px 0 0 0; font-size: 13px; color: #fde68a;">This is a local stealth porch-drop operation for trusted friends & family. A mandatory Property Access & Safe Conduct Accord is required upon joining.</p>
+    </div>` : isLatePass ? `
     <div style="background-color: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
       <strong style="color: #f87171;">⚠️ LATE PASS AUTHORIZATION ACTIVE</strong>
       <p style="margin: 4px 0 0 0; font-size: 13px; color: #fca5a5;">The standard RSVP cutoff for this operation has passed. The OpsLeader has granted you late emergency clearance to enroll.</p>
@@ -136,12 +144,14 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
     </div>
 
     <div class="code-box">
-      <div class="code-label">Classified Invite Code</div>
-      <div class="code-value">${inviteCode}</div>
+      <div class="code-label">${kdmToken ? 'Personal Single-Use KDM Token' : 'Classified Invite Code'}</div>
+      <div class="code-value">${kdmToken || inviteCode}</div>
     </div>
 
     <p style="text-align: center; color: #94a3b8; font-size: 13px;">
-      Click the button below to review mission directives and accept your assignment.
+      ${kdmToken
+        ? 'Click the button below to review the Property Access Accord and accept your classified mission.'
+        : 'Click the button below to review mission directives and accept your assignment.'}
     </p>
   `;
 
@@ -149,7 +159,7 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
     title: `Recruitment Order: ${exchangeTitle}`,
     preheader: `${organizerName} has recruited you to join ${exchangeTitle}!`,
     bodyHtml,
-    actionText: 'Accept Mission Directive',
+    actionText: isCovertDelivery ? 'Review Accord & Join Operation' : 'Accept Mission Directive',
     actionUrl: joinUrl,
   });
 

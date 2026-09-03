@@ -60,6 +60,8 @@ export interface InvitationEmailParams {
   budgetMin?: number | null;
   budgetMax?: number | null;
   isLatePass?: boolean;
+  kdmToken?: string;
+  isCovertDelivery?: boolean;
   overrideConfig?: Partial<EmailConfig>;
 }
 

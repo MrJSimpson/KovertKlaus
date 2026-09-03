@@ -82,24 +82,48 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Generate Invitation Token / Link
+    // 5. Generate Invitation Token / Link & Automatic KDM Token for Covert Delivery
     const inviteToken = `INV-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     const cleanEmail = recipientEmail.trim().toLowerCase();
+
+    let kdmToken: string | undefined = undefined;
+    if (exchange.isCovertDelivery) {
+      const { generateKdmToken } = await import('@/lib/covertDelivery');
+      kdmToken = generateKdmToken();
+      const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60);
+      await db.covertInviteToken.create({
+        data: {
+          exchangeId: exchange.id,
+          token: kdmToken,
+          invitedEmail: cleanEmail,
+          invitedName: targetUser?.name || null,
+          expiresAt,
+        },
+      });
+    }
 
     // 6. If target user is found in system, create an in-app Notification for their Dashboard
     if (targetUser) {
       await db.notification.create({
         data: {
           userId: targetUser.id,
-          title: `📩 Invited to Exchange: ${exchange.title}`,
-          message: `You have been invited by ${exchange.organizer.name} to join "${exchange.title}". Use Invite Code: ${exchange.code}`,
+          title: exchange.isCovertDelivery
+            ? `🕶️ Kovert Delivery Invitation: ${exchange.title}`
+            : `📩 Invited to Exchange: ${exchange.title}`,
+          message: exchange.isCovertDelivery
+            ? `You have been recruited by ${exchange.organizer.name} for a Kovert Delivery operation! Your single-use access key is ${kdmToken}.`
+            : `You have been invited by ${exchange.organizer.name} to join "${exchange.title}". Use Invite Code: ${exchange.code}`,
           exchangeId: exchange.id,
         },
       });
     }
 
     // 7. Dispatch Email Notification via Universal Email Dispatcher
-    const joinUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com'}/exchange/${exchange.code}`;
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com';
+    const joinUrl = kdmToken
+      ? `${baseUrl}/exchange/${exchange.code}?kdm=${kdmToken}`
+      : `${baseUrl}/exchange/${exchange.code}`;
+
     const emailResult = await sendInvitationEmail({
       recipientEmail: cleanEmail,
       recipientName: targetUser?.name,
@@ -110,6 +134,8 @@ export async function POST(request: Request) {
       budgetMax: Number(exchange.budgetMax),
       joinUrl,
       isLatePass: isPastCutoff,
+      kdmToken,
+      isCovertDelivery: exchange.isCovertDelivery,
     });
 
     if (!emailResult.success) {
@@ -128,6 +154,8 @@ export async function POST(request: Request) {
         recipientEmail: cleanEmail,
         inviteCode: exchange.code,
         inviteToken,
+        kdmToken,
+        isCovertDelivery: exchange.isCovertDelivery,
         isLatePass: isPastCutoff,
         targetUserFound: !!targetUser,
         joinUrl,

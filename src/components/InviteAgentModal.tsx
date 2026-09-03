@@ -69,7 +69,11 @@ export function InviteAgentModal({
         throw new Error(json.error || 'Failed to send invitation');
       }
 
-      setSuccessMessage(json.message || `Invitation dispatched to ${email.trim()}!`);
+      const successText = json.data?.kdmToken
+        ? `🕶️ Kovert Delivery Invitation & Single-Use Key (${json.data.kdmToken}) dispatched to ${email.trim()}!`
+        : (json.message || `Invitation dispatched to ${email.trim()}!`);
+
+      setSuccessMessage(successText);
       setEmail('');
       if (onSuccess) onSuccess();
     } catch (err: any) {
