@@ -194,6 +194,7 @@ export default function WorkshopLayout({ children }: { children: React.ReactNode
     { label: '🎯 Sattolo Draw', href: '/workshop/draw' },
     { label: '🏷️ White Elephant', href: '/workshop/party' },
     { label: '📸 AAR & WebP', href: '/workshop/aar' },
+    { label: '🥷 Kovert Delivery', href: '/workshop/covert' },
     { label: '⏰ Timeline', href: '/workshop/lifecycle' },
     { label: '📋 Manifest', href: '/workshop/manifest' },
     { label: '🔎 Scraper', href: '/workshop/scraper' },

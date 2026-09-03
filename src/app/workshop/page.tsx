@@ -103,6 +103,14 @@ export default function WorkshopHubPage() {
       description:
         'Compare Klaus Mode 🎄 vs Kovert Mode ❄️ across all 4 seasonal themes, animated light strands, typography, buttons, badges, and card tokens.',
     },
+    {
+      title: '🎅 Kovert Delivery Operation Studio (KDM)',
+      path: '/workshop/covert',
+      badge: 'STEALTH INFILTRATION',
+      color: 'border-amber-500/40 text-amber-300',
+      description:
+        'Test single-use 12-hex KDM tokens, property access & non-liability accords, drop site proofing, and the 1-guess real name identity challenge with Ring camera evidence.',
+    },
   ];
 
   return (

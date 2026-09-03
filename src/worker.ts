@@ -28,6 +28,13 @@ import { evaluateMemberAudit } from './lib/demerits';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
+import {
+  generateKdmToken,
+  verifyGiverIdentityGuess,
+  evaluateCovertOutcome,
+  BADGE_KOVERT_KLAUS,
+  BADGE_VIGILANT_ELF,
+} from './lib/covertDelivery';
 
 const ADMIN_COOKIE_NAME = ADMIN_SESSION_COOKIE_NAME;
 const USER_COOKIE_NAME = SESSION_COOKIE_NAME;
@@ -1382,6 +1389,179 @@ export default {
               },
             });
             return Response.json({ success: true, data: report });
+          }
+
+          // Action 9: Create KDM Tokens
+          if (action === 'createKdmTokens' && operationId) {
+            const { count = 5, invitedNames = [] } = body;
+            const ex = await db.exchange.findUnique({ where: { id: operationId } });
+            if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+            if (ex.organizerId !== userId) return Response.json({ error: 'Organizer only' }, { status: 403 });
+
+            const numTokens = Math.min(Math.max(1, count), 50);
+            const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60);
+            const tokensToInsert = Array.from({ length: numTokens }).map((_, i) => ({
+              exchangeId: operationId,
+              token: generateKdmToken(),
+              invitedName: invitedNames[i]?.trim() || null,
+              expiresAt,
+            }));
+
+            await db.covertInviteToken.createMany({ data: tokensToInsert });
+            const allTokens = await db.covertInviteToken.findMany({
+              where: { exchangeId: operationId },
+              orderBy: { createdAt: 'desc' },
+            });
+            return Response.json({ success: true, data: allTokens });
+          }
+
+          // Action 10: Join With KDM Token
+          if (action === 'joinWithKdmToken') {
+            const { token, propertyWaiverAgreed, codename } = body;
+            if (!token?.trim()) return Response.json({ error: 'Token required' }, { status: 400 });
+            if (!propertyWaiverAgreed) return Response.json({ error: 'Property accord required' }, { status: 400 });
+
+            const cleanToken = token.trim().toUpperCase();
+            const inviteToken = await db.covertInviteToken.findUnique({
+              where: { token: cleanToken },
+              include: { exchange: true },
+            });
+
+            if (!inviteToken) return Response.json({ error: 'Invalid token' }, { status: 404 });
+            if (inviteToken.isUsed) return Response.json({ error: 'Token already redeemed' }, { status: 410 });
+            if (new Date() > inviteToken.expiresAt) return Response.json({ error: 'Token expired' }, { status: 410 });
+
+            const existingMember = await db.exchangeMember.findUnique({
+              where: { exchangeId_userId: { exchangeId: inviteToken.exchangeId, userId } },
+            });
+            if (existingMember) return Response.json({ error: 'Already enrolled', exchangeCode: inviteToken.exchange.code }, { status: 409 });
+
+            const [newMember] = await db.$transaction([
+              db.exchangeMember.create({
+                data: {
+                  exchangeId: inviteToken.exchangeId,
+                  userId,
+                  codename: codename?.trim() || null,
+                  propertyWaiverAgreedAt: new Date(),
+                },
+              }),
+              db.covertInviteToken.update({
+                where: { id: inviteToken.id },
+                data: { isUsed: true, usedByUserId: userId },
+              }),
+            ]);
+
+            return Response.json({
+              success: true,
+              message: 'Enrolled in Kovert Delivery Operation',
+              exchangeCode: inviteToken.exchange.code,
+              member: newMember,
+            });
+          }
+
+          // Action 11: Submit Drop Proof
+          if (action === 'submitDropProof' && operationId) {
+            const { dropProofPhotoUrl, dropProofNote } = body;
+            if (!dropProofPhotoUrl?.trim()) return Response.json({ error: 'Photo required' }, { status: 400 });
+
+            const member = await db.exchangeMember.findUnique({
+              where: { exchangeId_userId: { exchangeId: operationId, userId } },
+            });
+            if (!member) return Response.json({ error: 'Member not found' }, { status: 404 });
+
+            const updated = await db.exchangeMember.update({
+              where: { id: member.id },
+              data: {
+                dropProofPhotoUrl: dropProofPhotoUrl.trim(),
+                dropProofNote: dropProofNote ? sanitizeText(dropProofNote) : null,
+                droppedAt: new Date(),
+                shippingStatus: 'LOCAL_DELIVERY',
+                deliveredConfirmed: true,
+              },
+            });
+            return Response.json({ success: true, data: updated });
+          }
+
+          // Action 12: Submit 1-Guess Identity Challenge
+          if (action === 'submitIdentityChallenge' && operationId) {
+            const { guessedName } = body;
+            if (!guessedName?.trim()) return Response.json({ error: 'Name required' }, { status: 400 });
+
+            const targetMember = await db.exchangeMember.findUnique({
+              where: { exchangeId_userId: { exchangeId: operationId, userId } },
+            });
+            if (!targetMember) return Response.json({ error: 'Member not found' }, { status: 404 });
+            if (targetMember.targetGuessAttempted) return Response.json({ error: '1-time guess already consumed' }, { status: 409 });
+
+            const giverMember = await db.exchangeMember.findFirst({
+              where: { exchangeId: operationId, targetUserId: userId },
+              include: { user: { select: { id: true, name: true, codename: true } } },
+            });
+            if (!giverMember) return Response.json({ error: 'Secret Santa assignment not found' }, { status: 404 });
+
+            const isCorrect = verifyGiverIdentityGuess(guessedName, giverMember.user.name);
+            const outcome = evaluateCovertOutcome({ targetGuessAttempted: true, targetGuessCorrect: isCorrect });
+
+            const updated = await db.exchangeMember.update({
+              where: { id: targetMember.id },
+              data: {
+                targetGuessName: guessedName.trim(),
+                targetGuessAttempted: true,
+                targetGuessCorrect: isCorrect,
+                detectionStatus: outcome.status,
+                badgeAwarded: outcome.badgeAwarded,
+              },
+            });
+
+            return Response.json({
+              success: true,
+              correct: isCorrect,
+              canUploadEvidence: isCorrect,
+              status: outcome.status,
+              badgeAwarded: outcome.badgeAwarded,
+              data: updated,
+            });
+          }
+
+          // Action 13: Submit Busted Evidence
+          if (action === 'submitBustedEvidence' && operationId) {
+            const { bustedPhotoUrl, bustedReason } = body;
+            if (!bustedPhotoUrl?.trim()) return Response.json({ error: 'Evidence required' }, { status: 400 });
+
+            const targetMember = await db.exchangeMember.findUnique({
+              where: { exchangeId_userId: { exchangeId: operationId, userId } },
+            });
+            if (!targetMember) return Response.json({ error: 'Member not found' }, { status: 404 });
+            if (!targetMember.targetGuessCorrect) return Response.json({ error: 'Identity unconfirmed' }, { status: 403 });
+
+            const updated = await db.exchangeMember.update({
+              where: { id: targetMember.id },
+              data: {
+                bustedPhotoUrl: bustedPhotoUrl.trim(),
+                bustedReason: bustedReason ? sanitizeText(bustedReason) : null,
+                detectionStatus: 'BUSTED',
+                badgeAwarded: BADGE_VIGILANT_ELF,
+              },
+            });
+            return Response.json({ success: true, data: updated });
+          }
+
+          // Action 14: Confirm Ghost Drop
+          if (action === 'confirmGhostDrop' && operationId) {
+            const targetMember = await db.exchangeMember.findUnique({
+              where: { exchangeId_userId: { exchangeId: operationId, userId } },
+            });
+            if (!targetMember) return Response.json({ error: 'Member not found' }, { status: 404 });
+
+            const updated = await db.exchangeMember.update({
+              where: { id: targetMember.id },
+              data: {
+                detectionStatus: 'UNDETECTED',
+                badgeAwarded: BADGE_KOVERT_KLAUS,
+                deliveredConfirmed: true,
+              },
+            });
+            return Response.json({ success: true, data: updated });
           }
 
           // Create Exchange

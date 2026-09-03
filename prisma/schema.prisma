@@ -130,14 +130,17 @@ model Exchange {
   status                ExchangeStatus @default(RECRUITING)
   isFreeAnnualExchange  Boolean        @default(false)
   enforcePenalties      Boolean        @default(true)
+  isCovertDelivery      Boolean        @default(false)
+  propertyWaiverText    String?
   paymentStatus         PaymentStatus  @default(FREE_ANNUAL)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
-  members        ExchangeMember[]
-  exclusionRules ExclusionRule[]
-  messages       ExchangeMessage[]
-  reports        ExchangeReport[]
+  members            ExchangeMember[]
+  exclusionRules     ExclusionRule[]
+  messages           ExchangeMessage[]
+  reports            ExchangeReport[]
+  covertInviteTokens CovertInviteToken[]
 
   @@index([organizerId])
   @@index([status])
@@ -217,8 +220,19 @@ model ExchangeMember {
   shippingStatus     ShippingStatus @default(PENDING)
   trackingNumber     String?
   shippedAt          DateTime?
-  deliveredConfirmed Boolean        @default(false)
-  joinedAt           DateTime       @default(now())
+  deliveredConfirmed     Boolean        @default(false)
+  propertyWaiverAgreedAt DateTime?
+  dropProofPhotoUrl      String?
+  dropProofNote          String?
+  droppedAt              DateTime?
+  targetGuessName        String?
+  targetGuessAttempted   Boolean        @default(false)
+  targetGuessCorrect     Boolean?
+  detectionStatus        String         @default("PENDING") // PENDING | UNDETECTED | BUSTED
+  bustedPhotoUrl         String?
+  bustedReason           String?
+  badgeAwarded           String?        // KOVERT_KLAUS | VIGILANT_ELF
+  joinedAt               DateTime       @default(now())
 
   exchange Exchange  @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
   user     User      @relation("MemberUser", fields: [userId], references: [id], onDelete: Cascade)
@@ -230,6 +244,22 @@ model ExchangeMember {
   @@index([exchangeId])
   @@index([userId])
   @@index([targetUserId])
+}
+
+model CovertInviteToken {
+  id           String    @id @default(uuid())
+  exchangeId   String
+  exchange     Exchange  @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  token        String    @unique
+  invitedEmail String?
+  invitedName  String?
+  isUsed       Boolean   @default(false)
+  usedByUserId String?
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+
+  @@index([exchangeId])
+  @@index([token])
 }
 
 model ExclusionRule {

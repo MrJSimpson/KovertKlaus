@@ -15,6 +15,8 @@ export interface AARReportEntry {
   thankYouText?: string | null;
   photoUrl?: string | null;
   createdAt: string;
+  badgeAwarded?: string | null;
+  detectionStatus?: string | null;
   user: {
     id: string;
     name: string;
@@ -33,7 +35,7 @@ const DELIVERY_TAGS = [
   { id: 'in_person', label: '🎁 Received in Person' },
   { id: 'shipped_mail', label: '📦 Delivered via Carrier' },
   { id: 'white_elephant', label: '🐘 White Elephant Unboxed' },
-  { id: 'stealth_drop', label: '🕶️ Covert Stealth Drop' },
+  { id: 'stealth_drop', label: '🕶️ Kovert Delivery' },
 ];
 
 const SUGGESTED_NOTES = [
@@ -440,6 +442,16 @@ export function AfterActionReportSection({
                         <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100">
                           {displayName}
                         </span>
+                        {report.badgeAwarded === 'KOVERT_KLAUS' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono font-bold">
+                            🎅 Kovert Klaus
+                          </span>
+                        )}
+                        {report.badgeAwarded === 'VIGILANT_ELF' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold">
+                            🕵️ Vigilant Elf
+                          </span>
+                        )}
                       </div>
                       <span className="text-[10px] text-slate-400 font-mono">
                         {new Date(report.createdAt).toLocaleDateString(undefined, {

@@ -6,6 +6,13 @@ import { generateInviteCode } from '@/lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
 import { sendAssignmentEmail, sendNudgeEmail } from '@/lib/email';
 import { IS_SAAS } from '@/lib/config/mode';
+import {
+  generateKdmToken,
+  verifyGiverIdentityGuess,
+  evaluateCovertOutcome,
+  BADGE_KOVERT_KLAUS,
+  BADGE_VIGILANT_ELF,
+} from '@/lib/covertDelivery';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +54,7 @@ export async function GET(request: Request) {
             },
             orderBy: { createdAt: 'desc' },
           },
+          covertInviteTokens: true,
         },
       });
 
@@ -71,6 +79,17 @@ export async function GET(request: Request) {
           shippedAt: m.shippedAt,
           deliveredConfirmed: m.deliveredConfirmed,
           joinedAt: m.joinedAt,
+          propertyWaiverAgreedAt: m.propertyWaiverAgreedAt,
+          dropProofPhotoUrl: m.dropProofPhotoUrl,
+          dropProofNote: canViewDetails ? m.dropProofNote : undefined,
+          droppedAt: m.droppedAt,
+          targetGuessName: canViewDetails ? m.targetGuessName : undefined,
+          targetGuessAttempted: m.targetGuessAttempted,
+          targetGuessCorrect: m.targetGuessCorrect,
+          detectionStatus: m.detectionStatus,
+          bustedPhotoUrl: m.bustedPhotoUrl,
+          bustedReason: m.bustedReason,
+          badgeAwarded: m.badgeAwarded,
           user: {
             id: m.user.id,
             name: m.user.name,
@@ -88,8 +107,9 @@ export async function GET(request: Request) {
       const sanitizedData = {
         ...exchange,
         members: sanitizedMembers,
-        // Preventative exclusion rules are strictly visible only to the Head Elf
+        // Preventative exclusion rules and invite tokens are strictly visible only to the Head Elf
         exclusionRules: isOrganizer ? exchange.exclusionRules : [],
+        covertInviteTokens: isOrganizer ? exchange.covertInviteTokens : [],
       };
 
       return NextResponse.json({ success: true, data: sanitizedData });
@@ -476,6 +496,297 @@ export async function POST(request: Request) {
       });
 
       return NextResponse.json({ success: true, message: 'Exchange Report entry posted!', data: newReport });
+    }
+
+    // Action: Generate KDM Invitation Tokens
+    if (action === 'createKdmTokens' && operationId) {
+      const { count = 5, invitedNames = [] } = body as { count?: number; invitedNames?: string[] };
+      const ex = await db.exchange.findUnique({ where: { id: operationId } });
+      if (!ex) return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
+      if (ex.organizerId !== activeUserId) {
+        return NextResponse.json({ error: 'Only the Organizer can generate KDM invitation keys' }, { status: 403 });
+      }
+
+      const numTokens = Math.min(Math.max(1, count), 50);
+      const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60); // 60 days
+      const tokensToInsert = Array.from({ length: numTokens }).map((_, i) => ({
+        exchangeId: operationId,
+        token: generateKdmToken(),
+        invitedName: invitedNames[i]?.trim() || null,
+        expiresAt,
+      }));
+
+      await db.covertInviteToken.createMany({
+        data: tokensToInsert,
+      });
+
+      const allTokens = await db.covertInviteToken.findMany({
+        where: { exchangeId: operationId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return NextResponse.json({ success: true, data: allTokens });
+    }
+
+    // Action: Join Exchange with KDM Token and Property Access Waiver
+    if (action === 'joinWithKdmToken') {
+      const { token, propertyWaiverAgreed, codename } = body as {
+        token?: string;
+        propertyWaiverAgreed?: boolean;
+        codename?: string;
+      };
+
+      if (!token?.trim()) {
+        return NextResponse.json({ error: 'KDM Invitation Key is required' }, { status: 400 });
+      }
+
+      if (!propertyWaiverAgreed) {
+        return NextResponse.json({
+          error: 'You must review and agree to the Property Access & Safe Conduct Accord to join a Kovert Delivery Operation.',
+        }, { status: 400 });
+      }
+
+      const cleanToken = token.trim().toUpperCase();
+      const inviteToken = await db.covertInviteToken.findUnique({
+        where: { token: cleanToken },
+        include: { exchange: true },
+      });
+
+      if (!inviteToken) {
+        return NextResponse.json({ error: 'Invalid or unrecognized KDM invitation key' }, { status: 404 });
+      }
+
+      if (inviteToken.isUsed) {
+        return NextResponse.json({ error: 'This KDM invitation key has already been redeemed' }, { status: 410 });
+      }
+
+      if (new Date() > inviteToken.expiresAt) {
+        return NextResponse.json({ error: 'This KDM invitation key has expired' }, { status: 410 });
+      }
+
+      // Check if user is already enrolled
+      const existingMember = await db.exchangeMember.findUnique({
+        where: {
+          exchangeId_userId: {
+            exchangeId: inviteToken.exchangeId,
+            userId: activeUserId,
+          },
+        },
+      });
+
+      if (existingMember) {
+        return NextResponse.json({ error: 'You are already enrolled in this mission', exchangeCode: inviteToken.exchange.code }, { status: 409 });
+      }
+
+      // Enroll member and consume single-use token in transaction
+      const [newMember] = await db.$transaction([
+        db.exchangeMember.create({
+          data: {
+            exchangeId: inviteToken.exchangeId,
+            userId: activeUserId,
+            codename: codename?.trim() || null,
+            propertyWaiverAgreedAt: new Date(),
+          },
+        }),
+        db.covertInviteToken.update({
+          where: { id: inviteToken.id },
+          data: {
+            isUsed: true,
+            usedByUserId: activeUserId,
+          },
+        }),
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Successfully enrolled in Kovert Delivery Operation!',
+        exchangeCode: inviteToken.exchange.code,
+        member: newMember,
+      });
+    }
+
+    // Action: Giver Submits Drop Site Proof
+    if (action === 'submitDropProof' && operationId) {
+      const { dropProofPhotoUrl, dropProofNote } = body as {
+        dropProofPhotoUrl?: string;
+        dropProofNote?: string;
+      };
+
+      if (!dropProofPhotoUrl?.trim()) {
+        return NextResponse.json({ error: 'Drop site photo is required' }, { status: 400 });
+      }
+
+      const member = await db.exchangeMember.findUnique({
+        where: {
+          exchangeId_userId: {
+            exchangeId: operationId,
+            userId: activeUserId,
+          },
+        },
+      });
+
+      if (!member) {
+        return NextResponse.json({ error: 'Member enrollment not found' }, { status: 404 });
+      }
+
+      const updated = await db.exchangeMember.update({
+        where: { id: member.id },
+        data: {
+          dropProofPhotoUrl: dropProofPhotoUrl.trim(),
+          dropProofNote: dropProofNote?.trim() || null,
+          droppedAt: new Date(),
+          shippingStatus: 'LOCAL_DELIVERY',
+          deliveredConfirmed: true,
+        },
+      });
+
+      return NextResponse.json({ success: true, message: 'Drop site photo and stash clue logged!', data: updated });
+    }
+
+    // Action: Target Submits 1-Guess Real Name Identity Challenge
+    if (action === 'submitIdentityChallenge' && operationId) {
+      const { guessedName } = body as { guessedName?: string };
+
+      if (!guessedName?.trim()) {
+        return NextResponse.json({ error: 'You must provide a first and last name for your guess' }, { status: 400 });
+      }
+
+      // Find the target member (active user)
+      const targetMember = await db.exchangeMember.findUnique({
+        where: {
+          exchangeId_userId: {
+            exchangeId: operationId,
+            userId: activeUserId,
+          },
+        },
+      });
+
+      if (!targetMember) {
+        return NextResponse.json({ error: 'Member record not found' }, { status: 404 });
+      }
+
+      if (targetMember.targetGuessAttempted) {
+        return NextResponse.json({
+          error: 'Your 1-time guess has already been used for this mission.',
+        }, { status: 409 });
+      }
+
+      // Find the secret giver who was assigned this target
+      const giverMember = await db.exchangeMember.findFirst({
+        where: {
+          exchangeId: operationId,
+          targetUserId: activeUserId,
+        },
+        include: {
+          user: { select: { id: true, name: true, codename: true } },
+        },
+      });
+
+      if (!giverMember) {
+        return NextResponse.json({ error: 'Assigned Secret Santa not found for target' }, { status: 404 });
+      }
+
+      const isCorrect = verifyGiverIdentityGuess(guessedName, giverMember.user.name);
+
+      const outcome = evaluateCovertOutcome({
+        targetGuessAttempted: true,
+        targetGuessCorrect: isCorrect,
+      });
+
+      // Update target member record with guess state and resolved badge
+      const updated = await db.exchangeMember.update({
+        where: { id: targetMember.id },
+        data: {
+          targetGuessName: guessedName.trim(),
+          targetGuessAttempted: true,
+          targetGuessCorrect: isCorrect,
+          detectionStatus: outcome.status,
+          badgeAwarded: outcome.badgeAwarded,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        correct: isCorrect,
+        canUploadEvidence: isCorrect,
+        status: outcome.status,
+        badgeAwarded: outcome.badgeAwarded,
+        data: updated,
+      });
+    }
+
+    // Action: Target Uploads Busted Ring Camera Evidence
+    if (action === 'submitBustedEvidence' && operationId) {
+      const { bustedPhotoUrl, bustedReason } = body as {
+        bustedPhotoUrl?: string;
+        bustedReason?: string;
+      };
+
+      if (!bustedPhotoUrl?.trim()) {
+        return NextResponse.json({ error: 'Evidence camera photo is required' }, { status: 400 });
+      }
+
+      const targetMember = await db.exchangeMember.findUnique({
+        where: {
+          exchangeId_userId: {
+            exchangeId: operationId,
+            userId: activeUserId,
+          },
+        },
+      });
+
+      if (!targetMember) return NextResponse.json({ error: 'Member record not found' }, { status: 404 });
+
+      if (!targetMember.targetGuessCorrect) {
+        return NextResponse.json({
+          error: 'Cannot upload evidence without successfully identifying the Santa by name.',
+        }, { status: 403 });
+      }
+
+      const updated = await db.exchangeMember.update({
+        where: { id: targetMember.id },
+        data: {
+          bustedPhotoUrl: bustedPhotoUrl.trim(),
+          bustedReason: bustedReason?.trim() || null,
+          detectionStatus: 'BUSTED',
+          badgeAwarded: BADGE_VIGILANT_ELF,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Evidence logged! Operative officially BUSTED.',
+        data: updated,
+      });
+    }
+
+    // Action: Confirm Ghost Drop (Undetected)
+    if (action === 'confirmGhostDrop' && operationId) {
+      const targetMember = await db.exchangeMember.findUnique({
+        where: {
+          exchangeId_userId: {
+            exchangeId: operationId,
+            userId: activeUserId,
+          },
+        },
+      });
+
+      if (!targetMember) return NextResponse.json({ error: 'Member record not found' }, { status: 404 });
+
+      const updated = await db.exchangeMember.update({
+        where: { id: targetMember.id },
+        data: {
+          detectionStatus: 'UNDETECTED',
+          badgeAwarded: BADGE_KOVERT_KLAUS,
+          deliveredConfirmed: true,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Ghost delivery confirmed! Giver awarded Kovert Klaus badge.',
+        data: updated,
+      });
     }
 
     if (!config) {
