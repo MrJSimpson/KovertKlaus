@@ -190,12 +190,15 @@ export default function WorkshopLayout({ children }: { children: React.ReactNode
 
   // State 3: Authorized Workshop Operative
   const navItems = [
-    { label: '🧪 Workshop Hub', href: '/workshop' },
-    { label: '🎯 Sattolo & Swap Bench', href: '/workshop/draw' },
-    { label: '🏷️ White Elephant Board', href: '/workshop/party' },
-    { label: '⏰ Schedule Simulator', href: '/workshop/lifecycle' },
-    { label: '🔎 Scraper Bench', href: '/workshop/scraper' },
-    { label: '📧 Email Simulator', href: '/workshop/email' },
+    { label: '🧪 Hub', href: '/workshop' },
+    { label: '🎯 Sattolo Draw', href: '/workshop/draw' },
+    { label: '🏷️ White Elephant', href: '/workshop/party' },
+    { label: '📸 AAR & WebP', href: '/workshop/aar' },
+    { label: '⏰ Timeline', href: '/workshop/lifecycle' },
+    { label: '📋 Manifest', href: '/workshop/manifest' },
+    { label: '🔎 Scraper', href: '/workshop/scraper' },
+    { label: '📧 Email', href: '/workshop/email' },
+    { label: '🎨 Themes', href: '/workshop/theme' },
   ];
 
   return (

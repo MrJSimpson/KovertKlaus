@@ -48,12 +48,36 @@ export default function WorkshopHubPage() {
         'Interactive SVG cyclic graph visualizer, 1-click scenario presets (Family Ops, 3 Couples, 12 Agents), CSPRNG trace, and 2-way cascade target swaps.',
     },
     {
+      title: '🏷️ Labeled Blind Mystery White Elephant Board',
+      path: '/workshop/party',
+      badge: 'PARTY REFEREE',
+      color: 'border-purple-500/40 text-purple-300',
+      description:
+        'In-person living room party referee: gifts remain wrapped and labeled "FROM: AGENT <NAME>", tracking turn queue, 3-swap freeze, and grand unboxing.',
+    },
+    {
+      title: '📸 After-Action Report & WebP Compressor Studio',
+      path: '/workshop/aar',
+      badge: 'IMAGE OPTIMIZATION',
+      color: 'border-emerald-500/40 text-emerald-300',
+      description:
+        'Test client-side canvas WebP downscaling, compression ratios, delivery fulfillment tags, interactive lightbox zoom, and mock debrief feed generation.',
+    },
+    {
       title: '⏰ 5-Phase Operation Schedule Simulator',
       path: '/workshop/lifecycle',
       badge: 'LIFECYCLE ENGINE',
       color: 'border-amber-500/40 text-amber-300',
       description:
         'Shift virtual calendar dates across recruitment, target assignment, courier shipping deadlines, and exchange execution with real-time countdown badges.',
+    },
+    {
+      title: '📋 Dual Manifest & Limit Validator',
+      path: '/workshop/manifest',
+      badge: 'ANTI-OVERWISHING',
+      color: 'border-emerald-500/40 text-emerald-300',
+      description:
+        'Test Secret Santa vs White Elephant rules, +20% anti-overwishing hard caps, buyer cart spend tallying, and pre-draw eligibility.',
     },
     {
       title: '🔎 OpenGraph Metadata Scraper Bench',
@@ -78,22 +102,6 @@ export default function WorkshopHubPage() {
       color: 'border-rose-500/40 text-rose-300',
       description:
         'Compare Klaus Mode 🎄 vs Kovert Mode ❄️ across all 4 seasonal themes, animated light strands, typography, buttons, badges, and card tokens.',
-    },
-    {
-      title: '📋 Dual Manifest & Limit Validator',
-      path: '/workshop/manifest',
-      badge: 'ANTI-OVERWISHING',
-      color: 'border-emerald-500/40 text-emerald-300',
-      description:
-        'Test Secret Santa vs White Elephant rules, +20% anti-overwishing hard caps, buyer cart spend tallying, and pre-draw eligibility.',
-    },
-    {
-      title: '🏷️ Labeled Blind Mystery White Elephant Board',
-      path: '/workshop/party',
-      badge: 'PARTY REFEREE',
-      color: 'border-purple-500/40 text-purple-300',
-      description:
-        'In-person living room party referee: gifts remain wrapped and labeled "FROM: AGENT <NAME>", tracking turn queue, 3-swap freeze, and grand unboxing.',
     },
   ];
 

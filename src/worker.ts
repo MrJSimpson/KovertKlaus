@@ -1377,6 +1377,9 @@ export default {
                 thankYouText: thankYouText ? sanitizeText(thankYouText) : null,
                 photoUrl: photoUrl?.trim() || null,
               },
+              include: {
+                user: { select: { id: true, name: true, codename: true } },
+              },
             });
             return Response.json({ success: true, data: report });
           }

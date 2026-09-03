@@ -1087,7 +1087,7 @@ export default function OperationCommandCenterPage() {
                   <AfterActionReportSection
                     operationId={operation.id}
                     currentUserId={userId || ''}
-                    reports={operation.afterActionReports || []}
+                    reports={operation.reports || operation.afterActionReports || []}
                     onReportPosted={() => fetchExchangeDetails()}
                   />
                 </div>
