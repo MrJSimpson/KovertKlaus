@@ -134,11 +134,11 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     badgeColor: 'bg-rose-950 text-rose-300 border-rose-500/40',
     description: '5 operatives with impossible hub blocks to verify graceful error catch.',
     agents: [
-      { id: '40', name: 'Operative Alpha', codename: 'Agent-A', hasWishlistAttached: true },
-      { id: '41', name: 'Operative Bravo', codename: 'Agent-B', hasWishlistAttached: true },
-      { id: '42', name: 'Operative Charlie', codename: 'Agent-C', hasWishlistAttached: true },
-      { id: '43', name: 'Operative Delta', codename: 'Agent-D', hasWishlistAttached: true },
-      { id: '44', name: 'Operative Echo', codename: 'Agent-E', hasWishlistAttached: true },
+      { id: '40', name: 'Operative Alpha', codename: 'Agent: Alpha', hasWishlistAttached: true },
+      { id: '41', name: 'Operative Bravo', codename: 'Agent: Bravo', hasWishlistAttached: true },
+      { id: '42', name: 'Operative Charlie', codename: 'Agent: Charlie', hasWishlistAttached: true },
+      { id: '43', name: 'Operative Delta', codename: 'Agent: Delta', hasWishlistAttached: true },
+      { id: '44', name: 'Operative Echo', codename: 'Agent: Echo', hasWishlistAttached: true },
     ],
     exclusionRules: [
       { agentId: '40', restrictedAgentId: '41' },

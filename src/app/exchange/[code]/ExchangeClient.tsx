@@ -150,7 +150,7 @@ export default function OperationCommandCenterPage() {
   const [intelMessageText, setIntelMessageText] = useState('');
   const [sendingIntel, setSendingIntel] = useState(false);
   const [intelLogs, setIntelLogs] = useState<Array<{ id: string; sender: string; text: string; time: string }>>([
-    { id: '1', sender: 'Agent-KovertKlaus', text: 'Operation initialized. All agents stand by for target assignment.', time: '10:00 AM' },
+    { id: '1', sender: 'Agent: KovertKlaus', text: 'Operation initialized. All agents stand by for target assignment.', time: '10:00 AM' },
   ]);
 
   useEffect(() => {
@@ -415,7 +415,7 @@ export default function OperationCommandCenterPage() {
     setSendingIntel(true);
     const newMsg = {
       id: Math.random().toString(36).substring(2, 9),
-      sender: userName ? formatCodename(undefined, userName) : 'Agent-Secret',
+      sender: userName ? formatCodename(undefined, userName) : 'Agent: Secret',
       text: intelMessageText.trim(),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };

@@ -36,7 +36,7 @@ export default function AARWorkshopBenchPage() {
       user: {
         id: 'user-shannon',
         name: 'Shannon Simpson',
-        codename: 'Agent-Starlight',
+        codename: 'Agent: Starlight',
       },
     },
     {
@@ -48,7 +48,7 @@ export default function AARWorkshopBenchPage() {
       user: {
         id: 'user-zach',
         name: 'Zach Simpson',
-        codename: 'Agent-Shadow',
+        codename: 'Agent: Shadow',
       },
     },
     {
@@ -60,7 +60,7 @@ export default function AARWorkshopBenchPage() {
       user: {
         id: 'user-terry',
         name: 'Terry Simpson',
-        codename: 'Agent-Falcon',
+        codename: 'Agent: Falcon',
       },
     },
   ]);
@@ -427,7 +427,7 @@ export default function AARWorkshopBenchPage() {
                 user: {
                   id: 'user-joshua',
                   name: 'Joshua Simpson',
-                  codename: 'Agent-Prime',
+                  codename: 'Agent: Prime',
                 },
               };
               setMockReports((prev) => [newEntry, ...prev]);

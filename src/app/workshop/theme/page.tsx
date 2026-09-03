@@ -218,7 +218,7 @@ export default function WorkshopThemeGallery() {
               <span className={tokens.textAccent}>ACCENT: Dec 25, 2026</span>
               <span className={tokens.textBrand}>BRAND: KovertKlaus HQ</span>
               <span className={tokens.textDate}>DATE: Today! 🎉</span>
-              <span className="font-bold">{formatCodename('Joshua', 'Agent-007')}</span>
+              <span className="font-bold">{formatCodename('Joshua', 'Agent: 007')}</span>
             </div>
           </div>
         </div>
@@ -339,7 +339,7 @@ export default function WorkshopThemeGallery() {
                 <label className={`block text-xs font-mono mb-1 ${tokens.textLabel}`}>ACTIVE TEXT INPUT:</label>
                 <input
                   type="text"
-                  defaultValue="Agent-Trinity"
+                  defaultValue="Agent: Trinity"
                   className={`w-full rounded-xl px-3 py-2 text-xs border ${tokens.inputBg}`}
                 />
               </div>

@@ -363,7 +363,7 @@ export default function NorthPoleUsersPage() {
             </p>
             <input
               type="text"
-              placeholder="e.g. Agent-Klaus, Chewbacca, Frosty..."
+              placeholder="e.g. Agent: Klaus, Chewbacca, Frosty..."
               value={newCodename}
               onChange={(e) => setNewCodename(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 focus:border-red-500 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none font-mono"

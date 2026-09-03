@@ -67,7 +67,7 @@ Performs pre-flight email availability checks or registers a new operative accou
     "email": "operative@example.com",
     "password": "SecurePassword10+",
     "name": "James Bond",
-    "codename": "Agent-007",
+    "codename": "Agent: 007",
     "address": "10 Downing Street, London"
   }
   ```
@@ -87,7 +87,7 @@ Retrieves the authenticated operative's profile, active mission memberships, and
       "id": "usr_12345",
       "email": "operative@example.com",
       "name": "James Bond",
-      "codename": "Agent-007",
+      "codename": "Agent: 007",
       "accountStatus": "ACTIVE",
       "demerits": 0,
       "address": "10 Downing Street",
@@ -367,7 +367,7 @@ Inspects a single operative record by ID, or searches records on demand with zer
         "id": "usr_123",
         "email": "operative@example.com",
         "name": "James Bond",
-        "codename": "Agent-007",
+        "codename": "Agent: 007",
         "demerits": 0,
         "accountStatus": "ACTIVE",
         "isWorkshop": true

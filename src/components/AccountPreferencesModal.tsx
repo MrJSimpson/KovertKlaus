@@ -77,7 +77,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
         setName(data.user.name || '');
         setEmail(data.user.email || '');
         
-        // Strip legacy Agent- prefix if provided for clean input display
+        // Strip legacy Agent: / Agent- prefix if provided for clean input display
         let rawCodename = (data.user.codename || '').replace(/^(agent[-:\s]+)/i, '').trim();
         setCodename(rawCodename);
         setPreferredCodename(data.user.preferredCodename || rawCodename);

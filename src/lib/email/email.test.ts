@@ -76,12 +76,12 @@ async function runTests() {
   const assignTpl = getAssignmentEmailTemplate({
     recipientEmail: 'han@example.com',
     recipientName: 'Han Solo',
-    targetCodename: 'Agent-Chewbacca',
+    targetCodename: 'Agent: Chewbacca',
     exchangeTitle: 'Millennium Exchange',
     exchangeUrl: 'https://kovertklaus.com/exchange/MILL-1234',
     shippingDeadline: 'Dec 15, 2026',
   });
-  assert(assignTpl.html.includes('Agent-Chewbacca') && assignTpl.html.includes('Dec 15, 2026'), 'Assignment template renders target codename and deadline');
+  assert(assignTpl.html.includes('Agent: Chewbacca') && assignTpl.html.includes('Dec 15, 2026'), 'Assignment template renders target codename and deadline');
 
   const nudgeTpl = getNudgeEmailTemplate({
     recipientEmail: 'luke@example.com',
@@ -128,7 +128,7 @@ async function runTests() {
   const assignRes = await sendAssignmentEmail({
     recipientEmail: 'agent.neo@matrix.com',
     recipientName: 'Neo',
-    targetCodename: 'Agent-Trinity',
+    targetCodename: 'Agent: Trinity',
     exchangeTitle: 'Zion Secret Santa',
     exchangeUrl: 'https://kovertklaus.com/exchange/ZION-9999',
   });

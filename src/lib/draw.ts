@@ -27,7 +27,7 @@ export interface FieldAgent {
   id: string;
   /** Full human name of the operative */
   name: string;
-  /** Optional tactical call sign (e.g. Agent-Viper) */
+  /** Optional tactical call sign (e.g. Agent: Viper) */
   codename?: string | null;
   /** Invariant: Operative must have an attached wishlist manifest to participate in Secret Santa */
   hasWishlistAttached: boolean;

@@ -19,7 +19,7 @@ Always enforce the canonical domain vocabulary across all UI text, code variable
 | **Individual Gift Item** | **`Manifest Item`** | `Item` (`OpTool`) | Individual product item inside a Wishlist Manifest. |
 | **Penalties / Citations** | **`Coal Citations`** | `User.penaltyPoints` | Reliability demerits for deadline non-compliance. |
 
-* **`Agent-` Codename Prefix**: Every operative codename **MUST** use the `Agent-` prefix (e.g. `Agent-Viper`, `Agent-KovertKlaus`). Use `formatCodename()` from `@/lib/security.ts`.
+* **`Agent: ` Codename Prefix**: Every operative codename **MUST** use the `Agent: ` prefix (e.g. `Agent: Viper`, `Agent: KovertKlaus`). Use `formatCodename()` from `@/lib/security.ts`.
 * **Direct Canonical Presentation**: Do NOT introduce dynamic runtime terminology translation layers. Use canonical terms directly in JSX copy.
 
 ---
