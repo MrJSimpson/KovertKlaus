@@ -63,13 +63,36 @@ export async function POST(request: Request) {
     const { resolveUniqueCodename } = await import('@/lib/codename');
     const resolution = resolveUniqueCodename(preferred, existingRosterCodenames, shouldRandomize);
 
-    // 5. Enroll Member into Exchange with Unique Codename
+    // 5. Auto-Link or Provision Master Wishlist Manifest
+    let linkedWishlistId = wishlistId || null;
+    if (!linkedWishlistId) {
+      const targetType = exchange.isWhiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD';
+      const existingWishlist = await db.wishlist.findFirst({
+        where: { userId: activeUserId, type: targetType },
+        orderBy: { updatedAt: 'desc' },
+      });
+
+      if (existingWishlist) {
+        linkedWishlistId = existingWishlist.id;
+      } else {
+        const createdManifest = await db.wishlist.create({
+          data: {
+            userId: activeUserId,
+            name: exchange.isWhiteElephant ? 'White Elephant Gift' : 'Master Wishlist Manifest',
+            type: targetType,
+          },
+        });
+        linkedWishlistId = createdManifest.id;
+      }
+    }
+
+    // 6. Enroll Member into Exchange with Unique Codename and Linked Wishlist
     const newMember = await db.exchangeMember.create({
       data: {
         exchangeId: exchange.id,
         userId: activeUserId,
         codename: resolution.codename,
-        wishlistId: wishlistId || null,
+        wishlistId: linkedWishlistId,
         role: 'MEMBER',
       },
       include: {

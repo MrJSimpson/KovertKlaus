@@ -77,6 +77,15 @@ export function JoinOperationModal({
     }
   }
 
+  function handleCodeChange(raw: string) {
+    const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    if (clean.length > 4) {
+      setInviteCode(`${clean.slice(0, 4)}-${clean.slice(4)}`);
+    } else {
+      setInviteCode(clean);
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full transition-all shadow-2xl ${theme.modalBg}`}>
@@ -111,11 +120,11 @@ export function JoinOperationModal({
               required
               placeholder="e.g. K9X2-R7M4"
               value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+              onChange={(e) => handleCodeChange(e.target.value)}
               className={`w-full border rounded-xl px-3 py-3 text-base font-mono font-bold tracking-wider text-center focus:outline-none uppercase ${theme.inputModalBg}`}
             />
             <p className="text-[10px] text-slate-500 mt-1 text-center">
-              Enter the 6-character encrypted invite code provided by your OpsLeader.
+              Enter the 8-character Base32 invite code (e.g. K9X2-R7M4) provided by your Head Elf.
             </p>
           </div>
 
