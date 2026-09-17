@@ -27,9 +27,14 @@ export async function POST(request: Request) {
     const parsedUrl = new URL(normalizedUrl);
 
     // Step 1: Check shared ProductCatalog in Database (~10ms fast hit)
-    const existingCatalog = await db.productCatalog.findUnique({
-      where: { url: normalizedUrl },
-    });
+    let existingCatalog = null;
+    try {
+      existingCatalog = await db.productCatalog.findUnique({
+        where: { url: normalizedUrl },
+      });
+    } catch {
+      // Database connection error, offline test, or cold start - proceed with live scraping
+    }
 
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
     const isFresh = existingCatalog && (Date.now() - new Date(existingCatalog.scrapedAt).getTime() < TWENTY_FOUR_HOURS_MS);
@@ -105,33 +110,38 @@ export async function POST(request: Request) {
       const cleanDesc = description.substring(0, 300);
 
       // Upsert into shared ProductCatalog database table
-      const catalogRecord = await db.productCatalog.upsert({
-        where: { url: normalizedUrl },
-        create: {
-          url: normalizedUrl,
-          title,
-          price: parsedPrice,
-          description: cleanDesc,
-          thumbnailUrl: image,
-          domain: parsedUrl.hostname,
-        },
-        update: {
-          title,
-          price: parsedPrice,
-          description: cleanDesc,
-          thumbnailUrl: image,
-          domain: parsedUrl.hostname,
-          scrapedAt: new Date(),
-        },
-      });
+      let catalogRecord: any = null;
+      try {
+        catalogRecord = await db.productCatalog.upsert({
+          where: { url: normalizedUrl },
+          create: {
+            url: normalizedUrl,
+            title,
+            price: parsedPrice,
+            description: cleanDesc,
+            thumbnailUrl: image,
+            domain: parsedUrl.hostname,
+          },
+          update: {
+            title,
+            price: parsedPrice,
+            description: cleanDesc,
+            thumbnailUrl: image,
+            domain: parsedUrl.hostname,
+            scrapedAt: new Date(),
+          },
+        });
+      } catch {
+        // Upsert failed (DB unavailable), fallback to in-memory record
+      }
 
       return NextResponse.json({
         success: true,
         foundInCatalog: false,
         metadata: {
-          id: catalogRecord.id,
-          title: catalogRecord.title,
-          url: catalogRecord.url,
+          id: catalogRecord?.id || 'live-scraped',
+          title: catalogRecord?.title || title,
+          url: catalogRecord?.url || normalizedUrl,
           price: parsedPrice > 0 ? parsedPrice : undefined,
           description: cleanDesc || undefined,
           thumbnail: image || undefined,
