@@ -25,6 +25,7 @@ import {
 import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
 import { evaluateMemberAudit } from './lib/demerits';
+import { processExchangeAudit, executeDueDemeritAudits } from './lib/audit-runner';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -1810,13 +1811,22 @@ export default {
 
       // 17. /api/demerits/audit (POST)
       if (pathname === '/api/demerits/audit' && request.method === 'POST') {
-        const activeUserId = getUserIdFromRequest(request);
-        if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
-
         const body = (await request.json().catch(() => ({}))) as any;
         const { operationId } = body;
 
-        if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
+        // Mode 1: Batch execution across all due exchanges (no specific operationId passed)
+        if (!operationId) {
+          const summary = await executeDueDemeritAudits(db);
+          return Response.json({
+            success: true,
+            message: `Batch execution audit completed for ${summary.exchangesAuditedCount} mission(s).`,
+            data: summary,
+          });
+        }
+
+        // Mode 2: Single operation audit triggered by Head Elf
+        const activeUserId = getUserIdFromRequest(request);
+        if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
         const exchange = await db.exchange.findUnique({
           where: { id: operationId },
@@ -1830,51 +1840,7 @@ export default {
           return Response.json({ error: 'Audit engine can only be run on or after Execution Day.' }, { status: 400 });
         }
 
-        const auditResults = [];
-        for (const member of exchange.members) {
-          const outcome = evaluateMemberAudit({
-            userId: member.user.id,
-            userName: member.user.name,
-            shippingStatus: member.shippingStatus as any,
-            deliveredConfirmed: member.deliveredConfirmed,
-            trackingNumber: member.trackingNumber,
-            currentPenaltyPoints: member.user.penaltyPoints,
-            currentAccountStatus: member.user.accountStatus as any,
-            isWhiteElephant: exchange.isWhiteElephant,
-          });
-
-          if (outcome.newDemeritCount !== member.user.penaltyPoints || outcome.newAccountStatus !== member.user.accountStatus) {
-            await db.user.update({
-              where: { id: member.user.id },
-              data: { penaltyPoints: outcome.newDemeritCount, accountStatus: outcome.newAccountStatus },
-            });
-
-            if (outcome.penalized) {
-              await db.notification.create({
-                data: {
-                  userId: member.user.id,
-                  exchangeId: exchange.id,
-                  title: '⚠️ Penalty Issued: Unfulfilled Gift Exchange',
-                  message: `You were issued 1 Coal Citation for mission "${exchange.title}". Current Points: ${outcome.newDemeritCount}. Status: ${outcome.newAccountStatus}.`,
-                  isAcknowledged: false,
-                },
-              });
-            } else if (outcome.demeritCleared) {
-              await db.notification.create({
-                data: {
-                  userId: member.user.id,
-                  exchangeId: exchange.id,
-                  title: '🌟 Demerit Cleared: Mission Completed',
-                  message: `You fulfilled your obligation in "${exchange.title}". 1 Coal Citation removed. Current Points: ${outcome.newDemeritCount}. Status: ${outcome.newAccountStatus}.`,
-                  isAcknowledged: false,
-                },
-              });
-            }
-          }
-          auditResults.push(outcome);
-        }
-
-        await db.exchange.update({ where: { id: exchange.id }, data: { status: 'COMPLETED' } });
+        const auditResults = await processExchangeAudit(db, exchange);
         return Response.json({ success: true, message: 'Execution Day audit completed.', data: { operationId: exchange.id, auditResults } });
       }
 
@@ -2142,5 +2108,47 @@ export default {
 
     // Fallback: Serve static assets from Cloudflare edge CDN
     return env.ASSETS.fetch(request);
+  },
+
+  /**
+   * Cloudflare Worker Scheduled Cron Trigger Handler
+   * Fires daily at 06:00 UTC (configured via wrangler.json triggers.crons)
+   * Evaluates Execution Day completion across all active missions and applies
+   * automated demerit penalties or rehabilitation waivers.
+   */
+  async scheduled(event: any, env: Env, ctx: any): Promise<void> {
+    const auditPromise = (async () => {
+      try {
+        if (env.DATABASE_URL) process.env.DATABASE_URL = env.DATABASE_URL;
+        if (env.DATABASE_ADMIN_URL) process.env.DATABASE_ADMIN_URL = env.DATABASE_ADMIN_URL;
+        if (env.DIRECT_URL) process.env.DIRECT_URL = env.DIRECT_URL;
+
+        const appConnStr =
+          env.DATABASE_URL ||
+          env.DATABASE_ADMIN_URL ||
+          env.DIRECT_URL ||
+          process.env.DATABASE_URL ||
+          process.env.DATABASE_ADMIN_URL;
+        const db = getDb(appConnStr);
+        const summary = await executeDueDemeritAudits(db);
+        console.log(`[CRON] Execution Day Demerit Audit completed: ${summary.exchangesAuditedCount} mission(s) audited at ${summary.processedAt}`);
+        await logInfo('WORKER', `Automated Execution Day audit completed for ${summary.exchangesAuditedCount} mission(s).`, {
+          metadata: { summary, cron: event?.cron, scheduledTime: event?.scheduledTime },
+          env,
+        }).catch(() => {});
+      } catch (err: any) {
+        console.error('[CRON] Execution Day Demerit Audit failed:', err);
+        await logError('WORKER', `Execution Day Demerit Audit cron failed: ${err?.message || err}`, {
+          metadata: { cron: event?.cron, scheduledTime: event?.scheduledTime, error: err?.message || String(err) },
+          env,
+        }).catch(() => {});
+      }
+    })();
+
+    if (ctx && typeof ctx.waitUntil === 'function') {
+      ctx.waitUntil(auditPromise);
+    } else {
+      await auditPromise;
+    }
   },
 };

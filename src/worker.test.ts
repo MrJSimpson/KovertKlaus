@@ -97,4 +97,37 @@ test('Cloudflare Edge Worker API Parity Logic (Finding 3.1)', async (t) => {
     assert.strictEqual(content.includes('export async function GET'), true);
     assert.strictEqual(content.includes('export async function DELETE'), true);
   });
+
+  await t.test('wrangler.json defines Cloudflare Worker scheduled cron trigger (Finding 3.3)', () => {
+    const wranglerPath = path.join(process.cwd(), 'wrangler.json');
+    assert.strictEqual(fs.existsSync(wranglerPath), true);
+    const wranglerConfig = JSON.parse(fs.readFileSync(wranglerPath, 'utf-8'));
+    assert.ok(wranglerConfig.triggers, 'wrangler.json must have triggers');
+    assert.ok(Array.isArray(wranglerConfig.triggers.crons), 'triggers must define crons array');
+    assert.strictEqual(wranglerConfig.triggers.crons.includes('0 6 * * *'), true);
+  });
+
+  await t.test('worker.ts default export provides scheduled handler for Cloudflare cron invocations', async () => {
+    const worker = (await import('./worker')).default;
+    assert.strictEqual(typeof worker.scheduled, 'function');
+
+    let waitedPromise: Promise<any> | null = null;
+    const mockCtx = {
+      waitUntil: (p: Promise<any>) => {
+        waitedPromise = p;
+      },
+    };
+
+    // Execute scheduled handler with mock environment
+    await worker.scheduled(
+      { cron: '0 6 * * *', scheduledTime: Date.now() },
+      { ASSETS: { fetch: async () => new Response('ok') } },
+      mockCtx
+    );
+
+    assert.ok(waitedPromise, 'scheduled() must pass execution promise to ctx.waitUntil()');
+    // Ensure promise settles without uncaught exceptions
+    await waitedPromise;
+  });
 });
+
