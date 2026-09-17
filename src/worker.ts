@@ -26,6 +26,7 @@ import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
 import { evaluateMemberAudit } from './lib/demerits';
 import { processExchangeAudit } from './lib/audit-runner';
+import { advanceMissionLifecycle } from './lib/mission-lifecycle';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -1861,6 +1862,16 @@ export default {
         return Response.json({ success: true, message: 'Execution Day audit completed.', data: { operationId: exchange.id, auditResults } });
       }
 
+      // 17b. /api/operations/lifecycle (POST)
+      if (pathname === '/api/operations/lifecycle' && request.method === 'POST') {
+        const summary = await advanceMissionLifecycle(db);
+        return Response.json({
+          success: true,
+          message: `Lifecycle evaluated: ${summary.transitionsCount} transition(s) executed across ${summary.missionsCheckedCount} active mission(s).`,
+          data: summary,
+        });
+      }
+
       // 18. /api/scraper (POST)
       if (pathname === '/api/scraper' && request.method === 'POST') {
         const body = (await request.json().catch(() => ({}))) as any;
@@ -2125,5 +2136,50 @@ export default {
 
     // Fallback: Serve static assets from Cloudflare edge CDN
     return env.ASSETS.fetch(request);
+  },
+
+  /**
+   * Cloudflare Worker Scheduled Cron Trigger Handler
+   * Fires daily at 06:00 UTC (configured via wrangler.json triggers.crons)
+   * Automatically advances active missions forward based on milestone dates:
+   * - inviteCutoffDate -> SETUP
+   * - assignmentDate   -> MATCHED (Executes target draw & emails assignments)
+   * - shippingDate     -> SHIPPED
+   * - executionDate    -> EXECUTED
+   */
+  async scheduled(event: any, env: Env, ctx: any): Promise<void> {
+    const lifecyclePromise = (async () => {
+      try {
+        if (env.DATABASE_URL) process.env.DATABASE_URL = env.DATABASE_URL;
+        if (env.DATABASE_ADMIN_URL) process.env.DATABASE_ADMIN_URL = env.DATABASE_ADMIN_URL;
+        if (env.DIRECT_URL) process.env.DIRECT_URL = env.DIRECT_URL;
+
+        const appConnStr =
+          env.DATABASE_URL ||
+          env.DATABASE_ADMIN_URL ||
+          env.DIRECT_URL ||
+          process.env.DATABASE_URL ||
+          process.env.DATABASE_ADMIN_URL;
+        const db = getDb(appConnStr);
+        const summary = await advanceMissionLifecycle(db);
+        console.log(`[CRON] Mission lifecycle milestone check at ${summary.processedAt}: ${summary.transitionsCount} transition(s) executed across ${summary.missionsCheckedCount} active mission(s).`);
+        await logInfo('WORKER', `Cron: Mission lifecycle advanced ${summary.transitionsCount} mission(s).`, {
+          metadata: { summary, cron: event?.cron, scheduledTime: event?.scheduledTime },
+          env,
+        }).catch(() => {});
+      } catch (err: any) {
+        console.error('[CRON] Mission lifecycle milestone check failed:', err);
+        await logError('WORKER', `Cron: Mission lifecycle failed: ${err?.message || err}`, {
+          metadata: { cron: event?.cron, scheduledTime: event?.scheduledTime, error: err?.message || String(err) },
+          env,
+        }).catch(() => {});
+      }
+    })();
+
+    if (ctx && typeof ctx.waitUntil === 'function') {
+      ctx.waitUntil(lifecyclePromise);
+    } else {
+      await lifecyclePromise;
+    }
   },
 };
