@@ -15,7 +15,7 @@ export default function WorkshopEmailBench() {
   const templates = [
     { key: 'invitation', label: '1. Operation Invitation ✉️', desc: 'Recruitment invite with budget range and late pass badge.' },
     { key: 'assignment', label: '2. Target Assignment Reveal 🎯', desc: 'Classified Sattolo target reveal with shipping address.' },
-    { key: 'welcome', label: '3. Operative Onboarding 🎁', desc: 'Welcome email with Master OpKit creation checklist.' },
+    { key: 'welcome', label: '3. Operative Onboarding 🎁', desc: 'Welcome email with Master Wishlist Manifest creation checklist.' },
     { key: 'nudge', label: '4. OpsLeader Nudge 🔔', desc: 'Urgent reminder before draw or shipping deadlines.' },
     { key: 'broadcast', label: '5. OpTeam Broadcast 📢', desc: 'Mission-wide encrypted announcement.' },
     { key: 'clearance', label: '6. Clearance Waitlist 📋', desc: 'Pre-launch waitlist confirmation and roster slot.' },
@@ -240,7 +240,7 @@ export default function WorkshopEmailBench() {
 
                   <div className="text-center pt-2">
                     <button className="bg-purple-600 text-white font-mono font-bold text-xs px-6 py-3 rounded-xl shadow-lg">
-                      🔍 INSPECT TARGET'S MASTER OPKIT
+                      🔍 INSPECT TARGET'S MASTER WISHLIST MANIFEST
                     </button>
                   </div>
                 </div>
@@ -253,9 +253,9 @@ export default function WorkshopEmailBench() {
                     Your operative account has been created. Here is your initial pre-flight checklist:
                   </p>
                   <div className="space-y-2 font-mono">
-                    <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-emerald-400">✓ Master OpKit Initialized</div>
+                    <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-emerald-400">✓ Master Wishlist Manifest Initialized</div>
                     <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-amber-300">⏳ Add Courier Shipping Address</div>
-                    <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-sky-300">⏳ Add 3+ Wished-For OpTools</div>
+                    <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-sky-300">⏳ Add 3+ Wished-For Manifest Items</div>
                   </div>
                 </div>
               )}

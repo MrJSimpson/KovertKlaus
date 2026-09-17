@@ -214,7 +214,7 @@ function generateODTFiles() {
       <!-- SECTION 1 -->
       <text:p text:style-name="Heading1">1. Product Vision, Architecture &amp; Design System</text:p>
       <text:p text:style-name="StandardText">
-        KovertKlaus combines classic holiday gift exchanges with a playful covert intelligence theme. Operatives manage operations, assemble OpKits (wishlists), acquire OpTools (gift items), and execute Secret Santa and White Elephant gift exchanges.
+        KovertKlaus combines classic holiday gift exchanges with a playful covert intelligence theme. Operatives manage operations, assemble Wishlist Manifests, acquire Manifest Items (gift links), and execute Secret Santa and White Elephant gift exchanges.
       </text:p>
       <text:p text:style-name="Heading2">1.1 Dual Design Aesthetics</text:p>
       <text:p text:style-name="StandardText">
@@ -299,7 +299,7 @@ function generateODTFiles() {
       <text:p text:style-name="StandardText">
         1. <text:span text:style-name="CodeText">Phase 1 (Recruiting)</text:span>: Operatives enroll via invite codes. OpsLeader sends invites or closes recruitment.<text:line-break/>
         2. <text:span text:style-name="CodeText">Phase 2 (Setup &amp; Assignment)</text:span>: Configure bidirectional matching rules, execute Sattolo target draw.<text:line-break/>
-        3. <text:span text:style-name="CodeText">Phase 3 (Shipping / Execution)</text:span>: Santas acquire OpTools, ship parcels, and provide carrier tracking.<text:line-break/>
+        3. <text:span text:style-name="CodeText">Phase 3 (Shipping / Execution)</text:span>: Santas acquire Manifest Items, ship parcels, and provide carrier tracking.<text:line-break/>
         4. <text:span text:style-name="CodeText">Phase 4 (Exchange Event)</text:span>: Operatives meet and unwrap gifts.<text:line-break/>
         5. <text:span text:style-name="CodeText">Phase 5 (Completed &amp; AAR)</text:span>: Post-event thank-yous, debrief photos, and demerit audits.
       </text:p>

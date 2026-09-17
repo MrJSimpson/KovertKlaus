@@ -122,7 +122,7 @@ export function formatDateString(dateInput?: string | Date | null): string {
 }
 
 export interface OperationPhaseInfo {
-  phaseStatusLabel: string; // "Recruiting", "Waiting Assignment", "Acquire OpKit", "Awaiting Execution...", "Completed" (or Day-Of variations)
+  phaseStatusLabel: string; // "Recruiting", "Waiting Assignment", "Acquire Manifest Items", "Awaiting Execution...", "Completed" (or Day-Of variations)
   milestoneLabel: string;   // "RSVP Cutoff", "Target Draw", "Ship Deadline", "Exchange Day"
   daysLeft: number;
   formattedText: string;
@@ -207,13 +207,13 @@ export function getNextMilestoneCountdown(mission?: {
       phaseStatusLabel = 'Awaiting Execution...';
     }
   } else if (rawStatus === 'ASSIGNED' || (assign && now > assign && (!ship || now <= ship))) {
-    // Phase 3: Acquiring OpKit Items / Shipping
+    // Phase 3: Acquiring Manifest Items / Shipping
     targetDate = ship || exec;
     milestoneLabel = ship ? 'Ship Deadline' : 'Exchange Day';
     if (ship && ship.getTime() === now.getTime()) {
       phaseStatusLabel = 'Shipping Deadline Day';
     } else {
-      phaseStatusLabel = 'Acquire OpKit';
+      phaseStatusLabel = 'Acquire Manifest Items';
     }
   } else if (rawStatus === 'SETUP' || (cutoff && now > cutoff && (!assign || now <= assign))) {
     // Phase 2: Waiting Target Assignment

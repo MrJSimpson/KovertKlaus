@@ -8,7 +8,7 @@ import { formatCodename } from '@/lib/security';
 import { useTheme } from '@/context/ThemeContext';
 import { Card, SectionHeader, Button, Badge } from '@/components/ui';
 
-interface OpTool {
+interface ManifestItem {
   id: string;
   title: string;
   price?: number;
@@ -16,33 +16,36 @@ interface OpTool {
   thumbnail?: string;
   notes?: string;
 }
+type OpTool = ManifestItem;
 
-interface OpKit {
+interface WishlistManifest {
   id: string;
   name: string;
   isMaster: boolean;
   type: 'WISHLIST' | 'WHITE_ELEPHANT';
   createdAt: string;
-  opTools: OpTool[];
+  manifestItems: ManifestItem[];
+  opTools: ManifestItem[];
 }
+type OpKit = WishlistManifest;
 
 export default function OpKitsPage() {
   const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
-  const [opKits, setOpKits] = useState<OpKit[]>([]);
+  const [opKits, setOpKits] = useState<WishlistManifest[]>([]);
   const [selectedOpKitId, setSelectedOpKitId] = useState<string | null>(null);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
   
-  // OpKit Creation & Editing State
+  // Wishlist Manifest Creation & Editing State
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [newOpKitName, setNewOpKitName] = useState('');
   const [newOpKitType, setNewOpKitType] = useState<'WISHLIST' | 'WHITE_ELEPHANT'>('WISHLIST');
   const [editingOpKitId, setEditingOpKitId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
-  // OpTool URL Scraper Input State
+  // Manifest Item URL Scraper Input State
   const [opToolUrl, setOpToolUrl] = useState('');
   const [scraping, setScraping] = useState(false);
   const [validationError, setValidationError] = useState('');
@@ -62,14 +65,23 @@ export default function OpKitsPage() {
     try {
       const res = await fetch(`/api/opkits?userId=${userId}`);
       const json = await res.json();
-      if (json.success && json.opKits) {
-        setOpKits(json.opKits);
-        if (json.opKits.length > 0 && !selectedOpKitId) {
-          setSelectedOpKitId(json.opKits[0].id);
+      const rawList = json.manifests || json.opKits;
+      if (json.success && rawList) {
+        const formatted: WishlistManifest[] = rawList.map((k: any) => {
+          const items = k.manifestItems || k.opTools || [];
+          return {
+            ...k,
+            manifestItems: items,
+            opTools: items,
+          };
+        });
+        setOpKits(formatted);
+        if (formatted.length > 0 && !selectedOpKitId) {
+          setSelectedOpKitId(formatted[0].id);
         }
       }
     } catch {
-      console.error('Failed to load OpKits');
+      console.error('Failed to load Wishlist Manifests');
     } finally {
       setLoading(false);
     }
@@ -77,7 +89,7 @@ export default function OpKitsPage() {
 
   const selectedOpKit = opKits.find((k) => k.id === selectedOpKitId);
 
-  // Handle OpKit Creation
+  // Handle Wishlist Manifest Creation
   async function handleCreateOpKit(e: React.FormEvent) {
     e.preventDefault();
     if (!newOpKitName.trim()) return;
@@ -96,19 +108,26 @@ export default function OpKitsPage() {
         }),
       });
       const json = await res.json();
-      if (json.success && json.opKit) {
-        setOpKits((prev) => [...prev, json.opKit]);
-        setSelectedOpKitId(json.opKit.id);
+      const created = json.manifest || json.opKit;
+      if (json.success && created) {
+        const items = created.manifestItems || created.opTools || [];
+        const formatted: WishlistManifest = {
+          ...created,
+          manifestItems: items,
+          opTools: items,
+        };
+        setOpKits((prev) => [...prev, formatted]);
+        setSelectedOpKitId(formatted.id);
       }
     } catch {
-      console.error('Failed to create OpKit');
+      console.error('Failed to create Wishlist Manifest');
     } finally {
       setNewOpKitName('');
       setCreateModalOpen(false);
     }
   }
 
-  // Handle OpKit Renaming
+  // Handle Wishlist Manifest Renaming
   async function handleRenameOpKit(id: string) {
     if (!editingName.trim()) return;
     const cleanName = editingName.trim();
@@ -126,15 +145,15 @@ export default function OpKitsPage() {
         prev.map((k) => (k.id === id ? { ...k, name: cleanName } : k))
       );
     } catch {
-      console.error('Failed to rename OpKit');
+      console.error('Failed to rename Wishlist Manifest');
     }
   }
 
-  // Handle OpKit Deletion
+  // Handle Wishlist Manifest Deletion
   async function handleDeleteOpKit(id: string) {
     const kit = opKits.find((k) => k.id === id);
     if (kit?.isMaster) {
-      alert('The Master OpKit cannot be deleted as it serves as your default inventory!');
+      alert('The Master Wishlist Manifest cannot be deleted as it serves as your default inventory!');
       return;
     }
     if (confirm(`Are you sure you want to delete "${kit?.name}"?`)) {
@@ -149,20 +168,21 @@ export default function OpKitsPage() {
           setSelectedOpKitId(remaining[0].id);
         }
       } catch {
-        console.error('Failed to delete OpKit');
+        console.error('Failed to delete Wishlist Manifest');
       }
     }
   }
 
-  // Handle Scraper for OpTool Item
-  async function handleAddOpTool(e: React.FormEvent) {
+  // Handle Scraper for Manifest Item
+  async function handleAddManifestItem(e: React.FormEvent) {
     e.preventDefault();
     setValidationError('');
     if (!opToolUrl.trim() || !selectedOpKit) return;
 
     // Strict White Elephant 1-Gift Limit Check
-    if (selectedOpKit.type === 'WHITE_ELEPHANT' && selectedOpKit.opTools.length >= 1) {
-      setValidationError('🐘 White Elephant OpKits are strictly limited to 1 brought gift item per operative!');
+    const itemCount = selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0;
+    if (selectedOpKit.type === 'WHITE_ELEPHANT' && itemCount >= 1) {
+      setValidationError('🐘 White Elephant Wishlist Manifests are strictly limited to 1 brought gift item per operative!');
       return;
     }
 
@@ -185,7 +205,7 @@ export default function OpKitsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'add_optool',
+          action: 'add_manifest_item',
           userId,
           wishlistId: selectedOpKit.id,
           url: opToolUrl.trim(),
@@ -195,43 +215,52 @@ export default function OpKitsPage() {
         }),
       });
       const json = await res.json();
+      const createdItem = json.manifestItem || json.opTool;
 
-      if (json.success && json.opTool) {
+      if (json.success && createdItem) {
         setOpKits((prev) =>
           prev.map((k) =>
             k.id === selectedOpKit.id
-              ? { ...k, opTools: [...k.opTools, json.opTool] }
+              ? {
+                  ...k,
+                  manifestItems: [...(k.manifestItems || []), createdItem],
+                  opTools: [...(k.opTools || []), createdItem],
+                }
               : k
           )
         );
       }
       setOpToolUrl('');
     } catch {
-      setValidationError('Failed to add OpTool item');
+      setValidationError('Failed to add Manifest Item');
     } finally {
       setScraping(false);
     }
   }
 
-  // Remove OpTool
-  async function handleRemoveOpTool(opToolId: string) {
+  // Remove Manifest Item
+  async function handleRemoveManifestItem(itemId: string) {
     if (!selectedOpKit) return;
     const userId = localStorage.getItem(USER_ID_KEY);
     setValidationError('');
 
     try {
-      await fetch(`/api/opkits?itemId=${opToolId}&userId=${userId}`, {
+      await fetch(`/api/opkits?itemId=${itemId}&userId=${userId}`, {
         method: 'DELETE',
       });
       setOpKits((prev) =>
         prev.map((k) =>
           k.id === selectedOpKit.id
-            ? { ...k, opTools: k.opTools.filter((t) => t.id !== opToolId) }
+            ? {
+                ...k,
+                manifestItems: (k.manifestItems || []).filter((t) => t.id !== itemId),
+                opTools: (k.opTools || []).filter((t) => t.id !== itemId),
+              }
             : k
         )
       );
     } catch {
-      console.error('Failed to remove OpTool');
+      console.error('Failed to remove Manifest Item');
     }
   }
 
@@ -266,7 +295,7 @@ export default function OpKitsPage() {
             <div>
               <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
               <span className={`text-xs font-bold ${theme.textBrand}`}>
-                OpKits & OpTools Workspace
+                Wishlist Manifests &amp; Manifest Items Workspace
               </span>
             </div>
           </Link>
@@ -327,7 +356,7 @@ export default function OpKitsPage() {
         {/* 2-Column Workspace Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column: OpKit Selector Directory */}
+          {/* Left Column: Wishlist Manifest Selector Directory */}
           <div className="lg:col-span-4 space-y-4">
             <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
               <div className="flex items-center justify-between mb-4">
@@ -338,7 +367,7 @@ export default function OpKitsPage() {
               {/* Search Bar */}
               <input
                 type="text"
-                placeholder="Search OpKits by name..."
+                placeholder="Search Wishlist Manifests by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`w-full border rounded-2xl px-4 py-2.5 text-xs mb-4 focus:outline-none ${theme.inputBg}`}
@@ -347,16 +376,17 @@ export default function OpKitsPage() {
               {/* Directory List */}
               {loading ? (
                 <div className={`text-center py-8 text-xs font-semibold ${theme.textSubLabel}`}>
-                  Loading OpKits...
+                  Loading Wishlist Manifests...
                 </div>
               ) : filteredOpKits.length === 0 ? (
                 <div className={`text-center py-8 text-xs border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl ${theme.textSubLabel}`}>
-                  No OpKits found matching "{searchQuery}"
+                  No Wishlist Manifests found matching "{searchQuery}"
                 </div>
               ) : (
                 <div className="space-y-2">
                   {filteredOpKits.map((kit) => {
                     const isSelected = kit.id === selectedOpKitId;
+                    const itemCount = kit.manifestItems?.length ?? kit.opTools?.length ?? 0;
                     return (
                       <div
                         key={kit.id}
@@ -404,7 +434,7 @@ export default function OpKitsPage() {
                               </span>
 
                               <span className="text-[11px] text-slate-500 block mt-0.5">
-                                {kit.opTools.length} OpTool{kit.opTools.length === 1 ? '' : 's'}
+                                {itemCount} Manifest Item{itemCount === 1 ? '' : 's'}
                               </span>
                             </div>
                           )}
@@ -417,7 +447,7 @@ export default function OpKitsPage() {
                               setEditingOpKitId(kit.id);
                               setEditingName(kit.name);
                             }}
-                            title="Rename OpKit"
+                            title="Rename Wishlist Manifest"
                             className="p-1.5 hover:bg-stone-200 dark:hover:bg-slate-800 rounded-lg text-xs"
                           >
                             ✏️
@@ -428,7 +458,7 @@ export default function OpKitsPage() {
                                 e.stopPropagation();
                                 handleDeleteOpKit(kit.id);
                               }}
-                              title="Delete OpKit"
+                              title="Delete Wishlist Manifest"
                               className="p-1.5 hover:bg-red-100 dark:hover:bg-red-950/40 text-red-500 rounded-lg text-xs"
                             >
                               🗑️
@@ -443,12 +473,12 @@ export default function OpKitsPage() {
             </div>
           </div>
 
-          {/* Right Column: Active OpKit Inspection & OpTool Scraper Workspace */}
+          {/* Right Column: Active Wishlist Manifest Inspection & Manifest Item Scraper Workspace */}
           <div className="lg:col-span-8 space-y-6">
             {selectedOpKit ? (
               <div className={`p-6 sm:p-8 rounded-3xl border shadow-md space-y-6 ${theme.cardBg}`}>
                 
-                {/* OpKit Header */}
+                {/* Wishlist Manifest Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-stone-200 dark:border-slate-800">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -465,24 +495,24 @@ export default function OpKitsPage() {
                       ? 'bg-purple-100 text-purple-900 dark:bg-purple-500/20 dark:text-purple-300'
                       : 'bg-emerald-100 text-emerald-900 dark:bg-sky-500/20 dark:text-sky-300'
                   }`}>
-                    {selectedOpKit.type === 'WHITE_ELEPHANT' ? '🐘 White Elephant OpKit' : '🎁 Secret Santa Wishlist'}
+                    {selectedOpKit.type === 'WHITE_ELEPHANT' ? '🐘 White Elephant Brought Gift' : '🎁 Secret Santa Wishlist'}
                   </span>
                 </div>
 
-                {/* Info Note based on Dual OpKit Type */}
+                {/* Info Note based on Dual Wishlist Manifest Type */}
                 {selectedOpKit.type === 'WHITE_ELEPHANT' ? (
                   <div className={`p-4 rounded-2xl text-xs border ${
                     isDarkMode
                       ? 'bg-purple-950/50 border-purple-800 text-purple-200'
                       : 'bg-purple-50 border-purple-200 text-purple-950'
                   }`}>
-                    <span className="font-bold block text-sm mb-0.5">🐘 White Elephant Brought Gift OpKit</span>
-                    <span className="text-xs opacity-90">This OpKit holds the single physical/digital gift item you are bringing to the live stealing pool. <strong>Strictly limited to 1 OpTool gift item.</strong></span>
+                    <span className="font-bold block text-sm mb-0.5">🐘 White Elephant Brought Gift Manifest</span>
+                    <span className="text-xs opacity-90">This Wishlist Manifest holds the single physical/digital gift item you are bringing to the live stealing pool. <strong>Strictly limited to 1 Manifest Item.</strong></span>
                   </div>
                 ) : (
                   <Card variant="inner" className="space-y-1">
-                    <span className={`font-bold block text-sm mb-0.5 ${theme.textHeading}`}>🎁 Secret Santa Requested Wishlist OpKit</span>
-                    <p className={`text-xs ${theme.textSubLabel}`}>This OpKit holds items you wish to receive from your assigned Secret Santa operative. <strong className={theme.textLabel}>Unlimited OpTools allowed.</strong></p>
+                    <span className={`font-bold block text-sm mb-0.5 ${theme.textHeading}`}>🎁 Secret Santa Requested Wishlist Manifest</span>
+                    <p className={`text-xs ${theme.textSubLabel}`}>This Wishlist Manifest holds items you wish to receive from your assigned Secret Santa operative. <strong className={theme.textLabel}>Unlimited Manifest Items allowed.</strong></p>
                   </Card>
                 )}
 
@@ -492,8 +522,8 @@ export default function OpKitsPage() {
                   </div>
                 )}
 
-                {/* OpTool Link Scraper Form */}
-                <form onSubmit={handleAddOpTool} className="flex gap-2 mb-6">
+                {/* Manifest Item Link Scraper Form */}
+                <form onSubmit={handleAddManifestItem} className="flex gap-2 mb-6">
                   <input
                     type="url"
                     placeholder={
@@ -504,40 +534,40 @@ export default function OpKitsPage() {
                     value={opToolUrl}
                     onChange={(e) => setOpToolUrl(e.target.value)}
                     required
-                    disabled={selectedOpKit.type === 'WHITE_ELEPHANT' && selectedOpKit.opTools.length >= 1}
+                    disabled={selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1}
                     className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none focus:ring-2 ${theme.inputBg}`}
                   />
                   <button
                     type="submit"
-                    disabled={scraping || (selectedOpKit.type === 'WHITE_ELEPHANT' && selectedOpKit.opTools.length >= 1)}
+                    disabled={scraping || (selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1)}
                     className={`px-6 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
-                      selectedOpKit.type === 'WHITE_ELEPHANT' && selectedOpKit.opTools.length >= 1
+                      selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1
                         ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
                         : theme.btnPrimary
                     }`}
                   >
-                    {scraping ? 'Scraping...' : '+ Add OpTool'}
+                    {scraping ? 'Scraping...' : '+ Add Manifest Item'}
                   </button>
                 </form>
 
-                {/* OpTools List Grid */}
+                {/* Manifest Items List Grid */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold">Attached OpTools ({selectedOpKit.opTools.length})</h3>
+                    <h3 className="text-base font-bold">Attached Manifest Items ({selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0})</h3>
                     <span className="text-xs text-slate-500 font-mono">Gift Items</span>
                   </div>
 
-                  {selectedOpKit.opTools.length === 0 ? (
+                  {(selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-3xl">
                       <div className="text-3xl mb-2">🛍️</div>
-                      <p className="text-xs font-bold mb-1">No OpTools Attached Yet</p>
+                      <p className="text-xs font-bold mb-1">No Manifest Items Attached Yet</p>
                       <p className="text-[11px] text-slate-500">
-                        Paste a store link above to auto-scrape product titles, prices, and thumbnails into your OpKit!
+                        Paste a store link above to auto-scrape product titles, prices, and thumbnails into your Wishlist Manifest!
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {selectedOpKit.opTools.map((tool) => (
+                      {(selectedOpKit.manifestItems || selectedOpKit.opTools || []).map((tool) => (
                         <div
                           key={tool.id}
                           className={`p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all ${theme.cardInnerBg}`}
@@ -581,7 +611,7 @@ export default function OpKitsPage() {
                           </div>
 
                           <button
-                            onClick={() => handleRemoveOpTool(tool.id)}
+                            onClick={() => handleRemoveManifestItem(tool.id)}
                             className="text-xs text-red-500 font-bold hover:underline px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                           >
                             Remove
@@ -595,7 +625,7 @@ export default function OpKitsPage() {
               </div>
             ) : (
               <div className={`p-12 text-center rounded-3xl border ${theme.cardBg}`}>
-                <p className="text-xs text-slate-500">Select an OpKit from the left directory to inspect and add OpTools.</p>
+                <p className="text-xs text-slate-500">Select a Wishlist Manifest from the left directory to inspect and add Manifest Items.</p>
               </div>
             )}
           </div>
@@ -604,20 +634,20 @@ export default function OpKitsPage() {
 
       </main>
 
-      {/* MODAL: CREATE NEW OPKIT */}
+      {/* MODAL: CREATE NEW WISHLIST MANIFEST */}
       {createModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
-                <span>🧰 Create New OpKit</span>
+                <span>🧰 Create New Wishlist Manifest</span>
               </h3>
               <button onClick={() => setCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
             </div>
 
             <form onSubmit={handleCreateOpKit} className="space-y-4 text-xs font-semibold">
               <div>
-                <label className="block text-slate-500 mb-1">OpKit Name *</label>
+                <label className="block text-slate-500 mb-1">Wishlist Manifest Name *</label>
                 <input
                   type="text"
                   required
@@ -629,14 +659,14 @@ export default function OpKitsPage() {
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">OpKit Category Type *</label>
+                <label className="block text-slate-500 mb-1">Wishlist Manifest Category Type *</label>
                 <select
                   value={newOpKitType}
                   onChange={(e) => setNewOpKitType(e.target.value as 'WISHLIST' | 'WHITE_ELEPHANT')}
                   className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none ${theme.inputModalBg}`}
                 >
-                  <option value="WISHLIST">🎁 Secret Santa Wishlist (Unlimited OpTools)</option>
-                  <option value="WHITE_ELEPHANT">🐘 White Elephant Brought Gift (Strictly 1 OpTool)</option>
+                  <option value="WISHLIST">🎁 Secret Santa Wishlist (Unlimited Manifest Items)</option>
+                  <option value="WHITE_ELEPHANT">🐘 White Elephant Brought Gift (Strictly 1 Manifest Item)</option>
                 </select>
               </div>
 
@@ -652,7 +682,7 @@ export default function OpKitsPage() {
                   type="submit"
                   className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
                 >
-                  Create OpKit
+                  Create Wishlist Manifest
                 </button>
               </div>
             </form>

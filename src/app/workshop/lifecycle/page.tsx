@@ -19,13 +19,13 @@ const STAGE_METADATA: Record<OperationPhase, { title: string; desc: string; colo
     color: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
   },
   ASSIGNED: {
-    title: 'Stage 3: Assigned & OpKit Acquisition',
-    desc: 'Sattolo derangement executed! Operatives inspect target wishlists and acquire classified OpKits.',
+    title: 'Stage 3: Assigned & Manifest Acquisition',
+    desc: 'Sattolo derangement executed! Operatives inspect target wishlists and acquire classified Manifest Items.',
     color: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
   },
   EXECUTED: {
     title: 'Stage 4: Shipped & Pre-Exchange',
-    desc: 'OpKits in transit. Tracking numbers verified. Agents countdown to Exchange Day.',
+    desc: 'Manifest gifts in transit. Tracking numbers verified. Agents countdown to Exchange Day.',
     color: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
   },
   COMPLETED: {

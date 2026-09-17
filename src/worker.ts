@@ -963,26 +963,30 @@ export default {
 
           // Ensure default wishlist
           if (user.wishlists.length === 0) {
-            await db.wishlist.create({ data: { userId: user.id, name: 'Master OpKit - Secret Santa', type: 'STANDARD' } });
+            await db.wishlist.create({ data: { userId: user.id, name: 'Master Wishlist Manifest - Secret Santa', type: 'STANDARD' } });
             const refetched = await db.wishlist.findMany({ where: { userId: user.id }, include: { wishlistItems: { include: { item: true } } } });
             user = { ...user, wishlists: refetched };
           }
 
-          const formattedWishlists = user.wishlists.map((w, idx) => ({
-            id: w.id,
-            name: w.name,
-            isMaster: idx === 0,
-            type: w.type,
-            createdAt: w.createdAt,
-            opTools: w.wishlistItems.map((wi) => ({
+          const formattedWishlists = user.wishlists.map((w, idx) => {
+            const items = w.wishlistItems.map((wi) => ({
               id: wi.item.id,
               title: wi.item.name,
               price: wi.item.price ? Number(wi.item.price) : undefined,
               url: wi.item.url,
               thumbnail: wi.item.thumbnailUrl || undefined,
               description: wi.item.description || undefined,
-            })),
-          }));
+            }));
+            return {
+              id: w.id,
+              name: w.name,
+              isMaster: idx === 0,
+              type: w.type,
+              createdAt: w.createdAt,
+              manifestItems: items,
+              opTools: items,
+            };
+          });
 
           return Response.json({
             success: true,
@@ -1638,7 +1642,7 @@ export default {
             });
             if (!memberToNudge) return Response.json({ error: 'Member not found' }, { status: 404 });
 
-            const nudgeMsg = 'Reminder: Please update your OpKit wishlist and review mission directives.';
+            const nudgeMsg = 'Reminder: Please update your Wishlist Manifest and review mission directives.';
             await db.notification.create({
               data: {
                 userId: memberToNudge.userId,
@@ -2014,29 +2018,33 @@ export default {
             include: { wishlistItems: { include: { item: true } } },
             orderBy: { createdAt: 'asc' },
           });
-          const formatted = wishlists.map((w, idx) => ({
-            id: w.id,
-            name: w.name,
-            isMaster: idx === 0,
-            type: w.type,
-            createdAt: w.createdAt,
-            opTools: w.wishlistItems.map((wi) => ({
+          const formatted = wishlists.map((w, idx) => {
+            const items = w.wishlistItems.map((wi) => ({
               id: wi.item.id,
               title: wi.item.name,
               price: wi.item.price ? Number(wi.item.price) : undefined,
               url: wi.item.url,
               thumbnail: wi.item.thumbnailUrl || undefined,
               description: wi.item.description || undefined,
-            })),
-          }));
-          return Response.json({ success: true, opKits: formatted });
+            }));
+            return {
+              id: w.id,
+              name: w.name,
+              isMaster: idx === 0,
+              type: w.type,
+              createdAt: w.createdAt,
+              manifestItems: items,
+              opTools: items,
+            };
+          });
+          return Response.json({ success: true, manifests: formatted, opKits: formatted });
         }
 
         if (request.method === 'POST') {
           const body = (await request.json().catch(() => ({}))) as any;
           const { action, name, type, wishlistId, title, url: itemUrl, price, description, thumbnail } = body;
 
-          if (action === 'add_optool' || (wishlistId && itemUrl)) {
+          if (action === 'add_manifest_item' || action === 'add_item' || action === 'add_optool' || (wishlistId && itemUrl)) {
             const item = await db.item.create({
               data: {
                 userId: activeUserId,
@@ -2048,14 +2056,16 @@ export default {
               },
             });
             await db.wishlistItem.create({ data: { wishlistId, itemId: item.id } });
-            return Response.json({ success: true, opTool: { id: item.id, title: item.name, price: Number(item.price), url: item.url } });
+            const itemObj = { id: item.id, title: item.name, price: Number(item.price), url: item.url };
+            return Response.json({ success: true, manifestItem: itemObj, opTool: itemObj });
           }
 
           if (name) {
             const newW = await db.wishlist.create({
               data: { userId: activeUserId, name: sanitizeText(name), type: type === 'WHITE_ELEPHANT' ? 'WHITE_ELEPHANT' : 'STANDARD' },
             });
-            return Response.json({ success: true, opKit: { id: newW.id, name: newW.name, opTools: [] } });
+            const createdObj = { id: newW.id, name: newW.name, manifestItems: [], opTools: [] };
+            return Response.json({ success: true, manifest: createdObj, opKit: createdObj });
           }
         }
 

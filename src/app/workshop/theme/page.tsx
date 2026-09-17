@@ -366,7 +366,7 @@ export default function WorkshopThemeGallery() {
               ✓ Success: Target assignments generated with 0 rule violations.
             </div>
             <div className={`p-4 rounded-xl border ${tokens.alertWarning}`}>
-              ⚠️ Warning: 2 operatives have not yet submitted their classified OpKit wishlists.
+              ⚠️ Warning: 2 operatives have not yet submitted their classified Wishlist Manifests.
             </div>
             <div className={`p-4 rounded-xl border ${tokens.alertError}`}>
               🚫 Error: Over-constrained matching rules prevented cyclic derangement.

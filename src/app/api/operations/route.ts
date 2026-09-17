@@ -991,7 +991,7 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: 'Member not found' }, { status: 404 });
       }
 
-      const nudgeMsg = 'Reminder: Please update your OpKit wishlist and review mission directives.';
+      const nudgeMsg = 'Reminder: Please update your Wishlist Manifest and review mission directives.';
 
       // Create in-app notification
       await db.notification.create({

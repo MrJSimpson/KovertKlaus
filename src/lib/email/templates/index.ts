@@ -134,7 +134,7 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
       <strong style="color: #f87171;">⚠️ LATE PASS AUTHORIZATION ACTIVE</strong>
       <p style="margin: 4px 0 0 0; font-size: 13px; color: #fca5a5;">The standard RSVP cutoff for this operation has passed. The OpsLeader has granted you late emergency clearance to enroll.</p>
     </div>` : `
-    <p>Prepare your wishlist (OpKit), accept your assignment, and get ready for a covert gift exchange mission.</p>`}
+    <p>Prepare your Wishlist Manifest, accept your assignment, and get ready for a covert gift exchange mission.</p>`}
 
     <div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin: 20px 0;">
       <div style="font-size: 11px; font-family: monospace; color: #38bdf8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">OPERATION DIRECTIVE</div>
@@ -210,7 +210,7 @@ export function getAssignmentEmailTemplate(params: AssignmentEmailParams): { sub
     </div>
 
     <p style="font-size: 14px; color: #94a3b8;">
-      Inspect your target's classified OpKit wishlist and log your package tracking number to earn Demerit Immunity!
+      Inspect your target's classified Wishlist Manifest and log your package tracking number to earn Demerit Immunity!
     </p>
   `;
 
@@ -218,7 +218,7 @@ export function getAssignmentEmailTemplate(params: AssignmentEmailParams): { sub
     title: '🎯 Target Assignment Locked',
     preheader: `Your target for ${exchangeTitle} has been assigned!`,
     bodyHtml,
-    actionText: 'View Target Dossier & OpKit',
+    actionText: 'View Target Dossier & Wishlist Manifest',
     actionUrl: exchangeUrl,
   });
 
@@ -306,7 +306,7 @@ export function getWelcomeEmailTemplate(params: WelcomeEmailParams): { subject: 
     <div style="background-color: #1e293b; border-radius: 8px; padding: 16px; margin: 16px 0;">
       <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 700; color: #10b981;">⚡ QUICK START DIRECTIVES:</p>
       <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 13px; line-height: 1.8;">
-        <li><strong>Initialize Your OpKit:</strong> Add items to your wishlist from Amazon, Target, Etsy, or any store link.</li>
+        <li><strong>Initialize Your Wishlist Manifest:</strong> Add Manifest Items from Amazon, Target, Etsy, or any store link.</li>
         <li><strong>Set Sizing & Preferences:</strong> Add hobbies, clothing/shoe sizes, and dietary notes for tailored gifting.</li>
         <li><strong>Join or Create an Exchange:</strong> Host an operation for your family or join with an invite code.</li>
       </ul>
@@ -328,7 +328,7 @@ export function getWelcomeEmailTemplate(params: WelcomeEmailParams): { subject: 
     Profile: ${agentDisplay}
 
     Directives:
-    1. Initialize your OpKit wishlist.
+    1. Initialize your Wishlist Manifest.
     2. Set sizing and preferences.
     3. Join or create an exchange.
 

@@ -21,7 +21,7 @@ All development follows our **Weekly 6 Action Items** sprint framework ([`docs/C
   2. **`/test/lifecycle`**: 5-Phase Operation Lifecycle test harness to cycle operations through `RECRUITING`, `SETUP`, `ASSIGNED`, `EXECUTED`, and `COMPLETED` with date overrides.
   3. **`/test/scraper`**: OpenGraph URL metadata web scraper test page with live fast-failover modal verification (2.5s AbortController).
   4. **`/test/theme`**: Dual-theme UI token catalog inspecting *Christmas Tree Light* (🎄) vs. *Winter Nights Dark* (❄️) container frames, buttons, and badges.
-  5. **`/test/opkits`**: Dual OpKit validator verifying unlimited `WISHLIST` items vs. strict 1-item `WHITE_ELEPHANT` limit.
+  5. **`/test/opkits`**: Dual Wishlist Manifest validator verifying unlimited `WISHLIST` items vs. strict 1-item `WHITE_ELEPHANT` limit.
 - [ ] **Verification Criteria**: All `/test` pages function cleanly without console errors or TypeScript build warnings.
 
 ---
@@ -30,8 +30,8 @@ All development follows our **Weekly 6 Action Items** sprint framework ([`docs/C
 - [ ] **Objective**: Finalize all core application workflows and user functionality before code freeze.
 - [ ] **Feature Scope**:
   - **OpsLeader Console Polish**: Finalize phase-scoped action controls and manual date override inputs.
-  - **Agent Onboarding Flow**: Streamline profile creation, Base32 invite code entry (`XXXX-YYYY`), and OpKit auto-initialization.
-  - **Wishlist & OpTool Management**: Ensure seamless manual entry fallback, product link previews, and deletion controls.
+  - **Agent Onboarding Flow**: Streamline profile creation, Base32 invite code entry (`XXXX-YYYY`), and Wishlist Manifest auto-initialization.
+  - **Wishlist Manifest & Manifest Item Management**: Ensure seamless manual entry fallback, product link previews, and deletion controls.
   - **Fair-Use Allowance & Resource Limits Engine**:
     - **1 Free Hosted Event/yr** ($0, includes hosting + free participation; doesn't deduct from join allowance).
     - **3 Free Joined Entries/yr** ($0, accommodates split families, school, & friend exchanges).

@@ -12,14 +12,16 @@ import { AccountPreferencesModal } from '@/components/AccountPreferencesModal';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
 
-interface OpKit {
+interface WishlistManifest {
   id: string;
   name: string;
   isMaster: boolean;
   type: 'WISHLIST' | 'WHITE_ELEPHANT';
   createdAt: string;
-  opTools: Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>;
+  manifestItems?: Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>;
+  opTools?: Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>;
 }
+type OpKit = WishlistManifest;
 
 interface UserData {
   id: string;
@@ -32,7 +34,7 @@ interface UserData {
   zipCode?: string;
   demerits: number;
   accountStatus: string;
-  wishlists: OpKit[];
+  wishlists: WishlistManifest[];
   participations: Array<{
     id: string;
     role: string;
@@ -91,18 +93,18 @@ export default function DashboardPage() {
   const [prefError, setPrefError] = useState('');
   */
 
-  // OpKit Creation Modal
-  const [createOpKitModalOpen, setCreateOpKitModalOpen] = useState(false);
-  const [newOpKitName, setNewOpKitName] = useState('');
-  const [newOpKitType, setNewOpKitType] = useState<'WISHLIST' | 'WHITE_ELEPHANT'>('WISHLIST');
+  // Wishlist Manifest Creation Modal
+  const [createManifestModalOpen, setCreateManifestModalOpen] = useState(false);
+  const [newManifestName, setNewManifestName] = useState('');
+  const [newManifestType, setNewManifestType] = useState<'WISHLIST' | 'WHITE_ELEPHANT'>('WISHLIST');
 
   // Operation Creation & Join Modals
   const [createOpModalOpen, setCreateOpModalOpen] = useState(false);
   const [joinOpModalOpen, setJoinOpModalOpen] = useState(false);
 
-  // Inline OpKit Rename State
-  const [editingOpKitId, setEditingOpKitId] = useState<string | null>(null);
-  const [editingOpKitName, setEditingOpKitName] = useState('');
+  // Inline Wishlist Manifest Rename State
+  const [editingManifestId, setEditingManifestId] = useState<string | null>(null);
+  const [editingManifestName, setEditingManifestName] = useState('');
 
   useEffect(() => {
     fetchUserData();
@@ -113,39 +115,35 @@ export default function DashboardPage() {
     const savedUserId = localStorage.getItem(USER_ID_KEY);
 
     try {
-      const url = savedUserId ? `/api/users/me?userId=${savedUserId}` : '/api/users/me';
-      const res = await fetch(url);
-      const json = await res.json();
-      if (!res.ok || (!json.success && !json.authenticated) || !json.user) {
-        localStorage.removeItem(USER_ID_KEY);
-        localStorage.removeItem('kovertklaus_user_name');
-        router.push('/');
-        return;
+      if (savedUserId) {
+        const res = await fetch(`/api/users/me?userId=${savedUserId}`);
+        const json = await res.json();
+        if (json.authenticated && json.user) {
+          setUser(json.user);
+          setLoading(false);
+          return;
+        }
       }
 
-      localStorage.setItem(USER_ID_KEY, json.user.id);
-      localStorage.setItem('kovertklaus_user_name', json.user.name);
-      setUser(json.user);
-      /*
-      // NOTE: Unneeded state updates in DashboardPage. Address data is fetched and populated inside <AccountPreferencesModal>. Commented out per Phase 2 Code Review rules.
-      setStreetAddress(json.user.streetAddress || '');
-      setCity(json.user.city || '');
-      setState(json.user.state || '');
-      setZipCode(json.user.zipCode || '');
-      setCodename(json.user.codename || '');
-      */
+      // Dev mock fallback if no stored operative ID
+      const res = await fetch('/api/users/me');
+      const json = await res.json();
+      if (json.authenticated && json.user) {
+        setUser(json.user);
+        localStorage.setItem(USER_ID_KEY, json.user.id);
+      }
     } catch {
-      router.push('/');
+      console.error('Failed to load user profile');
     } finally {
       setLoading(false);
     }
   }
 
   /*
-  // NOTE: Currently uncalled helper function inside DashboardPage. Account preference updates are delegated to <AccountPreferencesModal>. Commented out per Phase 2 Code Review rules.
-  async function handleUpdatePreferences(e: React.FormEvent) {
+  // Handle Account Preferences Save
+  async function handleSavePreferences(e: React.FormEvent) {
     e.preventDefault();
-    if (!user) return;
+    setSavingPref(true);
     setPrefMessage('');
     setPrefError('');
 
@@ -154,32 +152,35 @@ export default function DashboardPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
-          streetAddress,
-          city,
-          state,
-          zipCode,
-          codename,
+          userId: user?.id,
+          name: prefName,
+          codename: prefCodename,
+          streetAddress: prefAddress,
+          city: prefCity,
+          state: prefState,
+          zipCode: prefZip,
         }),
       });
-
       const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Failed to update preferences');
+      if (json.success && json.user) {
+        setUser(json.user);
+        setPrefMessage('Preferences updated successfully!');
+        setTimeout(() => setPrefModalOpen(false), 800);
+      } else {
+        setPrefError(json.error || 'Failed to update preferences');
       }
-
-      setPrefMessage('Preferences updated successfully!');
-      fetchUserData();
-    } catch (err: any) {
-      setPrefError(err.message || 'Update failed');
+    } catch {
+      setPrefError('Failed to update preferences');
+    } finally {
+      setSavingPref(false);
     }
   }
   */
 
-  // Create Quick OpKit
-  async function handleCreateQuickOpKit(e: React.FormEvent) {
+  // Create Quick Wishlist Manifest
+  async function handleCreateQuickManifest(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !newOpKitName.trim()) return;
+    if (!user || !newManifestName.trim()) return;
 
     try {
       const res = await fetch('/api/opkits', {
@@ -187,28 +188,29 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
-          name: newOpKitName.trim(),
-          type: newOpKitType,
+          name: newManifestName.trim(),
+          type: newManifestType,
         }),
       });
       const json = await res.json();
-      if (json.success && json.opKit) {
-        setUser((prev) => (prev ? { ...prev, wishlists: [...prev.wishlists, json.opKit] } : prev));
+      const createdManifest = json.manifest || json.opKit;
+      if (json.success && createdManifest) {
+        setUser((prev) => (prev ? { ...prev, wishlists: [...prev.wishlists, createdManifest] } : prev));
       }
     } catch {
-      console.error('Failed to create OpKit');
+      console.error('Failed to create Wishlist Manifest');
     } finally {
-      setNewOpKitName('');
-      setCreateOpKitModalOpen(false);
+      setNewManifestName('');
+      setCreateManifestModalOpen(false);
     }
   }
 
-  // Handle Quick Inline OpKit Rename
-  async function handleRenameQuickOpKit(id: string) {
-    if (!editingOpKitName.trim() || !user) return;
-    const cleanName = editingOpKitName.trim();
-    setEditingOpKitId(null);
-    setEditingOpKitName('');
+  // Handle Quick Inline Wishlist Manifest Rename
+  async function handleRenameQuickManifest(id: string) {
+    if (!editingManifestName.trim() || !user) return;
+    const cleanName = editingManifestName.trim();
+    setEditingManifestId(null);
+    setEditingManifestName('');
 
     try {
       await fetch('/api/opkits', {
@@ -227,7 +229,7 @@ export default function DashboardPage() {
         ),
       });
     } catch {
-      console.error('Failed to rename OpKit');
+      console.error('Failed to rename Wishlist Manifest');
     }
   }
 
@@ -252,8 +254,8 @@ export default function DashboardPage() {
     }
   }
 
-  // Capped OpKits (Max 3 items, Master Pinned First)
-  const recentOpKits = user?.wishlists
+  // Capped Wishlist Manifests (Max 3 items, Master Pinned First)
+  const recentManifests = user?.wishlists
     ? [...user.wishlists]
         .sort((a, b) => (b.isMaster ? 1 : 0) - (a.isMaster ? 1 : 0))
         .slice(0, 3)
@@ -528,7 +530,7 @@ export default function DashboardPage() {
                 title="🧰 Wishlist Manifests"
                 subtitle="Create & manage your wishlist manifests and wished-for manifest items — Showing 3 most recent."
                 primaryAction={
-                  <Button onClick={() => setCreateOpKitModalOpen(true)} variant="primary">
+                  <Button onClick={() => setCreateManifestModalOpen(true)} variant="primary">
                     + New Wishlist Manifest
                   </Button>
                 }
@@ -539,24 +541,24 @@ export default function DashboardPage() {
                 }
               />
 
-              {/* OpKits Display Grid */}
-              {recentOpKits.length === 0 ? (
+              {/* Wishlist Manifests Display Grid */}
+              {recentManifests.length === 0 ? (
                 <div className={`p-8 text-center rounded-3xl border ${theme.cardBg}`}>
                   <div className="text-3xl mb-2">🧰</div>
-                  <h3 className="text-base font-bold mb-1">No OpKits Created Yet</h3>
+                  <h3 className="text-base font-bold mb-1">No Wishlist Manifests Created Yet</h3>
                   <p className="text-xs text-slate-500 mb-4">
-                    Create your first OpKit wishlist to add wished-for gift items for your Secret Santa.
+                    Create your first Wishlist Manifest to add wished-for gift items for your Secret Santa.
                   </p>
                   <button
-                    onClick={() => setCreateOpKitModalOpen(true)}
+                    onClick={() => setCreateManifestModalOpen(true)}
                     className={`px-5 py-2.5 text-xs font-bold rounded-xl shadow-md ${theme.btnPrimary}`}
                   >
-                    + Create OpKit Wish List
+                    + Create Wishlist Manifest
                   </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {recentOpKits.map((kit) => (
+                  {recentManifests.map((kit) => (
                   <div
                     key={kit.id}
                     className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all ${theme.cardBg}`}
@@ -567,7 +569,7 @@ export default function DashboardPage() {
                           <span className="text-xl">{kit.isMaster ? '⭐' : kit.type === 'WHITE_ELEPHANT' ? '🐘' : '🎁'}</span>
                           {kit.isMaster && (
                             <span className="text-[10px] bg-amber-200 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 font-bold px-2 py-0.5 rounded-full">
-                              Master OpKit
+                              Master Wishlist Manifest
                             </span>
                           )}
                         </div>
@@ -575,10 +577,10 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => {
-                              setEditingOpKitId(kit.id);
-                              setEditingOpKitName(kit.name);
+                              setEditingManifestId(kit.id);
+                              setEditingManifestName(kit.name);
                             }}
-                            title="Click to Rename OpKit"
+                            title="Click to Rename Wishlist Manifest"
                             className={`px-2.5 py-1 text-xs rounded-lg flex items-center gap-1 font-semibold border transition-all cursor-pointer shadow-xs ${theme.btnNeutral}`}
                           >
                             <span>✏️</span>
@@ -587,13 +589,13 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      {editingOpKitId === kit.id ? (
+                      {editingManifestId === kit.id ? (
                         <input
                           type="text"
-                          value={editingOpKitName}
-                          onChange={(e) => setEditingOpKitName(e.target.value)}
-                          onBlur={() => handleRenameQuickOpKit(kit.id)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleRenameQuickOpKit(kit.id)}
+                          value={editingManifestName}
+                          onChange={(e) => setEditingManifestName(e.target.value)}
+                          onBlur={() => handleRenameQuickManifest(kit.id)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleRenameQuickManifest(kit.id)}
                           autoFocus
                           className={`w-full border rounded-xl px-3 py-1.5 text-sm font-bold ${theme.inputModalBg}`}
                         />
@@ -609,8 +611,8 @@ export default function DashboardPage() {
 
                       <div className={`mt-4 p-4 rounded-2xl border space-y-2 ${theme.cardInnerBg}`}>
                         <div className="flex justify-between items-center text-xs">
-                          <span className={theme.textLabel}>Attached OpTools:</span>
-                          <strong className={theme.textAccent}>{kit.opTools?.length || 0} Items</strong>
+                          <span className={theme.textLabel}>Attached Manifest Items:</span>
+                          <strong className={theme.textAccent}>{kit.manifestItems?.length ?? kit.opTools?.length ?? 0} Items</strong>
                         </div>
                       </div>
                     </div>
@@ -620,7 +622,7 @@ export default function DashboardPage() {
                         href="/opkits"
                         className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
                       >
-                        Manage OpTools →
+                        Manage Manifest Items →
                       </Link>
                     </div>
                   </div>
@@ -641,26 +643,26 @@ export default function DashboardPage() {
         onProfileUpdated={fetchUserData}
       />
 
-      {/* MODAL: CREATE QUICK OPKIT */}
-      {createOpKitModalOpen && (
+      {/* MODAL: CREATE QUICK WISHLIST MANIFEST */}
+      {createManifestModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full transition-all ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
-                <span>🧰 Create Quick OpKit</span>
+                <span>🧰 Create Quick Wishlist Manifest</span>
               </h3>
-              <button onClick={() => setCreateOpKitModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+              <button onClick={() => setCreateManifestModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
             </div>
 
-            <form onSubmit={handleCreateQuickOpKit} className="space-y-4 text-xs font-semibold">
+            <form onSubmit={handleCreateQuickManifest} className="space-y-4 text-xs font-semibold">
               <div>
-                <label className="block text-slate-500 mb-1">OpKit Name *</label>
+                <label className="block text-slate-500 mb-1">Wishlist Manifest Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Office Holiday Exchange 2026"
-                  value={newOpKitName}
-                  onChange={(e) => setNewOpKitName(e.target.value)}
+                  value={newManifestName}
+                  onChange={(e) => setNewManifestName(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
@@ -668,19 +670,19 @@ export default function DashboardPage() {
               <div>
                 <label className="block text-slate-500 mb-1">Category Type *</label>
                 <select
-                  value={newOpKitType}
-                  onChange={(e) => setNewOpKitType(e.target.value as 'WISHLIST' | 'WHITE_ELEPHANT')}
+                  value={newManifestType}
+                  onChange={(e) => setNewManifestType(e.target.value as 'WISHLIST' | 'WHITE_ELEPHANT')}
                   className={`w-full border rounded-xl px-3 py-2 text-xs font-bold focus:outline-none ${theme.inputModalBg}`}
                 >
-                  <option value="WISHLIST">🎁 Secret Santa Wishlist (Unlimited OpTools)</option>
-                  <option value="WHITE_ELEPHANT">🐘 White Elephant Brought Gift (Strictly 1 OpTool)</option>
+                  <option value="WISHLIST">🎁 Secret Santa Wishlist (Unlimited Manifest Items)</option>
+                  <option value="WHITE_ELEPHANT">🐘 White Elephant Brought Gift (Strictly 1 Manifest Item)</option>
                 </select>
               </div>
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setCreateOpKitModalOpen(false)}
+                  onClick={() => setCreateManifestModalOpen(false)}
                   className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
                 >
                   Cancel
@@ -689,7 +691,7 @@ export default function DashboardPage() {
                   type="submit"
                   className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
                 >
-                  Create OpKit
+                  Create Wishlist Manifest
                 </button>
               </div>
             </form>

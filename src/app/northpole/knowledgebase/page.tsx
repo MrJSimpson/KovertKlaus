@@ -81,7 +81,7 @@ export default function NorthPoleKnowledgeBasePage() {
                 1. Product Vision, Architecture & Design System
               </h2>
               <p>
-                KovertKlaus combines classic holiday warmth with a playful covert intelligence theme. Operatives manage operations, assemble OpKits (wishlists), acquire OpTools (gift items), and execute Secret Santa and White Elephant gift exchanges.
+                KovertKlaus combines classic holiday warmth with a playful covert intelligence theme. Operatives manage operations, curate Wishlist Manifests, add Manifest Items (gift links), and execute Secret Santa and White Elephant gift exchanges.
               </p>
               
               <h3 className="text-sm font-bold text-emerald-400 pt-2">1.1 Dual Design Aesthetics</h3>

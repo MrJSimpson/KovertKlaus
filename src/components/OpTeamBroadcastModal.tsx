@@ -109,7 +109,7 @@ export function OpTeamBroadcastModal({
             <textarea
               rows={4}
               required
-              placeholder="e.g. Attention Agents! Please attach your wishlist OpKits before the Go/No-Go cutoff date!"
+              placeholder="e.g. Attention Agents! Please attach your Wishlist Manifests before the Go/No-Go cutoff date!"
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               className={`w-full border rounded-xl p-3 text-xs focus:outline-none ${theme.inputModalBg}`}

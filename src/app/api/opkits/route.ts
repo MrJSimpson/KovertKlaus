@@ -24,26 +24,31 @@ export async function GET() {
       orderBy: { createdAt: 'asc' },
     });
 
-    const formatted = wishlists.map((w, idx) => ({
-      id: w.id,
-      name: w.name,
-      isMaster: idx === 0,
-      type: w.type,
-      createdAt: w.createdAt,
-      opTools: w.wishlistItems.map((wi) => ({
+    const formatted = wishlists.map((w, idx) => {
+      const items = w.wishlistItems.map((wi) => ({
         id: wi.item.id,
         title: wi.item.name,
         price: wi.item.price ? Number(wi.item.price) : undefined,
         url: wi.item.url,
         thumbnail: wi.item.thumbnailUrl || undefined,
         description: wi.item.description || undefined,
-      })),
-    }));
+      }));
 
-    return NextResponse.json({ success: true, opKits: formatted });
+      return {
+        id: w.id,
+        name: w.name,
+        isMaster: idx === 0,
+        type: w.type,
+        createdAt: w.createdAt,
+        manifestItems: items,
+        opTools: items,
+      };
+    });
+
+    return NextResponse.json({ success: true, manifests: formatted, opKits: formatted });
   } catch (error) {
-    console.error('OpKits GET error:', error);
-    return NextResponse.json({ error: 'Failed to fetch OpKits' }, { status: 500 });
+    console.error('Wishlist Manifests GET error:', error);
+    return NextResponse.json({ error: 'Failed to fetch Wishlist Manifests' }, { status: 500 });
   }
 }
 
@@ -58,10 +63,10 @@ export async function POST(request: Request) {
 
     const { action, name, type, wishlistId, title, url, price, description, thumbnail } = body;
 
-    // Action A: Create OpTool (Gift Item) inside an OpKit
-    if (action === 'add_optool' || (wishlistId && url)) {
+    // Action A: Create Manifest Item (Gift Item) inside a Wishlist Manifest
+    if (action === 'add_item' || action === 'add_optool' || (wishlistId && url)) {
       if (!wishlistId || !url) {
-        return NextResponse.json({ error: 'wishlistId and url are required to add an OpTool' }, { status: 400 });
+        return NextResponse.json({ error: 'wishlistId and url are required to add a Manifest Item' }, { status: 400 });
       }
 
       const urlCheck = isSafePublicUrl(url);
@@ -75,13 +80,13 @@ export async function POST(request: Request) {
       });
 
       if (!wishlist || wishlist.userId !== activeUserId) {
-        return NextResponse.json({ error: 'OpKit not found or unauthorized' }, { status: 404 });
+        return NextResponse.json({ error: 'Wishlist Manifest not found or unauthorized' }, { status: 404 });
       }
 
       // Enforce 1-item limit for White Elephant
       if (wishlist.type === 'WHITE_ELEPHANT' && wishlist.wishlistItems.length >= 1) {
         return NextResponse.json({
-          error: '🐘 White Elephant OpKits are strictly limited to 1 brought gift item per operative!',
+          error: '🐘 White Elephant Wishlist Manifests are strictly limited to 1 brought gift item per operative!',
         }, { status: 400 });
       }
 
@@ -104,23 +109,26 @@ export async function POST(request: Request) {
         },
       });
 
+      const formattedItem = {
+        id: item.id,
+        title: item.name,
+        price: Number(item.price),
+        url: item.url,
+        thumbnail: item.thumbnailUrl || undefined,
+        description: item.description || undefined,
+      };
+
       return NextResponse.json({
         success: true,
-        message: 'OpTool item added to OpKit',
-        opTool: {
-          id: item.id,
-          title: item.name,
-          price: Number(item.price),
-          url: item.url,
-          thumbnail: item.thumbnailUrl || undefined,
-          description: item.description || undefined,
-        },
+        message: 'Manifest Item added to Wishlist Manifest',
+        manifestItem: formattedItem,
+        opTool: formattedItem,
       });
     }
 
-    // Action B: Create New OpKit (Wishlist)
+    // Action B: Create New Wishlist Manifest
     if (!name || !name.trim()) {
-      return NextResponse.json({ error: 'OpKit name is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Wishlist Manifest name is required' }, { status: 400 });
     }
 
     const newWishlist = await db.wishlist.create({
@@ -131,19 +139,23 @@ export async function POST(request: Request) {
       },
     });
 
+    const formattedManifest = {
+      id: newWishlist.id,
+      name: newWishlist.name,
+      isMaster: false,
+      type: newWishlist.type,
+      createdAt: newWishlist.createdAt,
+      manifestItems: [],
+      opTools: [],
+    };
+
     return NextResponse.json({
       success: true,
-      opKit: {
-        id: newWishlist.id,
-        name: newWishlist.name,
-        isMaster: false,
-        type: newWishlist.type,
-        createdAt: newWishlist.createdAt,
-        opTools: [],
-      },
+      manifest: formattedManifest,
+      opKit: formattedManifest,
     });
   } catch (error) {
-    console.error('OpKits POST error:', error);
+    console.error('Wishlist Manifests POST error:', error);
     return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
   }
 }
@@ -168,13 +180,13 @@ export async function PATCH(request: Request) {
     });
 
     if (updated.count === 0) {
-      return NextResponse.json({ error: 'OpKit not found or unauthorized' }, { status: 404 });
+      return NextResponse.json({ error: 'Wishlist Manifest not found or unauthorized' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, message: 'OpKit renamed successfully' });
+    return NextResponse.json({ success: true, message: 'Wishlist Manifest renamed successfully' });
   } catch (error) {
-    console.error('OpKits PATCH error:', error);
-    return NextResponse.json({ error: 'Failed to update OpKit' }, { status: 500 });
+    console.error('Wishlist Manifests PATCH error:', error);
+    return NextResponse.json({ error: 'Failed to update Wishlist Manifest' }, { status: 500 });
   }
 }
 
@@ -193,19 +205,19 @@ export async function DELETE(request: Request) {
       await db.item.deleteMany({
         where: { id: itemId, userId: activeUserId },
       });
-      return NextResponse.json({ success: true, message: 'OpTool removed successfully' });
+      return NextResponse.json({ success: true, message: 'Manifest Item removed successfully' });
     }
 
     if (wishlistId) {
       await db.wishlist.deleteMany({
         where: { id: wishlistId, userId: activeUserId },
       });
-      return NextResponse.json({ success: true, message: 'OpKit deleted successfully' });
+      return NextResponse.json({ success: true, message: 'Wishlist Manifest deleted successfully' });
     }
 
     return NextResponse.json({ error: 'wishlistId or itemId is required' }, { status: 400 });
   } catch (error) {
-    console.error('OpKits DELETE error:', error);
-    return NextResponse.json({ error: 'Failed to delete OpKit resource' }, { status: 500 });
+    console.error('Wishlist Manifests DELETE error:', error);
+    return NextResponse.json({ error: 'Failed to delete Wishlist Manifest resource' }, { status: 500 });
   }
 }

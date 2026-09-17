@@ -124,10 +124,10 @@ export default function OperationCommandCenterPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsError, setSettingsError] = useState('');
 
-  // OpKit & OpTools Scraper State
-  const [opToolUrl, setOpToolUrl] = useState('');
+  // Wishlist Manifest & Manifest Items Scraper State
+  const [manifestItemUrl, setManifestItemUrl] = useState('');
   const [scraping, setScraping] = useState(false);
-  const [userOpKit, setUserOpKit] = useState<Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>>([]);
+  const [userManifest, setUserManifest] = useState<Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>>([]);
   const [validationError, setValidationError] = useState('');
 
   const feasibility = useMemo(() => {
@@ -366,15 +366,15 @@ export default function OperationCommandCenterPage() {
     }
   }
 
-  // Handle URL Scraper for OpTools
+  // Handle URL Scraper for Manifest Items
   async function handleScrapeUrl(e: React.FormEvent) {
     e.preventDefault();
     setValidationError('');
-    if (!opToolUrl.trim()) return;
+    if (!manifestItemUrl.trim()) return;
 
     // Strict White Elephant 1-Gift Limit Check
-    if (operation?.isWhiteElephant && userOpKit.length >= 1) {
-      setValidationError('🐘 White Elephant OpKits are strictly limited to 1 brought gift item per operative!');
+    if (operation?.isWhiteElephant && userManifest.length >= 1) {
+      setValidationError('🐘 White Elephant Wishlist Manifests are strictly limited to 1 brought gift item per operative!');
       return;
     }
 
@@ -383,25 +383,25 @@ export default function OperationCommandCenterPage() {
       const res = await fetch('/api/scraper', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: opToolUrl.trim() }),
+        body: JSON.stringify({ url: manifestItemUrl.trim() }),
       });
       const json = await res.json();
 
       const newItem = {
         id: Math.random().toString(36).substring(2, 9),
-        title: json.success && json.metadata?.title ? json.metadata.title : opToolUrl.trim(),
+        title: json.success && json.metadata?.title ? json.metadata.title : manifestItemUrl.trim(),
         price: json.metadata?.price,
         thumbnail: json.metadata?.thumbnail,
-        url: opToolUrl.trim(),
+        url: manifestItemUrl.trim(),
       };
-      setUserOpKit((prev) => [...prev, newItem]);
-      setOpToolUrl('');
+      setUserManifest((prev) => [...prev, newItem]);
+      setManifestItemUrl('');
     } catch {
-      setUserOpKit((prev) => [
+      setUserManifest((prev) => [
         ...prev,
-        { id: Math.random().toString(36).substring(2, 9), title: opToolUrl.trim(), url: opToolUrl.trim() },
+        { id: Math.random().toString(36).substring(2, 9), title: manifestItemUrl.trim(), url: manifestItemUrl.trim() },
       ]);
-      setOpToolUrl('');
+      setManifestItemUrl('');
     } finally {
       setScraping(false);
     }
@@ -819,7 +819,7 @@ export default function OperationCommandCenterPage() {
             {/* 2-Column Command Center Workspace */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
-              {/* Left Column: Target Assignment & OpKit Workspace */}
+              {/* Left Column: Target Assignment & Wishlist Manifest Workspace */}
               <div className="lg:col-span-7 space-y-6">
                 
                 {/* Secret Santa Target Assignment Card */}
@@ -865,18 +865,18 @@ export default function OperationCommandCenterPage() {
                   </div>
                 )}
 
-                {/* OpKit & OpTools Scraper Section */}
+                {/* Wishlist Manifest & Manifest Items Scraper Section */}
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                   <h2 className="text-xl font-bold mb-0.5 flex items-center gap-2">
-                    {operation.isWhiteElephant ? '🐘 White Elephant Brought Gift OpKit' : '🎁 My OpKit'}
+                    {operation.isWhiteElephant ? '🐘 White Elephant Brought Gift Manifest' : '🎁 My Wishlist Manifest'}
                   </h2>
                   <p className={`text-xs font-semibold mb-1 ${theme.textAccent}`}>
-                    (OpKit = {operation.isWhiteElephant ? 'Single Brought Gift' : 'Your Secret Santa Wishlist'} | OpTools = Wished-for Gift Items)
+                    (Wishlist Manifest = {operation.isWhiteElephant ? 'Single Brought Gift' : 'Your Secret Santa Wishlist'} | Manifest Items = Wished-for Gift Items)
                   </p>
                   <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
                     {operation.isWhiteElephant
-                      ? 'Add the 1 gift item you are bringing to the live White Elephant pool (Max 1 OpTool).'
-                      : 'Paste store product links to populate your Secret Santa OpKit. We\'ll auto-scrape titles and prices!'}
+                      ? 'Add the 1 gift item you are bringing to the live White Elephant pool (Max 1 Manifest Item).'
+                      : 'Paste store product links to populate your Secret Santa Wishlist Manifest. We\'ll auto-scrape titles and prices!'}
                   </p>
 
                   {validationError && (
@@ -888,34 +888,34 @@ export default function OperationCommandCenterPage() {
                   <form onSubmit={handleScrapeUrl} className="flex gap-2 mb-6">
                     <input
                       type="url"
-                      placeholder="Paste OpTool link (Amazon, Target, Etsy, etc.)"
-                      value={opToolUrl}
-                      onChange={(e) => setOpToolUrl(e.target.value)}
+                      placeholder="Paste gift item link (Amazon, Target, Etsy, etc.)"
+                      value={manifestItemUrl}
+                      onChange={(e) => setManifestItemUrl(e.target.value)}
                       required
-                      disabled={operation.isWhiteElephant && userOpKit.length >= 1}
+                      disabled={operation.isWhiteElephant && userManifest.length >= 1}
                       className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none ${theme.inputBg}`}
                     />
                     <button
                       type="submit"
-                      disabled={scraping || (operation.isWhiteElephant && userOpKit.length >= 1)}
+                      disabled={scraping || (operation.isWhiteElephant && userManifest.length >= 1)}
                       className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
-                        operation.isWhiteElephant && userOpKit.length >= 1
+                        operation.isWhiteElephant && userManifest.length >= 1
                           ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
                           : theme.btnPrimary
                       }`}
                     >
-                      {scraping ? 'Scraping...' : '+ Add OpTool'}
+                      {scraping ? 'Scraping...' : '+ Add Manifest Item'}
                     </button>
                   </form>
 
-                  {/* OpTools List */}
-                  {userOpKit.length === 0 ? (
+                  {/* Manifest Items List */}
+                  {userManifest.length === 0 ? (
                     <div className="text-center py-8 border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl">
-                      <p className={`text-xs font-medium ${theme.textSubLabel}`}>Your OpKit is empty. Add an OpTool link above!</p>
+                      <p className={`text-xs font-medium ${theme.textSubLabel}`}>Your Wishlist Manifest is empty. Add a Manifest Item link above!</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {userOpKit.map((item) => (
+                      {userManifest.map((item) => (
                         <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between ${theme.cardInnerBg}`}>
                           <div className="flex items-center gap-3">
                             {item.thumbnail ? (
@@ -931,7 +931,7 @@ export default function OperationCommandCenterPage() {
                             </div>
                           </div>
                           <button
-                            onClick={() => { setValidationError(''); setUserOpKit((prev) => prev.filter((i) => i.id !== item.id)); }}
+                            onClick={() => { setValidationError(''); setUserManifest((prev) => prev.filter((i) => i.id !== item.id)); }}
                             className="text-xs text-red-500 font-bold hover:underline"
                           >
                             Remove

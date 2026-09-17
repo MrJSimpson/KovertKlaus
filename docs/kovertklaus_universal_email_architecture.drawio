@@ -19,7 +19,7 @@
           <mxGeometry x="20" y="60" width="310" height="130" as="geometry" />
         </mxCell>
 
-        <mxCell id="trig_user" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;Agent Registration &amp;amp; Profile Setup&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;POST /api/users&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Bcrypt 12 rounds hashing&lt;br&gt;• Auto-Init Master OpKit Wishlist&lt;br&gt;• Triggers &lt;b&gt;sendWelcomeEmail()&lt;/b&gt;&lt;br&gt;• Directs to dashboard checklist&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_triggers">
+        <mxCell id="trig_user" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;Agent Registration &amp;amp; Profile Setup&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#94A3B8;&quot;&gt;POST /api/users&lt;/span&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Bcrypt 12 rounds hashing&lt;br&gt;• Auto-Init Master Wishlist Manifest&lt;br&gt;• Triggers &lt;b&gt;sendWelcomeEmail()&lt;/b&gt;&lt;br&gt;• Directs to dashboard checklist&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_triggers">
           <mxGeometry x="20" y="230" width="310" height="130" as="geometry" />
         </mxCell>
 
@@ -60,7 +60,7 @@
           <mxGeometry x="20" y="550" width="330" height="120" as="geometry" />
         </mxCell>
 
-        <mxCell id="tpl_card_welcome" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;getWelcomeEmailTemplate()&lt;/b&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Operative Codename Profile Badge&lt;br&gt;• Quick-Start Checklist (OpKit, Sizes, Join)&lt;br&gt;• 1-Click Dashboard Access Button&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_templates">
+        <mxCell id="tpl_card_welcome" value="&lt;b style=&quot;color:#38BDF8;&quot;&gt;getWelcomeEmailTemplate()&lt;/b&gt;&lt;br&gt;&lt;hr style=&quot;border-color:#334155;&quot;&gt;&lt;div style=&quot;text-align:left;font-size:10px;color:#CBD5E1;&quot;&gt;• Operative Codename Profile Badge&lt;br&gt;• Quick-Start Checklist (Wishlist Manifest, Sizes, Join)&lt;br&gt;• 1-Click Dashboard Access Button&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#0284C7;fontColor=#FFFFFF;arcSize=10;" vertex="1" parent="lane_templates">
           <mxGeometry x="20" y="700" width="330" height="120" as="geometry" />
         </mxCell>
 

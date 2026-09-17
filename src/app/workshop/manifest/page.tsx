@@ -83,7 +83,7 @@ export default function WorkshopManifestBench() {
     }
 
     if (isWhiteElephant && items.length >= 1) {
-      setFormError('🐘 White Elephant OpKits are strictly limited to 1 brought gift item per operative!');
+      setFormError('🐘 White Elephant Wishlist Manifests are strictly limited to 1 brought gift item per operative!');
       return;
     }
 
@@ -336,7 +336,7 @@ export default function WorkshopManifestBench() {
             onClick={() => setShowImporter(true)}
             className="bg-slate-950 hover:bg-slate-800 text-sky-300 border border-sky-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
           >
-            📦 Import Existing OpKit
+            📦 Import Existing Wishlist Manifest
           </button>
         </div>
       </div>
@@ -550,7 +550,7 @@ export default function WorkshopManifestBench() {
 
             {items.length === 0 && (
               <div className="py-12 text-center text-xs font-mono text-gray-500 border border-dashed border-slate-800 rounded-xl">
-                No items on this wishlist yet. Add ideas on the left or import an existing OpKit!
+                No items on this wishlist yet. Add ideas on the left or import an existing Wishlist Manifest!
               </div>
             )}
 
@@ -629,7 +629,7 @@ export default function WorkshopManifestBench() {
           <div className="bg-slate-900 border-2 border-sky-500/50 rounded-3xl p-6 max-w-xl w-full space-y-5 shadow-2xl font-mono text-xs">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
-                <h3 className="text-base font-bold text-white">📦 IMPORT EXISTING OPKIT</h3>
+                <h3 className="text-base font-bold text-white">📦 IMPORT EXISTING WISHLIST MANIFEST</h3>
                 <p className="text-gray-400 text-[11px]">
                   Clones items into a decoupled event snapshot.
                 </p>
