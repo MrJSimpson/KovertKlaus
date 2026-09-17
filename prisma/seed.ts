@@ -239,7 +239,7 @@ async function main() {
       await db.wishlist.create({
         data: {
           userId: userRecord.id,
-          name: 'Master Wishlist - Secret Santa',
+          name: 'Master Wishlist Manifest - Secret Santa',
           type: 'STANDARD',
         },
       });
