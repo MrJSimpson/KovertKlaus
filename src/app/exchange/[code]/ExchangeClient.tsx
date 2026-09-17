@@ -12,6 +12,7 @@ import { InviteAgentModal } from '@/components/InviteAgentModal';
 import { PreventativeMatchModal, OperationExclusionRule } from '@/components/PreventativeMatchModal';
 import { ManageAssignmentsModal } from '@/components/ManageAssignmentsModal';
 import { OpTeamBroadcastModal } from '@/components/OpTeamBroadcastModal';
+import { CompleteOperationModal } from '@/components/CompleteOperationModal';
 import { AfterActionReportSection, AARReportEntry } from '@/components/AfterActionReportSection';
 
 
@@ -98,6 +99,7 @@ export default function OperationCommandCenterPage() {
   const [preventativeModalOpen, setPreventativeModalOpen] = useState(false);
   const [manageAssignmentsModalOpen, setManageAssignmentsModalOpen] = useState(false);
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
 
   // OpsLeader Control Panel State
   const [drawingTargets, setDrawingTargets] = useState(false);
@@ -362,6 +364,27 @@ export default function OperationCommandCenterPage() {
       fetchExchangeDetails();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Action failed';
+      alert(msg);
+    }
+  }
+
+  // Handle Demerit Audit Execution (OpsLeader Only - Completed Missions with Demerits Enabled)
+  async function handleRunDemeritAudit() {
+    if (!operation || !userId) return;
+    if (!confirm(`Execute Demerit & Auto-Rehabilitation Audit for "${operation.title}"? Operatives who did not fulfill their mission without carrier tracking will receive 1 Coal Citation.`)) return;
+
+    try {
+      const res = await fetch('/api/demerits/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operationId: operation.id }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to run demerit audit');
+      alert('⚖️ Demerit audit executed successfully! Participant citations and clearances have been recorded.');
+      fetchExchangeDetails();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Audit failed';
       alert(msg);
     }
   }
@@ -780,7 +803,7 @@ export default function OperationCommandCenterPage() {
                       <button onClick={() => setBroadcastModalOpen(true)} className={theme.btnSecondary}>
                         📢 OpTeam Broadcast
                       </button>
-                      <button onClick={handleEndOperation} className={theme.btnPrimary}>
+                      <button onClick={() => setCompleteModalOpen(true)} className={theme.btnPrimary}>
                         🏁 End Operation
                       </button>
                     </>
@@ -797,6 +820,11 @@ export default function OperationCommandCenterPage() {
                       <button onClick={() => setBroadcastModalOpen(true)} className={theme.btnSecondary}>
                         📢 OpTeam Broadcast
                       </button>
+                      {operation.enforcePenalties !== false && (
+                        <button onClick={handleRunDemeritAudit} className={theme.btnAmber}>
+                          ⚖️ Audit Demerits
+                        </button>
+                      )}
                     </>
                   )}
 
@@ -1042,26 +1070,26 @@ export default function OperationCommandCenterPage() {
                               🔔 Nudge
                             </button>
 
-                            {operation.status !== 'RECRUITING' && operation.enforcePenalties !== false && (
-                              <>
-                                <button
-                                  onClick={() => handleAgentAction('issue_demerit', agent)}
-                                  title="Issue Coal Citation for deadline non-compliance"
-                                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
-                                >
-                                  🪨 Issue Coal Citation
-                                </button>
+                            {operation.status === 'COMPLETED' && operation.enforcePenalties !== false && (
+                              <button
+                                onClick={() => handleAgentAction('issue_demerit', agent)}
+                                title="Issue Coal Citation for deadline non-compliance"
+                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
+                              >
+                                🪨 Issue Coal Citation
+                              </button>
+                            )}
 
-                                <button
-                                  onClick={() => handleAgentAction('update_agent_role', agent, {
-                                    newRole: agent.role === 'OPS_LEADER' ? 'FIELD_AGENT' : 'OPS_LEADER'
-                                  })}
-                                  title="Toggle OpsLeader Clearance"
-                                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-stone-300 dark:border-slate-700 hover:bg-stone-200 transition-all cursor-pointer"
-                                >
-                                  {agent.role === 'OPS_LEADER' ? '🔻 Demote' : '⭐ Promote'}
-                                </button>
-                              </>
+                            {operation.status !== 'RECRUITING' && (
+                              <button
+                                onClick={() => handleAgentAction('update_agent_role', agent, {
+                                  newRole: agent.role === 'OPS_LEADER' ? 'FIELD_AGENT' : 'OPS_LEADER'
+                                })}
+                                title="Toggle OpsLeader Clearance"
+                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-stone-300 dark:border-slate-700 hover:bg-stone-200 transition-all cursor-pointer"
+                              >
+                                {agent.role === 'OPS_LEADER' ? '🔻 Demote' : '⭐ Promote'}
+                              </button>
                             )}
 
                             {agent.userId !== organizerIdVal && (
@@ -1399,6 +1427,19 @@ export default function OperationCommandCenterPage() {
           operationId={operation.id}
           operationTitle={operation.title}
           opsLeaderUserId={userId}
+          onSuccess={() => fetchExchangeDetails()}
+        />
+      )}
+
+      {/* MODAL: COMPLETE OPERATION & OPTIONAL DEMERIT ASSIGNMENT */}
+      {operation && userId && (
+        <CompleteOperationModal
+          isOpen={completeModalOpen}
+          onClose={() => setCompleteModalOpen(false)}
+          operationId={operation.id}
+          operationTitle={operation.title}
+          enforcePenalties={operation.enforcePenalties !== false}
+          userId={userId}
           onSuccess={() => fetchExchangeDetails()}
         />
       )}

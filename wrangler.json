@@ -10,10 +10,5 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
     "binding": "ASSETS"
-  },
-  "triggers": {
-    "crons": [
-      "0 6 * * *"
-    ]
   }
 }

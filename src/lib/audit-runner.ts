@@ -1,27 +1,37 @@
 import { evaluateMemberAudit, AuditOutcome } from './demerits';
 
-export interface BatchAuditSummary {
-  processedAt: string;
-  exchangesAuditedCount: number;
-  details: Array<{
-    exchangeId: string;
-    exchangeTitle: string;
-    results: AuditOutcome[];
-  }>;
-}
-
 /**
  * Processes demerit audit and auto-rehabilitation for a single exchange.
+ * Can only be executed on operations that have demerits enabled (enforcePenalties !== false).
  * Idempotently marks the exchange as COMPLETED and updates participant demerits.
+ * 
+ * Invariants:
+ * 1. Head-Elf Controlled: Demerit evaluations are never run automatically by scheduled cron background jobs.
+ * 2. Mission Policy Check: Evaluated only when `exchange.enforcePenalties !== false`.
+ * 3. Completion Gated: Only executed when or after the mission is marked COMPLETED.
  * 
  * @param db - Prisma client instance
  * @param exchange - Exchange record including members and their users
  * @returns Array of individual member audit outcomes
  */
 export async function processExchangeAudit(db: any, exchange: any): Promise<AuditOutcome[]> {
+  // If the mission has demerits disabled, do not evaluate or assign any penalties
+  if (exchange.enforcePenalties === false) {
+    const now = new Date();
+    const updateData: any = { status: 'COMPLETED' };
+    if (!exchange.executionDate || new Date(exchange.executionDate) > now) {
+      updateData.executionDate = now;
+    }
+    await db.exchange.update({
+      where: { id: exchange.id },
+      data: updateData,
+    });
+    return [];
+  }
+
   const auditResults: AuditOutcome[] = [];
 
-  for (const member of exchange.members) {
+  for (const member of exchange.members || []) {
     const outcome = evaluateMemberAudit({
       userId: member.user.id,
       userName: member.user.name,
@@ -73,63 +83,16 @@ export async function processExchangeAudit(db: any, exchange: any): Promise<Audi
     auditResults.push(outcome);
   }
 
-  // Mark exchange as COMPLETED
+  // Ensure exchange is marked as COMPLETED and executionDate is set
+  const now = new Date();
+  const updateData: any = { status: 'COMPLETED' };
+  if (!exchange.executionDate || new Date(exchange.executionDate) > now) {
+    updateData.executionDate = now;
+  }
   await db.exchange.update({
     where: { id: exchange.id },
-    data: { status: 'COMPLETED' },
+    data: updateData,
   });
 
   return auditResults;
-}
-
-/**
- * Automated Cron Execution: Queries all active missions that have reached or passed
- * their execution date, executes deterministic demerit evaluations, and transitions
- * missions to COMPLETED status.
- * 
- * @param db - Prisma client instance
- * @returns Summary of batch audit execution
- */
-export async function executeDueDemeritAudits(db: any): Promise<BatchAuditSummary> {
-  const now = new Date();
-
-  // Find all uncompleted exchanges where executionDate has passed
-  const dueExchanges = await db.exchange.findMany({
-    where: {
-      status: {
-        in: ['RECRUITING', 'SETUP', 'ASSIGNED', 'EXECUTED'],
-      },
-      executionDate: {
-        lte: now,
-      },
-    },
-    include: {
-      members: {
-        include: {
-          user: true,
-        },
-      },
-    },
-  });
-
-  const details: Array<{
-    exchangeId: string;
-    exchangeTitle: string;
-    results: AuditOutcome[];
-  }> = [];
-
-  for (const exchange of dueExchanges) {
-    const results = await processExchangeAudit(db, exchange);
-    details.push({
-      exchangeId: exchange.id,
-      exchangeTitle: exchange.title,
-      results,
-    });
-  }
-
-  return {
-    processedAt: now.toISOString(),
-    exchangesAuditedCount: dueExchanges.length,
-    details,
-  };
 }

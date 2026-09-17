@@ -13,6 +13,7 @@ import {
   BADGE_KOVERT_KLAUS,
   BADGE_VIGILANT_ELF,
 } from '@/lib/covertDelivery';
+import { processExchangeAudit } from '@/lib/audit-runner';
 
 export const dynamic = 'force-dynamic';
 
@@ -416,22 +417,34 @@ export async function POST(request: Request) {
 
     // Action: End Exchange (Updates executionDate to today and updates status to COMPLETED)
     if (action === 'endOperation' && operationId) {
-      const ex = await db.exchange.findUnique({ where: { id: operationId } });
+      const ex = await db.exchange.findUnique({
+        where: { id: operationId },
+        include: { members: { include: { user: true } } },
+      });
       if (!ex) return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
       if (ex.organizerId !== activeUserId) return NextResponse.json({ error: 'Only Organizer can end exchange' }, { status: 403 });
 
-      const now = new Date();
-      await db.exchange.update({
-        where: { id: operationId },
-        data: {
-          executionDate: now,
-          status: 'COMPLETED',
-        },
-      });
+      const { applyDemerits } = body as { applyDemerits?: boolean };
+
+      let auditResults = null;
+      if (applyDemerits && ex.enforcePenalties !== false) {
+        auditResults = await processExchangeAudit(db, ex);
+      } else {
+        await db.exchange.update({
+          where: { id: operationId },
+          data: {
+            executionDate: new Date(),
+            status: 'COMPLETED',
+          },
+        });
+      }
 
       return NextResponse.json({
         success: true,
-        message: 'Exchange successfully ended! Status updated to COMPLETED.',
+        message: auditResults
+          ? `Operation completed and demerit audit applied across ${ex.members.length} operatives!`
+          : 'Exchange successfully ended! Status updated to COMPLETED.',
+        auditResults,
       });
     }
 
@@ -972,6 +985,13 @@ export async function PATCH(request: Request) {
 
     // Member Action 3: Issue Penalty Citation
     if (action === 'issue_demerit' && targetUserId) {
+      if (!ex.enforcePenalties) {
+        return NextResponse.json({ error: 'Demerits are disabled for this operation' }, { status: 400 });
+      }
+      if (ex.status !== 'COMPLETED') {
+        return NextResponse.json({ error: 'Demerits can only be assigned when the mission is completed' }, { status: 400 });
+      }
+
       const pts = demeritPoints || 1;
       const updatedUser = await db.user.update({
         where: { id: targetUserId },

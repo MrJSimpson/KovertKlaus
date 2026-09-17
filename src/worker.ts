@@ -25,7 +25,7 @@ import {
 import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
 import { evaluateMemberAudit } from './lib/demerits';
-import { processExchangeAudit, executeDueDemeritAudits } from './lib/audit-runner';
+import { processExchangeAudit } from './lib/audit-runner';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -1319,15 +1319,31 @@ export default {
 
           // Action 6: End Operation
           if (action === 'endOperation' && operationId) {
-            const ex = await db.exchange.findUnique({ where: { id: operationId } });
+            const ex = await db.exchange.findUnique({
+              where: { id: operationId },
+              include: { members: { include: { user: true } } },
+            });
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can end exchange' }, { status: 403 });
 
-            await db.exchange.update({
-              where: { id: operationId },
-              data: { executionDate: new Date(), status: 'COMPLETED' },
+            const { applyDemerits } = body;
+            let auditResults = null;
+            if (applyDemerits && ex.enforcePenalties !== false) {
+              auditResults = await processExchangeAudit(db, ex);
+            } else {
+              await db.exchange.update({
+                where: { id: operationId },
+                data: { executionDate: new Date(), status: 'COMPLETED' },
+              });
+            }
+
+            return Response.json({
+              success: true,
+              message: auditResults
+                ? `Operation completed and demerit audit applied across ${ex.members.length} operatives!`
+                : 'Exchange ended and marked as COMPLETED.',
+              auditResults,
             });
-            return Response.json({ success: true, message: 'Exchange ended' });
           }
 
           // Action 7: Send Broadcast
@@ -1628,6 +1644,13 @@ export default {
           }
 
           if (action === 'issue_demerit' && targetUserId) {
+            if (!ex.enforcePenalties) {
+              return Response.json({ error: 'Demerits are disabled for this operation' }, { status: 400 });
+            }
+            if (ex.status !== 'COMPLETED') {
+              return Response.json({ error: 'Demerits can only be assigned when the mission is completed' }, { status: 400 });
+            }
+
             const pts = demeritPoints || 1;
             const updatedUser = await db.user.update({
               where: { id: targetUserId },
@@ -1814,17 +1837,8 @@ export default {
         const body = (await request.json().catch(() => ({}))) as any;
         const { operationId } = body;
 
-        // Mode 1: Batch execution across all due exchanges (no specific operationId passed)
-        if (!operationId) {
-          const summary = await executeDueDemeritAudits(db);
-          return Response.json({
-            success: true,
-            message: `Batch execution audit completed for ${summary.exchangesAuditedCount} mission(s).`,
-            data: summary,
-          });
-        }
+        if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
 
-        // Mode 2: Single operation audit triggered by Head Elf
         const activeUserId = getUserIdFromRequest(request);
         if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
@@ -1835,9 +1849,12 @@ export default {
         if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
         if (exchange.organizerId !== activeUserId) return Response.json({ error: 'Only organizer can run audit' }, { status: 403 });
 
-        const now = new Date();
-        if (now < new Date(exchange.executionDate)) {
-          return Response.json({ error: 'Audit engine can only be run on or after Execution Day.' }, { status: 400 });
+        if (!exchange.enforcePenalties) {
+          return Response.json({ error: 'Demerits are disabled for this operation.' }, { status: 400 });
+        }
+
+        if (exchange.status !== 'COMPLETED') {
+          return Response.json({ error: 'Demerits can only be evaluated and assigned when the mission is completed.' }, { status: 400 });
         }
 
         const auditResults = await processExchangeAudit(db, exchange);
@@ -2108,47 +2125,5 @@ export default {
 
     // Fallback: Serve static assets from Cloudflare edge CDN
     return env.ASSETS.fetch(request);
-  },
-
-  /**
-   * Cloudflare Worker Scheduled Cron Trigger Handler
-   * Fires daily at 06:00 UTC (configured via wrangler.json triggers.crons)
-   * Evaluates Execution Day completion across all active missions and applies
-   * automated demerit penalties or rehabilitation waivers.
-   */
-  async scheduled(event: any, env: Env, ctx: any): Promise<void> {
-    const auditPromise = (async () => {
-      try {
-        if (env.DATABASE_URL) process.env.DATABASE_URL = env.DATABASE_URL;
-        if (env.DATABASE_ADMIN_URL) process.env.DATABASE_ADMIN_URL = env.DATABASE_ADMIN_URL;
-        if (env.DIRECT_URL) process.env.DIRECT_URL = env.DIRECT_URL;
-
-        const appConnStr =
-          env.DATABASE_URL ||
-          env.DATABASE_ADMIN_URL ||
-          env.DIRECT_URL ||
-          process.env.DATABASE_URL ||
-          process.env.DATABASE_ADMIN_URL;
-        const db = getDb(appConnStr);
-        const summary = await executeDueDemeritAudits(db);
-        console.log(`[CRON] Execution Day Demerit Audit completed: ${summary.exchangesAuditedCount} mission(s) audited at ${summary.processedAt}`);
-        await logInfo('WORKER', `Automated Execution Day audit completed for ${summary.exchangesAuditedCount} mission(s).`, {
-          metadata: { summary, cron: event?.cron, scheduledTime: event?.scheduledTime },
-          env,
-        }).catch(() => {});
-      } catch (err: any) {
-        console.error('[CRON] Execution Day Demerit Audit failed:', err);
-        await logError('WORKER', `Execution Day Demerit Audit cron failed: ${err?.message || err}`, {
-          metadata: { cron: event?.cron, scheduledTime: event?.scheduledTime, error: err?.message || String(err) },
-          env,
-        }).catch(() => {});
-      }
-    })();
-
-    if (ctx && typeof ctx.waitUntil === 'function') {
-      ctx.waitUntil(auditPromise);
-    } else {
-      await auditPromise;
-    }
   },
 };

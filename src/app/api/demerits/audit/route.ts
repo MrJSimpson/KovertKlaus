@@ -1,25 +1,32 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
-import { processExchangeAudit, executeDueDemeritAudits } from '@/lib/audit-runner';
+import { processExchangeAudit } from '@/lib/audit-runner';
 
 /**
  * Execution Day Demerit & Auto-Rehabilitation Audit Engine
  * 
  * Governance Invariants:
- * 1. Platform Non-Intermediary Principle:
- *    KovertKlaus admins and support NEVER adjudicate, modify, or manually intervene in personal demerit disputes.
- *    Citations and redemptions are governed 100% deterministically by automated system rules and the Head Elf.
+ * 1. Head-Elf Controlled Standard:
+ *    Demerits are NEVER automatically assigned across operations by unattended background cron daemons.
+ *    Demerit evaluation is strictly triggered by the Head Elf for their specific operation.
  * 
- * 2. Intentional Neglect Standard:
- *    Demerits are only assigned when a participant demonstrates intentional neglect or abandonment (unfulfilled
- *    delivery with zero carrier tracking proof provided by Execution Day).
+ * 2. Mission Policy Requirement:
+ *    Demerit assignment is strictly dependent on whether the mission uses demerits (`enforcePenalties !== false`).
+ *    If demerits are disabled for the operation, no citations are ever issued or cleared.
  * 
- * 3. Carrier Protection Waiver:
+ * 3. Completion Gating:
+ *    Demerit evaluation is only permissible when or after the mission is marked COMPLETED.
+ * 
+ * 4. Intentional Neglect Standard:
+ *    Demerits (+1 Coal Citation) are only assigned when a participant demonstrates intentional neglect or abandonment
+ *    (unfulfilled delivery with zero carrier tracking proof provided by Execution Day).
+ * 
+ * 5. Carrier Protection Waiver:
  *    Any operative who enters a valid package tracking number (USPS, FedEx, UPS, DHL) is granted automated immunity
  *    from penalties, even if carrier delivery is delayed.
  * 
- * 4. Automatic Rehabilitation & Redemption Engine:
+ * 6. Automatic Rehabilitation & Redemption Engine:
  *    When an operative with penalty points (`penaltyPoints > 0`) successfully fulfills their gift in a subsequent
  *    exchange (or participates in White Elephant), the system automatically decrements their penalty points by 1
  *    (`-1`), restoring `accountStatus: 'ACTIVE'` when penalty points drop below 3.
@@ -30,17 +37,10 @@ export async function POST(request: Request) {
     const activeUserId = await getSessionUserId();
     const { operationId } = body;
 
-    // Mode 1: Batch execution across all due exchanges (no specific operationId passed)
     if (!operationId) {
-      const summary = await executeDueDemeritAudits(db);
-      return NextResponse.json({
-        success: true,
-        message: `Batch execution audit completed for ${summary.exchangesAuditedCount} mission(s).`,
-        data: summary,
-      });
+      return NextResponse.json({ error: 'operationId is required.' }, { status: 400 });
     }
 
-    // Mode 2: Single operation audit triggered by Head Elf
     if (!activeUserId) {
       return NextResponse.json(
         { error: 'Authentication is required to audit a specific operation.' },
@@ -70,10 +70,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const now = new Date();
-    if (now < new Date(exchange.executionDate)) {
+    if (exchange.enforcePenalties === false) {
       return NextResponse.json(
-        { error: 'Audit engine can only be run on or after Execution Day.' },
+        { error: 'Demerits are disabled for this operation.' },
+        { status: 400 }
+      );
+    }
+
+    if (exchange.status !== 'COMPLETED') {
+      return NextResponse.json(
+        { error: 'Demerits can only be evaluated and assigned when the mission is completed.' },
         { status: 400 }
       );
     }
