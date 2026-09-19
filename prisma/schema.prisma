@@ -406,6 +406,12 @@ model SystemConfig {
   defaultBudgetMax         Decimal      @default(50.00) @db.Decimal(10, 2)
   defaultCurrency          String       @default("USD")
   
+  // Automated Mission Lifecycle Scheduler (administered via /northpole)
+  lifecycleCronEnabled         Boolean      @default(true)
+  lifecycleCronIntervalMinutes Int          @default(60)
+  lastLifecycleRunAt           DateTime?
+  lastLifecycleTransitions     Int?         @default(0)
+  
   updatedAt                DateTime     @updatedAt
   updatedByAdminId         String?
 }

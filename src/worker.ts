@@ -1865,6 +1865,22 @@ export default {
       // 17b. /api/operations/lifecycle (POST)
       if (pathname === '/api/operations/lifecycle' && request.method === 'POST') {
         const summary = await advanceMissionLifecycle(db);
+        const now = new Date();
+        await adminDb.systemConfig.upsert({
+          where: { id: 'singleton' },
+          update: {
+            lastLifecycleRunAt: now,
+            lastLifecycleTransitions: summary.transitionsCount,
+          },
+          create: {
+            id: 'singleton',
+            lifecycleCronEnabled: true,
+            lifecycleCronIntervalMinutes: 60,
+            lastLifecycleRunAt: now,
+            lastLifecycleTransitions: summary.transitionsCount,
+          },
+        }).catch(() => {});
+
         return Response.json({
           success: true,
           message: `Lifecycle evaluated: ${summary.transitionsCount} transition(s) executed across ${summary.missionsCheckedCount} active mission(s).`,
@@ -2154,14 +2170,65 @@ export default {
         if (env.DATABASE_ADMIN_URL) process.env.DATABASE_ADMIN_URL = env.DATABASE_ADMIN_URL;
         if (env.DIRECT_URL) process.env.DIRECT_URL = env.DIRECT_URL;
 
+        const adminConnStr =
+          env.DATABASE_ADMIN_URL ||
+          env.DIRECT_URL ||
+          env.DATABASE_URL ||
+          process.env.DATABASE_ADMIN_URL ||
+          process.env.DIRECT_URL ||
+          process.env.DATABASE_URL;
         const appConnStr =
           env.DATABASE_URL ||
           env.DATABASE_ADMIN_URL ||
           env.DIRECT_URL ||
           process.env.DATABASE_URL ||
           process.env.DATABASE_ADMIN_URL;
+
+        const adminDb = getAdminDb(adminConnStr);
+        const config = await adminDb.systemConfig.findUnique({
+          where: { id: 'singleton' },
+          select: {
+            lifecycleCronEnabled: true,
+            lifecycleCronIntervalMinutes: true,
+            lastLifecycleRunAt: true,
+          },
+        });
+
+        if (config && config.lifecycleCronEnabled === false) {
+          console.log('[CRON] Mission lifecycle scheduler disabled in SystemConfig. Skipping sweep.');
+          return;
+        }
+
+        const intervalMinutes = Math.max(1, config?.lifecycleCronIntervalMinutes ?? 60);
+        const lastRunAt = config?.lastLifecycleRunAt ? new Date(config.lastLifecycleRunAt) : null;
+
+        if (lastRunAt) {
+          const elapsedMs = Date.now() - lastRunAt.getTime();
+          if (elapsedMs < intervalMinutes * 60 * 1000) {
+            console.log(`[CRON] Mission lifecycle sweep not due yet (${Math.round(elapsedMs / 60000)}m / ${intervalMinutes}m elapsed). Skipping.`);
+            return;
+          }
+        }
+
         const db = getDb(appConnStr);
         const summary = await advanceMissionLifecycle(db);
+        const now = new Date();
+
+        await adminDb.systemConfig.upsert({
+          where: { id: 'singleton' },
+          update: {
+            lastLifecycleRunAt: now,
+            lastLifecycleTransitions: summary.transitionsCount,
+          },
+          create: {
+            id: 'singleton',
+            lifecycleCronEnabled: true,
+            lifecycleCronIntervalMinutes: 60,
+            lastLifecycleRunAt: now,
+            lastLifecycleTransitions: summary.transitionsCount,
+          },
+        }).catch(() => {});
+
         console.log(`[CRON] Mission lifecycle milestone check at ${summary.processedAt}: ${summary.transitionsCount} transition(s) executed across ${summary.missionsCheckedCount} active mission(s).`);
         await logInfo('WORKER', `Cron: Mission lifecycle advanced ${summary.transitionsCount} mission(s).`, {
           metadata: { summary, cron: event?.cron, scheduledTime: event?.scheduledTime },

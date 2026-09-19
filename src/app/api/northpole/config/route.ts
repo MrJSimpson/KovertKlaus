@@ -43,6 +43,8 @@ export async function GET() {
           emailProvider: 'auto',
           emailFrom: 'admin@kovertklaus.com',
           emailFromName: 'KovertKlaus HQ',
+          lifecycleCronEnabled: true,
+          lifecycleCronIntervalMinutes: 60,
         },
         include: { activeTheme: true },
       });
@@ -116,6 +118,8 @@ export async function PATCH(request: Request) {
       defaultBudgetMin,
       defaultBudgetMax,
       defaultCurrency,
+      lifecycleCronEnabled,
+      lifecycleCronIntervalMinutes,
     } = body;
 
     const updateData: Record<string, any> = {
@@ -152,6 +156,9 @@ export async function PATCH(request: Request) {
     if (defaultBudgetMin !== undefined) updateData.defaultBudgetMin = Number(defaultBudgetMin);
     if (defaultBudgetMax !== undefined) updateData.defaultBudgetMax = Number(defaultBudgetMax);
     if (defaultCurrency !== undefined) updateData.defaultCurrency = defaultCurrency;
+
+    if (lifecycleCronEnabled !== undefined) updateData.lifecycleCronEnabled = Boolean(lifecycleCronEnabled);
+    if (lifecycleCronIntervalMinutes !== undefined) updateData.lifecycleCronIntervalMinutes = Math.max(1, Number(lifecycleCronIntervalMinutes));
 
     const updatedConfig = await adminDb.systemConfig.upsert({
       where: { id: 'singleton' },

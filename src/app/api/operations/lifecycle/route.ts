@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { advanceMissionLifecycle } from '@/lib/mission-lifecycle';
+import { adminDb } from '@/lib/adminDb';
+import { executeLifecycleSweep } from '@/lib/lifecycle-scheduler';
 
 export async function POST() {
   try {
-    const summary = await advanceMissionLifecycle(db);
+    const summary = await executeLifecycleSweep('manual', db, adminDb);
     return NextResponse.json({
       success: true,
       message: `Lifecycle evaluated: ${summary.transitionsCount} transition(s) executed across ${summary.missionsCheckedCount} active mission(s).`,
