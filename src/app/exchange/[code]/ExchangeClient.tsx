@@ -14,6 +14,8 @@ import { ManageAssignmentsModal } from '@/components/ManageAssignmentsModal';
 import { OpTeamBroadcastModal } from '@/components/OpTeamBroadcastModal';
 import { CompleteOperationModal } from '@/components/CompleteOperationModal';
 import { AfterActionReportSection, AARReportEntry } from '@/components/AfterActionReportSection';
+import { ShippingConfirmationModal } from '@/components/ShippingConfirmationModal';
+import { detectCarrier } from '@/lib/carrier-tracking';
 
 
 interface OperationAgent {
@@ -100,6 +102,7 @@ export default function OperationCommandCenterPage() {
   const [manageAssignmentsModalOpen, setManageAssignmentsModalOpen] = useState(false);
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [shippingModalOpen, setShippingModalOpen] = useState(false);
 
   // OpsLeader Control Panel State
   const [drawingTargets, setDrawingTargets] = useState(false);
@@ -865,7 +868,7 @@ export default function OperationCommandCenterPage() {
                     </div>
 
                     {assignedTarget ? (
-                      <div className={`p-4 rounded-2xl border space-y-2 ${theme.cardInnerBg}`}>
+                      <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
                         <div className="flex items-center justify-between">
                           <div>
                             <span className={`text-xs block ${theme.textSubLabel}`}>Assigned Target Operative:</span>
@@ -882,6 +885,65 @@ export default function OperationCommandCenterPage() {
                             <strong className={theme.textLabel}>{assignedTarget.streetAddress}, {assignedTarget.city}, {assignedTarget.state} {assignedTarget.zipCode}</strong>
                           </div>
                         )}
+
+                        {/* Shipping Fulfillment Action Bar */}
+                        <div className="pt-3 border-t border-stone-200 dark:border-slate-800 space-y-2">
+                          <div className="flex items-center justify-between text-xs font-mono">
+                            <span className={theme.textSubLabel}>Shipment Status:</span>
+                            {currentAgent?.shippingStatus === 'SHIPPED' ? (
+                              <span className="text-emerald-400 font-bold flex items-center gap-1">
+                                <span>✓ Dispatched</span>
+                              </span>
+                            ) : currentAgent?.shippingStatus === 'LOCAL_DELIVERY' ? (
+                              <span className="text-emerald-400 font-bold flex items-center gap-1">
+                                <span>🤝 Hand Delivery</span>
+                              </span>
+                            ) : (
+                              <span className="text-amber-400 font-bold flex items-center gap-1">
+                                <span>⏳ Pending Shipment</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {currentAgent?.shippingStatus === 'SHIPPED' && currentAgent.trackingNumber && (() => {
+                            const carrier = detectCarrier(currentAgent.trackingNumber);
+                            return (
+                              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs font-mono">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${carrier.badgeColor.bg} ${carrier.badgeColor.border} ${carrier.badgeColor.text}`}>
+                                    {carrier.badgeLabel}
+                                  </span>
+                                  <span className="text-slate-300 font-bold">{carrier.normalizedTracking}</span>
+                                </div>
+                                {carrier.trackingUrl && (
+                                  <a
+                                    href={carrier.trackingUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-sky-400 hover:underline flex items-center gap-1 font-bold text-[11px]"
+                                    title="Open carrier tracking portal"
+                                  >
+                                    <span>Track</span>
+                                    <span>↗</span>
+                                  </a>
+                                )}
+                              </div>
+                            );
+                          })()}
+
+                          <div className="pt-1">
+                            <button
+                              onClick={() => setShippingModalOpen(true)}
+                              className={`w-full py-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
+                                currentAgent?.shippingStatus === 'SHIPPED' || currentAgent?.shippingStatus === 'LOCAL_DELIVERY'
+                                  ? theme.btnSecondary
+                                  : theme.btnPrimary
+                              }`}
+                            >
+                              <span>📦 {currentAgent?.shippingStatus === 'SHIPPED' || currentAgent?.shippingStatus === 'LOCAL_DELIVERY' ? 'Update Shipping Details' : 'Confirm Gift Shipped'}</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center py-6 border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl">
@@ -1051,9 +1113,29 @@ export default function OperationCommandCenterPage() {
                                 }`}>
                                   {agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? 'Head Elf' : 'Elf Agent'}
                                 </span>
-                                <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
-                                  Shipping: {agent.shippingStatus}
-                                </span>
+                                {agent.shippingStatus === 'SHIPPED' ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-mono font-bold text-emerald-400">
+                                      ✓ Shipped
+                                    </span>
+                                    {agent.trackingNumber && (() => {
+                                      const carrier = detectCarrier(agent.trackingNumber);
+                                      return (
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono font-bold ${carrier.badgeColor.bg} ${carrier.badgeColor.border} ${carrier.badgeColor.text}`}>
+                                          {carrier.badgeLabel}
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+                                ) : agent.shippingStatus === 'LOCAL_DELIVERY' ? (
+                                  <span className="text-[10px] font-mono font-bold text-emerald-400">
+                                    🤝 Hand Delivery
+                                  </span>
+                                ) : (
+                                  <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
+                                    ⏳ Pending
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1441,6 +1523,19 @@ export default function OperationCommandCenterPage() {
           enforcePenalties={operation.enforcePenalties !== false}
           userId={userId}
           onSuccess={() => fetchExchangeDetails()}
+        />
+      )}
+
+      {/* MODAL: SHIPPING CONFIRMATION */}
+      {operation && (
+        <ShippingConfirmationModal
+          isOpen={shippingModalOpen}
+          onClose={() => setShippingModalOpen(false)}
+          operationId={operation.id}
+          targetCodename={assignedTarget ? formatCodename(assignedTarget.codename, assignedTarget.name) : undefined}
+          currentShippingStatus={currentAgent?.shippingStatus}
+          currentTrackingNumber={currentAgent?.trackingNumber || undefined}
+          onConfirmed={() => fetchExchangeDetails()}
         />
       )}
 

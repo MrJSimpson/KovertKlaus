@@ -59,18 +59,8 @@ export function resolveAccountStatus(penaltyPoints: number): AccountStatus {
   return 'ACTIVE';
 }
 
-/**
- * Validates whether a provided package tracking number meets minimum standard format criteria.
- * Supports USPS (20-22 digits), FedEx (12-15 digits), UPS (1Z...), DHL (10-11 digits), or alphanumeric strings >= 8 chars.
- * 
- * @param trackingNumber - Carrier tracking identifier string
- * @returns `true` if valid tracking format; `false` otherwise
- */
-export function isCarrierTrackingValid(trackingNumber: string | null | undefined): boolean {
-  if (!trackingNumber) return false;
-  const clean = trackingNumber.trim().replace(/[\s-]/g, '');
-  return clean.length >= 8;
-}
+import { isCarrierTrackingValid } from './carrier-tracking';
+export { isCarrierTrackingValid };
 
 /**
  * Evaluates an operative's mission fulfillment on Execution Day and computes demerit updates.

@@ -27,6 +27,7 @@ import { EmailConfig } from './lib/email/types';
 import { evaluateMemberAudit } from './lib/demerits';
 import { processExchangeAudit } from './lib/audit-runner';
 import { advanceMissionLifecycle } from './lib/mission-lifecycle';
+import { detectCarrier } from './lib/carrier-tracking';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -1815,21 +1816,66 @@ export default {
               userId: activeUserId,
             },
           },
+          include: {
+            exchange: true,
+          },
         });
         if (!member) return Response.json({ error: 'Member not enrolled in this exchange' }, { status: 404 });
 
-        const shippingStatus = isLocalDelivery ? 'LOCAL_DELIVERY' : 'SHIPPED';
-        const cleanTracking = trackingNumber?.trim() || null;
+        let shippingStatus: 'LOCAL_DELIVERY' | 'SHIPPED' = 'LOCAL_DELIVERY';
+        let cleanTracking: string | null = null;
+        let carrierInfo = null;
+
+        if (!isLocalDelivery) {
+          if (!trackingNumber) {
+            return Response.json({ error: 'Tracking number is required for courier parcel shipments' }, { status: 400 });
+          }
+
+          const carrierResult = detectCarrier(trackingNumber);
+          if (!carrierResult.isValid) {
+            return Response.json({ error: 'Invalid carrier tracking number format (minimum 8 alphanumeric characters, USPS, UPS, FedEx, or DHL)' }, { status: 400 });
+          }
+
+          shippingStatus = 'SHIPPED';
+          cleanTracking = carrierResult.normalizedTracking;
+          carrierInfo = carrierResult;
+        }
 
         const updatedMember = await db.exchangeMember.update({
           where: { id: member.id },
           data: { shippingStatus, trackingNumber: cleanTracking, shippedAt: new Date() },
         });
 
+        if (member.targetUserId) {
+          const exchangeTitle = member.exchange?.title || 'Operation';
+          const notificationTitle = isLocalDelivery
+            ? `🎁 Hand Delivery Dispatched: ${exchangeTitle}`
+            : `📦 Parcel In Transit (${carrierInfo?.badgeLabel || 'Carrier'}): ${exchangeTitle}`;
+
+          const notificationMsg = isLocalDelivery
+            ? 'Your secret giver has confirmed personal hand delivery / local drop-off for your gift! Keep your eyes peeled.'
+            : `Your secret giver has dispatched your parcel via ${carrierInfo?.carrierName || 'Courier'}! Tracking Number: ${cleanTracking}.`;
+
+          await db.notification.create({
+            data: {
+              userId: member.targetUserId,
+              exchangeId: operationId,
+              title: notificationTitle,
+              message: notificationMsg,
+              isAcknowledged: false,
+            },
+          }).catch(() => {});
+        }
+
         return Response.json({
           success: true,
-          message: isLocalDelivery ? 'Local delivery confirmed.' : 'Shipment confirmed!',
-          data: updatedMember,
+          message: isLocalDelivery
+            ? 'Local delivery confirmed. Target operative notified!'
+            : `Shipment confirmed via ${carrierInfo?.badgeLabel || 'Carrier'}! Carrier Protection Waiver active.`,
+          data: {
+            ...updatedMember,
+            carrierInfo,
+          },
         });
       }
 
