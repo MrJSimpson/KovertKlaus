@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
-import { sanitizeText, isSafePublicUrl } from '@/lib/security';
+import { sanitizeText, isSafePublicUrl, normalizeProductUrl } from '@/lib/security';
+import { sanitizeItemDetails, updateCatalogIntelligence } from '@/lib/product-intelligence';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +34,7 @@ export async function GET() {
         url: wi.item.url,
         thumbnail: wi.item.thumbnailUrl || undefined,
         description: wi.item.description || undefined,
+        properties: wi.item.properties || undefined,
       }));
 
       return {
@@ -61,10 +64,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { action, name, type, wishlistId, title, url, price, description, thumbnail } = body;
+    const { action, name, type, wishlistId, title, url, price, description, thumbnail, properties } = body;
 
     // Action A: Create Manifest Item (Gift Item) inside a Wishlist Manifest
-    if (action === 'add_item' || action === 'add_optool' || (wishlistId && url)) {
+    if (action === 'add_item' || action === 'add_optool' || action === 'add_manifest_item' || (wishlistId && url)) {
       if (!wishlistId || !url) {
         return NextResponse.json({ error: 'wishlistId and url are required to add a Manifest Item' }, { status: 400 });
       }
@@ -90,6 +93,11 @@ export async function POST(request: Request) {
         }, { status: 400 });
       }
 
+      const details = Array.isArray(properties?.details)
+        ? sanitizeItemDetails(properties.details)
+        : [];
+      const itemProperties = details.length > 0 ? { details } : undefined;
+
       // Create Item and link to Wishlist
       const item = await db.item.create({
         data: {
@@ -99,6 +107,7 @@ export async function POST(request: Request) {
           price: price ? Number(price) : 0,
           description: description ? sanitizeText(description) : null,
           thumbnailUrl: thumbnail ? thumbnail.trim() : null,
+          properties: itemProperties ? (itemProperties as unknown as Prisma.InputJsonValue) : undefined,
         },
       });
 
@@ -109,6 +118,24 @@ export async function POST(request: Request) {
         },
       });
 
+      if (details.length > 0) {
+        (async () => {
+          try {
+            const normalizedUrl = normalizeProductUrl(url.trim());
+            const cat = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
+            if (cat) {
+              const updatedCatalogProps = updateCatalogIntelligence(cat.properties, details);
+              await db.productCatalog.update({
+                where: { url: normalizedUrl },
+                data: { properties: updatedCatalogProps as unknown as Prisma.InputJsonValue },
+              });
+            }
+          } catch (e) {
+            console.warn('[ProductCatalog Intelligence Update Error]', e);
+          }
+        })();
+      }
+
       const formattedItem = {
         id: item.id,
         title: item.name,
@@ -116,6 +143,7 @@ export async function POST(request: Request) {
         url: item.url,
         thumbnail: item.thumbnailUrl || undefined,
         description: item.description || undefined,
+        properties: item.properties || undefined,
       };
 
       return NextResponse.json({
@@ -169,9 +197,72 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { wishlistId, name } = body;
+    const { wishlistId, itemId, name, title, price, description, thumbnail, properties } = body;
+
+    // Item update
+    if (itemId) {
+      const details = Array.isArray(properties?.details)
+        ? sanitizeItemDetails(properties.details)
+        : undefined;
+
+      const updateData: any = {};
+      if (title !== undefined) updateData.name = sanitizeText(title);
+      if (price !== undefined) updateData.price = Number(price);
+      if (description !== undefined) updateData.description = description ? sanitizeText(description) : null;
+      if (thumbnail !== undefined) updateData.thumbnailUrl = thumbnail ? thumbnail.trim() : null;
+      if (details !== undefined) {
+        updateData.properties = details.length > 0 ? { details } : Prisma.JsonNull;
+      }
+
+      const existingItem = await db.item.findFirst({
+        where: { id: itemId, userId: activeUserId },
+      });
+
+      if (!existingItem) {
+        return NextResponse.json({ error: 'Manifest Item not found or unauthorized' }, { status: 404 });
+      }
+
+      const updated = await db.item.update({
+        where: { id: itemId },
+        data: updateData,
+      });
+
+      if (details && details.length > 0 && existingItem.url) {
+        (async () => {
+          try {
+            const normalizedUrl = normalizeProductUrl(existingItem.url);
+            const cat = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
+            if (cat) {
+              const updatedCatalogProps = updateCatalogIntelligence(cat.properties, details);
+              await db.productCatalog.update({
+                where: { url: normalizedUrl },
+                data: { properties: updatedCatalogProps as unknown as Prisma.InputJsonValue },
+              });
+            }
+          } catch (e) {
+            console.warn('[ProductCatalog Intelligence Update Error]', e);
+          }
+        })();
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Manifest Item updated successfully',
+        manifestItem: {
+          id: updated.id,
+          title: updated.name,
+          price: Number(updated.price),
+          url: updated.url,
+          thumbnail: updated.thumbnailUrl || undefined,
+          description: updated.description || undefined,
+          properties: updated.properties || undefined,
+        },
+      });
+    }
+
+    // Wishlist rename
     if (!wishlistId || !name || !name.trim()) {
-      return NextResponse.json({ error: 'wishlistId and name are required' }, { status: 400 });
+      return NextResponse.json({ error: 'wishlistId and name (or itemId) are required' }, { status: 400 });
     }
 
     const updated = await db.wishlist.updateMany({

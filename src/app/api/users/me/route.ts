@@ -108,6 +108,7 @@ export async function GET() {
         url: wi.item.url,
         thumbnail: wi.item.thumbnailUrl || undefined,
         description: wi.item.description || undefined,
+        properties: wi.item.properties || undefined,
       }));
 
       return {

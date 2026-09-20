@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { formatCodename } from '@/lib/security';
 import { useTheme } from '@/context/ThemeContext';
 import { Card, SectionHeader, Button, Badge } from '@/components/ui';
+import { WishlistItemModal } from '@/components/WishlistItemModal';
+import { UserDossierPreferences } from '@/lib/product-intelligence';
 
 interface ManifestItem {
   id: string;
@@ -15,6 +17,9 @@ interface ManifestItem {
   url: string;
   thumbnail?: string;
   notes?: string;
+  properties?: {
+    details?: Array<{ label: string; value: string }>;
+  };
 }
 type OpTool = ManifestItem;
 
@@ -50,6 +55,12 @@ export default function OpKitsPage() {
   const [scraping, setScraping] = useState(false);
   const [validationError, setValidationError] = useState('');
 
+  // Item Customization & Review Modal State
+  const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [itemModalMode, setItemModalMode] = useState<'add' | 'edit'>('add');
+  const [itemModalData, setItemModalData] = useState<any>(null);
+  const [userDossier, setUserDossier] = useState<UserDossierPreferences | undefined>(undefined);
+
   useEffect(() => {
     fetchOpKits();
   }, []);
@@ -80,8 +91,24 @@ export default function OpKitsPage() {
           setSelectedOpKitId(formatted[0].id);
         }
       }
+
+      // Fetch user profile preferences for dossier matching
+      const profRes = await fetch('/api/users/profile');
+      const profJson = await profRes.json();
+      if (profJson.success && profJson.user) {
+        setUserDossier({
+          topHalfSize: profJson.user.topHalfSize || profJson.user.shirtSize,
+          bottomHalfSize: profJson.user.bottomHalfSize,
+          shoeSize: profJson.user.shoeSize,
+          waistMeasurement: profJson.user.waistMeasurement,
+          inseamMeasurement: profJson.user.inseamMeasurement,
+          favoriteColors: profJson.user.favoriteColors,
+          allergiesDiet: profJson.user.allergiesDiet,
+          favoriteHobbies: profJson.user.favoriteHobbies,
+        });
+      }
     } catch {
-      console.error('Failed to load Wishlist Manifests');
+      console.error('Failed to load Wishlist Manifests or Profile');
     } finally {
       setLoading(false);
     }
@@ -186,7 +213,6 @@ export default function OpKitsPage() {
       return;
     }
 
-    const userId = localStorage.getItem(USER_ID_KEY);
     setScraping(true);
 
     try {
@@ -197,45 +223,51 @@ export default function OpKitsPage() {
       });
       const scraperJson = await scraperRes.json();
 
-      const title = scraperJson.success && scraperJson.metadata?.title ? scraperJson.metadata.title : opToolUrl.trim();
-      const price = scraperJson.metadata?.price;
-      const thumbnail = scraperJson.metadata?.thumbnail;
+      const meta = scraperJson.metadata || {};
+      const initialItemData = {
+        url: opToolUrl.trim(),
+        title: meta.title || opToolUrl.trim(),
+        price: meta.price,
+        thumbnail: meta.thumbnail,
+        description: meta.description,
+        catalogProperties: meta.properties,
+      };
 
-      const res = await fetch('/api/opkits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'add_manifest_item',
-          userId,
-          wishlistId: selectedOpKit.id,
-          url: opToolUrl.trim(),
-          title,
-          price,
-          thumbnail,
-        }),
-      });
-      const json = await res.json();
-      const createdItem = json.manifestItem || json.opTool;
-
-      if (json.success && createdItem) {
-        setOpKits((prev) =>
-          prev.map((k) =>
-            k.id === selectedOpKit.id
-              ? {
-                  ...k,
-                  manifestItems: [...(k.manifestItems || []), createdItem],
-                  opTools: [...(k.opTools || []), createdItem],
-                }
-              : k
-          )
-        );
-      }
+      setItemModalMode('add');
+      setItemModalData(initialItemData);
+      setItemModalOpen(true);
       setOpToolUrl('');
     } catch {
-      setValidationError('Failed to add Manifest Item');
+      setItemModalMode('add');
+      setItemModalData({ url: opToolUrl.trim(), title: opToolUrl.trim() });
+      setItemModalOpen(true);
+      setOpToolUrl('');
     } finally {
       setScraping(false);
     }
+  }
+
+  function handleItemSaveSuccess(savedItem: ManifestItem) {
+    if (!selectedOpKitId) return;
+
+    setOpKits((prev) =>
+      prev.map((k) => {
+        if (k.id !== selectedOpKitId) return k;
+
+        const currentItems = k.manifestItems || k.opTools || [];
+        const exists = currentItems.some((i) => i.id === savedItem.id);
+
+        const updatedItems = exists
+          ? currentItems.map((i) => (i.id === savedItem.id ? savedItem : i))
+          : [...currentItems, savedItem];
+
+        return {
+          ...k,
+          manifestItems: updatedItems,
+          opTools: updatedItems,
+        };
+      })
+    );
   }
 
   // Remove Manifest Item
@@ -607,15 +639,42 @@ export default function OpKitsPage() {
                               >
                                 {tool.url}
                               </a>
+
+                              {tool.properties?.details && tool.properties.details.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                  {tool.properties.details.map((d, dIdx) => (
+                                    <span
+                                      key={dIdx}
+                                      className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                    >
+                                      <span className="opacity-75">{d.label}:</span>
+                                      <span>{d.value}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => handleRemoveManifestItem(tool.id)}
-                            className="text-xs text-red-500 font-bold hover:underline px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                          >
-                            Remove
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setItemModalMode('edit');
+                                setItemModalData(tool);
+                                setItemModalOpen(true);
+                              }}
+                              className="text-xs text-sky-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors cursor-pointer"
+                            >
+                              ✏️ Edit Details
+                            </button>
+                            <button
+                              onClick={() => handleRemoveManifestItem(tool.id)}
+                              className="text-xs text-red-500 font-bold hover:underline px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -689,6 +748,17 @@ export default function OpKitsPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL: ITEM CUSTOMIZATION & REVIEW */}
+      <WishlistItemModal
+        isOpen={itemModalOpen}
+        onClose={() => setItemModalOpen(false)}
+        onSaveSuccess={handleItemSaveSuccess}
+        mode={itemModalMode}
+        wishlistId={selectedOpKit?.id}
+        initialData={itemModalData}
+        userDossier={userDossier}
+      />
 
     </div>
   );

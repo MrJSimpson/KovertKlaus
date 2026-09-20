@@ -15,7 +15,9 @@ import { OpTeamBroadcastModal } from '@/components/OpTeamBroadcastModal';
 import { CompleteOperationModal } from '@/components/CompleteOperationModal';
 import { AfterActionReportSection, AARReportEntry } from '@/components/AfterActionReportSection';
 import { ShippingConfirmationModal } from '@/components/ShippingConfirmationModal';
+import { WishlistItemModal } from '@/components/WishlistItemModal';
 import { detectCarrier } from '@/lib/carrier-tracking';
+import { UserDossierPreferences } from '@/lib/product-intelligence';
 
 
 interface OperationAgent {
@@ -25,6 +27,7 @@ interface OperationAgent {
   shippingStatus: string;
   trackingNumber?: string;
   targetUserId?: string;
+  wishlistId?: string;
   user?: {
     id: string;
     name: string;
@@ -42,6 +45,26 @@ interface OperationAgent {
     city?: string;
     state?: string;
     zipCode?: string;
+    topHalfSize?: string;
+    bottomHalfSize?: string;
+    shoeSize?: string;
+    chestBustMeasurement?: string;
+    waistMeasurement?: string;
+    inseamMeasurement?: string;
+    favoriteColors?: string;
+    allergiesDiet?: string;
+    favoriteHobbies?: string;
+    wishlistItems?: Array<{
+      id: string;
+      title: string;
+      price?: number;
+      url: string;
+      thumbnail?: string;
+      description?: string;
+      properties?: {
+        details?: Array<{ label: string; value: string }>;
+      };
+    }>;
   };
 }
 
@@ -132,8 +155,22 @@ export default function OperationCommandCenterPage() {
   // Wishlist Manifest & Manifest Items Scraper State
   const [manifestItemUrl, setManifestItemUrl] = useState('');
   const [scraping, setScraping] = useState(false);
-  const [userManifest, setUserManifest] = useState<Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>>([]);
+  const [userManifest, setUserManifest] = useState<Array<{
+    id: string;
+    title: string;
+    price?: number;
+    url: string;
+    thumbnail?: string;
+    properties?: { details?: Array<{ label: string; value: string }> };
+  }>>([]);
   const [validationError, setValidationError] = useState('');
+
+  // Item Customization & Review Modal State
+  const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [itemModalMode, setItemModalMode] = useState<'add' | 'edit'>('add');
+  const [itemModalData, setItemModalData] = useState<any>(null);
+  const [userDossier, setUserDossier] = useState<UserDossierPreferences | undefined>(undefined);
+  const [userWishlistId, setUserWishlistId] = useState<string | undefined>(undefined);
 
   const feasibility = useMemo(() => {
     if (!operation) return null;
@@ -168,6 +205,26 @@ export default function OperationCommandCenterPage() {
           setUserName(json.user.name);
           localStorage.setItem(USER_ID_KEY, json.user.id);
           localStorage.setItem('kovertklaus_user_name', json.user.name);
+
+          setUserDossier({
+            topHalfSize: json.user.topHalfSize || json.user.shirtSize,
+            bottomHalfSize: json.user.bottomHalfSize,
+            shoeSize: json.user.shoeSize,
+            waistMeasurement: json.user.waistMeasurement,
+            inseamMeasurement: json.user.inseamMeasurement,
+            favoriteColors: json.user.favoriteColors,
+            allergiesDiet: json.user.allergiesDiet,
+            favoriteHobbies: json.user.favoriteHobbies,
+          });
+
+          // Pre-populate userManifest from primary wishlist if empty
+          const firstWishlist = json.user.wishlists?.[0];
+          if (firstWishlist) {
+            setUserWishlistId(firstWishlist.id);
+            if (firstWishlist.manifestItems && firstWishlist.manifestItems.length > 0) {
+              setUserManifest(firstWishlist.manifestItems);
+            }
+          }
         } else {
           const savedUserId = localStorage.getItem(USER_ID_KEY);
           const savedUserName = localStorage.getItem('kovertklaus_user_name');
@@ -412,25 +469,40 @@ export default function OperationCommandCenterPage() {
         body: JSON.stringify({ url: manifestItemUrl.trim() }),
       });
       const json = await res.json();
+      const meta = json.metadata || {};
 
-      const newItem = {
-        id: Math.random().toString(36).substring(2, 9),
-        title: json.success && json.metadata?.title ? json.metadata.title : manifestItemUrl.trim(),
-        price: json.metadata?.price,
-        thumbnail: json.metadata?.thumbnail,
+      const initialItemData = {
         url: manifestItemUrl.trim(),
+        title: meta.title || manifestItemUrl.trim(),
+        price: meta.price,
+        thumbnail: meta.thumbnail,
+        description: meta.description,
+        catalogProperties: meta.properties,
       };
-      setUserManifest((prev) => [...prev, newItem]);
+
+      setItemModalMode('add');
+      setItemModalData(initialItemData);
+      setItemModalOpen(true);
       setManifestItemUrl('');
     } catch {
-      setUserManifest((prev) => [
-        ...prev,
-        { id: Math.random().toString(36).substring(2, 9), title: manifestItemUrl.trim(), url: manifestItemUrl.trim() },
-      ]);
+      setItemModalMode('add');
+      setItemModalData({ url: manifestItemUrl.trim(), title: manifestItemUrl.trim() });
+      setItemModalOpen(true);
       setManifestItemUrl('');
     } finally {
       setScraping(false);
     }
+  }
+
+  function handleItemSaveSuccess(savedItem: any) {
+    if (!savedItem) return;
+    setUserManifest((prev) => {
+      const exists = prev.some((i) => i.id === savedItem.id);
+      if (exists) {
+        return prev.map((i) => (i.id === savedItem.id ? savedItem : i));
+      }
+      return [...prev, savedItem];
+    });
   }
 
   // Handle Intel Message Dispatch
@@ -886,6 +958,128 @@ export default function OperationCommandCenterPage() {
                           </div>
                         )}
 
+                        {/* Target Operative Dossier Intel */}
+                        {(assignedTarget.topHalfSize || assignedTarget.bottomHalfSize || assignedTarget.shoeSize || assignedTarget.favoriteColors || assignedTarget.favoriteHobbies || assignedTarget.allergiesDiet) && (
+                          <div className="pt-3 border-t border-stone-200 dark:border-slate-800 space-y-2">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-mono block">
+                              📋 Target Operative Dossier Intel
+                            </span>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {assignedTarget.topHalfSize && (
+                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
+                                  <span className="text-[10px] text-slate-500 block">Shirt / Top:</span>
+                                  <span className="font-bold">{assignedTarget.topHalfSize}</span>
+                                </div>
+                              )}
+                              {assignedTarget.bottomHalfSize && (
+                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
+                                  <span className="text-[10px] text-slate-500 block">Pants / Bottom:</span>
+                                  <span className="font-bold">{assignedTarget.bottomHalfSize}</span>
+                                </div>
+                              )}
+                              {assignedTarget.shoeSize && (
+                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
+                                  <span className="text-[10px] text-slate-500 block">Shoe Size:</span>
+                                  <span className="font-bold">{assignedTarget.shoeSize}</span>
+                                </div>
+                              )}
+                              {assignedTarget.favoriteColors && (
+                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
+                                  <span className="text-[10px] text-slate-500 block">Colors:</span>
+                                  <span className="font-bold">{assignedTarget.favoriteColors}</span>
+                                </div>
+                              )}
+                              {assignedTarget.favoriteHobbies && (
+                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
+                                  <span className="text-[10px] text-slate-500 block">Hobbies:</span>
+                                  <span className="font-bold">{assignedTarget.favoriteHobbies}</span>
+                                </div>
+                              )}
+                              {assignedTarget.allergiesDiet && (
+                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
+                                  <span className="text-[10px] text-slate-500 block">Diet / Allergies:</span>
+                                  <span className="font-bold text-amber-500">{assignedTarget.allergiesDiet}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Target Operative Wishlist Manifest */}
+                        <div className="pt-3 border-t border-stone-200 dark:border-slate-800 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-mono block">
+                              🎁 Target Wishlist Items ({assignedTarget.wishlistItems?.length || 0})
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">Confidential Intel</span>
+                          </div>
+
+                          {(!assignedTarget.wishlistItems || assignedTarget.wishlistItems.length === 0) ? (
+                            <div className="text-center py-4 border border-dashed border-stone-300 dark:border-slate-800 rounded-xl">
+                              <p className="text-xs text-slate-500">Target operative has not added items to their wishlist manifest yet.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                              {assignedTarget.wishlistItems.map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="p-3 rounded-xl border border-stone-200 dark:border-slate-800/80 bg-stone-100/50 dark:bg-slate-900/50 flex items-center justify-between gap-3 text-xs"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    {item.thumbnail ? (
+                                      <img
+                                        src={item.thumbnail}
+                                        alt={item.title}
+                                        className="h-11 w-11 object-cover rounded-lg border border-stone-200 dark:border-slate-800 flex-shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="h-11 w-11 rounded-lg bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-base flex-shrink-0">
+                                        🛍️
+                                      </div>
+                                    )}
+                                    <div className="min-w-0">
+                                      <a
+                                        href={item.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="font-bold hover:underline block truncate text-slate-900 dark:text-slate-100"
+                                      >
+                                        {item.title}
+                                      </a>
+                                      {item.price && (
+                                        <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>
+                                          ${item.price}
+                                        </span>
+                                      )}
+                                      {item.properties?.details && item.properties.details.length > 0 && (
+                                        <div className="flex flex-wrap items-center gap-1 mt-1">
+                                          {item.properties.details.map((d, dIdx) => (
+                                            <span
+                                              key={dIdx}
+                                              className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                            >
+                                              <span className="opacity-75">{d.label}:</span>
+                                              <span>{d.value}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <a
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-2.5 py-1.5 rounded-lg font-bold text-xs bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 border border-sky-500/20 flex-shrink-0 transition-colors"
+                                  >
+                                    View ↗
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
                         {/* Shipping Fulfillment Action Bar */}
                         <div className="pt-3 border-t border-stone-200 dark:border-slate-800 space-y-2">
                           <div className="flex items-center justify-between text-xs font-mono">
@@ -1006,26 +1200,52 @@ export default function OperationCommandCenterPage() {
                   ) : (
                     <div className="space-y-3">
                       {userManifest.map((item) => (
-                        <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between ${theme.cardInnerBg}`}>
+                        <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${theme.cardInnerBg}`}>
                           <div className="flex items-center gap-3">
                             {item.thumbnail ? (
-                              <img src={item.thumbnail} alt={item.title} className="h-10 w-10 object-cover rounded-xl border" />
+                              <img src={item.thumbnail} alt={item.title} className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
                             ) : (
-                              <div className="h-10 w-10 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-lg">🛍️</div>
+                              <div className="h-12 w-12 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-xl flex-shrink-0">🛍️</div>
                             )}
                             <div>
                               <a href={item.url} target="_blank" rel="noreferrer" className="text-sm font-bold hover:underline block max-w-xs truncate">
                                 {item.title}
                               </a>
-                              {item.price && <span className={`text-xs font-mono font-bold ${theme.textAccent}`}>${item.price}</span>}
+                              {item.price && <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>${item.price}</span>}
+                              {item.properties?.details && item.properties.details.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                  {item.properties.details.map((d, dIdx) => (
+                                    <span
+                                      key={dIdx}
+                                      className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                    >
+                                      <span className="opacity-75">{d.label}:</span>
+                                      <span>{d.value}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => { setValidationError(''); setUserManifest((prev) => prev.filter((i) => i.id !== item.id)); }}
-                            className="text-xs text-red-500 font-bold hover:underline"
-                          >
-                            Remove
-                          </button>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setItemModalMode('edit');
+                                setItemModalData(item);
+                                setItemModalOpen(true);
+                              }}
+                              className="text-xs text-sky-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors cursor-pointer"
+                            >
+                              ✏️ Edit Details
+                            </button>
+                            <button
+                              onClick={() => { setValidationError(''); setUserManifest((prev) => prev.filter((i) => i.id !== item.id)); }}
+                              className="text-xs text-red-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1538,6 +1758,17 @@ export default function OperationCommandCenterPage() {
           onConfirmed={() => fetchExchangeDetails()}
         />
       )}
+
+      {/* MODAL: WISHLIST ITEM CUSTOMIZATION / ADD / EDIT */}
+      <WishlistItemModal
+        isOpen={itemModalOpen}
+        onClose={() => setItemModalOpen(false)}
+        onSaveSuccess={handleItemSaveSuccess}
+        mode={itemModalMode}
+        wishlistId={userWishlistId || currentAgent?.wishlistId}
+        initialData={itemModalData}
+        userDossier={userDossier}
+      />
 
     </div>
   );

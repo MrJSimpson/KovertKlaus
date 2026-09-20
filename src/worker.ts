@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import * as cheerio from 'cheerio';
+import { Prisma } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { validateNistPassword } from './lib/adminAuth';
@@ -28,6 +29,7 @@ import { evaluateMemberAudit } from './lib/demerits';
 import { processExchangeAudit } from './lib/audit-runner';
 import { advanceMissionLifecycle } from './lib/mission-lifecycle';
 import { detectCarrier } from './lib/carrier-tracking';
+import { detectProductCategory, getCategorySuggestedKeys, updateCatalogIntelligence, sanitizeItemDetails } from './lib/product-intelligence';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -1957,6 +1959,10 @@ export default {
         const isFresh = existingCatalog && (Date.now() - new Date(existingCatalog.scrapedAt).getTime() < TWENTY_FOUR_HOURS_MS);
 
         if (existingCatalog && isFresh) {
+          const category = (existingCatalog.properties as any)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
+          const variables = (existingCatalog.properties as any)?.variables || getCategorySuggestedKeys(category);
+          const properties = existingCatalog.properties || { category, variables, popularOptions: {} };
+
           return Response.json({
             success: true,
             foundInCatalog: true,
@@ -1968,6 +1974,7 @@ export default {
               description: existingCatalog.description || undefined,
               thumbnail: existingCatalog.thumbnailUrl || undefined,
               domain: existingCatalog.domain || parsedUrl.hostname,
+              properties,
             },
           });
         }
@@ -2019,10 +2026,33 @@ export default {
           const parsedPrice = price ? parseFloat(price) : 0;
           const cleanDesc = description.substring(0, 300);
 
+          const category = detectProductCategory(title, parsedUrl.hostname, cleanDesc);
+          const suggestedVariables = getCategorySuggestedKeys(category);
+          const initialProps = (existingCatalog?.properties as any) || {
+            category,
+            variables: suggestedVariables,
+            popularOptions: {},
+          };
+
           const catalogRecord = await db.productCatalog.upsert({
             where: { url: normalizedUrl },
-            create: { url: normalizedUrl, title, price: parsedPrice, description: cleanDesc, thumbnailUrl: image, domain: parsedUrl.hostname },
-            update: { title, price: parsedPrice, description: cleanDesc, thumbnailUrl: image, domain: parsedUrl.hostname, scrapedAt: new Date() },
+            create: {
+              url: normalizedUrl,
+              title,
+              price: parsedPrice,
+              description: cleanDesc,
+              thumbnailUrl: image,
+              domain: parsedUrl.hostname,
+              properties: initialProps as unknown as Prisma.InputJsonValue,
+            },
+            update: {
+              title,
+              price: parsedPrice,
+              description: cleanDesc,
+              thumbnailUrl: image,
+              domain: parsedUrl.hostname,
+              scrapedAt: new Date(),
+            },
           });
 
           return Response.json({
@@ -2036,11 +2066,16 @@ export default {
               description: cleanDesc || undefined,
               thumbnail: image || undefined,
               domain: parsedUrl.hostname,
+              properties: catalogRecord.properties || initialProps,
             },
           });
         } catch {
           clearTimeout(timeoutId);
           if (existingCatalog) {
+            const category = (existingCatalog.properties as any)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
+            const variables = (existingCatalog.properties as any)?.variables || getCategorySuggestedKeys(category);
+            const properties = existingCatalog.properties || { category, variables, popularOptions: {} };
+
             return Response.json({
               success: true,
               foundInCatalog: true,
@@ -2052,13 +2087,24 @@ export default {
                 description: existingCatalog.description || undefined,
                 thumbnail: existingCatalog.thumbnailUrl || undefined,
                 domain: existingCatalog.domain || parsedUrl.hostname,
+                properties,
               },
             });
           }
+          const fallbackCategory = detectProductCategory(parsedUrl.hostname, parsedUrl.hostname);
           return Response.json({
             success: false,
             fallback: true,
-            metadata: { title: parsedUrl.hostname, url: parsedUrl.toString(), domain: parsedUrl.hostname },
+            metadata: {
+              title: parsedUrl.hostname,
+              url: parsedUrl.toString(),
+              domain: parsedUrl.hostname,
+              properties: {
+                category: fallbackCategory,
+                variables: getCategorySuggestedKeys(fallbackCategory),
+                popularOptions: {},
+              },
+            },
           });
         }
       }
@@ -2082,6 +2128,7 @@ export default {
               url: wi.item.url,
               thumbnail: wi.item.thumbnailUrl || undefined,
               description: wi.item.description || undefined,
+              properties: wi.item.properties || undefined,
             }));
             return {
               id: w.id,
@@ -2098,9 +2145,14 @@ export default {
 
         if (request.method === 'POST') {
           const body = (await request.json().catch(() => ({}))) as any;
-          const { action, name, type, wishlistId, title, url: itemUrl, price, description, thumbnail } = body;
+          const { action, name, type, wishlistId, title, url: itemUrl, price, description, thumbnail, properties } = body;
 
           if (action === 'add_manifest_item' || action === 'add_item' || action === 'add_optool' || (wishlistId && itemUrl)) {
+            const details = Array.isArray(properties?.details)
+              ? sanitizeItemDetails(properties.details)
+              : [];
+            const itemProperties = details.length > 0 ? { details } : undefined;
+
             const item = await db.item.create({
               data: {
                 userId: activeUserId,
@@ -2109,10 +2161,36 @@ export default {
                 price: price ? Number(price) : 0,
                 description: description ? sanitizeText(description) : null,
                 thumbnailUrl: thumbnail ? thumbnail.trim() : null,
+                properties: itemProperties ? (itemProperties as unknown as Prisma.InputJsonValue) : undefined,
               },
             });
             await db.wishlistItem.create({ data: { wishlistId, itemId: item.id } });
-            const itemObj = { id: item.id, title: item.name, price: Number(item.price), url: item.url };
+
+            if (details.length > 0) {
+              try {
+                const normalizedUrl = normalizeProductUrl(itemUrl.trim());
+                const cat = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
+                if (cat) {
+                  const updatedCatalogProps = updateCatalogIntelligence(cat.properties, details);
+                  await db.productCatalog.update({
+                    where: { url: normalizedUrl },
+                    data: { properties: updatedCatalogProps as unknown as Prisma.InputJsonValue },
+                  });
+                }
+              } catch (e) {
+                console.warn('[Worker ProductCatalog Intelligence Update Error]', e);
+              }
+            }
+
+            const itemObj = {
+              id: item.id,
+              title: item.name,
+              price: Number(item.price),
+              url: item.url,
+              thumbnail: item.thumbnailUrl || undefined,
+              description: item.description || undefined,
+              properties: item.properties || undefined,
+            };
             return Response.json({ success: true, manifestItem: itemObj, opTool: itemObj });
           }
 
@@ -2123,6 +2201,79 @@ export default {
             const createdObj = { id: newW.id, name: newW.name, manifestItems: [], opTools: [] };
             return Response.json({ success: true, manifest: createdObj, opKit: createdObj });
           }
+        }
+
+        if (request.method === 'PATCH') {
+          const body = (await request.json().catch(() => ({}))) as any;
+          const { wishlistId, itemId, name, title, price, description, thumbnail, properties } = body;
+
+          if (itemId) {
+            const details = Array.isArray(properties?.details)
+              ? sanitizeItemDetails(properties.details)
+              : undefined;
+
+            const updateData: any = {};
+            if (title !== undefined) updateData.name = sanitizeText(title);
+            if (price !== undefined) updateData.price = Number(price);
+            if (description !== undefined) updateData.description = description ? sanitizeText(description) : null;
+            if (thumbnail !== undefined) updateData.thumbnailUrl = thumbnail ? thumbnail.trim() : null;
+            if (details !== undefined) {
+              updateData.properties = details.length > 0 ? ({ details } as unknown as Prisma.InputJsonValue) : Prisma.JsonNull;
+            }
+
+            const existingItem = await db.item.findFirst({
+              where: { id: itemId, userId: activeUserId },
+            });
+
+            if (!existingItem) {
+              return Response.json({ error: 'Item not found or unauthorized' }, { status: 404 });
+            }
+
+            const updated = await db.item.update({
+              where: { id: itemId },
+              data: updateData,
+            });
+
+            if (details && details.length > 0 && existingItem.url) {
+              try {
+                const normalizedUrl = normalizeProductUrl(existingItem.url);
+                const cat = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
+                if (cat) {
+                  const updatedCatalogProps = updateCatalogIntelligence(cat.properties, details);
+                  await db.productCatalog.update({
+                    where: { url: normalizedUrl },
+                    data: { properties: updatedCatalogProps as unknown as Prisma.InputJsonValue },
+                  });
+                }
+              } catch (e) {
+                console.warn('[Worker ProductCatalog Intelligence Update Error]', e);
+              }
+            }
+
+            return Response.json({
+              success: true,
+              message: 'Manifest Item updated successfully',
+              manifestItem: {
+                id: updated.id,
+                title: updated.name,
+                price: Number(updated.price),
+                url: updated.url,
+                thumbnail: updated.thumbnailUrl || undefined,
+                description: updated.description || undefined,
+                properties: updated.properties || undefined,
+              },
+            });
+          }
+
+          if (wishlistId && name) {
+            await db.wishlist.updateMany({
+              where: { id: wishlistId, userId: activeUserId },
+              data: { name: sanitizeText(name) },
+            });
+            return Response.json({ success: true, message: 'Wishlist renamed' });
+          }
+
+          return Response.json({ error: 'wishlistId or itemId required' }, { status: 400 });
         }
 
         if (request.method === 'DELETE') {

@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import { db } from '@/lib/db';
 import { isSafePublicUrl, sanitizeText, normalizeProductUrl } from '@/lib/security';
 import { logScraperEvent } from '@/lib/logger';
+import { detectProductCategory, getCategorySuggestedKeys } from '@/lib/product-intelligence';
 
 export async function POST(request: Request) {
   try {
@@ -40,6 +41,10 @@ export async function POST(request: Request) {
     const isFresh = existingCatalog && (Date.now() - new Date(existingCatalog.scrapedAt).getTime() < TWENTY_FOUR_HOURS_MS);
 
     if (existingCatalog && isFresh) {
+      const category = (existingCatalog.properties as any)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
+      const variables = (existingCatalog.properties as any)?.variables || getCategorySuggestedKeys(category);
+      const properties = existingCatalog.properties || { category, variables, popularOptions: {} };
+
       return NextResponse.json({
         success: true,
         foundInCatalog: true,
@@ -51,7 +56,7 @@ export async function POST(request: Request) {
           description: existingCatalog.description || undefined,
           thumbnail: existingCatalog.thumbnailUrl || undefined,
           domain: existingCatalog.domain || parsedUrl.hostname,
-          properties: existingCatalog.properties || undefined,
+          properties,
         },
       });
     }
@@ -109,6 +114,14 @@ export async function POST(request: Request) {
       const parsedPrice = price ? parseFloat(price) : 0;
       const cleanDesc = description.substring(0, 300);
 
+      const category = detectProductCategory(title, parsedUrl.hostname, cleanDesc);
+      const suggestedVariables = getCategorySuggestedKeys(category);
+      const initialProps = (existingCatalog?.properties as any) || {
+        category,
+        variables: suggestedVariables,
+        popularOptions: {},
+      };
+
       // Upsert into shared ProductCatalog database table
       let catalogRecord: any = null;
       try {
@@ -121,6 +134,7 @@ export async function POST(request: Request) {
             description: cleanDesc,
             thumbnailUrl: image,
             domain: parsedUrl.hostname,
+            properties: initialProps,
           },
           update: {
             title,
@@ -146,6 +160,7 @@ export async function POST(request: Request) {
           description: cleanDesc || undefined,
           thumbnail: image || undefined,
           domain: parsedUrl.hostname,
+          properties: catalogRecord?.properties || initialProps,
         },
       });
     } catch {
@@ -153,6 +168,10 @@ export async function POST(request: Request) {
       
       // If we had a stale catalog record, fallback to it
       if (existingCatalog) {
+        const category = (existingCatalog.properties as any)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
+        const variables = (existingCatalog.properties as any)?.variables || getCategorySuggestedKeys(category);
+        const properties = existingCatalog.properties || { category, variables, popularOptions: {} };
+
         return NextResponse.json({
           success: true,
           foundInCatalog: true,
@@ -164,11 +183,13 @@ export async function POST(request: Request) {
             description: existingCatalog.description || undefined,
             thumbnail: existingCatalog.thumbnailUrl || undefined,
             domain: existingCatalog.domain || parsedUrl.hostname,
+            properties,
           },
         });
       }
 
       // Fast Failover: Return domain metadata so manual modal opens pre-filled
+      const fallbackCategory = detectProductCategory(parsedUrl.hostname, parsedUrl.hostname);
       return NextResponse.json({
         success: false,
         fallback: true,
@@ -176,6 +197,11 @@ export async function POST(request: Request) {
           title: parsedUrl.hostname,
           url: parsedUrl.toString(),
           domain: parsedUrl.hostname,
+          properties: {
+            category: fallbackCategory,
+            variables: getCategorySuggestedKeys(fallbackCategory),
+            popularOptions: {},
+          },
         },
       });
     }

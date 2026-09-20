@@ -39,7 +39,38 @@ export async function GET(request: Request) {
                 select: { id: true, name: true, codename: true, streetAddress: true, city: true, state: true, zipCode: true },
               },
               targetUser: {
-                select: { id: true, name: true, codename: true, streetAddress: true, city: true, state: true, zipCode: true },
+                select: {
+                  id: true,
+                  name: true,
+                  codename: true,
+                  streetAddress: true,
+                  city: true,
+                  state: true,
+                  zipCode: true,
+                  shirtSize: true,
+                  topHalfSize: true,
+                  bottomHalfSize: true,
+                  shoeSize: true,
+                  chestBustMeasurement: true,
+                  waistMeasurement: true,
+                  inseamMeasurement: true,
+                  favoriteColors: true,
+                  allergiesDiet: true,
+                  dislikes: true,
+                  favoriteHobbies: true,
+                  allowOrganizerViewSizes: true,
+                  allowOrganizerViewMeasurements: true,
+                  allowOrganizerViewAllergies: true,
+                  allowOrganizerViewFavorites: true,
+                  wishlists: {
+                    include: {
+                      wishlistItems: {
+                        include: { item: true },
+                      },
+                    },
+                    orderBy: { createdAt: 'asc' },
+                  },
+                },
               },
             },
           },
@@ -101,7 +132,40 @@ export async function GET(request: Request) {
             zipCode: canViewDetails ? m.user.zipCode : null,
           },
           targetUserId: canViewDetails ? m.targetUserId : null,
-          targetUser: canViewDetails ? m.targetUser : null,
+          targetUser: canViewDetails ? (() => {
+            if (!m.targetUser) return null;
+            const t = m.targetUser as any;
+            const wishlist = t.wishlists?.[0];
+            const targetWishlistItems = wishlist?.wishlistItems?.map((wi: any) => ({
+              id: wi.item.id,
+              title: wi.item.name,
+              price: wi.item.price ? Number(wi.item.price) : undefined,
+              url: wi.item.url,
+              thumbnail: wi.item.thumbnailUrl || undefined,
+              description: wi.item.description || undefined,
+              properties: wi.item.properties || undefined,
+            })) || [];
+
+            return {
+              id: t.id,
+              name: t.name,
+              codename: t.codename,
+              streetAddress: t.streetAddress,
+              city: t.city,
+              state: t.state,
+              zipCode: t.zipCode,
+              topHalfSize: t.allowOrganizerViewSizes || isSelf ? (t.topHalfSize || t.shirtSize) : undefined,
+              bottomHalfSize: t.allowOrganizerViewSizes || isSelf ? t.bottomHalfSize : undefined,
+              shoeSize: t.allowOrganizerViewSizes || isSelf ? t.shoeSize : undefined,
+              chestBustMeasurement: t.allowOrganizerViewMeasurements || isSelf ? t.chestBustMeasurement : undefined,
+              waistMeasurement: t.allowOrganizerViewMeasurements || isSelf ? t.waistMeasurement : undefined,
+              inseamMeasurement: t.allowOrganizerViewMeasurements || isSelf ? t.inseamMeasurement : undefined,
+              favoriteColors: t.allowOrganizerViewFavorites || isSelf ? t.favoriteColors : undefined,
+              allergiesDiet: t.allowOrganizerViewAllergies || isSelf ? t.allergiesDiet : undefined,
+              favoriteHobbies: t.allowOrganizerViewFavorites || isSelf ? t.favoriteHobbies : undefined,
+              wishlistItems: targetWishlistItems,
+            };
+          })() : null,
         };
       });
 
