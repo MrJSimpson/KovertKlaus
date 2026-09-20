@@ -7,15 +7,15 @@
 
 ---
 
-### Quick Status Dashboard (Sprint W36: Aug 31 – Sep 7)
-- **Item 1: Head Elf Management Console**: ✅ DONE (Dynamic Phase Action Bars & Date Editors)
-- **Item 2: Operative Onboarding Flow**: ✅ DONE (Base32 `XXXX-YYYY` Auto-Formatting & Master Wishlist Link)
-- **Item 3: Wishlist Manifest CRUD**: ✅ DONE (`/opkits` CRUD, Product Scraping & Merchant Badges)
-- **Item 4: White Elephant Stealing Engine**: ✅ DONE (Labeled Blind Mystery Party Board & 3-Swap Freeze)
-- **Item 5: AAR Post-Event Debrief Feed**: ✅ DONE (`AfterActionReportSection`, WebP Compression & Badges)
-- **Item 6: `SIMPSON-2026` E2E Walkthrough**: ✅ DONE (`/workshop/covert` Studio & 117 Unit Tests Passing)
+### Quick Status Dashboard (Sprint W38: Sep 14 – Sep 21)
+- **Item 1: Multi-Carrier Tracking Ingestion**: ✅ DONE (Deterministic Regex Engine, Deep Links & Modal)
+- **Item 2: Automatic Demerit Immunity Trigger**: ✅ DONE (Carrier Protection Waiver & Instant Exemption)
+- **Item 3: North Pole Admin User Governance UI**: ✅ DONE (`/northpole/users` & `/northpole/config` HUD)
+- **Item 4: Anti-Ghosting "Backup Santa" Escrow**: ⏳ Planned (Opt-in emergency backup gift pool)
+- **Item 5: Account Privacy & Dossier Visibility**: ✅ DONE (Granular disclosure toggles & giver-only view)
+- **Item 6: Automated Execution Audit Cron**: ✅ DONE (Database-driven lifecycle engine & edge cron)
 
-*For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W36.md](sprints/2026-W36.md).*
+*For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W38.md](sprints/2026-W38.md).*
 
 ---
 
