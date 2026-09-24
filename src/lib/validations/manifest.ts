@@ -5,6 +5,9 @@
  * Decoupled Wishlist Cloning, and Pre-Draw Eligibility Verification.
  */
 
+import { isSafePublicUrl, sanitizeText } from '../security';
+import { sanitizeItemDetails, ItemDetail } from '../product-intelligence';
+
 export interface ManifestItemInput {
   id?: string;
   title: string;
@@ -14,6 +17,84 @@ export interface ManifestItemInput {
   thumbnailUrl?: string;
   priority?: 'HIGH' | 'MEDIUM' | 'LOW';
   isClaimed?: boolean;
+}
+
+export interface SanitizedManifestItemPayload {
+  name: string;
+  url: string;
+  price: number;
+  description: string | null;
+  thumbnailUrl: string | null;
+  properties?: {
+    isPersonalized?: boolean;
+    details?: ItemDetail[];
+    [key: string]: any;
+  };
+  isPersonalized: boolean;
+}
+
+/**
+ * Validates, bounds, and sanitizes manifest item input across Next.js and Edge Worker.
+ * Enforces text-only sanitization for personalized items (no URL required) and SSRF checks for URL items.
+ */
+export function validateAndSanitizeManifestItem(data: {
+  title?: string;
+  url?: string;
+  description?: string;
+  thumbnail?: string;
+  price?: number | string;
+  properties?: {
+    isPersonalized?: boolean;
+    details?: any[];
+    [key: string]: any;
+  };
+}): { valid: true; data: SanitizedManifestItemPayload } | { valid: false; error: string } {
+  const cleanUrl = typeof data.url === 'string' ? data.url.trim() : '';
+  const isExplicitPersonalized = Boolean(data.properties?.isPersonalized);
+  const isPersonalized = isExplicitPersonalized || cleanUrl.length === 0;
+
+  if (cleanUrl.length > 0) {
+    const urlCheck = isSafePublicUrl(cleanUrl);
+    if (!urlCheck.safe) {
+      return { valid: false, error: urlCheck.error || 'Invalid or forbidden URL' };
+    }
+  } else if (!isPersonalized) {
+    return { valid: false, error: 'URL or personalized gift details are required' };
+  }
+
+  const rawTitle = data.title || '';
+  const cleanTitle = sanitizeText(rawTitle).trim().substring(0, 100);
+  if (!cleanTitle && isPersonalized) {
+    return { valid: false, error: 'Item title is required for personalized gifts' };
+  }
+
+  const numPrice = Number(data.price);
+  const cleanPrice = !isNaN(numPrice) ? Math.max(0, Math.min(Math.round(numPrice * 100) / 100, 100000)) : 0;
+  const cleanDesc = data.description ? sanitizeText(data.description).trim().substring(0, 500) : null;
+  const finalDesc = cleanDesc && cleanDesc.length > 0 ? cleanDesc : null;
+  const cleanThumb = data.thumbnail && typeof data.thumbnail === 'string' ? data.thumbnail.trim() : null;
+  const details = Array.isArray(data.properties?.details) ? sanitizeItemDetails(data.properties.details) : [];
+
+  const itemProperties: Record<string, any> = {};
+  if (isPersonalized) {
+    itemProperties.isPersonalized = true;
+  }
+  if (details.length > 0) {
+    itemProperties.details = details;
+  }
+
+  return {
+    valid: true,
+    data: {
+      name: cleanTitle || 'Wished-for Item',
+      url: cleanUrl,
+      price: cleanPrice,
+      description: finalDesc,
+      thumbnailUrl: cleanThumb || null,
+      properties: Object.keys(itemProperties).length > 0 ? itemProperties : undefined,
+      isPersonalized,
+    },
+  };
 }
 
 export type BudgetStatus = 'IN_BUDGET' | 'UNDER_MIN' | 'OVER_SOFT_LIMIT' | 'OVERWISHING_HARD_BREACH';

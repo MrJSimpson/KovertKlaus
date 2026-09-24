@@ -16,9 +16,12 @@ interface ManifestItem {
   price?: number;
   url: string;
   thumbnail?: string;
+  description?: string;
   notes?: string;
   properties?: {
+    isPersonalized?: boolean;
     details?: Array<{ label: string; value: string }>;
+    [key: string]: any;
   };
 }
 type OpTool = ManifestItem;
@@ -245,6 +248,26 @@ export default function OpKitsPage() {
     } finally {
       setScraping(false);
     }
+  }
+
+  function handleOpenPersonalizedModal() {
+    if (!selectedOpKit) return;
+    setItemModalMode('add');
+    setItemModalData({
+      url: '',
+      title: '',
+      price: undefined,
+      description: '',
+      thumbnail: '',
+      properties: {
+        isPersonalized: true,
+        details: [
+          { label: 'Instructions', value: '' },
+          { label: 'Preferences', value: '' },
+        ],
+      },
+    });
+    setItemModalOpen(true);
   }
 
   function handleItemSaveSuccess(savedItem: ManifestItem) {
@@ -554,33 +577,49 @@ export default function OpKitsPage() {
                   </div>
                 )}
 
-                {/* Manifest Item Link Scraper Form */}
-                <form onSubmit={handleAddManifestItem} className="flex gap-2 mb-6">
-                  <input
-                    type="url"
-                    placeholder={
-                      selectedOpKit.type === 'WHITE_ELEPHANT'
-                        ? 'Paste White Elephant gift link (Amazon, Target, etc.)'
-                        : 'Paste store product link (Amazon, Target, Etsy, etc.)'
-                    }
-                    value={opToolUrl}
-                    onChange={(e) => setOpToolUrl(e.target.value)}
-                    required
-                    disabled={selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1}
-                    className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none focus:ring-2 ${theme.inputBg}`}
-                  />
+                {/* Manifest Item Link Scraper & Personalized Gift Form */}
+                <div className="flex flex-col sm:flex-row gap-2 mb-6">
+                  <form onSubmit={handleAddManifestItem} className="flex-1 flex gap-2">
+                    <input
+                      type="url"
+                      placeholder={
+                        selectedOpKit.type === 'WHITE_ELEPHANT'
+                          ? 'Paste White Elephant gift link (Amazon, Target, etc.)'
+                          : 'Paste store product link (Amazon, Target, Etsy, etc.)'
+                      }
+                      value={opToolUrl}
+                      onChange={(e) => setOpToolUrl(e.target.value)}
+                      required
+                      disabled={selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1}
+                      className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none focus:ring-2 ${theme.inputBg}`}
+                    />
+                    <button
+                      type="submit"
+                      disabled={scraping || (selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1)}
+                      className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
+                        selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1
+                          ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
+                          : theme.btnPrimary
+                      }`}
+                    >
+                      {scraping ? 'Scraping...' : '+ Scrape Link'}
+                    </button>
+                  </form>
+
                   <button
-                    type="submit"
-                    disabled={scraping || (selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1)}
-                    className={`px-6 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
+                    type="button"
+                    onClick={handleOpenPersonalizedModal}
+                    disabled={selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1}
+                    className={`px-4 py-3 rounded-2xl font-bold text-xs transition-all border shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
                       selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1
-                        ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
-                        : theme.btnPrimary
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
                     }`}
+                    title="Add a custom, handmade, experiential, or text-only gift without an external URL"
                   >
-                    {scraping ? 'Scraping...' : '+ Add Manifest Item'}
+                    <span>✨ Add Personalized Gift</span>
                   </button>
-                </form>
+                </div>
 
                 {/* Manifest Items List Grid */}
                 <div className="space-y-4">
@@ -594,89 +633,117 @@ export default function OpKitsPage() {
                       <div className="text-3xl mb-2">🛍️</div>
                       <p className="text-xs font-bold mb-1">No Manifest Items Attached Yet</p>
                       <p className="text-[11px] text-slate-500">
-                        Paste a store link above to auto-scrape product titles, prices, and thumbnails into your Wishlist Manifest!
+                        Paste a store link above to auto-scrape, or click <strong>✨ Add Personalized Gift</strong> for handmade or text-only requests!
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {(selectedOpKit.manifestItems || selectedOpKit.opTools || []).map((tool) => (
-                        <div
-                          key={tool.id}
-                          className={`p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all ${theme.cardInnerBg}`}
-                        >
-                          <div className="flex items-center gap-4">
-                            {tool.thumbnail ? (
-                              <img
-                                src={tool.thumbnail}
-                                alt={tool.title}
-                                className="h-14 w-14 object-cover rounded-xl border border-stone-200 dark:border-slate-800"
-                              />
-                            ) : (
-                              <div className="h-14 w-14 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-xl">
-                                🛍️
-                              </div>
-                            )}
+                      {(selectedOpKit.manifestItems || selectedOpKit.opTools || []).map((tool) => {
+                        const isPersonalized = Boolean(tool.properties?.isPersonalized || !tool.url);
 
-                            <div>
-                              <a
-                                href={tool.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-sm font-bold hover:underline block max-w-md truncate"
-                              >
-                                {tool.title}
-                              </a>
-                              {tool.price && (
-                                <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>
-                                  ${tool.price}
-                                </span>
-                              )}
-                              <a
-                                href={tool.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[10px] text-slate-400 hover:underline block max-w-xs truncate"
-                              >
-                                {tool.url}
-                              </a>
-
-                              {tool.properties?.details && tool.properties.details.length > 0 && (
-                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                  {tool.properties.details.map((d, dIdx) => (
-                                    <span
-                                      key={dIdx}
-                                      className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
-                                    >
-                                      <span className="opacity-75">{d.label}:</span>
-                                      <span>{d.value}</span>
-                                    </span>
-                                  ))}
+                        return (
+                          <div
+                            key={tool.id}
+                            className={`p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all ${theme.cardInnerBg}`}
+                          >
+                            <div className="flex items-center gap-4">
+                              {tool.thumbnail ? (
+                                <img
+                                  src={tool.thumbnail}
+                                  alt={tool.title}
+                                  className="h-14 w-14 object-cover rounded-xl border border-stone-200 dark:border-slate-800 shrink-0"
+                                />
+                              ) : (
+                                <div className="h-14 w-14 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-xl shrink-0">
+                                  {isPersonalized ? '✨' : '🛍️'}
                                 </div>
                               )}
+
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {tool.url ? (
+                                    <a
+                                      href={tool.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-sm font-bold hover:underline block max-w-md truncate"
+                                    >
+                                      {tool.title}
+                                    </a>
+                                  ) : (
+                                    <span className="text-sm font-bold block max-w-md truncate">
+                                      {tool.title}
+                                    </span>
+                                  )}
+
+                                  {isPersonalized && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 shrink-0">
+                                      ✨ Personalized Gift
+                                    </span>
+                                  )}
+                                </div>
+
+                                {tool.price && (
+                                  <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>
+                                    ${tool.price}
+                                  </span>
+                                )}
+
+                                {tool.description && (
+                                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-md italic line-clamp-2">
+                                    "{tool.description}"
+                                  </p>
+                                )}
+
+                                {tool.url ? (
+                                  <a
+                                    href={tool.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[10px] text-slate-400 hover:underline block max-w-xs truncate mt-0.5"
+                                  >
+                                    {tool.url}
+                                  </a>
+                                ) : null}
+
+                                {tool.properties?.details && tool.properties.details.length > 0 && (
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                    {tool.properties.details.map((d, dIdx) => (
+                                      <span
+                                        key={dIdx}
+                                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                      >
+                                        <span className="opacity-75">{d.label}:</span>
+                                        <span>{d.value}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setItemModalMode('edit');
+                                  setItemModalData(tool);
+                                  setItemModalOpen(true);
+                                }}
+                                className="text-xs text-sky-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors cursor-pointer"
+                              >
+                                ✏️ Edit Details
+                              </button>
+                              <button
+                                onClick={() => handleRemoveManifestItem(tool.id)}
+                                className="text-xs text-red-500 font-bold hover:underline px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                              >
+                                Remove
+                              </button>
                             </div>
                           </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setItemModalMode('edit');
-                                setItemModalData(tool);
-                                setItemModalOpen(true);
-                              }}
-                              className="text-xs text-sky-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors cursor-pointer"
-                            >
-                              ✏️ Edit Details
-                            </button>
-                            <button
-                              onClick={() => handleRemoveManifestItem(tool.id)}
-                              className="text-xs text-red-500 font-bold hover:underline px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

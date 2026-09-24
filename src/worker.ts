@@ -30,6 +30,7 @@ import { processExchangeAudit } from './lib/audit-runner';
 import { advanceMissionLifecycle } from './lib/mission-lifecycle';
 import { detectCarrier } from './lib/carrier-tracking';
 import { detectProductCategory, getCategorySuggestedKeys, updateCatalogIntelligence, sanitizeItemDetails } from './lib/product-intelligence';
+import { validateAndSanitizeManifestItem } from './lib/validations/manifest';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -2162,31 +2163,45 @@ export default {
           const body = (await request.json().catch(() => ({}))) as any;
           const { action, name, type, wishlistId, title, url: itemUrl, price, description, thumbnail, properties } = body;
 
-          if (action === 'add_manifest_item' || action === 'add_item' || action === 'add_optool' || (wishlistId && itemUrl)) {
-            const details = Array.isArray(properties?.details)
-              ? sanitizeItemDetails(properties.details)
-              : [];
-            const itemProperties = details.length > 0 ? { details } : undefined;
+          if (action === 'add_manifest_item' || action === 'add_item' || action === 'add_optool' || (wishlistId && (itemUrl !== undefined || properties?.isPersonalized))) {
+            if (!wishlistId) {
+              return Response.json({ error: 'wishlistId is required to add a Manifest Item' }, { status: 400 });
+            }
+
+            const validation = validateAndSanitizeManifestItem({
+              title,
+              url: itemUrl,
+              price,
+              description,
+              thumbnail,
+              properties,
+            });
+
+            if (!validation.valid) {
+              return Response.json({ error: validation.error }, { status: 400 });
+            }
+
+            const { data: itemData } = validation;
 
             const item = await db.item.create({
               data: {
                 userId: activeUserId,
-                name: sanitizeText(title || 'Item'),
-                url: itemUrl.trim(),
-                price: price ? Number(price) : 0,
-                description: description ? sanitizeText(description) : null,
-                thumbnailUrl: thumbnail ? thumbnail.trim() : null,
-                properties: itemProperties ? (itemProperties as unknown as Prisma.InputJsonValue) : undefined,
+                name: itemData.name,
+                url: itemData.url,
+                price: itemData.price,
+                description: itemData.description,
+                thumbnailUrl: itemData.thumbnailUrl,
+                properties: itemData.properties ? (itemData.properties as unknown as Prisma.InputJsonValue) : undefined,
               },
             });
             await db.wishlistItem.create({ data: { wishlistId, itemId: item.id } });
 
-            if (details.length > 0) {
+            if (itemData.url && itemData.properties?.details && itemData.properties.details.length > 0) {
               try {
-                const normalizedUrl = normalizeProductUrl(itemUrl.trim());
+                const normalizedUrl = normalizeProductUrl(itemData.url);
                 const cat = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
                 if (cat) {
-                  const updatedCatalogProps = updateCatalogIntelligence(cat.properties, details);
+                  const updatedCatalogProps = updateCatalogIntelligence(cat.properties, itemData.properties.details);
                   await db.productCatalog.update({
                     where: { url: normalizedUrl },
                     data: { properties: updatedCatalogProps as unknown as Prisma.InputJsonValue },
@@ -2223,25 +2238,56 @@ export default {
           const { wishlistId, itemId, name, title, price, description, thumbnail, properties } = body;
 
           if (itemId) {
-            const details = Array.isArray(properties?.details)
-              ? sanitizeItemDetails(properties.details)
-              : undefined;
-
-            const updateData: any = {};
-            if (title !== undefined) updateData.name = sanitizeText(title);
-            if (price !== undefined) updateData.price = Number(price);
-            if (description !== undefined) updateData.description = description ? sanitizeText(description) : null;
-            if (thumbnail !== undefined) updateData.thumbnailUrl = thumbnail ? thumbnail.trim() : null;
-            if (details !== undefined) {
-              updateData.properties = details.length > 0 ? ({ details } as unknown as Prisma.InputJsonValue) : Prisma.JsonNull;
-            }
-
             const existingItem = await db.item.findFirst({
               where: { id: itemId, userId: activeUserId },
             });
 
             if (!existingItem) {
               return Response.json({ error: 'Item not found or unauthorized' }, { status: 404 });
+            }
+
+            const existingProps = (existingItem.properties && typeof existingItem.properties === 'object')
+              ? (existingItem.properties as Record<string, any>)
+              : {};
+
+            const isPersonalized = properties?.isPersonalized !== undefined
+              ? Boolean(properties.isPersonalized)
+              : Boolean(existingProps.isPersonalized || !existingItem.url);
+
+            const details = Array.isArray(properties?.details)
+              ? sanitizeItemDetails(properties.details)
+              : undefined;
+
+            const updateData: any = {};
+            if (title !== undefined) updateData.name = sanitizeText(title).trim().substring(0, 100);
+            if (price !== undefined) {
+              const numPrice = Number(price);
+              updateData.price = !isNaN(numPrice) ? Math.max(0, Math.min(Math.round(numPrice * 100) / 100, 100000)) : 0;
+            }
+            if (description !== undefined) {
+              updateData.description = description ? sanitizeText(description).trim().substring(0, 500) : null;
+            }
+            if (thumbnail !== undefined) updateData.thumbnailUrl = thumbnail ? thumbnail.trim() : null;
+
+            if (properties !== undefined || details !== undefined) {
+              const mergedProps: Record<string, any> = { ...existingProps };
+              if (isPersonalized) {
+                mergedProps.isPersonalized = true;
+              } else {
+                delete mergedProps.isPersonalized;
+              }
+
+              if (details !== undefined) {
+                if (details.length > 0) {
+                  mergedProps.details = details;
+                } else {
+                  delete mergedProps.details;
+                }
+              }
+
+              updateData.properties = Object.keys(mergedProps).length > 0
+                ? (mergedProps as unknown as Prisma.InputJsonValue)
+                : Prisma.JsonNull;
             }
 
             const updated = await db.item.update({

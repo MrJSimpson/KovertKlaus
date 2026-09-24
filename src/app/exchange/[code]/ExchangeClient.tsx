@@ -62,7 +62,9 @@ interface OperationAgent {
       thumbnail?: string;
       description?: string;
       properties?: {
+        isPersonalized?: boolean;
         details?: Array<{ label: string; value: string }>;
+        [key: string]: any;
       };
     }>;
   };
@@ -161,7 +163,12 @@ export default function OperationCommandCenterPage() {
     price?: number;
     url: string;
     thumbnail?: string;
-    properties?: { details?: Array<{ label: string; value: string }> };
+    description?: string;
+    properties?: {
+      isPersonalized?: boolean;
+      details?: Array<{ label: string; value: string }>;
+      [key: string]: any;
+    };
   }>>([]);
   const [validationError, setValidationError] = useState('');
 
@@ -492,6 +499,30 @@ export default function OperationCommandCenterPage() {
     } finally {
       setScraping(false);
     }
+  }
+
+  function handleOpenPersonalizedModal() {
+    setValidationError('');
+    if (operation?.isWhiteElephant && userManifest.length >= 1) {
+      setValidationError('🐘 White Elephant Wishlist Manifests are strictly limited to 1 brought gift item per operative!');
+      return;
+    }
+    setItemModalMode('add');
+    setItemModalData({
+      url: '',
+      title: '',
+      price: undefined,
+      description: '',
+      thumbnail: '',
+      properties: {
+        isPersonalized: true,
+        details: [
+          { label: 'Instructions', value: '' },
+          { label: 'Preferences', value: '' },
+        ],
+      },
+    });
+    setItemModalOpen(true);
   }
 
   function handleItemSaveSuccess(savedItem: any) {
@@ -1020,62 +1051,95 @@ export default function OperationCommandCenterPage() {
                             </div>
                           ) : (
                             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                              {assignedTarget.wishlistItems.map((item) => (
-                                <div
-                                  key={item.id}
-                                  className="p-3 rounded-xl border border-stone-200 dark:border-slate-800/80 bg-stone-100/50 dark:bg-slate-900/50 flex items-center justify-between gap-3 text-xs"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    {item.thumbnail ? (
-                                      <img
-                                        src={item.thumbnail}
-                                        alt={item.title}
-                                        className="h-11 w-11 object-cover rounded-lg border border-stone-200 dark:border-slate-800 flex-shrink-0"
-                                      />
-                                    ) : (
-                                      <div className="h-11 w-11 rounded-lg bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-base flex-shrink-0">
-                                        🛍️
+                              {assignedTarget.wishlistItems.map((item) => {
+                                const isPersonalized = Boolean(item.properties?.isPersonalized || !item.url);
+
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className="p-3 rounded-xl border border-stone-200 dark:border-slate-800/80 bg-stone-100/50 dark:bg-slate-900/50 flex items-center justify-between gap-3 text-xs"
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      {item.thumbnail ? (
+                                        <img
+                                          src={item.thumbnail}
+                                          alt={item.title}
+                                          className="h-11 w-11 object-cover rounded-lg border border-stone-200 dark:border-slate-800 flex-shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="h-11 w-11 rounded-lg bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-base flex-shrink-0">
+                                          {isPersonalized ? '✨' : '🛍️'}
+                                        </div>
+                                      )}
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          {item.url ? (
+                                            <a
+                                              href={item.url}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="font-bold hover:underline block truncate text-slate-900 dark:text-slate-100"
+                                            >
+                                              {item.title}
+                                            </a>
+                                          ) : (
+                                            <span className="font-bold block truncate text-slate-900 dark:text-slate-100">
+                                              {item.title}
+                                            </span>
+                                          )}
+
+                                          {isPersonalized && (
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 flex-shrink-0">
+                                              ✨ Personalized Gift
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {item.price && (
+                                          <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>
+                                            ${item.price}
+                                          </span>
+                                        )}
+
+                                        {item.description && (
+                                          <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic line-clamp-2">
+                                            "{item.description}"
+                                          </p>
+                                        )}
+
+                                        {item.properties?.details && item.properties.details.length > 0 && (
+                                          <div className="flex flex-wrap items-center gap-1 mt-1">
+                                            {item.properties.details.map((d, dIdx) => (
+                                              <span
+                                                key={dIdx}
+                                                className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                              >
+                                                <span className="opacity-75">{d.label}:</span>
+                                                <span>{d.value}</span>
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                    <div className="min-w-0">
+                                    </div>
+
+                                    {item.url ? (
                                       <a
                                         href={item.url}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="font-bold hover:underline block truncate text-slate-900 dark:text-slate-100"
+                                        className="px-2.5 py-1.5 rounded-lg font-bold text-xs bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 border border-sky-500/20 flex-shrink-0 transition-colors"
                                       >
-                                        {item.title}
+                                        View ↗
                                       </a>
-                                      {item.price && (
-                                        <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>
-                                          ${item.price}
-                                        </span>
-                                      )}
-                                      {item.properties?.details && item.properties.details.length > 0 && (
-                                        <div className="flex flex-wrap items-center gap-1 mt-1">
-                                          {item.properties.details.map((d, dIdx) => (
-                                            <span
-                                              key={dIdx}
-                                              className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
-                                            >
-                                              <span className="opacity-75">{d.label}:</span>
-                                              <span>{d.value}</span>
-                                            </span>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
+                                    ) : (
+                                      <span className="px-2.5 py-1.5 rounded-lg font-bold text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex-shrink-0">
+                                        ✨ Custom
+                                      </span>
+                                    )}
                                   </div>
-                                  <a
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="px-2.5 py-1.5 rounded-lg font-bold text-xs bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 border border-sky-500/20 flex-shrink-0 transition-colors"
-                                  >
-                                    View ↗
-                                  </a>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                         </div>
@@ -1169,85 +1233,142 @@ export default function OperationCommandCenterPage() {
                     </div>
                   )}
 
-                  <form onSubmit={handleScrapeUrl} className="flex gap-2 mb-6">
-                    <input
-                      type="url"
-                      placeholder="Paste gift item link (Amazon, Target, Etsy, etc.)"
-                      value={manifestItemUrl}
-                      onChange={(e) => setManifestItemUrl(e.target.value)}
-                      required
-                      disabled={operation.isWhiteElephant && userManifest.length >= 1}
-                      className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none ${theme.inputBg}`}
-                    />
+                  <div className="flex flex-col sm:flex-row gap-2 mb-6">
+                    <form onSubmit={handleScrapeUrl} className="flex-1 flex gap-2">
+                      <input
+                        type="url"
+                        placeholder="Paste gift item link (Amazon, Target, Etsy, etc.)"
+                        value={manifestItemUrl}
+                        onChange={(e) => setManifestItemUrl(e.target.value)}
+                        required
+                        disabled={operation.isWhiteElephant && userManifest.length >= 1}
+                        className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none ${theme.inputBg}`}
+                      />
+                      <button
+                        type="submit"
+                        disabled={scraping || (operation.isWhiteElephant && userManifest.length >= 1)}
+                        className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
+                          operation.isWhiteElephant && userManifest.length >= 1
+                            ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
+                            : theme.btnPrimary
+                        }`}
+                      >
+                        {scraping ? 'Scraping...' : '+ Scrape Link'}
+                      </button>
+                    </form>
+
                     <button
-                      type="submit"
-                      disabled={scraping || (operation.isWhiteElephant && userManifest.length >= 1)}
-                      className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
+                      type="button"
+                      onClick={handleOpenPersonalizedModal}
+                      disabled={operation.isWhiteElephant && userManifest.length >= 1}
+                      className={`px-4 py-3 rounded-2xl font-bold text-xs transition-all border shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
                         operation.isWhiteElephant && userManifest.length >= 1
-                          ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
-                          : theme.btnPrimary
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
                       }`}
+                      title="Add a custom, handmade, experiential, or text-only gift without an external URL"
                     >
-                      {scraping ? 'Scraping...' : '+ Add Manifest Item'}
+                      <span>✨ Add Personalized Gift</span>
                     </button>
-                  </form>
+                  </div>
 
                   {/* Manifest Items List */}
                   {userManifest.length === 0 ? (
                     <div className="text-center py-8 border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl">
-                      <p className={`text-xs font-medium ${theme.textSubLabel}`}>Your Wishlist Manifest is empty. Add a Manifest Item link above!</p>
+                      <p className={`text-xs font-medium ${theme.textSubLabel}`}>
+                        Your Wishlist Manifest is empty. Add a store link above or click <strong>✨ Add Personalized Gift</strong>!
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {userManifest.map((item) => (
-                        <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${theme.cardInnerBg}`}>
-                          <div className="flex items-center gap-3">
-                            {item.thumbnail ? (
-                              <img src={item.thumbnail} alt={item.title} className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
-                            ) : (
-                              <div className="h-12 w-12 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-xl flex-shrink-0">🛍️</div>
-                            )}
-                            <div>
-                              <a href={item.url} target="_blank" rel="noreferrer" className="text-sm font-bold hover:underline block max-w-xs truncate">
-                                {item.title}
-                              </a>
-                              {item.price && <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>${item.price}</span>}
-                              {item.properties?.details && item.properties.details.length > 0 && (
-                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                  {item.properties.details.map((d, dIdx) => (
-                                    <span
-                                      key={dIdx}
-                                      className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
-                                    >
-                                      <span className="opacity-75">{d.label}:</span>
-                                      <span>{d.value}</span>
-                                    </span>
-                                  ))}
+                      {userManifest.map((item) => {
+                        const isPersonalized = Boolean(item.properties?.isPersonalized || !item.url);
+
+                        return (
+                          <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${theme.cardInnerBg}`}>
+                            <div className="flex items-center gap-3 min-w-0">
+                              {item.thumbnail ? (
+                                <img src={item.thumbnail} alt={item.title} className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
+                              ) : (
+                                <div className="h-12 w-12 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-xl flex-shrink-0">
+                                  {isPersonalized ? '✨' : '🛍️'}
                                 </div>
                               )}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {item.url ? (
+                                    <a href={item.url} target="_blank" rel="noreferrer" className="text-sm font-bold hover:underline block max-w-xs truncate">
+                                      {item.title}
+                                    </a>
+                                  ) : (
+                                    <span className="text-sm font-bold block max-w-xs truncate">
+                                      {item.title}
+                                    </span>
+                                  )}
+
+                                  {isPersonalized && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 flex-shrink-0">
+                                      ✨ Personalized Gift
+                                    </span>
+                                  )}
+                                </div>
+
+                                {item.price && <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>${item.price}</span>}
+
+                                {item.description && (
+                                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic line-clamp-2 max-w-xs">
+                                    "{item.description}"
+                                  </p>
+                                )}
+
+                                {item.url ? (
+                                  <a
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[10px] text-slate-400 hover:underline block max-w-xs truncate mt-0.5"
+                                  >
+                                    {item.url}
+                                  </a>
+                                ) : null}
+
+                                {item.properties?.details && item.properties.details.length > 0 && (
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                    {item.properties.details.map((d, dIdx) => (
+                                      <span
+                                        key={dIdx}
+                                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                      >
+                                        <span className="opacity-75">{d.label}:</span>
+                                        <span>{d.value}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setItemModalMode('edit');
+                                  setItemModalData(item);
+                                  setItemModalOpen(true);
+                                }}
+                                className="text-xs text-sky-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors cursor-pointer"
+                              >
+                                ✏️ Edit Details
+                              </button>
+                              <button
+                                onClick={() => { setValidationError(''); setUserManifest((prev) => prev.filter((i) => i.id !== item.id)); }}
+                                className="text-xs text-red-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                              >
+                                Remove
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setItemModalMode('edit');
-                                setItemModalData(item);
-                                setItemModalOpen(true);
-                              }}
-                              className="text-xs text-sky-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors cursor-pointer"
-                            >
-                              ✏️ Edit Details
-                            </button>
-                            <button
-                              onClick={() => { setValidationError(''); setUserManifest((prev) => prev.filter((i) => i.id !== item.id)); }}
-                              className="text-xs text-red-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 

@@ -5,6 +5,7 @@ import {
   validateItemBudget,
   evaluateDrawEligibility,
   calculateClaimedBasketTotal,
+  validateAndSanitizeManifestItem,
   ManifestItemInput,
 } from './validations/manifest';
 
@@ -106,5 +107,95 @@ test('Dual Manifest & Anti-Overwishing Budget Engine Test Suite', async (t) => {
     assert.equal(metResult.remainingBudget, 0);
     assert.equal(metResult.isSoftBudgetMet, true);
     assert.ok(metResult.statusText.includes('reached'));
+  });
+
+  await t.test('validateAndSanitizeManifestItem accepts text-only personalized gift with empty URL', () => {
+    const res = validateAndSanitizeManifestItem({
+      title: 'Handmade Wool Beanie',
+      url: '',
+      price: 25.5,
+      description: 'Navy blue color with fleece lining',
+      properties: {
+        isPersonalized: true,
+        details: [
+          { label: 'Size', value: 'Medium' },
+          { label: 'Color', value: 'Navy' },
+        ],
+      },
+    });
+
+    assert.equal(res.valid, true);
+    if (res.valid) {
+      assert.equal(res.data.name, 'Handmade Wool Beanie');
+      assert.equal(res.data.url, '');
+      assert.equal(res.data.price, 25.5);
+      assert.equal(res.data.description, 'Navy blue color with fleece lining');
+      assert.equal(res.data.isPersonalized, true);
+      assert.equal(res.data.properties?.isPersonalized, true);
+      assert.deepEqual(res.data.properties?.details, [
+        { label: 'Size', value: 'Medium' },
+        { label: 'Color', value: 'Navy' },
+      ]);
+    }
+  });
+
+  await t.test('validateAndSanitizeManifestItem strips XSS and bounds lengths strictly', () => {
+    const dangerousTitle = '<b>Special Gift</b> <script>alert("pwned")</script>' + 'A'.repeat(150);
+    const dangerousDesc = '<p>Handcrafted cookies</p><img src="x" onerror="alert(1)">' + 'B'.repeat(600);
+
+    const res = validateAndSanitizeManifestItem({
+      title: dangerousTitle,
+      url: '',
+      price: '30.00',
+      description: dangerousDesc,
+    });
+
+    assert.equal(res.valid, true);
+    if (res.valid) {
+      assert.ok(!res.data.name.includes('<'));
+      assert.ok(!res.data.name.includes('>'));
+      assert.ok(!res.data.name.includes('<b>'));
+      assert.ok(res.data.name.length <= 100);
+
+      assert.ok(!res.data.description?.includes('<'));
+      assert.ok(!res.data.description?.includes('onerror'));
+      assert.ok((res.data.description?.length ?? 0) <= 500);
+      assert.equal(res.data.price, 30);
+      assert.equal(res.data.isPersonalized, true);
+    }
+  });
+
+  await t.test('validateAndSanitizeManifestItem rejects missing title for personalized gift', () => {
+    const res = validateAndSanitizeManifestItem({
+      title: '   ',
+      url: '',
+      properties: { isPersonalized: true },
+    });
+
+    assert.equal(res.valid, false);
+    if (!res.valid) {
+      assert.ok(res.error.includes('title is required'));
+    }
+  });
+
+  await t.test('validateAndSanitizeManifestItem enforces SSRF protection for URL gifts', () => {
+    // Valid e-commerce URL
+    const validUrlRes = validateAndSanitizeManifestItem({
+      title: 'Amazon Gadget',
+      url: 'https://www.amazon.com/dp/B08N5WRWNW',
+      price: 49.99,
+    });
+    assert.equal(validUrlRes.valid, true);
+    if (validUrlRes.valid) {
+      assert.equal(validUrlRes.data.isPersonalized, false);
+      assert.equal(validUrlRes.data.url, 'https://www.amazon.com/dp/B08N5WRWNW');
+    }
+
+    // SSRF attempt blocked
+    const ssrfRes = validateAndSanitizeManifestItem({
+      title: 'AWS Metadata Probe',
+      url: 'http://169.254.169.254/latest/meta-data',
+    });
+    assert.equal(ssrfRes.valid, false);
   });
 });

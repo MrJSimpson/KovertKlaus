@@ -18,15 +18,18 @@ export interface WishlistItemModalProps {
   onSaveSuccess: (savedItem: any) => void;
   mode: 'add' | 'edit';
   wishlistId?: string;
+  isPersonalized?: boolean;
   initialData?: {
     id?: string;
-    url: string;
-    title: string;
+    url?: string;
+    title?: string;
     price?: number;
     thumbnail?: string;
     description?: string;
     properties?: {
+      isPersonalized?: boolean;
       details?: ItemDetail[];
+      [key: string]: any;
     };
     catalogProperties?: CatalogProperties;
   };
@@ -39,6 +42,7 @@ export function WishlistItemModal({
   onSaveSuccess,
   mode,
   wishlistId,
+  isPersonalized,
   initialData,
   userDossier,
 }: WishlistItemModalProps) {
@@ -48,10 +52,12 @@ export function WishlistItemModal({
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState<string>('');
   const [thumbnail, setThumbnail] = useState('');
+  const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
   const [category, setCategory] = useState<ProductCategory>('GENERAL');
   const [details, setDetails] = useState<ItemDetail[]>([]);
   const [catalogProps, setCatalogProps] = useState<CatalogProperties | null>(null);
+  const [isPersonalizedMode, setIsPersonalizedMode] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -65,7 +71,15 @@ export function WishlistItemModal({
     setTitle(rawTitle);
     setPrice(initialData?.price !== undefined && initialData?.price !== null ? String(initialData.price) : '');
     setThumbnail(initialData?.thumbnail || '');
+    setDescription(initialData?.description || '');
     setUrl(initialData?.url || '');
+
+    const isPersonalizedGift = Boolean(
+      isPersonalized ||
+      initialData?.properties?.isPersonalized ||
+      (!initialData?.url && mode === 'add')
+    );
+    setIsPersonalizedMode(isPersonalizedGift);
 
     const catProps = initialData?.catalogProperties || null;
     setCatalogProps(catProps);
@@ -76,6 +90,11 @@ export function WishlistItemModal({
     // Initialize details
     if (initialData?.properties?.details && initialData.properties.details.length > 0) {
       setDetails([...initialData.properties.details]);
+    } else if (isPersonalizedGift) {
+      setDetails([
+        { label: 'Instructions', value: '' },
+        { label: 'Preferences', value: '' },
+      ]);
     } else {
       // Seed initial variables from category suggested keys
       const suggestedKeys = catProps?.variables || getCategorySuggestedKeys(detectedCat);
@@ -85,7 +104,7 @@ export function WishlistItemModal({
       }));
       setDetails(initialRows);
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, isPersonalized, mode]);
 
   if (!isOpen) return null;
 
@@ -142,6 +161,7 @@ export function WishlistItemModal({
       .map((d) => ({ label: d.label.trim(), value: d.value.trim() }));
 
     const parsedPrice = price.trim() ? parseFloat(price.trim()) : 0;
+    const cleanDescription = description.trim() || undefined;
 
     try {
       if (mode === 'add') {
@@ -155,8 +175,12 @@ export function WishlistItemModal({
               url: url.trim(),
               title: title.trim(),
               price: parsedPrice,
+              description: cleanDescription,
               thumbnail: thumbnail.trim() || undefined,
-              properties: { details: cleanDetails },
+              properties: {
+                isPersonalized: isPersonalizedMode,
+                details: cleanDetails,
+              },
             }),
           });
 
@@ -173,8 +197,12 @@ export function WishlistItemModal({
             url: url.trim(),
             title: title.trim(),
             price: parsedPrice,
+            description: cleanDescription,
             thumbnail: thumbnail.trim() || undefined,
-            properties: { details: cleanDetails },
+            properties: {
+              isPersonalized: isPersonalizedMode,
+              details: cleanDetails,
+            },
           });
         }
       } else {
@@ -188,8 +216,12 @@ export function WishlistItemModal({
                 itemId: initialData.id,
                 title: title.trim(),
                 price: parsedPrice,
+                description: cleanDescription,
                 thumbnail: thumbnail.trim() || undefined,
-                properties: { details: cleanDetails },
+                properties: {
+                  isPersonalized: isPersonalizedMode,
+                  details: cleanDetails,
+                },
               }),
             });
 
@@ -209,8 +241,12 @@ export function WishlistItemModal({
           url: url.trim(),
           title: title.trim(),
           price: parsedPrice,
+          description: cleanDescription,
           thumbnail: thumbnail.trim() || undefined,
-          properties: { details: cleanDetails },
+          properties: {
+            isPersonalized: isPersonalizedMode,
+            details: cleanDetails,
+          },
         });
       }
       onClose();
@@ -229,13 +265,21 @@ export function WishlistItemModal({
         <div className="flex items-center justify-between pb-4 border-b border-stone-200 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{mode === 'add' ? '✨' : '✏️'}</span>
+              <span className="text-xl">{isPersonalizedMode ? '✨' : mode === 'add' ? '🎁' : '✏️'}</span>
               <h3 className="text-xl font-black">
-                {mode === 'add' ? 'Confirm & Customize Wishlist Item' : 'Edit Wishlist Item Details'}
+                {isPersonalizedMode
+                  ? mode === 'add'
+                    ? 'Add Personalized Gift Request'
+                    : 'Edit Personalized Gift Request'
+                  : mode === 'add'
+                  ? 'Confirm & Customize Wishlist Item'
+                  : 'Edit Wishlist Item Details'}
               </h3>
             </div>
             <span className="text-xs text-slate-500">
-              {categoryLabels[category] || 'Custom Gift Item'}
+              {isPersonalizedMode
+                ? '✨ Personalized / Text-Only Gift (Custom, handmade, or experiential request for your Santa)'
+                : categoryLabels[category] || 'Custom Gift Item'}
             </span>
           </div>
           <button
@@ -268,39 +312,47 @@ export function WishlistItemModal({
                 </div>
               ) : (
                 <div className="h-16 w-16 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-2xl shrink-0">
-                  🛍️
+                  {isPersonalizedMode ? '✨' : '🛍️'}
                 </div>
               )}
 
               <div className="flex-1 space-y-2">
                 <div>
-                  <label className="block text-[11px] text-slate-500 mb-0.5">Product Title *</label>
+                  <label className="block text-[11px] text-slate-500 mb-0.5">
+                    {isPersonalizedMode ? 'Personalized Gift Request Title *' : 'Product Title *'}
+                  </label>
                   <input
                     type="text"
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Classic Everyday Fleece Hoodie"
+                    placeholder={
+                      isPersonalizedMode
+                        ? 'e.g. Handmade Holiday Cookies, Wool Knit Beanie, Sourdough Loaf'
+                        : 'e.g. Classic Everyday Fleece Hoodie'
+                    }
                     className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputModalBg}`}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] text-slate-500 mb-0.5">Price (USD $)</label>
+                    <label className="block text-[11px] text-slate-500 mb-0.5">
+                      {isPersonalizedMode ? 'Target Budget (USD $)' : 'Price (USD $)'}
+                    </label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
-                      placeholder="e.g. 29.99"
+                      placeholder="e.g. 25.00"
                       className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono focus:outline-none ${theme.inputModalBg}`}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-500 mb-0.5">Image URL</label>
+                    <label className="block text-[11px] text-slate-500 mb-0.5">Image URL (Optional)</label>
                     <input
                       type="url"
                       value={thumbnail}
@@ -313,7 +365,29 @@ export function WishlistItemModal({
               </div>
             </div>
 
-            {url && (
+            {/* Description / Instructions for Santa */}
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-0.5">
+                {isPersonalizedMode ? 'Instructions or Notes for Santa (Optional)' : 'Special Instructions / Notes (Optional)'}
+              </label>
+              <textarea
+                rows={2}
+                maxLength={500}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={
+                  isPersonalizedMode
+                    ? 'Preferences, dietary constraints, preferred scents, or custom details for your secret giver...'
+                    : 'Color preferences, sizing details, or gift receipt notes...'
+                }
+                className={`w-full border rounded-xl px-3 py-2 text-xs resize-none focus:outline-none ${theme.inputModalBg}`}
+              />
+              <div className="flex justify-end text-[10px] text-slate-400 mt-0.5 font-mono">
+                {description.length}/500
+              </div>
+            </div>
+
+            {url ? (
               <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-stone-200 dark:border-slate-800">
                 <span className="truncate max-w-sm">🔗 {url}</span>
                 <a
@@ -325,7 +399,18 @@ export function WishlistItemModal({
                   View Store ↗
                 </a>
               </div>
-            )}
+            ) : isPersonalizedMode ? (
+              <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
+                <label className="block text-[11px] text-slate-500 mb-0.5">Reference Link / Recipe / Pattern (Optional)</label>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://... (Optional reference link for Santa)"
+                  className={`w-full border rounded-xl px-3 py-1.5 text-xs truncate focus:outline-none ${theme.inputModalBg}`}
+                />
+              </div>
+            ) : null}
           </div>
 
           {/* Section: Custom Item Details & Preferences */}
