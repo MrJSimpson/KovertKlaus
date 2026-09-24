@@ -185,14 +185,14 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className={`w-full max-w-3xl rounded-3xl border shadow-2xl overflow-hidden ${theme.cardBg}`}>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className={`w-full max-w-3xl max-h-[92dvh] sm:max-h-[88vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl overflow-hidden flex flex-col my-0 sm:my-8 ${theme.cardBg}`}>
         {/* Header */}
-        <div className="p-6 sm:p-8 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-4 sm:p-6 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-2xl">⚙️</span>
-              <h2 className={`text-2xl font-black ${theme.textHeading}`}>Account Preferences & Operative Dossier</h2>
+              <span className="text-xl sm:text-2xl">⚙️</span>
+              <h2 className={`text-xl sm:text-2xl font-black ${theme.textHeading}`}>Account Preferences & Operative Dossier</h2>
             </div>
             <p className={`text-xs ${theme.textSubLabel}`}>
               Manage your identity, courier shipping address, gifting preferences, and security parameters.
@@ -200,18 +200,18 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all text-xl font-bold cursor-pointer"
+            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all text-xl font-bold cursor-pointer"
           >
             ✕
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className={`flex border-b overflow-x-auto text-xs font-bold px-6 ${theme.tabBarBg}`}>
+        <div className={`flex border-b overflow-x-auto text-xs font-bold px-4 sm:px-6 shrink-0 ${theme.tabBarBg}`}>
           <button
             type="button"
             onClick={() => setActiveTab('identity')}
-            className={`py-3.5 px-4 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`py-3.5 px-4 transition-all cursor-pointer flex items-center gap-2 shrink-0 min-h-[44px] ${
               activeTab === 'identity' ? theme.tabActive : theme.tabInactive
             }`}
           >
@@ -220,7 +220,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
           <button
             type="button"
             onClick={() => setActiveTab('shipping')}
-            className={`py-3.5 px-4 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`py-3.5 px-4 transition-all cursor-pointer flex items-center gap-2 shrink-0 min-h-[44px] ${
               activeTab === 'shipping' ? theme.tabActive : theme.tabInactive
             }`}
           >
@@ -229,7 +229,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
           <button
             type="button"
             onClick={() => setActiveTab('dossier')}
-            className={`py-3.5 px-4 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`py-3.5 px-4 transition-all cursor-pointer flex items-center gap-2 shrink-0 min-h-[44px] ${
               activeTab === 'dossier' ? theme.tabActive : theme.tabInactive
             }`}
           >
@@ -238,7 +238,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
           <button
             type="button"
             onClick={() => setActiveTab('security')}
-            className={`py-3.5 px-4 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`py-3.5 px-4 transition-all cursor-pointer flex items-center gap-2 shrink-0 min-h-[44px] ${
               activeTab === 'security' ? theme.tabActive : theme.tabInactive
             }`}
           >
@@ -247,7 +247,8 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSaveProfile} className="p-6 sm:p-8 max-h-[65vh] overflow-y-auto space-y-6">
+        <form onSubmit={handleSaveProfile} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-4 sm:p-8 overflow-y-auto flex-1 space-y-6">
           {successMessage && (
             <div className={`p-4 rounded-2xl text-xs font-bold border ${theme.alertSuccess}`}>
               ✓ {successMessage}
@@ -277,7 +278,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                      className={`w-full border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                     />
                   </div>
 
@@ -287,7 +288,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                       type="email"
                       value={email}
                       disabled
-                      className={`w-full border rounded-xl px-4 py-2.5 text-xs ${theme.inputDisabled}`}
+                      className={`w-full border rounded-xl px-4 py-2.5 text-base sm:text-xs ${theme.inputDisabled}`}
                     />
                   </div>
 
@@ -311,7 +312,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         value={preferredCodename}
                         onChange={(e) => setPreferredCodename(e.target.value)}
                         placeholder="e.g. Viper, Phoenix, Sentinel"
-                        className={`flex-1 border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`flex-1 border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
                     <p className={`text-[11px] mt-1 ${theme.textSubLabel}`}>
@@ -355,7 +356,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         placeholder="e.g. 123 North Pole Way"
                         value={streetAddress}
                         onChange={(e) => setStreetAddress(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
 
@@ -366,7 +367,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         placeholder="e.g. Apt 4B"
                         value={addressLine2}
                         onChange={(e) => setAddressLine2(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
 
@@ -377,7 +378,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         placeholder="e.g. Fairbanks"
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
 
@@ -388,7 +389,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         placeholder="e.g. AK"
                         value={state}
                         onChange={(e) => setState(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
 
@@ -399,7 +400,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         placeholder="e.g. 99701"
                         value={zipCode}
                         onChange={(e) => setZipCode(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
 
@@ -408,7 +409,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                       <select
                         value={country}
                         onChange={(e) => setCountry(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       >
                         <option value="US">United States (US)</option>
                         <option value="CA">Canada (CA)</option>
@@ -424,7 +425,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         placeholder="e.g. Leave package on front porch behind planter."
                         value={deliveryNotes}
                         onChange={(e) => setDeliveryNotes(e.target.value)}
-                        className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
                   </div>
@@ -461,7 +462,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           placeholder="e.g. L, Men's XL, Women's M"
                           value={topHalfSize}
                           onChange={(e) => setTopHalfSize(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
                       <div>
@@ -471,7 +472,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           placeholder="e.g. 34x32, 10, Medium"
                           value={bottomHalfSize}
                           onChange={(e) => setBottomHalfSize(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
                       <div>
@@ -481,7 +482,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           placeholder="e.g. 10.5 Men, 8 Women"
                           value={shoeSize}
                           onChange={(e) => setShoeSize(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
                     </div>
@@ -510,7 +511,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           placeholder="e.g. 40 in"
                           value={chestBustMeasurement}
                           onChange={(e) => setChestBustMeasurement(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
                       <div>
@@ -520,7 +521,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           placeholder="e.g. 34 in"
                           value={waistMeasurement}
                           onChange={(e) => setWaistMeasurement(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
                       <div>
@@ -530,7 +531,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           placeholder="e.g. 32 in"
                           value={inseamMeasurement}
                           onChange={(e) => setInseamMeasurement(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
                     </div>
@@ -557,7 +558,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         placeholder="e.g. Peanut allergy, Gluten-free, Vegetarian"
                         value={allergiesDiet}
                         onChange={(e) => setAllergiesDiet(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
                   </div>
@@ -585,7 +586,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           placeholder="e.g. Forest Green, Navy Blue"
                           value={favoriteColors}
                           onChange={(e) => setFavoriteColors(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
                       <div>
@@ -595,7 +596,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                           placeholder="e.g. Coffee brewing, Board games, Sci-Fi"
                           value={favoriteHobbies}
                           onChange={(e) => setFavoriteHobbies(e.target.value)}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                          className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                         />
                       </div>
                     </div>
@@ -631,7 +632,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         placeholder="••••••••"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
                     <div>
@@ -641,7 +642,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                         placeholder="••••••••"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                        className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
                       />
                     </div>
                   </div>
@@ -665,19 +666,21 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
             </>
           )}
 
+          </div>
+
           {/* Footer Buttons */}
-          <div className="pt-4 border-t border-stone-200 dark:border-slate-800 flex items-center justify-end gap-3">
+          <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 pb-safe-sheet bg-inherit">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer"
+              className="px-5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || loading}
-              className={`px-6 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer ${
+              className={`px-6 py-2.5 min-h-[44px] rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer ${
                 saving ? 'opacity-50' : theme.btnPrimary
               }`}
             >

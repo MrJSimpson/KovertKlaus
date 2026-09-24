@@ -87,59 +87,61 @@ export function JoinOperationModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full transition-all shadow-2xl ${theme.modalBg}`}>
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className={`w-full sm:max-w-md max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-200 dark:border-slate-800">
+        <div className="p-4 sm:p-6 pb-3 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
           <div>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
               🕵️ Field Agent Recruitment
             </span>
-            <h3 className="text-2xl font-black mt-1">Join Operation</h3>
+            <h3 className="text-xl sm:text-2xl font-black mt-1">Join Operation</h3>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer p-1"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 transition-colors"
           >
             ✕
           </button>
         </div>
 
-        {error && (
-          <div className={`p-4 mb-4 rounded-xl text-xs font-semibold ${theme.alertWarning}`}>
-            ⚠️ {error}
-          </div>
-        )}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
+            {error && (
+              <div className={`p-4 rounded-xl text-xs font-semibold ${theme.alertWarning}`}>
+                ⚠️ {error}
+              </div>
+            )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
-          <div>
-            <label className="block text-slate-500 mb-1">Operation Invite Code *</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. K9X2-R7M4"
-              value={inviteCode}
-              onChange={(e) => handleCodeChange(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-3 text-base font-mono font-bold tracking-wider text-center focus:outline-none uppercase ${theme.inputModalBg}`}
-            />
-            <p className="text-[10px] text-slate-500 mt-1 text-center">
-              Enter the 8-character Base32 invite code (e.g. K9X2-R7M4) provided by your Head Elf.
-            </p>
+            <div>
+              <label className="block text-slate-500 mb-1">Operation Invite Code *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. K9X2-R7M4"
+                value={inviteCode}
+                onChange={(e) => handleCodeChange(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-3 text-base font-mono font-bold tracking-wider text-center focus:outline-none uppercase ${theme.inputModalBg}`}
+              />
+              <p className="text-[10px] text-slate-500 mt-1 text-center">
+                Enter the 8-character Base32 invite code (e.g. K9X2-R7M4) provided by your Head Elf.
+              </p>
+            </div>
           </div>
 
-          <div className="flex gap-3 pt-3 border-t border-stone-200 dark:border-slate-800">
+          <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
             <button
               type="button"
               onClick={onClose}
-              className={`w-1/2 font-semibold py-3 rounded-2xl text-xs cursor-pointer ${theme.btnNeutral}`}
+              className={`w-1/2 font-semibold py-3 min-h-[44px] rounded-2xl text-xs cursor-pointer ${theme.btnNeutral}`}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`w-1/2 font-extrabold py-3 rounded-2xl text-xs transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 ${theme.btnPrimary}`}
+              className={`w-1/2 font-extrabold py-3 min-h-[44px] rounded-2xl text-xs transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 ${theme.btnPrimary}`}
             >
               {loading ? (
                 <>

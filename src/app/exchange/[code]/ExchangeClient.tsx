@@ -622,41 +622,45 @@ export default function OperationCommandCenterPage() {
       
       {/* Top Header Navigation */}
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
-          <Link href="/operations" className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md ${
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
+          <Link href="/operations" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-lg sm:text-xl shadow-md shrink-0 ${
               isDarkMode ? 'bg-gradient-to-br from-sky-400 to-slate-700' : 'bg-gradient-to-br from-red-600 to-emerald-800'
             }`}>
               🎁
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-xs font-bold ${theme.textBrand}`}>
+              <span className="text-lg sm:text-xl font-black tracking-tight block">KovertKlaus</span>
+              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textBrand}`}>
                 Operation Command Center
               </span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
+              className={`p-2 min-h-[44px] min-w-[44px] rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center ${theme.btnToggle}`}
+              title={isDarkMode ? 'Switch to Klaus Mode' : 'Switch to Kovert Mode'}
             >
-              {isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}
+              <span className="sm:hidden text-base">{isDarkMode ? '🎅' : '🕶️'}</span>
+              <span className="hidden sm:inline">{isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}</span>
             </button>
 
             <Link
               href="/operations"
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
+              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
             >
-              ← Operations Center
+              <span className="sm:hidden">← Ops</span>
+              <span className="hidden sm:inline">← Operations Center</span>
             </Link>
 
             <button
               onClick={handleSignOut}
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
+              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
             >
-              Sign Out
+              <span className="sm:hidden">Exit</span>
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>

@@ -340,41 +340,45 @@ export default function OpKitsPage() {
       
       {/* Header Navigation */}
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md ${
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-lg sm:text-xl shadow-md shrink-0 ${
               isDarkMode ? 'bg-gradient-to-br from-sky-400 to-slate-700' : 'bg-gradient-to-br from-red-600 to-emerald-800'
             }`}>
               🎁
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-xs font-bold ${theme.textBrand}`}>
+              <span className="text-lg sm:text-xl font-black tracking-tight block">KovertKlaus</span>
+              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textBrand}`}>
                 Wishlist Manifests &amp; Manifest Items Workspace
               </span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
+              className={`p-2 min-h-[44px] min-w-[44px] rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center ${theme.btnToggle}`}
+              title={isDarkMode ? 'Switch to Klaus Mode' : 'Switch to Kovert Mode'}
             >
-              {isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}
+              <span className="sm:hidden text-base">{isDarkMode ? '🎅' : '🕶️'}</span>
+              <span className="hidden sm:inline">{isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}</span>
             </button>
 
             <Link
               href="/dashboard"
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
+              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
             >
-              ← Back to Dashboard
+              <span className="sm:hidden">← Dashboard</span>
+              <span className="hidden sm:inline">← Back to Dashboard</span>
             </Link>
 
             <button
               onClick={handleSignOut}
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
+              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
             >
-              Sign Out
+              <span className="sm:hidden">Exit</span>
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>
@@ -425,7 +429,7 @@ export default function OpKitsPage() {
                 placeholder="Search Wishlist Manifests by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full border rounded-2xl px-4 py-2.5 text-xs mb-4 focus:outline-none ${theme.inputBg}`}
+                className={`w-full border rounded-2xl px-4 py-2.5 text-base sm:text-xs mb-4 focus:outline-none ${theme.inputBg}`}
               />
 
               {/* Directory List */}
@@ -579,7 +583,7 @@ export default function OpKitsPage() {
 
                 {/* Manifest Item Link Scraper & Personalized Gift Form */}
                 <div className="flex flex-col sm:flex-row gap-2 mb-6">
-                  <form onSubmit={handleAddManifestItem} className="flex-1 flex gap-2">
+                  <form onSubmit={handleAddManifestItem} className="flex-1 flex flex-col xs:flex-row sm:flex-row gap-2">
                     <input
                       type="url"
                       placeholder={
@@ -591,12 +595,12 @@ export default function OpKitsPage() {
                       onChange={(e) => setOpToolUrl(e.target.value)}
                       required
                       disabled={selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1}
-                      className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none focus:ring-2 ${theme.inputBg}`}
+                      className={`flex-1 border rounded-2xl px-4 py-3 min-h-[44px] text-base sm:text-xs focus:outline-none focus:ring-2 ${theme.inputBg}`}
                     />
                     <button
                       type="submit"
                       disabled={scraping || (selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1)}
-                      className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
+                      className={`px-5 py-3 min-h-[44px] rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer shrink-0 flex items-center justify-center ${
                         selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1
                           ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
                           : theme.btnPrimary
@@ -610,7 +614,7 @@ export default function OpKitsPage() {
                     type="button"
                     onClick={handleOpenPersonalizedModal}
                     disabled={selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1}
-                    className={`px-4 py-3 rounded-2xl font-bold text-xs transition-all border shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
+                    className={`px-4 py-3 min-h-[44px] rounded-2xl font-bold text-xs transition-all border shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
                       selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1
                         ? 'opacity-50 cursor-not-allowed'
                         : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
@@ -762,53 +766,60 @@ export default function OpKitsPage() {
 
       {/* MODAL: CREATE NEW WISHLIST MANIFEST */}
       {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl border transition-all ${theme.modalBg}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-black flex items-center gap-2">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+          <div className={`w-full sm:max-w-md max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl border transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
+            <div className="p-4 sm:p-6 pb-3 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+              <h3 className="text-xl sm:text-2xl font-black flex items-center gap-2">
                 <span>🧰 Create New Wishlist Manifest</span>
               </h3>
-              <button onClick={() => setCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+              <button
+                onClick={() => setCreateModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleCreateOpKit} className="space-y-4 text-xs font-semibold">
-              <div>
-                <label className="block text-slate-500 mb-1">Wishlist Manifest Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Secret Santa Tech Wishlist 2026"
-                  value={newOpKitName}
-                  onChange={(e) => setNewOpKitName(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
-                />
+            <form onSubmit={handleCreateOpKit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
+                <div>
+                  <label className="block text-slate-500 mb-1">Wishlist Manifest Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Secret Santa Tech Wishlist 2026"
+                    value={newOpKitName}
+                    onChange={(e) => setNewOpKitName(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-base sm:text-sm focus:outline-none ${theme.inputModalBg}`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 mb-1">Wishlist Manifest Category Type *</label>
+                  <select
+                    value={newOpKitType}
+                    onChange={(e) => setNewOpKitType(e.target.value as 'WISHLIST' | 'WHITE_ELEPHANT')}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-base sm:text-xs font-bold focus:outline-none ${theme.inputModalBg}`}
+                  >
+                    <option value="WISHLIST">🎁 Secret Santa Wishlist (Unlimited Manifest Items)</option>
+                    <option value="WHITE_ELEPHANT">🐘 White Elephant Brought Gift (Strictly 1 Manifest Item)</option>
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-500 mb-1">Wishlist Manifest Category Type *</label>
-                <select
-                  value={newOpKitType}
-                  onChange={(e) => setNewOpKitType(e.target.value as 'WISHLIST' | 'WHITE_ELEPHANT')}
-                  className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none ${theme.inputModalBg}`}
-                >
-                  <option value="WISHLIST">🎁 Secret Santa Wishlist (Unlimited Manifest Items)</option>
-                  <option value="WHITE_ELEPHANT">🐘 White Elephant Brought Gift (Strictly 1 Manifest Item)</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3 pt-2">
+              <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
+                  className={`w-1/2 font-semibold py-3 min-h-[44px] rounded-2xl text-xs sm:text-sm cursor-pointer ${theme.btnNeutral}`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
+                  className={`w-1/2 font-bold py-3 min-h-[44px] rounded-2xl text-xs sm:text-sm transition-all cursor-pointer shadow-md flex items-center justify-center ${theme.btnPrimary}`}
                 >
-                  Create Wishlist Manifest
+                  Create Manifest
                 </button>
               </div>
             </form>

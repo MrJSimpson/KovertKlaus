@@ -258,15 +258,15 @@ export function WishlistItemModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className={`p-6 sm:p-8 rounded-3xl max-w-xl w-full border shadow-2xl transition-all my-8 ${theme.modalBg}`}>
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className={`w-full sm:max-w-xl max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-stone-200 dark:border-slate-800">
+        <div className="p-4 sm:p-6 pb-4 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xl">{isPersonalizedMode ? '✨' : mode === 'add' ? '🎁' : '✏️'}</span>
-              <h3 className="text-xl font-black">
+              <h3 className="text-lg sm:text-xl font-black">
                 {isPersonalizedMode
                   ? mode === 'add'
                     ? 'Add Personalized Gift Request'
@@ -284,20 +284,20 @@ export function WishlistItemModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 font-bold text-lg p-1.5"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
             title="Close"
           >
             ✕
           </button>
         </div>
 
-        {errorMessage && (
-          <div className={`mt-4 p-3 rounded-xl text-xs font-bold border ${theme.alertWarning}`}>
-            ⚠️ {errorMessage}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4 text-xs font-semibold">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
+            {errorMessage && (
+              <div className={`p-3 rounded-xl text-xs font-bold border ${theme.alertWarning}`}>
+                ⚠️ {errorMessage}
+              </div>
+            )}
           
           {/* Product Overview Card: Image, Title, Price */}
           <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
@@ -331,7 +331,7 @@ export function WishlistItemModal({
                         ? 'e.g. Handmade Holiday Cookies, Wool Knit Beanie, Sourdough Loaf'
                         : 'e.g. Classic Everyday Fleece Hoodie'
                     }
-                    className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputModalBg}`}
+                    className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputModalBg}`}
                   />
                 </div>
 
@@ -347,7 +347,7 @@ export function WishlistItemModal({
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
                       placeholder="e.g. 25.00"
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono focus:outline-none ${theme.inputModalBg}`}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-base sm:text-xs font-mono focus:outline-none ${theme.inputModalBg}`}
                     />
                   </div>
 
@@ -358,7 +358,7 @@ export function WishlistItemModal({
                       value={thumbnail}
                       onChange={(e) => setThumbnail(e.target.value)}
                       placeholder="https://..."
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs truncate focus:outline-none ${theme.inputModalBg}`}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-base sm:text-xs truncate focus:outline-none ${theme.inputModalBg}`}
                     />
                   </div>
                 </div>
@@ -380,7 +380,7 @@ export function WishlistItemModal({
                     ? 'Preferences, dietary constraints, preferred scents, or custom details for your secret giver...'
                     : 'Color preferences, sizing details, or gift receipt notes...'
                 }
-                className={`w-full border rounded-xl px-3 py-2 text-xs resize-none focus:outline-none ${theme.inputModalBg}`}
+                className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs resize-none focus:outline-none ${theme.inputModalBg}`}
               />
               <div className="flex justify-end text-[10px] text-slate-400 mt-0.5 font-mono">
                 {description.length}/500
@@ -394,7 +394,7 @@ export function WishlistItemModal({
                   href={url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sky-500 hover:underline shrink-0 font-bold ml-2"
+                  className="text-sky-500 hover:underline shrink-0 font-bold ml-2 min-h-[36px] flex items-center"
                 >
                   View Store ↗
                 </a>
@@ -407,7 +407,7 @@ export function WishlistItemModal({
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://... (Optional reference link for Santa)"
-                  className={`w-full border rounded-xl px-3 py-1.5 text-xs truncate focus:outline-none ${theme.inputModalBg}`}
+                  className={`w-full border rounded-xl px-3 py-1.5 text-base sm:text-xs truncate focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
             ) : null}
@@ -453,7 +453,7 @@ export function WishlistItemModal({
                         value={detail.label}
                         onChange={(e) => handleDetailChange(idx, 'label', e.target.value)}
                         placeholder="Variable (e.g. Size, Color)"
-                        className={`w-1/3 border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none ${theme.inputModalBg}`}
+                        className={`w-1/3 border rounded-xl px-3 py-1.5 text-base sm:text-xs font-semibold focus:outline-none ${theme.inputModalBg}`}
                       />
 
                       <input
@@ -461,14 +461,14 @@ export function WishlistItemModal({
                         value={detail.value}
                         onChange={(e) => handleDetailChange(idx, 'value', e.target.value)}
                         placeholder="Your choice (e.g. Large, Navy)"
-                        className={`flex-1 border rounded-xl px-3 py-1.5 text-xs focus:outline-none ${theme.inputModalBg}`}
+                        className={`flex-1 border rounded-xl px-3 py-1.5 text-base sm:text-xs focus:outline-none ${theme.inputModalBg}`}
                       />
 
                       {details.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveDetailRow(idx)}
-                          className="text-slate-400 hover:text-red-500 p-1 text-sm cursor-pointer"
+                          className="text-slate-400 hover:text-red-500 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 text-sm cursor-pointer transition-colors"
                           title="Remove row"
                         >
                           ✕
@@ -514,19 +514,21 @@ export function WishlistItemModal({
             </div>
           </div>
 
+          </div>
+
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-3 border-t border-stone-200 dark:border-slate-800">
+          <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
             <button
               type="button"
               onClick={onClose}
-              className={`w-1/2 font-semibold py-3 rounded-2xl text-xs cursor-pointer ${theme.btnNeutral}`}
+              className={`w-1/2 font-semibold py-3 min-h-[44px] rounded-2xl text-xs cursor-pointer ${theme.btnNeutral}`}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className={`w-1/2 font-bold py-3 rounded-2xl text-xs transition shadow-md flex items-center justify-center gap-2 cursor-pointer ${theme.btnPrimary}`}
+              className={`w-1/2 font-bold py-3 min-h-[44px] rounded-2xl text-xs transition shadow-md flex items-center justify-center gap-2 cursor-pointer ${theme.btnPrimary}`}
             >
               {saving ? (
                 <span>Saving Details...</span>
