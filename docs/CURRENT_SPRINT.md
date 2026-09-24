@@ -1,21 +1,21 @@
 # Active Sprint Tracker
 
-**Active Sprint**: [Sprint 2026-W38](sprints/2026-W38.md)  
-**Status**: **COMPLETED ✅ (Demerit Immunity, Carrier Webhooks & Governance)**  
-**Target Milestone**: `v0.1.0-prealpha`  
+**Active Sprint**: [Sprint 2026-W39](sprints/2026-W39.md)  
+**Status**: **ACTIVE 🚀 (Mobile Polish, Performance & Security Hardening)**  
+**Target Milestone**: `v0.1.0-prealpha` ➔ `v0.2.0-alpha`  
 **Ceremony Schedule**: Retrospectives & Planning held every Monday morning.
 
 ---
 
-### Quick Status Dashboard (Sprint W38: Sep 14 – Sep 21)
-- **Item 1: Multi-Carrier Tracking Ingestion**: ✅ DONE (Deterministic Regex Engine, Deep Links & Modal)
-- **Item 2: Automatic Demerit Immunity Trigger**: ✅ DONE (Carrier Protection Waiver & Instant Exemption)
-- **Item 3: North Pole Admin User Governance UI**: ✅ DONE (`/northpole/users` & `/northpole/config` HUD)
-- **Item 4: Anti-Ghosting "Backup Santa" Escrow**: ⛔ DROPPED (Descoped to maintain deterministic mission mechanics)
-- **Item 5: Account Privacy & Dossier Visibility**: ✅ DONE (Granular disclosure toggles & giver-only view)
-- **Item 6: Automated Execution Audit Cron**: ✅ DONE (Database-driven lifecycle engine & edge cron)
+### Quick Status Dashboard (Sprint W39: Sep 21 – Sep 28)
+- **Item 1: Mobile Responsive Viewport Audit**: ⏳ PLANNED (44px+ touch targets, bottom sheets, mobile Safari & Android Chrome viewports)
+- **Item 2: PostgreSQL Connection Pool Stress Test**: ⏳ PLANNED (PgBouncer pooled connections under concurrent load, 30s reclamation)
+- **Item 3: Asset & Image Optimization Pipeline**: ⏳ PLANNED (Client-side WebP image conversion, lazy loading, and dimension caching)
+- **Item 4: NIST SP 800-63B Security & Rate Limiting**: ⏳ PLANNED (Brute-force login rate limiting middleware and NIST password complexity checks)
+- **Item 5: Zero-Vulnerability Security Scan**: 🔄 IN PROGRESS (Single-label SSRF fixed, lifecycle auth secured, npm audit remediation)
+- **Item 6: Playwright E2E Automated Test Suite**: ⏳ PLANNED (Simulated user registration ➔ mission creation ➔ draw ➔ reveal ➔ AAR post)
 
-*For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W38.md](sprints/2026-W38.md).*
+*For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W39.md](sprints/2026-W39.md).*
 
 ---
 
@@ -28,7 +28,7 @@
 | [**2026-W36**](sprints/2026-W36.md) | Aug 31 – Sep 7 | `v0.1.0-prealpha` | P0-B Core Feature Completeness & Head Elf UX | ✅ **COMPLETED** |
 | [**2026-W37**](sprints/2026-W37.md) | Sep 7 – Sep 14 | `v0.1.0-prealpha` | P0-C Communications & Live Email Pipeline | ⏳ Planned |
 | [**2026-W38**](sprints/2026-W38.md) | Sep 14 – Sep 21 | `v0.1.0-prealpha` | Demerit Immunity, Carrier Webhooks & Governance | ✅ **COMPLETED** |
-| [**2026-W39**](sprints/2026-W39.md) | Sep 21 – Sep 28 | `v0.1.0-prealpha` | Mobile Polish, Performance & Security Hardening | ⏳ Planned |
+| [**2026-W39**](sprints/2026-W39.md) | Sep 21 – Sep 28 | `v0.1.0-prealpha` | Mobile Polish, Performance & Security Hardening | 🚀 **ACTIVE** |
 | [**2026-W40**](sprints/2026-W40.md) | Sep 28 – Oct 1 | **`v0.2.0-alpha`** 🚀 | **Alpha Release Runway & Family Dogfooding Launch** | 🎯 Target: Oct 1 |
 
 

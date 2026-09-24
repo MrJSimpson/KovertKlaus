@@ -1121,6 +1121,7 @@ export default {
               return {
                 id: m.id,
                 userId: m.userId,
+                codename: m.codename || m.user.codename,
                 role: m.role,
                 shippingStatus: m.shippingStatus,
                 trackingNumber: canViewDetails ? m.trackingNumber : undefined,
@@ -1130,7 +1131,7 @@ export default {
                 user: {
                   id: m.user.id,
                   name: m.user.name,
-                  codename: m.user.codename,
+                  codename: m.codename || m.user.codename,
                   streetAddress: canViewDetails ? m.user.streetAddress : null,
                   city: canViewDetails ? m.user.city : null,
                   state: canViewDetails ? m.user.state : null,
@@ -1786,10 +1787,14 @@ export default {
         const activeUserId = getUserIdFromRequest(request);
         const { operationCode, wishlistId } = body;
 
-        if (!activeUserId || !operationCode) return Response.json({ error: 'Auth and operationCode required' }, { status: 400 });
+        if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+        if (!operationCode) return Response.json({ error: 'operationCode required' }, { status: 400 });
 
         const exchange = await db.exchange.findUnique({ where: { code: operationCode.trim().toUpperCase() }, include: { members: true } });
         if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+        if (exchange.status !== 'RECRUITING') {
+          return Response.json({ error: 'Recruitment for this mission has closed. Operatives cannot join active or completed operations.' }, { status: 400 });
+        }
 
         const existing = exchange.members.find((m) => m.userId === activeUserId);
         if (existing) return Response.json({ error: 'Already enrolled in exchange' }, { status: 400 });
@@ -1912,6 +1917,16 @@ export default {
 
       // 17b. /api/operations/lifecycle (POST)
       if (pathname === '/api/operations/lifecycle' && request.method === 'POST') {
+        const adminId = getAdminIdFromRequest(request);
+        const authHeader = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+        const cronHeader = request.headers.get('x-cron-secret');
+        const expectedCronSecret = (env as any).CRON_SECRET || (typeof process !== 'undefined' ? process.env.CRON_SECRET : undefined);
+        const isCronAuthorized = Boolean(expectedCronSecret && (authHeader === expectedCronSecret || cronHeader === expectedCronSecret));
+
+        if (!adminId && !isCronAuthorized) {
+          return Response.json({ error: 'Unauthorized. Valid admin session or CRON_SECRET required.' }, { status: 401 });
+        }
+
         const summary = await advanceMissionLifecycle(db);
         const now = new Date();
         await adminDb.systemConfig.upsert({

@@ -107,6 +107,14 @@ test('SSRF Protection - isSafePublicUrl', async (t) => {
     assert.strictEqual(isSafePublicUrl('javascript:alert(1)').safe, false);
     assert.strictEqual(isSafePublicUrl('http://admin:password@example.com').safe, false);
   });
+
+  await t.test('Blocks single-label internal container hostnames', () => {
+    assert.strictEqual(isSafePublicUrl('http://kovertklaus-db:5432').safe, false);
+    assert.strictEqual(isSafePublicUrl('http://postgres:5432').safe, false);
+    assert.strictEqual(isSafePublicUrl('http://redis:6379').safe, false);
+    assert.strictEqual(isSafePublicUrl('http://internal-service:8080').safe, false);
+    assert.strictEqual(isSafePublicUrl('http://singlelabel/api').safe, false);
+  });
 });
 
 test('Exchange Roster Target Sanitization Logic', async (t) => {

@@ -11,7 +11,7 @@ test('Next.js Route Configuration & Edge Assets Alignment (Finding 3.2)', async 
     const configPath = path.join(process.cwd(), 'next.config.ts');
     const content = fs.readFileSync(configPath, 'utf-8');
     assert.strictEqual(content.includes('output: "export"'), true);
-    assert.strictEqual(content.includes('wrangler.json'), true);
+    assert.strictEqual(content.includes('isStaticExport'), true);
   });
 });
 
@@ -104,7 +104,7 @@ test('Cloudflare Edge Worker API Parity Logic (Finding 3.1)', async (t) => {
     const wranglerConfig = JSON.parse(fs.readFileSync(wranglerPath, 'utf-8'));
     assert.ok(wranglerConfig.triggers, 'wrangler.json must define triggers');
     assert.ok(Array.isArray(wranglerConfig.triggers.crons), 'triggers.crons must be an array');
-    assert.strictEqual(wranglerConfig.triggers.crons.includes('0 6 * * *'), true);
+    assert.strictEqual(wranglerConfig.triggers.crons.includes('0 * * * *'), true);
   });
 
   await t.test('worker.ts default export provides scheduled handler invoking ctx.waitUntil for lifecycle', async () => {

@@ -14,8 +14,12 @@ export async function POST(request: Request) {
       trackingNumber?: string;
     };
 
-    if (!operationId || !activeUserId) {
-      return NextResponse.json({ error: 'Authentication and operationId are required' }, { status: 400 });
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    if (!operationId) {
+      return NextResponse.json({ error: 'operationId is required' }, { status: 400 });
     }
 
     // Find member participation

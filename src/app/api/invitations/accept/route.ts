@@ -29,7 +29,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
     }
 
-    // 2. Check Participant Limit
+    // 2. Check Mission Phase Status (Enforce Recruiting Stage)
+    if (exchange.status !== 'RECRUITING') {
+      return NextResponse.json(
+        { error: 'Recruitment for this mission has closed. Operatives cannot join active or completed operations.' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Check Participant Limit
     if (exchange.maxParticipants && exchange.members.length >= exchange.maxParticipants) {
       return NextResponse.json(
         { error: 'Exchange participant capacity has been reached.' },

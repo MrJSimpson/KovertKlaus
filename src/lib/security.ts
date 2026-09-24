@@ -21,9 +21,17 @@ const DEFAULT_SESSION_SECRET = 'kovertklaus-session-hmac-secret-vault-do-not-use
 
 /**
  * Retrieves the cryptographic secret used for HMAC token signing and verification.
+ * Fails hard in production if no secret is explicitly configured.
  */
 export function getSessionSecret(): string {
-  return process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET || DEFAULT_SESSION_SECRET;
+  const secret = process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL SECURITY CONFIGURATION: SESSION_SECRET or NEXTAUTH_SECRET must be configured in production environments.');
+    }
+    return DEFAULT_SESSION_SECRET;
+  }
+  return secret;
 }
 
 /**
@@ -432,6 +440,11 @@ export function isSafePublicUrl(urlString: string): { safe: boolean; error?: str
       rawHostname.endsWith('.lan')
     ) {
       return { safe: false, error: 'Access to loopback/local addresses is forbidden.' };
+    }
+
+    // Require Fully Qualified Domain Name (FQDN) with at least one dot (reject single-label internal container names)
+    if (!rawHostname.includes('.') || rawHostname.endsWith('.') || rawHostname.startsWith('.')) {
+      return { safe: false, error: 'Access to internal, single-label, or non-FQDN hostnames is forbidden.' };
     }
 
     // DNS Rebinding and wildcard service check

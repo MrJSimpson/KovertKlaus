@@ -105,6 +105,7 @@ export async function GET(request: Request) {
         return {
           id: m.id,
           userId: m.userId,
+          codename: m.codename || m.user.codename,
           role: m.role,
           shippingStatus: m.shippingStatus,
           trackingNumber: canViewDetails ? m.trackingNumber : undefined,
@@ -125,7 +126,7 @@ export async function GET(request: Request) {
           user: {
             id: m.user.id,
             name: m.user.name,
-            codename: m.user.codename,
+            codename: m.codename || m.user.codename,
             streetAddress: canViewDetails ? m.user.streetAddress : null,
             city: canViewDetails ? m.user.city : null,
             state: canViewDetails ? m.user.state : null,
