@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanEmail = body.email.trim().toLowerCase();
+    const cleanName = typeof body.name === 'string' && body.name.trim() ? body.name.trim() : undefined;
 
     if (!isValidEmail(cleanEmail)) {
       return NextResponse.json(
@@ -59,28 +60,26 @@ export async function POST(req: NextRequest) {
     try {
       await db.clearanceLead.upsert({
         where: { email: cleanEmail },
-        update: {},
+        update: {
+          ...(cleanName ? { name: cleanName } : {}),
+        },
         create: {
           email: cleanEmail,
+          name: cleanName,
           ipHash,
           source: 'landing_page',
+          status: 'PENDING',
         },
       });
       const totalCount = await db.clearanceLead.count();
       // Dispatch Welcome / Early-Access Clearance Cipher Email
       await sendClearanceConfirmationEmail({
         recipientEmail: cleanEmail,
+        name: cleanName,
         positionNumber: totalCount,
       });
     } catch (dbError) {
-      console.error('[Clearance API] Database error:', dbError);
-    }
-
-    // Dispatch Confirmation Email via Cloudflare Email Engine
-    try {
-      await sendClearanceConfirmationEmail({ to: cleanEmail });
-    } catch (emailErr) {
-      console.error('[Clearance API] Email dispatch error:', emailErr);
+      console.error('[Clearance API] Database or email error:', dbError);
     }
 
     return NextResponse.json(

@@ -1,5 +1,5 @@
--- KovertKlaus Clean PostgreSQL Database Dump (v0.2.0-alpha)
--- Conforms strictly to prisma/schema.prisma
+-- KovertKlaus Clean Production PostgreSQL Database Dump (v0.2.0-alpha)
+-- Conforms strictly to prisma/schema.prisma (Zero Dummy Records)
 
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
@@ -507,7 +507,7 @@ ALTER TABLE "SystemConfig" ADD CONSTRAINT "SystemConfig_activeThemeId_fkey" FORE
 
 
 -- -----------------------------------------------------------------------------
--- DATA INGESTION & SEED RECORDS
+-- PRODUCTION CLEAN DATA SEED (Themes, SystemConfig, Super Admin)
 -- -----------------------------------------------------------------------------
 
 INSERT INTO "SystemConfig" ("id", "activeThemeId", "activeSeason", "announcementBannerActive", "freeAnnualHostAllowance", "freeAnnualJoinAllowance", "paidEventPriceUsd", "maxFreeParticipants", "maxWishlistItems", "updatedAt")
@@ -515,98 +515,14 @@ VALUES ('singleton', 'winter_holiday', 'auto', true, 1, 3, 5.00, 25, 50, NOW())
 ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO "AdminUser" ("id", "username", "email", "name", "passwordHash", "role", "isActive", "requiresPasswordReset", "createdAt", "updatedAt")
-VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$2b$12$vT/KpNmBcWJaxi7sedGS/elLWbn8pLslOJzn3745H8nH9.NM2IXRu', 'SUPER_ADMIN', true, false, NOW(), NOW())
+VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$2b$12$yO4tFn.yICXf247YZsAW9OKuibxKgW1xA/LDykwoxKyssDvU8ZyXi', 'SUPER_ADMIN', true, false, NOW(), NOW())
 ON CONFLICT ("id") DO NOTHING;
 
-COPY public."User" ("id", "email", "name", "codename", "passwordHash", "streetAddress", "city", "state", "zipCode", "country", "penaltyPoints", "accountStatus", "emailNotifications", "createdAt", "updatedAt", "allowOrganizerViewAllergies", "allowOrganizerViewSizes", "allowOrganizerViewMeasurements", "allowOrganizerViewFavorites") FROM stdin;
-2e65ae12-b926-4489-b220-8e704d983bda	joshua@example.com	Joshua Simpson	Chewie	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	6189 Pine Rd NE	Bremerton	WA	98311	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-2b2852e9-5126-4b57-9158-dbaa1463eaca	zachary@example.com	Zachary Simpson	Zachary	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-271f7a54-689d-4a3d-9d40-74b5da8a5ac5	shannon@example.com	Shannon Jaelynn Simpson	Shannon	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-af08be00-376c-4871-bd05-e7bf2ea83841	matthew@example.com	Matthew Simpson	Matthew	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-d151148c-aef8-434e-a048-43781cdeeddf	leslie@example.com	Leslie Simpson-Crawford	Leslie	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-8532980e-3e08-4b53-82fd-4bd87284eb4e	charles@example.com	Charles Crawford	Charles	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-864d4a8e-249a-4aff-a630-a3c1ef5ff65a	david@example.com	David Simpson	David	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-b9868ab1-79ea-430a-966d-fab5eadfed14	debbie@example.com	Debbie Kraemer	Debbie	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-7e6f8041-20e4-4f9c-95be-58462622b542	michael@example.com	Michael Kelly	Michael	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-08d55464-478a-4a36-b13a-2cd720c68587	terry@example.com	Terry Kelly	Terry	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-c6512237-d6b4-4e01-ba3e-180ab7eff431	sharon@example.com	Sharon Goins	Sharon	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-30fb6940-c586-4a76-a1ab-b91d276835a1	thomas@example.com	Thomas Goins	Thomas	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-83ec991a-4379-47be-8c1a-47a95aecc053	leonard@example.com	Leonard Courier	Leonard	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-af7c7907-22d4-4bb1-81cd-b347b999d75f	cheryl@example.com	Cheryl Courier	Cheryl	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-7122c6f3-1d14-4dea-9856-7950154aff51	kristy@example.com	Kristy Bonifer	Kristy	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-30c7b060-1ced-4165-8f18-dc157af689a1	dayton@example.com	Dayton Moses	Dayton	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-66b86c8b-1743-40d5-a8ad-7cd395350ed6	kathy@example.com	Kathy Moses	Kathy	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-f9ffcf17-cf57-4951-9fdc-6699a3076abf	john@example.com	John Moses	John	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-1a909af5-cb98-4f38-a8fb-cfaaffdc8c7d	james@example.com	James Moses	James	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-66295104-5539-45d3-9cad-60a0c329ffaf	julia@example.com	Julia Kelly	Julia	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-6a43cd31-048d-44fa-81a9-87365a9b3c1f	kimberly@example.com	Kimberly Piercy	Kimberly	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-634555c4-12c1-452f-97ef-3301a2f6c49c	rodney@example.com	Rodney Piercy	Rodney	$2b$12$BOv5hMFqlRoVYs/S0fDUD..bQJdmzLSirDLDCdxHTNs/CkM3BPZo6	\N	\N	\N	\N	US	0	ACTIVE	t	2026-08-06 00:00:00	2026-08-06 00:00:00	t	t	f	f
-\.
+INSERT INTO "User" ("id", "email", "name", "codename", "passwordHash", "country", "penaltyPoints", "accountStatus", "emailNotifications", "createdAt", "updatedAt")
+VALUES ('00000000-0000-4000-b000-000000000001', 'admin@kovertklaus.com', 'Santa Claus', 'Santa', '$2b$12$yO4tFn.yICXf247YZsAW9OKuibxKgW1xA/LDykwoxKyssDvU8ZyXi', 'US', 0, 'ACTIVE', true, NOW(), NOW())
+ON CONFLICT ("id") DO NOTHING;
 
-COPY public."Wishlist" ("id", "userId", "name", "type", "createdAt", "updatedAt") FROM stdin;
-w-65ae12-b926-4489-b220-8e704d983bda	2e65ae12-b926-4489-b220-8e704d983bda	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-2852e9-5126-4b57-9158-dbaa1463eaca	2b2852e9-5126-4b57-9158-dbaa1463eaca	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-1f7a54-689d-4a3d-9d40-74b5da8a5ac5	271f7a54-689d-4a3d-9d40-74b5da8a5ac5	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-08be00-376c-4871-bd05-e7bf2ea83841	af08be00-376c-4871-bd05-e7bf2ea83841	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-51148c-aef8-434e-a048-43781cdeeddf	d151148c-aef8-434e-a048-43781cdeeddf	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-32980e-3e08-4b53-82fd-4bd87284eb4e	8532980e-3e08-4b53-82fd-4bd87284eb4e	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-4d4a8e-249a-4aff-a630-a3c1ef5ff65a	864d4a8e-249a-4aff-a630-a3c1ef5ff65a	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-868ab1-79ea-430a-966d-fab5eadfed14	b9868ab1-79ea-430a-966d-fab5eadfed14	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-6f8041-20e4-4f9c-95be-58462622b542	7e6f8041-20e4-4f9c-95be-58462622b542	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-d55464-478a-4a36-b13a-2cd720c68587	08d55464-478a-4a36-b13a-2cd720c68587	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-512237-d6b4-4e01-ba3e-180ab7eff431	c6512237-d6b4-4e01-ba3e-180ab7eff431	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-fb6940-c586-4a76-a1ab-b91d276835a1	30fb6940-c586-4a76-a1ab-b91d276835a1	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-ec991a-4379-47be-8c1a-47a95aecc053	83ec991a-4379-47be-8c1a-47a95aecc053	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-7c7907-22d4-4bb1-81cd-b347b999d75f	af7c7907-22d4-4bb1-81cd-b347b999d75f	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-22c6f3-1d14-4dea-9856-7950154aff51	7122c6f3-1d14-4dea-9856-7950154aff51	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-c7b060-1ced-4165-8f18-dc157af689a1	30c7b060-1ced-4165-8f18-dc157af689a1	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-b86c8b-1743-40d5-a8ad-7cd395350ed6	66b86c8b-1743-40d5-a8ad-7cd395350ed6	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-ffcf17-cf57-4951-9fdc-6699a3076abf	f9ffcf17-cf57-4951-9fdc-6699a3076abf	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-909af5-cb98-4f38-a8fb-cfaaffdc8c7d	1a909af5-cb98-4f38-a8fb-cfaaffdc8c7d	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-295104-5539-45d3-9cad-60a0c329ffaf	66295104-5539-45d3-9cad-60a0c329ffaf	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-43cd31-048d-44fa-81a9-87365a9b3c1f	6a43cd31-048d-44fa-81a9-87365a9b3c1f	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-w-4555c4-12c1-452f-97ef-3301a2f6c49c	634555c4-12c1-452f-97ef-3301a2f6c49c	Master Wishlist Manifest - Secret Santa	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-f7251af7-d292-4c35-9d80-ef14ad4ac05e	2e65ae12-b926-4489-b220-8e704d983bda	Tools Kit	STANDARD	2026-08-06 00:00:00	2026-08-06 00:00:00
-9607a2ab-72b0-4aeb-85f7-dcab467d6413	2e65ae12-b926-4489-b220-8e704d983bda	OC White Elephant	WHITE_ELEPHANT	2026-08-06 00:00:00	2026-08-06 00:00:00
-\.
-
-COPY public."Exchange" ("id", "title", "description", "code", "organizerId", "maxParticipants", "giftingType", "isLocalOnly", "eventLocation", "isWhiteElephant", "budgetMin", "budgetMax", "currency", "inviteCutoffDate", "assignmentDate", "shippingDate", "executionDate", "status", "isFreeAnnualExchange", "enforcePenalties", "paymentStatus", "createdAt", "updatedAt", "organizerAssistedDraw") FROM stdin;
-5e0c8528-04c6-42fe-b95c-cffcb637a8b4	Simpson Family Secret Santa 2026	Annual Simpson & Family Secret Santa Gift Exchange! Wishlists required.	SIMPSON-2026	2e65ae12-b926-4489-b220-8e704d983bda	25	SINGLE	f	\N	f	25.00	75.00	USD	2026-11-20 23:59:59	2026-11-25 00:00:00	2026-12-15 23:59:59	2026-12-25 18:00:00	RECRUITING	t	t	FREE_ANNUAL	2026-08-06 00:00:00	2026-08-06 00:00:00	t
-120d0188-9510-4132-af05-c3711d12f6ec	Simpson Family White Elephant Party 2026	In-person local White Elephant gift stealing party! Bring 1 wrapped funny or cool gift under $30.	SIMPSON-ELEV	271f7a54-689d-4a3d-9d40-74b5da8a5ac5	20	SINGLE	t	6189 Pine Rd NE, Bremerton, WA 98311	t	10.00	30.00	USD	2026-12-10 23:59:59	2026-12-15 00:00:00	2026-12-20 23:59:59	2026-12-24 17:00:00	RECRUITING	f	f	FREE_ANNUAL	2026-08-06 00:00:00	2026-08-06 00:00:00	t
-\.
-
-COPY public."ExchangeMember" ("id", "exchangeId", "userId", "codename", "wishlistId", "role", "shippingStatus", "deliveredConfirmed", "joinedAt") FROM stdin;
-em-5ae12-b926-4489-b220-8e704d983bda	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	2e65ae12-b926-4489-b220-8e704d983bda	Chewie	w-65ae12-b926-4489-b220-8e704d983bda	ORGANIZER	PENDING	f	2026-08-06 00:00:00
-em-852e9-5126-4b57-9158-dbaa1463eaca	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	2b2852e9-5126-4b57-9158-dbaa1463eaca	Zachary	w-2852e9-5126-4b57-9158-dbaa1463eaca	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-f7a54-689d-4a3d-9d40-74b5da8a5ac5	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	271f7a54-689d-4a3d-9d40-74b5da8a5ac5	Shannon	w-1f7a54-689d-4a3d-9d40-74b5da8a5ac5	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-8be00-376c-4871-bd05-e7bf2ea83841	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	af08be00-376c-4871-bd05-e7bf2ea83841	Matthew	w-08be00-376c-4871-bd05-e7bf2ea83841	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-1148c-aef8-434e-a048-43781cdeeddf	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	d151148c-aef8-434e-a048-43781cdeeddf	Leslie	w-51148c-aef8-434e-a048-43781cdeeddf	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-2980e-3e08-4b53-82fd-4bd87284eb4e	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	8532980e-3e08-4b53-82fd-4bd87284eb4e	Charles	w-32980e-3e08-4b53-82fd-4bd87284eb4e	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-d4a8e-249a-4aff-a630-a3c1ef5ff65a	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	864d4a8e-249a-4aff-a630-a3c1ef5ff65a	David	w-4d4a8e-249a-4aff-a630-a3c1ef5ff65a	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-68ab1-79ea-430a-966d-fab5eadfed14	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	b9868ab1-79ea-430a-966d-fab5eadfed14	Debbie	w-868ab1-79ea-430a-966d-fab5eadfed14	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-f8041-20e4-4f9c-95be-58462622b542	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	7e6f8041-20e4-4f9c-95be-58462622b542	Michael	w-6f8041-20e4-4f9c-95be-58462622b542	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-55464-478a-4a36-b13a-2cd720c68587	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	08d55464-478a-4a36-b13a-2cd720c68587	Terry	w-d55464-478a-4a36-b13a-2cd720c68587	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-12237-d6b4-4e01-ba3e-180ab7eff431	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	c6512237-d6b4-4e01-ba3e-180ab7eff431	Sharon	w-512237-d6b4-4e01-ba3e-180ab7eff431	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-b6940-c586-4a76-a1ab-b91d276835a1	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	30fb6940-c586-4a76-a1ab-b91d276835a1	Thomas	w-fb6940-c586-4a76-a1ab-b91d276835a1	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-c991a-4379-47be-8c1a-47a95aecc053	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	83ec991a-4379-47be-8c1a-47a95aecc053	Leonard	w-ec991a-4379-47be-8c1a-47a95aecc053	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-c7907-22d4-4bb1-81cd-b347b999d75f	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	af7c7907-22d4-4bb1-81cd-b347b999d75f	Cheryl	w-7c7907-22d4-4bb1-81cd-b347b999d75f	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-2c6f3-1d14-4dea-9856-7950154aff51	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	7122c6f3-1d14-4dea-9856-7950154aff51	Kristy	w-22c6f3-1d14-4dea-9856-7950154aff51	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-7b060-1ced-4165-8f18-dc157af689a1	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	30c7b060-1ced-4165-8f18-dc157af689a1	Dayton	w-c7b060-1ced-4165-8f18-dc157af689a1	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-86c8b-1743-40d5-a8ad-7cd395350ed6	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	66b86c8b-1743-40d5-a8ad-7cd395350ed6	Kathy	w-b86c8b-1743-40d5-a8ad-7cd395350ed6	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-fcf17-cf57-4951-9fdc-6699a3076abf	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	f9ffcf17-cf57-4951-9fdc-6699a3076abf	John	w-ffcf17-cf57-4951-9fdc-6699a3076abf	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-09af5-cb98-4f38-a8fb-cfaaffdc8c7d	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	1a909af5-cb98-4f38-a8fb-cfaaffdc8c7d	James	w-909af5-cb98-4f38-a8fb-cfaaffdc8c7d	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-95104-5539-45d3-9cad-60a0c329ffaf	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	66295104-5539-45d3-9cad-60a0c329ffaf	Julia	w-295104-5539-45d3-9cad-60a0c329ffaf	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-3cd31-048d-44fa-81a9-87365a9b3c1f	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	6a43cd31-048d-44fa-81a9-87365a9b3c1f	Kimberly	w-43cd31-048d-44fa-81a9-87365a9b3c1f	MEMBER	PENDING	f	2026-08-06 00:00:00
-em-555c4-12c1-452f-97ef-3301a2f6c49c	5e0c8528-04c6-42fe-b95c-cffcb637a8b4	634555c4-12c1-452f-97ef-3301a2f6c49c	Rodney	w-4555c4-12c1-452f-97ef-3301a2f6c49c	MEMBER	PENDING	f	2026-08-06 00:00:00
-elev-e12-b926-4489-b220-8e704d983bda	120d0188-9510-4132-af05-c3711d12f6ec	2e65ae12-b926-4489-b220-8e704d983bda	Chewie	\N	MEMBER	PENDING	f	2026-08-06 00:00:00
-elev-2e9-5126-4b57-9158-dbaa1463eaca	120d0188-9510-4132-af05-c3711d12f6ec	2b2852e9-5126-4b57-9158-dbaa1463eaca	Zachary	\N	MEMBER	PENDING	f	2026-08-06 00:00:00
-elev-a54-689d-4a3d-9d40-74b5da8a5ac5	120d0188-9510-4132-af05-c3711d12f6ec	271f7a54-689d-4a3d-9d40-74b5da8a5ac5	Shannon	\N	ORGANIZER	PENDING	f	2026-08-06 00:00:00
-elev-e00-376c-4871-bd05-e7bf2ea83841	120d0188-9510-4132-af05-c3711d12f6ec	af08be00-376c-4871-bd05-e7bf2ea83841	Matthew	\N	MEMBER	PENDING	f	2026-08-06 00:00:00
-elev-48c-aef8-434e-a048-43781cdeeddf	120d0188-9510-4132-af05-c3711d12f6ec	d151148c-aef8-434e-a048-43781cdeeddf	Leslie	\N	MEMBER	PENDING	f	2026-08-06 00:00:00
-elev-80e-3e08-4b53-82fd-4bd87284eb4e	120d0188-9510-4132-af05-c3711d12f6ec	8532980e-3e08-4b53-82fd-4bd87284eb4e	Charles	\N	MEMBER	PENDING	f	2026-08-06 00:00:00
-elev-a8e-249a-4aff-a630-a3c1ef5ff65a	120d0188-9510-4132-af05-c3711d12f6ec	864d4a8e-249a-4aff-a630-a3c1ef5ff65a	David	\N	MEMBER	PENDING	f	2026-08-06 00:00:00
-elev-ab1-79ea-430a-966d-fab5eadfed14	120d0188-9510-4132-af05-c3711d12f6ec	b9868ab1-79ea-430a-966d-fab5eadfed14	Debbie	\N	MEMBER	PENDING	f	2026-08-06 00:00:00
-elev-041-20e4-4f9c-95be-58462622b542	120d0188-9510-4132-af05-c3711d12f6ec	7e6f8041-20e4-4f9c-95be-58462622b542	Michael	\N	MEMBER	PENDING	f	2026-08-06 00:00:00
-elev-464-478a-4a36-b13a-2cd720c68587	120d0188-9510-4132-af05-c3711d12f6ec	08d55464-478a-4a36-b13a-2cd720c68587	Terry	\N	MEMBER	PENDING	f	2026-08-06 00:00:00
-\.
+INSERT INTO "Wishlist" ("id", "userId", "name", "type", "createdAt", "updatedAt")
+VALUES ('00000000-0000-4000-c000-000000000001', '00000000-0000-4000-b000-000000000001', 'Master Wishlist Manifest', 'STANDARD', NOW(), NOW())
+ON CONFLICT ("id") DO NOTHING;
 

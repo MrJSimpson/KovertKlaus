@@ -9,7 +9,7 @@ import { calculateAutomaticOperationDates } from '@/lib/validations/operation';
 import { useTheme } from '@/context/ThemeContext';
 import { SeasonalLightsStrand } from '@/components/ui/SeasonalLightsStrand';
 import { generateRandomCodename } from '@/lib/codenameGenerator';
-import { APP_VERSION_LABEL } from '@/lib/version';
+import { APP_VERSION_LABEL, RELEASE_STAGE } from '@/lib/version';
 
 
 
@@ -82,6 +82,41 @@ export function AppHomeLanding() {
   const router = useRouter();
   const { isDarkMode, toggleTheme, theme, bannerText, bannerActive, lightsType } = useTheme();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
+
+  const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
+
+  // Alpha Clearance Lead Request State
+  const [clearanceEmail, setClearanceEmail] = useState('');
+  const [clearanceName, setClearanceName] = useState('');
+  const [clearanceLoading, setClearanceLoading] = useState(false);
+  const [clearanceSubmitted, setClearanceSubmitted] = useState(false);
+  const [clearanceError, setClearanceError] = useState<string | null>(null);
+
+  async function handleClearanceSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!clearanceEmail || !clearanceEmail.includes('@')) return;
+    setClearanceLoading(true);
+    setClearanceError(null);
+    try {
+      const res = await fetch('/api/clearance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: clearanceEmail.trim(),
+          name: clearanceName.trim() || undefined,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Failed to submit clearance request');
+      }
+      setClearanceSubmitted(true);
+    } catch (err: any) {
+      setClearanceError(err.message || 'Transmission error. Please try again.');
+    } finally {
+      setClearanceLoading(false);
+    }
+  }
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -218,6 +253,8 @@ export function AppHomeLanding() {
 
       if (currentUser) {
         userId = currentUser.id;
+      } else if (isAlpha) {
+        throw new Error('Please sign in to organize a gift exchange during Alpha.');
       } else {
         if (name && password) {
           const regRes = await fetch('/api/users', {
@@ -312,6 +349,7 @@ export function AppHomeLanding() {
               email: email.trim(),
               codename: codename.trim() ? codename.trim().replace(/^(agent[-:\s]+)/i, '') : undefined,
               password,
+              inviteCode: cleanCode,
             }),
           });
           const regData = await regRes.json();
@@ -319,6 +357,9 @@ export function AppHomeLanding() {
             throw new Error(regData.error || 'Registration failed');
           }
           userId = regData.data.id;
+          setCurrentUser({ id: regData.data.id, name: regData.data.name, codename: regData.data.codename });
+          localStorage.setItem(USER_ID_KEY, regData.data.id);
+          localStorage.setItem('kovertklaus_user_name', regData.data.name);
         } else {
           const loginRes = await fetch('/api/users/login', {
             method: 'POST',
@@ -330,6 +371,9 @@ export function AppHomeLanding() {
             throw new Error(loginData.error || 'Invalid credentials');
           }
           userId = loginData.user.id;
+          setCurrentUser({ id: loginData.user.id, name: loginData.user.name, codename: loginData.user.codename });
+          localStorage.setItem(USER_ID_KEY, loginData.user.id);
+          localStorage.setItem('kovertklaus_user_name', loginData.user.name);
         }
       }
 
@@ -453,7 +497,7 @@ export function AppHomeLanding() {
                 onClick={() => { resetAuthStates(); setAuthMode('login'); setLoginModalOpen(true); }}
                 className={`font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
               >
-                🔑 Login / Sign Up
+                {isAlpha ? '🔑 Sign In' : '🔑 Login / Sign Up'}
               </button>
             )}
           </div>
@@ -489,20 +533,114 @@ export function AppHomeLanding() {
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => { resetAuthStates(); setCreateModalOpen(true); }}
-                className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 text-base cursor-pointer transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
-              >
-                <span>🎅 Organize a Gift Exchange</span>
-              </button>
+              {currentUser ? (
+                <>
+                  <button
+                    onClick={() => { resetAuthStates(); setCreateModalOpen(true); }}
+                    className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 text-base cursor-pointer transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
+                  >
+                    <span>🎅 Organize a Gift Exchange</span>
+                  </button>
+                  <Link
+                    href="/dashboard"
+                    className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 text-base cursor-pointer ${theme.btnSecondary}`}
+                  >
+                    <span>👤 Go to Dashboard</span>
+                  </Link>
+                </>
+              ) : isAlpha ? (
+                <>
+                  <button
+                    onClick={() => { resetAuthStates(); setAuthMode('login'); setLoginModalOpen(true); }}
+                    className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 text-base cursor-pointer transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
+                  >
+                    <span>🔑 Sign In to Your Mission</span>
+                  </button>
 
-              <button
-                onClick={() => { resetAuthStates(); setJoinModalOpen(true); }}
-                className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 text-base cursor-pointer ${theme.btnSecondary}`}
-              >
-                <span>🔑 Join an Exchange (Enter Code)</span>
-              </button>
+                  <button
+                    onClick={() => { resetAuthStates(); setJoinModalOpen(true); }}
+                    className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 text-base cursor-pointer ${theme.btnSecondary}`}
+                  >
+                    <span>🎟️ Have an Invite Code? Join Here</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => { resetAuthStates(); setCreateModalOpen(true); }}
+                    className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 text-base cursor-pointer transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
+                  >
+                    <span>🎅 Organize a Gift Exchange</span>
+                  </button>
+
+                  <button
+                    onClick={() => { resetAuthStates(); setJoinModalOpen(true); }}
+                    className={`font-bold px-7 py-4 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 text-base cursor-pointer ${theme.btnSecondary}`}
+                  >
+                    <span>🔑 Join an Exchange (Enter Code)</span>
+                  </button>
+                </>
+              )}
             </div>
+
+            {/* Alpha Early Clearance Request Card */}
+            {isAlpha && !currentUser && (
+              <div className={`p-5 rounded-2xl border transition-all ${theme.cardInnerBg}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📬</span>
+                    <span className={`text-xs font-mono font-bold uppercase tracking-wider ${theme.textBrand}`}>
+                      Alpha Early Clearance Request
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${theme.badgeCode}`}>
+                    Invite-Only Dogfooding
+                  </span>
+                </div>
+                <p className={`text-xs mb-3 leading-relaxed ${theme.textSubLabel}`}>
+                  Direct public sign-up is closed during Alpha. Accounts require an invitation to a Secret Santa mission, or approved clearance. Request early access below to be queued for upcoming waves:
+                </p>
+
+                {clearanceSubmitted ? (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
+                    <span>✓</span>
+                    <span>Clearance request queued! You will be notified at <strong>{clearanceEmail}</strong> when approved or when public beta launches.</span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleClearanceSubmit} className="space-y-2">
+                    {clearanceError && (
+                      <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-[11px] font-semibold">
+                        ⚠️ {clearanceError}
+                      </div>
+                    )}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        placeholder="Your Name (optional)"
+                        value={clearanceName}
+                        onChange={(e) => setClearanceName(e.target.value)}
+                        className={`sm:w-1/3 border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                      />
+                      <input
+                        type="email"
+                        required
+                        placeholder="Your Email Address *"
+                        value={clearanceEmail}
+                        onChange={(e) => setClearanceEmail(e.target.value)}
+                        className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                      />
+                      <button
+                        type="submit"
+                        disabled={clearanceLoading}
+                        className={`font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-sm cursor-pointer whitespace-nowrap ${theme.btnPrimary}`}
+                      >
+                        {clearanceLoading ? 'Queuing...' : 'Request Clearance →'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
 
             <div className={`pt-4 grid grid-cols-3 gap-4 border-t text-xs font-medium ${
               isDarkMode ? 'border-slate-800 text-slate-400' : 'border-stone-200 text-slate-600'
@@ -530,7 +668,7 @@ export function AppHomeLanding() {
                   <span>LIVE EXCHANGE PREVIEW</span>
                 </div>
                 <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${theme.badgeCode}`}>
-                  Code: SIMPSON-2026
+                  Code: NORTH-POLE
                 </span>
               </div>
 
@@ -540,7 +678,7 @@ export function AppHomeLanding() {
                     ANNUAL HOLIDAY EXCHANGE
                   </div>
                   <div className="text-xl font-black mt-1">
-                    Simpson Family Secret Santa
+                    North Pole Holiday Mission
                   </div>
                   <div className="mt-3 flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
                     <span>Budget: <strong className={theme.textAccent}>$25 – $50</strong></span>
@@ -717,7 +855,7 @@ export function AppHomeLanding() {
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
-                <span>{authMode === 'login' ? '🔑 Sign In' : '✨ Create Elf Agent Profile'}</span>
+                <span>{isAlpha ? '🔑 Operative Sign In' : (authMode === 'login' ? '🔑 Sign In' : '✨ Create Elf Agent Profile')}</span>
               </h3>
               <button
                 onClick={() => setLoginModalOpen(false)}
@@ -727,31 +865,47 @@ export function AppHomeLanding() {
               </button>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="flex border-b border-stone-200 dark:border-slate-800 mb-5 font-bold text-xs">
-              <button
-                type="button"
-                onClick={() => { setAuthMode('login'); setErrorMessage(''); }}
-                className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
-                  authMode === 'login'
-                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                🔑 Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setAuthMode('register'); setErrorMessage(''); }}
-                className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
-                  authMode === 'register'
-                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                ✨ Sign Up (New Elf Agent)
-              </button>
-            </div>
+            {/* Tab Navigation / Alpha Advisory Header */}
+            {isAlpha ? (
+              <div className="mb-5 pb-3 border-b border-stone-200 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                    🔑 Operative Sign In
+                  </span>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${theme.badgeCode}`}>
+                    Alpha Dogfooding
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                  Public sign-up is closed during Alpha. Accounts can be created by joining an exchange with an invite code, or by requesting early clearance on the home page.
+                </p>
+              </div>
+            ) : (
+              <div className="flex border-b border-stone-200 dark:border-slate-800 mb-5 font-bold text-xs">
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('login'); setErrorMessage(''); }}
+                  className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                    authMode === 'login'
+                      ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  🔑 Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('register'); setErrorMessage(''); }}
+                  className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                    authMode === 'register'
+                      ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  ✨ Sign Up (New Elf Agent)
+                </button>
+              </div>
+            )}
 
             {errorMessage && (
               <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
@@ -802,11 +956,29 @@ export function AppHomeLanding() {
                     {loading ? 'Signing In...' : '🔑 Sign In'}
                   </button>
                 </div>
+
+                {isAlpha && (
+                  <div className="pt-2 text-center border-t border-stone-200 dark:border-slate-800 mt-4">
+                    <p className="text-[11px] text-slate-500">
+                      Have an exchange invite code?{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginModalOpen(false);
+                          setJoinModalOpen(true);
+                        }}
+                        className="font-bold text-red-600 dark:text-sky-400 hover:underline cursor-pointer"
+                      >
+                        Join an Exchange Here →
+                      </button>
+                    </p>
+                  </div>
+                )}
               </form>
             )}
 
-            {/* TAB 2: CREATE AGENT PROFILE (SIGN UP) */}
-            {authMode === 'register' && (
+            {/* TAB 2: CREATE AGENT PROFILE (SIGN UP) - RESTRICTED IN ALPHA */}
+            {authMode === 'register' && !isAlpha && (
               <form onSubmit={handleDirectRegister} className="space-y-4 text-xs font-semibold">
                 <div>
                   <label className="block text-slate-500 mb-1">Full Name *</label>
@@ -949,6 +1121,26 @@ export function AppHomeLanding() {
                     <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       ✓ Active
                     </span>
+                  </div>
+                ) : isAlpha ? (
+                  <div className="p-4 rounded-xl border bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300 space-y-2">
+                    <p className="text-xs font-bold flex items-center gap-1.5">
+                      <span>🔒</span> OpsLeader Sign In Required
+                    </p>
+                    <p className="text-[11px] leading-relaxed opacity-90">
+                      During Alpha dogfooding, organizing a new gift exchange requires an active operative account. Please sign in to initialize your mission.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateModalOpen(false);
+                        setAuthMode('login');
+                        setLoginModalOpen(true);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${theme.btnPrimary}`}
+                    >
+                      🔑 Sign In to Initialize Mission
+                    </button>
                   </div>
                 ) : (
                   <>

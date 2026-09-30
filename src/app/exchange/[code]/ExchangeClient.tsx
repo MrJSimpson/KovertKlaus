@@ -18,6 +18,7 @@ import { ShippingConfirmationModal } from '@/components/ShippingConfirmationModa
 import { WishlistItemModal } from '@/components/WishlistItemModal';
 import { detectCarrier } from '@/lib/carrier-tracking';
 import { UserDossierPreferences } from '@/lib/product-intelligence';
+import { generateRandomCodename } from '@/lib/codenameGenerator';
 
 
 interface OperationAgent {
@@ -128,6 +129,18 @@ export default function OperationCommandCenterPage() {
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [shippingModalOpen, setShippingModalOpen] = useState(false);
+
+  // Join / Auth Modal State for Unauthenticated / Non-Enrolled Users
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authCodename, setAuthCodename] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [enlisting, setEnlisting] = useState(false);
+  const [enlistError, setEnlistError] = useState('');
 
   // OpsLeader Control Panel State
   const [drawingTargets, setDrawingTargets] = useState(false);
@@ -283,6 +296,107 @@ export default function OperationCommandCenterPage() {
     setEditMaxParticipants(op.maxParticipants);
     setEditIsLocalOnly(op.isLocalOnly);
     setEditEventLocation(op.eventLocation || '');
+  }
+
+  // Handle Enlistment Authentication (Register / Sign In with Invite Code)
+  async function handleAuthSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!operation) return;
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      if (authMode === 'register') {
+        const cleanCodename = authCodename.trim()
+          ? authCodename.trim().replace(/^(agent[-:\s]+)/i, '')
+          : undefined;
+
+        const regRes = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: authName.trim(),
+            email: authEmail.trim(),
+            codename: cleanCodename,
+            password: authPassword,
+            inviteCode: operation.code,
+          }),
+        });
+
+        const regData = await regRes.json();
+        if (!regRes.ok || !regData.success) {
+          throw new Error(regData.error || 'Registration failed');
+        }
+
+        const newUser = regData.data;
+        setUserId(newUser.id);
+        setUserName(newUser.name);
+        localStorage.setItem(USER_ID_KEY, newUser.id);
+        localStorage.setItem('kovertklaus_user_name', newUser.name);
+        setAuthModalOpen(false);
+        await fetchExchangeDetails();
+      } else {
+        const loginRes = await fetch('/api/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: authEmail.trim(), password: authPassword }),
+        });
+
+        const loginData = await loginRes.json();
+        if (!loginRes.ok || !loginData.success) {
+          throw new Error(loginData.error || 'Invalid credentials');
+        }
+
+        const loggedUser = loginData.user;
+        setUserId(loggedUser.id);
+        setUserName(loggedUser.name);
+        localStorage.setItem(USER_ID_KEY, loggedUser.id);
+        localStorage.setItem('kovertklaus_user_name', loggedUser.name);
+
+        const joinRes = await fetch('/api/invitations/accept', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: loggedUser.id, operationCode: operation.code }),
+        });
+        const joinData = await joinRes.json().catch(() => ({}));
+        if (!joinRes.ok && !joinData.error?.includes('already enrolled')) {
+          console.warn('[Enlist Warning]', joinData.error);
+        }
+
+        setAuthModalOpen(false);
+        await fetchExchangeDetails();
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Authentication error');
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  // Handle Quick Enlistment for Authenticated Users
+  async function handleEnlistCurrentSession() {
+    if (!userId || !operation) return;
+    setEnlisting(true);
+    setEnlistError('');
+
+    try {
+      const res = await fetch('/api/invitations/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, operationCode: operation.code }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        if (!data.error?.includes('already enrolled')) {
+          throw new Error(data.error || 'Failed to enlist in exchange');
+        }
+      }
+      await fetchExchangeDetails();
+    } catch (err: any) {
+      setEnlistError(err.message || 'Enlistment failed');
+    } finally {
+      setEnlisting(false);
+    }
   }
 
   // Handle Save Operation Settings (OpsLeader Only)
@@ -647,21 +761,40 @@ export default function OperationCommandCenterPage() {
               <span className="hidden sm:inline">{isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}</span>
             </button>
 
-            <Link
-              href="/operations"
-              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
-            >
-              <span className="sm:hidden">← Ops</span>
-              <span className="hidden sm:inline">← Operations Center</span>
-            </Link>
+            {userId ? (
+              <>
+                <Link
+                  href="/operations"
+                  className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
+                >
+                  <span className="sm:hidden">← Ops</span>
+                  <span className="hidden sm:inline">← Operations Center</span>
+                </Link>
 
-            <button
-              onClick={handleSignOut}
-              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
-            >
-              <span className="sm:hidden">Exit</span>
-              <span className="hidden sm:inline">Sign Out</span>
-            </button>
+                <button
+                  onClick={handleSignOut}
+                  className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
+                >
+                  <span className="sm:hidden">Exit</span>
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/"
+                  className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm ${theme.btnNeutral}`}
+                >
+                  <span>🏠 Home</span>
+                </Link>
+                <button
+                  onClick={() => { setAuthMode('login'); setAuthError(''); setAuthModalOpen(true); }}
+                  className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnPrimary}`}
+                >
+                  <span>🔑 Sign In</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -743,6 +876,88 @@ export default function OperationCommandCenterPage() {
                 </button>
               </div>
             </div>
+
+            {/* Enrollment / Invitation Banner for Non-Enrolled Visitors */}
+            {!currentAgent && (
+              <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl transition-all ${theme.cardInnerBg} ${
+                operation.status === 'RECRUITING' ? 'border-amber-500/40' : 'border-slate-700/40'
+              }`}>
+                {enlistError && (
+                  <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
+                    ⚠️ {enlistError}
+                  </div>
+                )}
+
+                {operation.status === 'RECRUITING' ? (
+                  !userId ? (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">🎄</span>
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                            You've Been Invited to Join This Mission!
+                          </span>
+                        </div>
+                        <h2 className="text-xl font-black mt-1">
+                          Enlist in {operation.title}
+                        </h2>
+                        <p className={`text-xs mt-1 max-w-xl ${theme.textSubLabel}`}>
+                          Sign in or create your operative profile with invite code <strong className="font-mono">{operation.code}</strong> to submit your wishlist manifest and enter the Secret Santa assignment draw.
+                        </p>
+                      </div>
+                      <div className="flex gap-2 flex-wrap shrink-0">
+                        <button
+                          onClick={() => { setAuthMode('register'); setAuthError(''); setAuthModalOpen(true); }}
+                          className={`font-bold px-5 py-3 rounded-2xl text-xs transition-all shadow-md cursor-pointer ${theme.btnPrimary}`}
+                        >
+                          🎟️ Create Profile &amp; Enlist
+                        </button>
+                        <button
+                          onClick={() => { setAuthMode('login'); setAuthError(''); setAuthModalOpen(true); }}
+                          className={`font-bold px-5 py-3 rounded-2xl text-xs transition-all border cursor-pointer ${theme.btnSecondary}`}
+                        >
+                          🔑 Sign In &amp; Enlist
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">🎁</span>
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            Operative Clearance Verified
+                          </span>
+                        </div>
+                        <h2 className="text-xl font-black mt-1">
+                          Enlist as Operative in {operation.title}
+                        </h2>
+                        <p className={`text-xs mt-1 max-w-xl ${theme.textSubLabel}`}>
+                          You are authenticated as <strong>{userName || 'Operative'}</strong>. Enlist now to submit your wishlist manifest and enter the Secret Santa assignment draw.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleEnlistCurrentSession}
+                        disabled={enlisting}
+                        className={`font-bold px-6 py-3 rounded-2xl text-xs transition-all shadow-md cursor-pointer ${theme.btnPrimary}`}
+                      >
+                        {enlisting ? 'Enlisting...' : '🚀 Enlist in Mission Now'}
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🔒</span>
+                    <div>
+                      <h3 className="font-bold text-sm">Recruitment Closed</h3>
+                      <p className={`text-xs ${theme.textSubLabel}`}>
+                        Recruitment for this mission has concluded. Target assignments have already been finalized.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 4-Stage Operational Timeline Cards */}
             <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
@@ -1894,6 +2109,151 @@ export default function OperationCommandCenterPage() {
         initialData={itemModalData}
         userDossier={userDossier}
       />
+
+      {/* MODAL: ENLISTMENT AUTHENTICATION (REGISTER / SIGN IN WITH INVITE CODE) */}
+      {authModalOpen && operation && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
+                  MISSION INVITE: {operation.code}
+                </span>
+                <h3 className="text-2xl font-black mt-1">
+                  {authMode === 'register' ? 'Enlist New Operative' : 'Operative Sign In'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setAuthModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex border-b border-stone-200 dark:border-slate-800 mb-5 font-bold text-xs">
+              <button
+                type="button"
+                onClick={() => { setAuthMode('register'); setAuthError(''); }}
+                className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                  authMode === 'register'
+                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                🎟️ Create Profile &amp; Enlist
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('login'); setAuthError(''); }}
+                className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                  authMode === 'login'
+                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                🔑 Existing Account Sign In
+              </button>
+            </div>
+
+            {authError && (
+              <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
+                ⚠️ {authError}
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-4 text-xs font-semibold">
+              {authMode === 'register' && (
+                <>
+                  <div>
+                    <label className="block text-slate-500 mb-1">Your Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Alex Simpson"
+                      value={authName}
+                      onChange={(e) => setAuthName(e.target.value)}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-slate-500">Secret Codename / Call Sign</label>
+                      <button
+                        type="button"
+                        onClick={() => setAuthCodename(generateRandomCodename())}
+                        className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        🎲 Randomize Call Sign
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border ${theme.badgeCode}`}>
+                        Agent:
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="e.g. Viper, Phoenix, Sentinel"
+                        value={authCodename}
+                        onChange={(e) => setAuthCodename(e.target.value)}
+                        className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-slate-500 mb-1">Your Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. operative@family.com"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 mb-1">Password *</label>
+                <input
+                  type="password"
+                  required
+                  minLength={authMode === 'register' ? 10 : 1}
+                  placeholder={authMode === 'register' ? 'Min 10 characters (letters, numbers, symbols)' : 'Enter password'}
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAuthModalOpen(false)}
+                  className={`w-1/2 font-semibold py-3 rounded-2xl text-sm cursor-pointer ${theme.btnNeutral}`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
+                >
+                  {authLoading
+                    ? 'Verifying...'
+                    : authMode === 'register'
+                    ? '🎟️ Create & Enlist'
+                    : '🔑 Sign In & Enlist'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

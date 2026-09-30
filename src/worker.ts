@@ -34,6 +34,7 @@ import { validateAndSanitizeManifestItem } from './lib/validations/manifest';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
+import { RELEASE_STAGE } from './lib/version';
 import {
   generateKdmToken,
   verifyGiverIdentityGuess,
@@ -1046,6 +1047,54 @@ export default {
         const passCheck = validatePassword(password);
         if (!passCheck.isValid) return Response.json({ error: passCheck.error }, { status: 400 });
 
+        // Alpha Gate: Closed Friend-of-a-Friend Secret Santa Invitation Invariant
+        const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
+        const rawInviteCode = body.inviteCode || body.operationCode || body.exchangeCode;
+
+        let targetExchange: any = null;
+        if (isAlpha) {
+          if (!rawInviteCode) {
+            return Response.json(
+              {
+                error:
+                  'Direct registration is closed during Alpha. You must be invited to a Secret Santa mission, or request early clearance on the home page.',
+              },
+              { status: 403 }
+            );
+          }
+
+          targetExchange = await db.exchange.findUnique({
+            where: { code: String(rawInviteCode).trim().toUpperCase() },
+            include: { members: true },
+          });
+
+          if (!targetExchange) {
+            return Response.json(
+              { error: 'Invalid mission invite code. Please verify your invitation link.' },
+              { status: 404 }
+            );
+          }
+
+          if (targetExchange.status !== 'RECRUITING') {
+            return Response.json(
+              { error: 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.' },
+              { status: 400 }
+            );
+          }
+
+          if (targetExchange.maxParticipants && targetExchange.members.length >= targetExchange.maxParticipants) {
+            return Response.json(
+              { error: 'This exchange has reached its maximum operative capacity.' },
+              { status: 400 }
+            );
+          }
+        } else if (rawInviteCode) {
+          targetExchange = await db.exchange.findUnique({
+            where: { code: String(rawInviteCode).trim().toUpperCase() },
+            include: { members: true },
+          });
+        }
+
         const cleanEmail = email.trim().toLowerCase();
         const passwordHash = await bcrypt.hash(password, 12);
 
@@ -1059,6 +1108,32 @@ export default {
             },
             select: { id: true, email: true, name: true, codename: true, accountStatus: true, penaltyPoints: true },
           });
+
+          // Auto-enroll if registering via mission invite
+          if (targetExchange) {
+            try {
+              const targetType = targetExchange.isWhiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD';
+              const userManifest = await db.wishlist.create({
+                data: {
+                  userId: user.id,
+                  name: targetExchange.isWhiteElephant ? 'White Elephant Gift' : 'Master Wishlist Manifest',
+                  type: targetType,
+                },
+              });
+
+              await db.exchangeMember.create({
+                data: {
+                  exchangeId: targetExchange.id,
+                  userId: user.id,
+                  codename: user.codename,
+                  role: 'MEMBER',
+                  wishlistId: userManifest.id,
+                },
+              });
+            } catch (enrollErr) {
+              console.warn('[Worker Auto-Enroll Warning]', enrollErr);
+            }
+          }
 
           try {
             const emailConfig = await resolveWorkerEmailConfig(env, db);
