@@ -1,21 +1,21 @@
 # Active Sprint Tracker
 
-**Active Sprint**: [Sprint 2026-W39](sprints/2026-W39.md)  
-**Status**: **ACTIVE 🚀 (Mobile Polish, Performance & Security Hardening)**  
+**Active Sprint**: [Sprint 2026-W40](sprints/2026-W40.md)  
+**Status**: **ACTIVE 🚀 (Alpha Release Runway & Family Dogfooding Launch)**  
 **Target Milestone**: `v0.1.0-prealpha` ➔ `v0.2.0-alpha`  
 **Ceremony Schedule**: Retrospectives & Planning held every Monday morning.
 
 ---
 
-### Quick Status Dashboard (Sprint W39: Sep 21 – Sep 28)
-- **Item 1: Mobile Responsive Viewport Audit**: ✅ COMPLETED (Next.js Viewport config, 100dvh, safe-area insets, 16px iOS auto-zoom fix, responsive bottom sheets, 44px+ touch targets)
-- **Item 2: PostgreSQL Connection Pool Stress Test**: ✅ COMPLETED (50 concurrent query burst, queue saturation benchmarks, 30s idle reclamation audit, self-healing proxy failover & retry resilience)
-- **Item 3: Asset & Image Optimization Pipeline**: ⏳ PLANNED (Client-side WebP image conversion, lazy loading, and dimension caching)
-- **Item 4: NIST SP 800-63B Security & Rate Limiting**: ⏳ PLANNED (Brute-force login rate limiting middleware and NIST password complexity checks)
-- **Item 5: Zero-Vulnerability Security Scan**: 🔄 IN PROGRESS (Single-label SSRF fixed, lifecycle auth secured, npm audit remediation)
-- **Item 6: Playwright E2E Automated Test Suite**: ⏳ PLANNED (Simulated user registration ➔ mission creation ➔ draw ➔ reveal ➔ AAR post)
+### Quick Status Dashboard (Sprint W40: Sep 28 – Oct 1)
+- **Item 1: Bump Version to `v0.2.0-alpha`**: ✅ COMPLETED (package.json, src/lib/version.ts, navbar/HUD badges)
+- **Item 2: Provision Simpson Family Alpha Dogfooding & Data Migration**: ✅ COMPLETED (Turnkey seed & legacy SQL migration engine, 22 family profiles, SIMPSON-2026 exchange, wishlist linking)
+- **Item 3: Cloudflare SaaS Production Staging Gate**: 🔄 IN PROGRESS (Asset export alignment, static prerender session secret resilience)
+- **Item 4: Alpha Feedback Ingestion & Issue Form**: ⏳ PLANNED (Tester issue submission & direct feedback)
+- **Item 5: Documentation & Changelog Update**: ✅ COMPLETED (CHANGELOG.md cut for v0.2.0-alpha, sprint trackers updated)
+- **Item 6: Official October 1 Alpha Release & Demo**: ⏳ PLANNED (Git release tag v0.2.0-alpha and family onboarding)
 
-*For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W39.md](sprints/2026-W39.md).*
+*For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W40.md](sprints/2026-W40.md).*
 
 ---
 

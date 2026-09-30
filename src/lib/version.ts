@@ -5,9 +5,9 @@
  * and milestone trajectory toward Beta Season 1 Launch.
  */
 
-export const APP_VERSION = '0.1.0-prealpha';
-export const APP_VERSION_LABEL = 'v0.1.0-prealpha';
-export const RELEASE_STAGE = 'PRE_ALPHA' as const;
+export const APP_VERSION = '0.2.0-alpha';
+export const APP_VERSION_LABEL = 'v0.2.0-alpha';
+export const RELEASE_STAGE = 'ALPHA' as const;
 
 export const RELEASE_TIMELINE = {
   PRE_ALPHA: {

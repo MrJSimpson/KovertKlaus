@@ -26,7 +26,7 @@ const DEFAULT_SESSION_SECRET = 'kovertklaus-session-hmac-secret-vault-do-not-use
 export function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' && process.env.STATIC_EXPORT !== 'true') {
       throw new Error('CRITICAL SECURITY CONFIGURATION: SESSION_SECRET or NEXTAUTH_SECRET must be configured in production environments.');
     }
     return DEFAULT_SESSION_SECRET;
