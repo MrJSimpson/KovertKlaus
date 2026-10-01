@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
 import { setSessionCookie } from '@/lib/auth';
@@ -90,8 +90,8 @@ export async function POST(request: Request) {
     const cleanName = sanitizeText(name);
     const cleanCodename = codename ? sanitizeText(codename) : undefined;
 
-    // Hash Password with bcrypt salt rounds = 12
-    const passwordHash = await bcrypt.hash(password, 12);
+    // Hash Password with native scrypt
+    const passwordHash = await hashPassword(password);
 
     // Create User in DB
     const user = await db.user.create({

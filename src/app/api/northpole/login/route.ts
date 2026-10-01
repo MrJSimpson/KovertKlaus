@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import {
+  comparePassword,
+  verifyDummyPassword,
+  isLegacyBcryptHash,
+  hashPassword,
+} from '@/lib/password';
 import { adminDb } from '@/lib/adminDb';
 import {
   setAdminSessionCookie,
@@ -27,16 +32,14 @@ export async function POST(request: Request) {
     // Auto-bootstrap initial Super Admin (username: santa, password: 1sEcReTdEl!vErY) if DB is empty
     await bootstrapInitialAdmin();
 
-    const DUMMY_HASH = '$2a$12$eImiTXuWVfxh02WpuU.2Te6/k6G4v0S0i56u.0B.y/0x3d.0x.0x';
-
     const admin = await findAdminByIdentifier(loginId);
 
     if (!admin || !admin.isActive) {
-      await bcrypt.compare(password, DUMMY_HASH);
+      await verifyDummyPassword(password);
       return NextResponse.json({ error: 'Invalid administrative credentials or account disabled' }, { status: 401 });
     }
 
-    const passwordMatch = await bcrypt.compare(password, admin.passwordHash);
+    const passwordMatch = await comparePassword(password, admin.passwordHash);
     if (!passwordMatch) {
       return NextResponse.json({ error: 'Invalid administrative credentials' }, { status: 401 });
     }
@@ -53,10 +56,14 @@ export async function POST(request: Request) {
       });
     }
 
-    // Normal Login: Update last login timestamp & set session cookie
+    // Normal Login: Update last login timestamp & set session cookie (and upgrade legacy hash if needed)
+    const updateData: { lastLoginAt: Date; passwordHash?: string } = { lastLoginAt: new Date() };
+    if (isLegacyBcryptHash(admin.passwordHash)) {
+      updateData.passwordHash = await hashPassword(password);
+    }
     await adminDb.adminUser.update({
       where: { id: admin.id },
-      data: { lastLoginAt: new Date() },
+      data: updateData,
     });
 
     await setAdminSessionCookie(admin.id);

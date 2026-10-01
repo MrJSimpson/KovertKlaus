@@ -515,11 +515,11 @@ VALUES ('singleton', 'winter_holiday', 'auto', true, 1, 3, 5.00, 25, 50, NOW())
 ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO "AdminUser" ("id", "username", "email", "name", "passwordHash", "role", "isActive", "requiresPasswordReset", "createdAt", "updatedAt")
-VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$2b$12$yO4tFn.yICXf247YZsAW9OKuibxKgW1xA/LDykwoxKyssDvU8ZyXi', 'SUPER_ADMIN', true, false, NOW(), NOW())
+VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$scrypt$1024$8$1$943ec7b7ced616c1e7c9208d9229c344$0d926b01cf819bfcf413a4e81bab177d688ad342f6836b78bbd0f033590e4b4f', 'SUPER_ADMIN', true, false, NOW(), NOW())
 ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO "User" ("id", "email", "name", "codename", "passwordHash", "country", "penaltyPoints", "accountStatus", "emailNotifications", "createdAt", "updatedAt")
-VALUES ('00000000-0000-4000-b000-000000000001', 'admin@kovertklaus.com', 'Santa Claus', 'Santa', '$2b$12$yO4tFn.yICXf247YZsAW9OKuibxKgW1xA/LDykwoxKyssDvU8ZyXi', 'US', 0, 'ACTIVE', true, NOW(), NOW())
+VALUES ('00000000-0000-4000-b000-000000000001', 'admin@kovertklaus.com', 'Santa Claus', 'Santa', '$scrypt$1024$8$1$943ec7b7ced616c1e7c9208d9229c344$0d926b01cf819bfcf413a4e81bab177d688ad342f6836b78bbd0f033590e4b4f', 'US', 0, 'ACTIVE', true, NOW(), NOW())
 ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO "Wishlist" ("id", "userId", "name", "type", "createdAt", "updatedAt")

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import { comparePassword, hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { getSessionUserId, clearSessionCookie } from '@/lib/auth';
 import { sanitizeText, validatePassword } from '@/lib/security';
@@ -192,7 +192,7 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      const match = await bcrypt.compare(oldPassword, user.passwordHash);
+      const match = await comparePassword(oldPassword, user.passwordHash);
       if (!match) {
         return NextResponse.json({ error: 'Incorrect current password' }, { status: 400 });
       }
@@ -203,7 +203,7 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: passCheck.error }, { status: 400 });
       }
 
-      updateData.passwordHash = await bcrypt.hash(newPassword, 12);
+      updateData.passwordHash = await hashPassword(newPassword);
     }
 
     // Execute Database Update

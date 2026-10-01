@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import { comparePassword, hashPassword } from '@/lib/password';
 import { adminDb } from '@/lib/adminDb';
 import {
   setAdminSessionCookie,
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     }
 
     // Verify current password
-    const currentMatch = await bcrypt.compare(currentPassword, admin.passwordHash);
+    const currentMatch = await comparePassword(currentPassword, admin.passwordHash);
     if (!currentMatch) {
       return NextResponse.json({ error: 'Current initial password verification failed' }, { status: 401 });
     }
@@ -45,8 +45,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: nistCheck.error }, { status: 400 });
     }
 
-    // Hash new password using bcrypt work factor 12
-    const newHash = await bcrypt.hash(newPassword, 12);
+    // Hash new password using native scrypt
+    const newHash = await hashPassword(newPassword);
 
     // Update admin user record: clear password reset flag
     await adminDb.adminUser.update({

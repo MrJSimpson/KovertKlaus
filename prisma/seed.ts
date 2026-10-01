@@ -1,5 +1,5 @@
 import { db } from '../src/lib/db';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '../src/lib/password';
 
 const canonicalThemes = [
   {
@@ -160,7 +160,7 @@ async function main() {
   // ---------------------------------------------------------------------------
   // 3. Seed Initial Super Admin (Santa Claus)
   // ---------------------------------------------------------------------------
-  const initialAdminPassHash = await bcrypt.hash('1sEcReTdEl!vErY', 12);
+  const initialAdminPassHash = await hashPassword('1sEcReTdEl!vErY');
   const existingAdmin = await db.adminUser.findFirst({
     where: { OR: [{ username: 'santa' }, { email: 'admin@kovertklaus.com' }] },
   });

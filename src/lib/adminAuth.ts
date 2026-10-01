@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '@/lib/password';
 import { adminDb } from '@/lib/adminDb';
 import { IS_SAAS } from '@/lib/config/mode';
 import { signToken, verifyToken } from '@/lib/security';
@@ -185,7 +185,7 @@ export async function bootstrapInitialAdmin() {
       const username = (process.env.INITIAL_ADMIN_USERNAME || DEFAULT_ADMIN_USERNAME).trim().toLowerCase();
       const email = (process.env.INITIAL_ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).trim().toLowerCase();
       const password = process.env.INITIAL_ADMIN_PASSWORD || DEFAULT_INITIAL_PASSWORD;
-      const passwordHash = await bcrypt.hash(password, 12);
+      const passwordHash = await hashPassword(password);
 
       const admin = await adminDb.adminUser.create({
         data: {

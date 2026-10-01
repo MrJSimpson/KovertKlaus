@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import { comparePassword, hashPassword, verifyDummyPassword, isLegacyBcryptHash } from './lib/password';
 import * as cheerio from 'cheerio';
 import { Prisma } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
@@ -193,11 +193,11 @@ export default {
         });
 
         if (!admin || !admin.isActive) {
-          await bcrypt.compare(password, '$2a$12$eImiTXuWVfxh02WpuU.2Te6/k6G4v0S0i56u.0B.y/0x3d.0x.0x');
+          await verifyDummyPassword(password);
           return Response.json({ error: 'Invalid administrative credentials or account disabled' }, { status: 401 });
         }
 
-        const passwordMatch = await bcrypt.compare(password, admin.passwordHash);
+        const passwordMatch = await comparePassword(password, admin.passwordHash);
         if (!passwordMatch) {
           return Response.json({ error: 'Invalid administrative credentials' }, { status: 401 });
         }
@@ -213,9 +213,14 @@ export default {
           });
         }
 
+        const adminUpdateData: { lastLoginAt: Date; passwordHash?: string } = { lastLoginAt: new Date() };
+        if (isLegacyBcryptHash(admin.passwordHash)) {
+          adminUpdateData.passwordHash = await hashPassword(password);
+        }
+
         await adminDb.adminUser.update({
           where: { id: admin.id },
-          data: { lastLoginAt: new Date() },
+          data: adminUpdateData,
         });
 
         const signedAdminId = signToken(admin.id);
@@ -274,7 +279,7 @@ export default {
           return Response.json({ error: 'Admin account not found' }, { status: 404 });
         }
 
-        const currentMatch = await bcrypt.compare(currentPassword, admin.passwordHash);
+        const currentMatch = await comparePassword(currentPassword, admin.passwordHash);
         if (!currentMatch) {
           return Response.json({ error: 'Current password verification failed' }, { status: 401 });
         }
@@ -284,7 +289,7 @@ export default {
           return Response.json({ error: nistCheck.error }, { status: 400 });
         }
 
-        const newHash = await bcrypt.hash(newPassword, 12);
+        const newHash = await hashPassword(newPassword);
         await adminDb.adminUser.update({
           where: { id: adminId },
           data: { passwordHash: newHash, requiresPasswordReset: false, lastLoginAt: new Date() },
@@ -912,12 +917,21 @@ export default {
         const user = await db.user.findUnique({ where: { email: cleanEmail } });
 
         if (!user) {
-          await bcrypt.compare(password, '$2a$12$eImiTXuWVfxh02WpuU.2Te6/k6G4v0S0i56u.0B.y/0x3d.0x.0x');
+          await verifyDummyPassword(password);
           return Response.json({ error: 'Invalid email or password' }, { status: 401 });
         }
 
-        const match = await bcrypt.compare(password, user.passwordHash);
+        const match = await comparePassword(password, user.passwordHash);
         if (!match) return Response.json({ error: 'Invalid email or password' }, { status: 401 });
+
+        if (isLegacyBcryptHash(user.passwordHash)) {
+          try {
+            const upgraded = await hashPassword(password);
+            await db.user.update({ where: { id: user.id }, data: { passwordHash: upgraded } });
+          } catch (e) {
+            console.error('Password hash upgrade failed:', e);
+          }
+        }
 
         const signedUserId = signToken(user.id);
         const headers = new Headers({ 'Content-Type': 'application/json' });
@@ -1020,11 +1034,11 @@ export default {
             if (!oldPassword) return Response.json({ error: 'Current password required' }, { status: 400 });
             const user = await db.user.findUnique({ where: { id: userId } });
             if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
-            const match = await bcrypt.compare(oldPassword, user.passwordHash);
+            const match = await comparePassword(oldPassword, user.passwordHash);
             if (!match) return Response.json({ error: 'Incorrect current password' }, { status: 400 });
             const passCheck = validatePassword(newPassword);
             if (!passCheck.isValid) return Response.json({ error: passCheck.error }, { status: 400 });
-            updateData.passwordHash = await bcrypt.hash(newPassword, 12);
+            updateData.passwordHash = await hashPassword(newPassword);
           }
 
           const updatedUser = await db.user.update({
@@ -1096,7 +1110,7 @@ export default {
         }
 
         const cleanEmail = email.trim().toLowerCase();
-        const passwordHash = await bcrypt.hash(password, 12);
+        const passwordHash = await hashPassword(password);
 
         try {
           const user = await db.user.create({

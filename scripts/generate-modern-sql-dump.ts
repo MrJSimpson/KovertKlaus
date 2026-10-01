@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '../src/lib/password';
 
 async function generateModernSqlDump() {
   console.log('🔄 Generating clean PostgreSQL DDL from prisma/schema.prisma...');
@@ -16,7 +16,7 @@ async function generateModernSqlDump() {
 
   console.log('📦 Generating SQL data seeds for ThemePresets, SystemConfig, Admin, and Santa...');
 
-  const adminPassHash = await bcrypt.hash('1sEcReTdEl!vErY', 12);
+  const adminPassHash = await hashPassword('1sEcReTdEl!vErY');
 
   let sqlData = '\n-- -----------------------------------------------------------------------------\n';
   sqlData += '-- PRODUCTION CLEAN DATA SEED (Themes, SystemConfig, Super Admin)\n';

@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import {
+  comparePassword,
+  verifyDummyPassword,
+  isLegacyBcryptHash,
+  hashPassword,
+} from '@/lib/password';
 import { db } from '@/lib/db';
 import { isValidEmail, signToken } from '@/lib/security';
 import { setSessionCookie } from '@/lib/auth';
@@ -19,23 +24,33 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Dummy hash for constant-time comparison to prevent timing attacks
-    const DUMMY_HASH = '$2a$12$eImiTXuWVfxh02WpuU.2Te6/k6G4v0S0i56u.0B.y/0x3d.0x.0x';
-
     // Fetch User from DB
     const user = await db.user.findUnique({
       where: { email: cleanEmail },
     });
 
     if (!user) {
-      await bcrypt.compare(password, DUMMY_HASH);
+      await verifyDummyPassword(password);
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    // Verify Password using bcrypt
-    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    // Verify Password using scrypt (with legacy bcrypt fallback)
+    const passwordMatch = await comparePassword(password, user.passwordHash);
     if (!passwordMatch) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    }
+
+    // Seamlessly upgrade legacy bcrypt hash to native scrypt format
+    if (isLegacyBcryptHash(user.passwordHash)) {
+      try {
+        const upgradedHash = await hashPassword(password);
+        await db.user.update({
+          where: { id: user.id },
+          data: { passwordHash: upgradedHash },
+        });
+      } catch (rehashErr) {
+        console.error('Background password hash upgrade error:', rehashErr);
+      }
     }
 
     // Set HTTP-Only Short-Lived Session Cookie

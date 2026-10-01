@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { db } from '../src/lib/db';
-import bcrypt from 'bcryptjs';
 
 /**
  * Migration & Ingestion Engine for Legacy KovertKlaus SQL Dumps
