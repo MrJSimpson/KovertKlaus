@@ -63,12 +63,10 @@ Performs pre-flight email availability checks or registers a new operative accou
 - **Register New Operative**:
   ```json
   {
-    "action": "register",
+    "name": "James Bond",
     "email": "operative@example.com",
     "password": "SecurePassword10+",
-    "name": "James Bond",
-    "codename": "Agent: 007",
-    "address": "10 Downing Street, London"
+    "codename": "Agent: 007"
   }
   ```
   **Response `201 Created`**: Returns user profile and signed session token.

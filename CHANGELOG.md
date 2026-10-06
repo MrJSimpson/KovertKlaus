@@ -7,14 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.2.0-alpha] - 2026-10-01
+## [0.2.0-alpha] - 2026-10-06
 
 ### Added
-- **Closed Family & Friends Dogfooding Runway**:
-  - Turnkey database seed and migration engine (`scripts/migrate-legacy-data.ts`, `prisma/seed.ts`) importing and modernizing 22 Simpson family & friends operative profiles.
-  - Seeded primary family exchange `SIMPSON-2026` ("Simpson Family Secret Santa 2026") with all 22 operatives enrolled and linked to standard Wishlist Manifests.
-  - Seeded local White Elephant exchange `SIMPSON-ELEV` ("Simpson Family White Elephant Party 2026") hosted at Pine Rd HQ.
-  - Standalone migration script `npm run db:migrate-legacy` translating legacy database dumps into modern schema.
+- **PreLaunchApproval Schema Alignment**:
+  - Added `PreLaunchApproval` table to Prisma schema for bidirectional parity with SaaS edition.
 - **First-Class Text-Only Personalized Gifts**:
   - Support for custom, handmade, experiential, or local gift requests with empty product URLs (`src/lib/validations/manifest.ts`).
   - OWASP XSS sanitization and strict string bounds ($\le 100$ char title, $\le 500$ char description, $\le 4$ custom key-value details).
@@ -29,9 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Accessible $\ge 44\times 44$px touch targets across navigation headers, tabs, buttons, and exclusion triggers.
 
 ### Changed
-- Promoted application milestone from `v0.1.0-prealpha` to `v0.2.0-alpha`.
+- **Pristine Production Database Sanitization**:
+  - Purged all example/test accounts, dummy users (`@example.com`), mock exchanges (`SIMPSON-2026`, `TEST-2026`), and sample wishlists from seed data.
+  - Initial Super Admin password updated to `G!v!nGSp1r1t` (`requiresPasswordReset: true` enforcing NIST SP 800-63B first-login reset for self-hosters).
+  - Regenerated clean PostgreSQL DDL and seed in `prisma/kovertklaus_test_db.sql`.
+- **Developer Workshop Preservation**:
+  - Confirmed and verified all `/workshop/*` internal test benches remain fully operational for self-hosted community instances.
+- Promoted application milestone to `v0.2.0-alpha`.
 - Enhanced `getSessionSecret()` to cleanly allow development fallback during build-time static HTML page prerendering (`STATIC_EXPORT=true`).
-- Modernized and refreshed `prisma/kovertklaus_test_db.sql` schema and table structures.
 
 ---
 

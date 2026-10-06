@@ -52,10 +52,10 @@ There are two distinct types of `Wishlist Manifest` in the system:
 
 ---
 
-## 🗺️ 4. Master Release Roadmap & Semantic Versioning
+### 🗺️ 4. Master Release Roadmap & Semantic Versioning
 
-* **`v0.1.0-prealpha` (Active / Now – Sep 30, 2026)**: Core engine refactoring, algorithmic derangements, email dispatch test harness, and TSDoc codebase annotations.
-* **`v0.2.0-alpha` (Target: Oct 1, 2026)**: Closed family dogfooding (Shannon, Cheryl, Terry, Zach), multi-carrier webhooks, and mobile polish.
+* **`v0.1.0-prealpha` (Completed / Aug – Sep 2026)**: Core engine refactoring, algorithmic derangements, email dispatch test harness, and TSDoc codebase annotations.
+* **`v0.2.0-alpha` (Active / October 2026)**: Self-hosted community edition with pristine clean database (zero dummy users), initial admin password `G!v!nGSp1r1t` with NIST first-login reset, and full developer test benches (`/workshop`).
 * **`v1.0.0-beta` (Target: Nov 1, 2026)**: Season 1 Public Winter Launch (Nov 1 – Jan 31), live public exchanges, and Cloudflare SaaS multi-tenant gateway.
 * **`v1.0.0-ga` (Target: Jan 31, 2027)**: General Availability & Q2 Spring Egg Hunt Rotation.
 
@@ -70,7 +70,7 @@ There are two distinct types of `Wishlist Manifest` in the system:
   3. Lock the upcoming week's 6 actionable deliverable cards.
 * **Definition of Done (DoD)**:
   - 100% typed TypeScript with 3-tier TSDoc annotations.
-  - Automated test suite passes 100% (`draw.test.ts`, `email.test.ts`).
+  - Automated test suite passes 100% (`draw.test.ts`, `email.test.ts`, `logger.test.ts`, etc.).
   - Next.js Turbopack build succeeds with 0 errors (`npm run build`).
   - Multi-repo synchronization (`kovertklaus` $\leftrightarrow$ `kovertklaus-saas`).
 
@@ -78,8 +78,9 @@ There are two distinct types of `Wishlist Manifest` in the system:
 
 ## 🔒 6. Cybersecurity & Privacy Requirements (OWASP Aligned)
 
-* **Password Security:** Minimum **10-character complex passwords** requiring at least one uppercase letter, lowercase letter, number, and special character.
-* **Password Hashing:** Passwords MUST be hashed using `bcryptjs` with **12 salt rounds**. Never store or log plaintext passwords.
+* **Password Security:** Minimum **10-character complex passwords** for users; administrative passphrases require **12+ characters** conforming to NIST SP 800-63B.
+* **Password Hashing:** Passwords MUST be hashed using modern **scrypt** modular crypt format (`$scrypt$N$r$p$salt$hash`), with automatic backward-compatible legacy bcrypt upgrade upon login. Never store or log plaintext passwords.
+* **Admin Initial Password:** Fresh installations bootstrap `AdminUser` (`santa` / `admin@kovertklaus.com`) with initial password `G!v!nGSp1r1t` and mandatory first-login reset (`requiresPasswordReset: true`).
 * **Session Management:** Single HTTP-Only, `SameSite=Lax`, `Secure` cookie (`kovertklaus_session`) with a **24-hour expiration time**.
 * **Zero Telemetry:** No tracking, analytics, or external telemetry scripts allowed.
 
@@ -89,8 +90,9 @@ There are two distinct types of `Wishlist Manifest` in the system:
 
 * **Framework:** Next.js 16 (App Router + Turbopack + React 19).
 * **Styling:** TailwindCSS with dual-theme mode (🎄 Light Theme & ❄️ Dark Icy Theme).
-* **Database:** PostgreSQL 16 Alpine running in Docker container (`kovertklaus-db`) or Neon Serverless PostgreSQL with dual pooling (`DATABASE_URL` pooler + `DIRECT_URL` direct).
+* **Database:** PostgreSQL 16/17 Alpine running in Docker container (`kovertklaus-db`) or external PostgreSQL.
 * **ORM:** Prisma ORM. Whenever modifying `prisma/schema.prisma`, execute `npx prisma db push` and `npx prisma generate`.
+* **Clean Database Rule:** Production seeds must contain zero dummy users, zero mock exchanges, and zero sample wishlists. Only `AdminUser` is seeded.
 
 ---
 
@@ -109,3 +111,10 @@ There are two distinct types of `Wishlist Manifest` in the system:
    `git checkout -b <type>/<short-description>` (e.g., `feat/sprint-w34-demerits`, `sec/rbac-guards`).
 3. **Verification**: Complete and test all changes on the branch (`npm run build`, unit tests).
 4. **Merge & Sync**: Once the feature is 100% verified, merge the branch into `main`, push to remote, and clean up the local branch.
+
+---
+
+## 🛠️ 10. Developer Workshop & Self-Hosted Preservation
+
+1. **Retain `/workshop` in Self-Hosted**: All internal QA test benches (`/workshop/draw`, `/workshop/lifecycle`, `/workshop/scraper`, `/workshop/theme`, `/workshop/manifest`, `/workshop/party`, `/workshop/aar`) are preserved in this repository for local developers and home-lab instances.
+2. **SaaS Boundary**: In contrast to this repository, the public SaaS distribution (`kovertklaus-saas`) physically deletes `/workshop` routes before edge deployment.

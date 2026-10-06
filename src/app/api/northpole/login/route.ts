@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Username/email and password are required' }, { status: 400 });
     }
 
-    // Auto-bootstrap initial Super Admin (username: santa, password: 1sEcReTdEl!vErY) if DB is empty
+    // Auto-bootstrap initial Super Admin (username: santa, password: G!v!nGSp1r1t) if DB is empty
     await bootstrapInitialAdmin();
 
     const admin = await findAdminByIdentifier(loginId);

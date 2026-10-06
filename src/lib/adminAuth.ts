@@ -8,7 +8,7 @@ export const ADMIN_SESSION_COOKIE_NAME = IS_SAAS ? 'kovert_saas_admin_session' :
 
 export const DEFAULT_ADMIN_USERNAME = 'santa';
 export const DEFAULT_ADMIN_EMAIL = 'admin@kovertklaus.com';
-export const DEFAULT_INITIAL_PASSWORD = '1sEcReTdEl!vErY';
+export const DEFAULT_INITIAL_PASSWORD = 'G!v!nGSp1r1t';
 
 /**
  * Validates a password against NIST SP 800-63B Digital Identity Guidelines:
@@ -43,7 +43,8 @@ export function validateNistPassword(
   // Check against prohibited default / trivial passwords
   const prohibitedList = [
     DEFAULT_INITIAL_PASSWORD.toLowerCase(),
-    '1secret delivery',
+    'giv1ngsp1r1t',
+    'giving spirit',
     'password1234',
     'admin12345678',
     'santaclaus123',
@@ -176,7 +177,7 @@ export async function findAdminByIdentifier(identifier: string) {
 
 /**
  * Bootstraps an initial Super Admin if the AdminUser table is completely empty.
- * Default admin username: 'santa', initial password: '1sEcReTdEl!vErY', requiresPasswordReset: true.
+ * Default admin username: 'santa', initial password: 'G!v!nGSp1r1t', requiresPasswordReset: true.
  */
 export async function bootstrapInitialAdmin() {
   try {

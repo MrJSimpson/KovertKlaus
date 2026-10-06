@@ -160,7 +160,7 @@ async function main() {
   // ---------------------------------------------------------------------------
   // 3. Seed Initial Super Admin (Santa Claus)
   // ---------------------------------------------------------------------------
-  const initialAdminPassHash = await hashPassword('1sEcReTdEl!vErY');
+  const initialAdminPassHash = await hashPassword('G!v!nGSp1r1t');
   const existingAdmin = await db.adminUser.findFirst({
     where: { OR: [{ username: 'santa' }, { email: 'admin@kovertklaus.com' }] },
   });
@@ -174,10 +174,10 @@ async function main() {
         passwordHash: initialAdminPassHash,
         role: 'SUPER_ADMIN',
         isActive: true,
-        requiresPasswordReset: false,
+        requiresPasswordReset: true,
       },
     });
-    console.log('🎅 Seeded Super Admin: santa <admin@kovertklaus.com>');
+    console.log('🎅 Seeded Super Admin: santa <admin@kovertklaus.com> (requiresPasswordReset: true)');
   } else {
     await db.adminUser.update({
       where: { id: existingAdmin.id },
@@ -190,49 +190,9 @@ async function main() {
   }
 
   // ---------------------------------------------------------------------------
-  // 4. Seed Primary User Account (Santa Claus / Head Elf Prime)
+  // 4. Production Cleanliness: Purge Obsolete Test & Dummy Records
   // ---------------------------------------------------------------------------
-  const existingUser = await db.user.findUnique({
-    where: { email: 'admin@kovertklaus.com' },
-  });
-
-  let primaryUserId: string;
-  if (!existingUser) {
-    const createdUser = await db.user.create({
-      data: {
-        name: 'Santa Claus',
-        email: 'admin@kovertklaus.com',
-        codename: 'Santa',
-        passwordHash: initialAdminPassHash,
-        country: 'US',
-      },
-    });
-    primaryUserId = createdUser.id;
-    console.log('🧑‍🎄 Seeded primary user: Santa Claus <admin@kovertklaus.com>');
-  } else {
-    primaryUserId = existingUser.id;
-    console.log('🧑‍🎄 Confirmed primary user: Santa Claus <admin@kovertklaus.com>');
-  }
-
-  // Ensure primary user has a Master Wishlist
-  const existingWishlist = await db.wishlist.findFirst({
-    where: { userId: primaryUserId, type: 'STANDARD' },
-  });
-  if (!existingWishlist) {
-    await db.wishlist.create({
-      data: {
-        userId: primaryUserId,
-        name: 'Master Wishlist Manifest',
-        type: 'STANDARD',
-      },
-    });
-    console.log('📋 Seeded Master Wishlist for Santa Claus');
-  }
-
-  // ---------------------------------------------------------------------------
-  // 5. Database Cleanup: Purge Obsolete Test & Dummy Records
-  // ---------------------------------------------------------------------------
-  console.log('🧹 Purging obsolete mock exchanges and dummy test accounts...');
+  console.log('🧹 Purging obsolete mock exchanges, dummy wishlists, and test accounts...');
 
   // Delete mock exchanges (SIMPSON-2026, SIMPSON-ELEV, TEST-2026, TEST-ELEV, WQRE-JXHG)
   const mockCodes = ['SIMPSON-2026', 'SIMPSON-ELEV', 'TEST-2026', 'TEST-ELEV', 'WQRE-JXHG'];
@@ -243,15 +203,20 @@ async function main() {
     console.log(`🗑️ Removed ${deletedExchanges.count} mock exchanges.`);
   }
 
-  // Delete dummy users ending with @example.com
+  // Delete dummy users ending with @example.com or old admin regular user
   const deletedUsers = await db.user.deleteMany({
-    where: { email: { endsWith: '@example.com' } },
+    where: {
+      OR: [
+        { email: { endsWith: '@example.com' } },
+        { email: 'admin@kovertklaus.com' },
+      ],
+    },
   });
   if (deletedUsers.count > 0) {
-    console.log(`🗑️ Removed ${deletedUsers.count} dummy test accounts (@example.com).`);
+    console.log(`🗑️ Removed ${deletedUsers.count} dummy/test accounts.`);
   }
 
-  console.log('\n✨ Database is tidy, pristine, and ready for production!');
+  console.log('\n✨ Database is clean, pristine, and ready for deployment!');
 }
 
 main()

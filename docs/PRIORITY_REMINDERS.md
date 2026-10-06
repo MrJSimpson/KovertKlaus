@@ -1,58 +1,42 @@
 # 📋 KovertKlaus — Priority Reminders & Production Engineering Roadmap
 
-- **Repository**: `KovertKlaus` (`~/projects/kovertklaus`)
-- **Public Domain**: `kovertklaus.com` (Officially Purchased)
-- **Active Release Stage**: **`v0.1.0-prealpha`** (Target Alpha: Oct 1, 2026 | Target Beta: Nov 1, 2026)
+- **Repository**: `kovertklaus` (`~/projects/kovertklaus`)
+- **Active Release Stage**: **`v0.2.0-alpha` (Self-Hosted Community Alpha | October 2026)**
+- **Target Beta**: November 1, 2026 (`v1.0.0-beta` Season 1 Launch)
 - **Sprint Management**: [Active Weekly Sprint Tracker](CURRENT_SPRINT.md) (6-item sprints with Monday retrospectives)
-- **Last Updated**: August 20, 2026
+- **Last Updated**: October 6, 2026
 
 ---
 
-## 🔥 TOP PRIORITIES (Release Roadmap & Weekly Cadence)
+## 🔥 TOP PRIORITIES (Release Roadmap & Alpha Cadence)
 
 All development follows our **Weekly 6 Action Items** sprint framework ([`docs/CURRENT_SPRINT.md`](CURRENT_SPRINT.md)). All core functionality and test verification MUST satisfy the **Definition of Done** before promoting through release stages.
 
 ---
 
-### 🧪 P0-A: Internal Test Pages Suite (`/test` Verification Harness)
-- [ ] **Objective**: Build a dedicated set of internal test pages under `/test` to isolate and empirically verify all critical UI components, state machine transitions, and algorithms before public launch.
-- [ ] **Test Pages Breakdown**:
-  1. **`/test/draw`**: Interactive visual test harness for the Sattolo derangement algorithm and mobile 2-way target cascade swap modal.
-  2. **`/test/lifecycle`**: 5-Phase Operation Lifecycle test harness to cycle operations through `RECRUITING`, `SETUP`, `ASSIGNED`, `EXECUTED`, and `COMPLETED` with date overrides.
-  3. **`/test/scraper`**: OpenGraph URL metadata web scraper test page with live fast-failover modal verification (2.5s AbortController).
-  4. **`/test/theme`**: Dual-theme UI token catalog inspecting *Christmas Tree Light* (🎄) vs. *Winter Nights Dark* (❄️) container frames, buttons, and badges.
-  5. **`/test/opkits`**: Dual Wishlist Manifest validator verifying unlimited `WISHLIST` items vs. strict 1-item `WHITE_ELEPHANT` limit.
-- [ ] **Verification Criteria**: All `/test` pages function cleanly without console errors or TypeScript build warnings.
+### 🛡️ P0-A: Database Pristine State & Admin Security
+- [x] **Pristine Database Cleanliness**: Zero dummy users, zero `@example.com` accounts, zero mock exchanges, and zero sample wishlists in seed data.
+- [x] **North Pole Super Admin Provisioning**: Seed only `AdminUser` (`santa` / `admin@kovertklaus.com`) with NIST SP 800-63B compliant password `G!v!nGSp1r1t` (`requiresPasswordReset: true` for self-hosted).
+- [x] **PreLaunchApproval Schema Parity**: Prisma model aligned with SaaS edition for uniform migrations.
+- [x] **Developer Workshop Verification**: All 7 `/workshop/*` internal test benches preserved and functional for self-hosted developer use.
 
 ---
 
-### 🎨 P0-B: Feature Completeness & Pre-Deployment Polish Roadmap
-- [ ] **Objective**: Finalize all core application workflows and user functionality before code freeze.
-- [ ] **Feature Scope**:
-  - **OpsLeader Console Polish**: Finalize phase-scoped action controls and manual date override inputs.
-  - **Agent Onboarding Flow**: Streamline profile creation, Base32 invite code entry (`XXXX-YYYY`), and Wishlist Manifest auto-initialization.
-  - **Wishlist Manifest & Manifest Item Management**: Ensure seamless manual entry fallback, product link previews, and deletion controls.
-  - **Fair-Use Allowance & Resource Limits Engine**:
-    - **1 Free Hosted Event/yr** ($0, includes hosting + free participation; doesn't deduct from join allowance).
-    - **3 Free Joined Entries/yr** ($0, accommodates split families, school, & friend exchanges).
-    - **Excessive Usage Barriers**: 4th+ Joined Entry = $1.00/event; 2nd+ Hosted Event = $5.00/event.
-    - **Resource Caps**: Secret Santa wishlist capped at 10 items; White Elephant capped at 1 item; AAR photos capped at 3 WebP images.
-- [ ] **Verification Criteria**: Complete manual walkthrough of Simpson Family test operation (`SIMPSON-2026`) from recruitment through completion without blocking bugs.
-
+### 🎨 P0-B: Feature Completeness & Polish Roadmap
+- [x] **First-Class Text-Only Personalized Gifts**: Sanitized support for custom/handmade gifts with empty URLs.
+- [x] **Mobile Responsive Viewport & Bottom Sheets**: Bottom-sheet dialogs on `< 640px` viewports, 16px iOS font scaling, safe-area inset clearance.
+- [x] **PostgreSQL Connection Pool Stress Test**: 19-test concurrency benchmarking suite with resilient proxy failover.
+- [x] **Fair-Use Allowance & Resource Limits Engine**:
+  - **1 Free Hosted Event/yr** ($0, includes hosting + free participation).
+  - **3 Free Joined Entries/yr** ($0, accommodates split families & friends).
+  - **Resource Caps**: Secret Santa wishlist max 50 items; White Elephant strictly 1 item; AAR photos WebP.
 
 ---
 
-### 🚀 P0-C: Public SaaS Pipeline & `kovertklaus.com` Deployment Roadmap
-- [ ] **Objective**: Establish the official deployment architecture and set up a dedicated public CI/CD repository for `kovertklaus.com`.
-- [ ] **Repository Architecture Strategy**:
-  - **Development Base (`~/projects/kovertklaus`)**: Primary private development workspace, experimental features, internal test harness, and local staging.
-  - **Public Deployment Repo (`~/projects/kovertklaus-public` or `kovertklaus-saas`)**: Clean, public-facing production codebase tied to GitHub Actions CI/CD and production hosting targeting `kovertklaus.com`.
-- [ ] **Deployment Milestones**:
-  1. [x] **Repo Initialization**: Created and linked dedicated public CI/CD deployment repository ([`MrJSimpson/kovertklaus-saas`](https://github.com/MrJSimpson/kovertklaus-saas)).
-  2. [ ] **Hosting Infrastructure**: Configure production host (Cloudflare Pages / Vercel / Railway / Docker host) with custom domain `kovertklaus.com`.
-  3. **Environment & Database Provisioning**: Set up production environment secrets (`DATABASE_URL`, `JWT_SECRET`, `NEXTAUTH_SECRET`) and managed PostgreSQL database instance.
-  4. **CI/CD Pipeline Setup**: Configure GitHub Actions to automatically run `npm run build`, execute unit tests (`src/lib/draw.test.ts`), and deploy clean releases to `kovertklaus.com` upon pushing to `main`.
-- [ ] **Verification Criteria**: Pushing to the deployment repository triggers automated CI/CD and updates `https://kovertklaus.com` live without manual SSH intervention.
+### 🚀 P0-C: Self-Hosted Docker Compose & Community Distribution
+- [x] **Docker Compose Architecture**: Docker container and Postgres healthcheck stack verified.
+- [x] **Local Start/Stop Scripts**: Linux shell scripts (`start.sh`, `stop.sh`) and Windows batch scripts validated.
+- [x] **Universal Email Dispatcher**: Direct SMTP and Brevo fallbacks operational.
 
 ---
 

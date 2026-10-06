@@ -7,13 +7,13 @@
 
 ---
 
-### Quick Status Dashboard (Sprint W40: Sep 28 – Oct 1)
+### Quick Status Dashboard (Sprint W40: Oct 1 – Oct 6)
 - **Item 1: Bump Version to `v0.2.0-alpha`**: ✅ COMPLETED (package.json, src/lib/version.ts, navbar/HUD badges)
-- **Item 2: Provision Simpson Family Alpha Dogfooding & Data Migration**: ✅ COMPLETED (Turnkey seed & legacy SQL migration engine, 22 family profiles, SIMPSON-2026 exchange, wishlist linking)
-- **Item 3: Cloudflare SaaS Production Staging Gate**: 🔄 IN PROGRESS (Asset export alignment, static prerender session secret resilience)
-- **Item 4: Alpha Feedback Ingestion & Issue Form**: ⏳ PLANNED (Tester issue submission & direct feedback)
-- **Item 5: Documentation & Changelog Update**: ✅ COMPLETED (CHANGELOG.md cut for v0.2.0-alpha, sprint trackers updated)
-- **Item 6: Official October 1 Alpha Release & Demo**: ⏳ PLANNED (Git release tag v0.2.0-alpha and family onboarding)
+- **Item 2: Clean Production Database & Zero Dummy Accounts**: ✅ COMPLETED (Purged mock exchanges, sample users, seeded AdminUser with G!v!nGSp1r1t)
+- **Item 3: PreLaunchApproval Schema Alignment**: ✅ COMPLETED (Prisma model parity with SaaS edition)
+- **Item 4: Workshop Test Bench Maintenance**: ✅ COMPLETED (Empirically verified all 7 /workshop routes operational for self-hosters)
+- **Item 5: Documentation & Changelog Update**: ✅ COMPLETED (CHANGELOG.md, README.md, AGENTS.md aligned with latest codebase)
+- **Item 6: Self-Hosted Docker Compose & Seed Alignment**: ✅ COMPLETED (Zero dummy accounts, NIST first-login password reset enforcement)
 
 *For complete details, action item criteria, and retro notes, see [docs/sprints/2026-W40.md](sprints/2026-W40.md).*
 

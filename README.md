@@ -3,14 +3,14 @@
 **Stealth Intelligence Gift Exchange Network & Reliability Platform**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE.md)
-[![Target Release](https://img.shields.io/badge/Release-v0.1.0--prealpha-sky.svg)](./CHANGELOG.md)
-[![Runtime](https://img.shields.io/badge/Runtime-Cloudflare%20Edge%20%2B%20Next.js%2016-blueviolet.svg)](./docs/ARCHITECTURE.md)
-[![Database](https://img.shields.io/badge/Database-Neon%20PostgreSQL%20v7-green.svg)](./docs/DEPLOYMENT_GUIDE.md)
+[![Target Release](https://img.shields.io/badge/Release-v0.2.0--alpha-emerald.svg)](./CHANGELOG.md)
+[![Runtime](https://img.shields.io/badge/Runtime-Node.js%2024%20%2B%20Next.js%2016-blueviolet.svg)](./docs/ARCHITECTURE.md)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%2017-green.svg)](./docs/DEPLOYMENT_GUIDE.md)
 [![Security Policy](https://img.shields.io/badge/Security-HMAC--SHA256%20%2B%20Anti--SSRF-red.svg)](./SECURITY.md)
 
 > [!IMPORTANT]
-> **ACTIVE RELEASE: `v0.1.0-prealpha` (Pre-Alpha Foundations)**  
-> Target Alpha: October 1, 2026 (`v0.2.0-alpha`) | Target Beta: November 1, 2026 (`v1.0.0-beta` Season 1 Launch)  
+> **ACTIVE RELEASE: `v0.2.0-alpha` (Self-Hosted Community Edition)**  
+> Clean Database Architecture | Internal Workshop Benches (`/workshop`) | NIST SP 800-63B Auth  
 > Tracked via Weekly 6 Sprints ([`docs/CURRENT_SPRINT.md`](./docs/CURRENT_SPRINT.md)).
 
 KovertKlaus turns standard Secret Santa and White Elephant gift exchanges into engaging, covert holiday missions. Featuring automated reliability tracking (Coal Citations), reusable Wishlist Manifests, automated product metadata scraping, 100% bidirectional match exclusion rules, Sattolo target derangement algorithms, mobile-first 2-way target cascade swapping, phase-scoped Head Elf command consoles, After-Action Reports (AAR), and containerized PostgreSQL database management.
@@ -81,6 +81,13 @@ docker compose up -d
 # 4. Open browser
 http://localhost:3000
 ```
+
+### 🎅 North Pole Command Center & Developer Workshop
+- **Admin HUD**: Navigate to [`/northpole`](http://localhost:3000/northpole)
+- **Default Super Admin**: `santa` (`admin@kovertklaus.com`) | Temporary Initial Password: `G!v!nGSp1r1t`
+- **NIST SP 800-63B Compliance**: Self-hosted bootstrap enforces mandatory password reset upon first administrative login.
+- **Developer Workshop (`/workshop`)**: This self-hosted repository includes all internal QA test benches (`/workshop/draw`, `/workshop/lifecycle`, `/workshop/scraper`, `/workshop/theme`, `/workshop/manifest`, `/workshop/party`, `/workshop/aar`).
+- **Clean Database**: Production seeds contain zero dummy users or mock exchanges.
 
 ---
 

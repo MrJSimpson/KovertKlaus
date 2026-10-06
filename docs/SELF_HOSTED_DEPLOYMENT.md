@@ -38,7 +38,7 @@ This guide provides instructions for deploying KovertKlaus in a self-hosted envi
    - **Main Web Application**: [http://localhost:3000](http://localhost:3000)
    - **North Pole Super Admin Console**: [http://localhost:3000/northpole](http://localhost:3000/northpole)
      - *Default Username*: `santa`
-     - *Default Password*: `1sEcReTdEl!vErY` *(Change immediately in `/northpole/config`)*
+     - *Default Password*: `G!v!nGSp1r1t` *(Change immediately in `/northpole/config`)*
 
 ---
 
@@ -67,7 +67,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-kovertklaus}:${POSTGRES_PASSWORD:-kovertsecret}@kovertklaus-db:5432/${POSTGRES_DB:-kovertklaus}?schema=public
       SESSION_SECRET: ${SESSION_SECRET}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-1sEcReTdEl!vErY}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-G!v!nGSp1r1t}
     ports:
       - "3000:3000"
     depends_on:

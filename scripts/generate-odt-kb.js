@@ -283,7 +283,7 @@ function generateODTFiles() {
 
       <text:p text:style-name="Heading2">2.1 First-Time Install Credentials &amp; Mandatory NIST Password Reset</text:p>
       <text:p text:style-name="StandardText">
-        For fresh installations, KovertKlaus auto-bootstraps a default Super Admin account with username <text:span text:style-name="CodeText">santa</text:span>, email <text:span text:style-name="CodeText">admin@kovertklaus.com</text:span>, and initial temporary password <text:span text:style-name="CodeText">1sEcReTdEl!vErY</text:span>.<text:line-break/>
+        For fresh installations, KovertKlaus auto-bootstraps a default Super Admin account with username <text:span text:style-name="CodeText">santa</text:span>, email <text:span text:style-name="CodeText">admin@kovertklaus.com</text:span>, and initial temporary password <text:span text:style-name="CodeText">G!v!nGSp1r1t</text:span>.<text:line-break/>
         • <text:span text:style-name="CodeText">Mandatory Reset Enforcement</text:span>: Upon first authentication, administrative clearance remains locked until the password is reset.<text:line-break/>
         • <text:span text:style-name="CodeText">NIST SP 800-63B Compliance</text:span>: The new passphrase must be at least 12 characters, cannot match the default initial password, and cannot contain the admin username or email.
       </text:p>
@@ -441,7 +441,7 @@ function generateODTFiles() {
         </table:table-row>
         <table:table-row>
           <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">INITIAL_ADMIN_PASSWORD</text:p></table:table-cell>
-          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">1sEcReTdEl!vErY</text:p></table:table-cell>
+          <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">G!v!nGSp1r1t</text:p></table:table-cell>
           <table:table-cell text:style-name="TableCell"><text:p text:style-name="TableText">.env / Bootstrap (Mandatory Reset on First Login)</text:p></table:table-cell>
         </table:table-row>
       </table:table>

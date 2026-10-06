@@ -357,6 +357,16 @@ CREATE TABLE "SystemLog" (
     CONSTRAINT "SystemLog_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "PreLaunchApproval" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "inviteCode" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreLaunchApproval_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -441,6 +451,12 @@ CREATE INDEX "SystemLog_level_createdAt_idx" ON "SystemLog"("level", "createdAt"
 -- CreateIndex
 CREATE INDEX "SystemLog_category_createdAt_idx" ON "SystemLog"("category", "createdAt");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "PreLaunchApproval_email_key" ON "PreLaunchApproval"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PreLaunchApproval_inviteCode_key" ON "PreLaunchApproval"("inviteCode");
+
 -- AddForeignKey
 ALTER TABLE "Exchange" ADD CONSTRAINT "Exchange_organizerId_fkey" FOREIGN KEY ("organizerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -507,7 +523,7 @@ ALTER TABLE "SystemConfig" ADD CONSTRAINT "SystemConfig_activeThemeId_fkey" FORE
 
 
 -- -----------------------------------------------------------------------------
--- PRODUCTION CLEAN DATA SEED (Themes, SystemConfig, Super Admin)
+-- PRODUCTION CLEAN DATA SEED (SystemConfig, Super Admin)
 -- -----------------------------------------------------------------------------
 
 INSERT INTO "SystemConfig" ("id", "activeThemeId", "activeSeason", "announcementBannerActive", "freeAnnualHostAllowance", "freeAnnualJoinAllowance", "paidEventPriceUsd", "maxFreeParticipants", "maxWishlistItems", "updatedAt")
@@ -515,14 +531,6 @@ VALUES ('singleton', 'winter_holiday', 'auto', true, 1, 3, 5.00, 25, 50, NOW())
 ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO "AdminUser" ("id", "username", "email", "name", "passwordHash", "role", "isActive", "requiresPasswordReset", "createdAt", "updatedAt")
-VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$scrypt$1024$8$1$943ec7b7ced616c1e7c9208d9229c344$0d926b01cf819bfcf413a4e81bab177d688ad342f6836b78bbd0f033590e4b4f', 'SUPER_ADMIN', true, false, NOW(), NOW())
-ON CONFLICT ("id") DO NOTHING;
-
-INSERT INTO "User" ("id", "email", "name", "codename", "passwordHash", "country", "penaltyPoints", "accountStatus", "emailNotifications", "createdAt", "updatedAt")
-VALUES ('00000000-0000-4000-b000-000000000001', 'admin@kovertklaus.com', 'Santa Claus', 'Santa', '$scrypt$1024$8$1$943ec7b7ced616c1e7c9208d9229c344$0d926b01cf819bfcf413a4e81bab177d688ad342f6836b78bbd0f033590e4b4f', 'US', 0, 'ACTIVE', true, NOW(), NOW())
-ON CONFLICT ("id") DO NOTHING;
-
-INSERT INTO "Wishlist" ("id", "userId", "name", "type", "createdAt", "updatedAt")
-VALUES ('00000000-0000-4000-c000-000000000001', '00000000-0000-4000-b000-000000000001', 'Master Wishlist Manifest', 'STANDARD', NOW(), NOW())
+VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$scrypt$1024$8$1$e429a73ffbca4cef0e0f956fe08c8b46$83b1b0f2d961ffda6cc2ede1ae2193efa96859cd0509702b8e4488929dd0c6bc', 'SUPER_ADMIN', true, true, NOW(), NOW())
 ON CONFLICT ("id") DO NOTHING;
 
