@@ -92,6 +92,15 @@ function writeToFileLog(entry: {
   statusCode?: number;
 }) {
   try {
+    // In Cloudflare Worker or Edge environments, file writing is not supported
+    if (
+      typeof (globalThis as any).WebSocketPair !== 'undefined' ||
+      process.env.CLOUDFLARE_WORKERS === '1' ||
+      process.env.CF_PAGES === '1'
+    ) {
+      return;
+    }
+
     if (typeof process !== 'undefined' && process.versions?.node && !process.env.DISABLE_FILE_LOGGING) {
       // Dynamic import to remain safe in Cloudflare Worker edge runtimes
       import('fs').then((fs) => {

@@ -65,6 +65,7 @@ interface Env {
   SMTP_PASS?: string;
   SMTP_SECURE?: string;
   SMTP_FROM?: string;
+  SESSION_SECRET?: string;
 }
 
 function parseCookie(cookieHeader: string | null, name: string): string | null {
@@ -161,6 +162,7 @@ export default {
     if (env.SMTP_PASS) process.env.SMTP_PASS = env.SMTP_PASS;
     if (env.SMTP_SECURE) process.env.SMTP_SECURE = env.SMTP_SECURE;
     if (env.SMTP_FROM) process.env.SMTP_FROM = env.SMTP_FROM;
+    if (env.SESSION_SECRET) process.env.SESSION_SECRET = env.SESSION_SECRET;
 
     try {
       const adminConnStr = env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL || process.env.DATABASE_ADMIN_URL || process.env.DIRECT_URL || process.env.DATABASE_URL;
