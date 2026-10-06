@@ -100,10 +100,14 @@ export async function setAdminSessionCookie(adminId: string) {
  * or fallback x-admin-token authorization header.
  */
 export async function getAdminSessionId(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const session = cookieStore.get(ADMIN_SESSION_COOKIE_NAME);
-  const cookieVerified = verifyToken(session?.value);
-  if (cookieVerified) return cookieVerified;
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get(ADMIN_SESSION_COOKIE_NAME);
+    const cookieVerified = verifyToken(session?.value);
+    if (cookieVerified) return cookieVerified;
+  } catch {
+    // Ignore cookie resolution errors during static prerendering
+  }
 
   try {
     const { headers } = await import('next/headers');

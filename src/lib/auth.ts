@@ -49,10 +49,14 @@ export async function setSessionCookie(userId: string): Promise<void> {
  * @returns The authenticated operative's `userId`, or `null` if unauthenticated, tampered, or expired.
  */
 export async function getSessionUserId(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const session = cookieStore.get(SESSION_COOKIE_NAME);
-  const cookieVerified = verifyToken(session?.value);
-  if (cookieVerified) return cookieVerified;
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get(SESSION_COOKIE_NAME);
+    const cookieVerified = verifyToken(session?.value);
+    if (cookieVerified) return cookieVerified;
+  } catch {
+    // Ignore cookie resolution errors during static prerendering
+  }
 
   try {
     const { headers } = await import('next/headers');
