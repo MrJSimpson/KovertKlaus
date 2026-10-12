@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Security
+- **No default administrator password.** First-run setup replaces the published initial password: with no `AdminUser` and no `INITIAL_ADMIN_PASSWORD`, the server prints a one-time setup token to its console, and `/northpole/setup` creates the first administrator with a passphrase the operator chooses. The token is 256-bit, compared in constant time, held only as a digest in memory, revoked after use, and reissued on restart.
+- **Retired defaults are permanently banned** by the NIST passphrase validator, so an upgraded or restored install cannot be left on a previously published credential.
+- **`db:seed` no longer touches an existing administrator.** Previously it reset the existing admin's password to the default on every run.
+- **Database schema separation (`app` / `admin`).** Admin tables (`AdminUser`, `SystemConfig`, `SystemLog`) move to an `admin` schema the application role cannot enter. App tables move to `app`, where new tables are granted to the application role automatically. Includes forward/rollback SQL and a read-only audit (`scripts/check-db-schema-separation.ts`).
+
+### Changed
+- `INITIAL_ADMIN_PASSWORD` is now optional and empty by default. Set it only for unattended deployments; it forces a reset on first login.
+- The SQL dump no longer contains an `AdminUser` row.
+- `AGENTS.md` is now contributor guidance; `CONTRIBUTING.md` documents that issues and pull requests from people and AI agents are welcome and reviewed by the owner and team.
+
+### Removed
+- Internal sprint and planning documents (`docs/CURRENT_SPRINT.md`, `docs/PRIORITY_REMINDERS.md`, `docs/sprints/`).
+
+---
+
 ## [0.2.0-alpha] - 2026-10-06
 
 ### Added

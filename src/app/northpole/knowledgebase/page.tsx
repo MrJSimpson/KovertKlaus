@@ -134,10 +134,10 @@ export default function NorthPoleKnowledgeBasePage() {
                 <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-500/30 space-y-1 text-[11px]">
                   <span className="text-amber-300 font-bold">🎁 First-Time Install Credentials &amp; NIST Mandatory Reset</span>
                   <p className="text-gray-300">
-                    KovertKlaus auto-seeds default administrator account (Username: <code className="text-emerald-400">santa</code>, Email: <code className="text-sky-300">admin@kovertklaus.com</code>, Password: <code className="text-amber-300">G!v!nGSp1r1t</code>).
+                    No default administrator password ships. On first launch the server prints a one-time setup token to its console; open <code className="text-emerald-400">/northpole/setup</code> to create the first administrator.
                   </p>
                   <p className="text-gray-400">
-                    • <strong>NIST SP 800-63B Compliance</strong>: The default password MUST be reset before clearance is granted. Passphrases must be 12+ characters and cannot contain username/email.
+                    • <strong>NIST SP 800-63B Compliance</strong>: Administrator passphrases must be 12+ characters and cannot contain username/email.
                   </p>
                 </div>
               </div>
@@ -267,7 +267,7 @@ export default function NorthPoleKnowledgeBasePage() {
               <ul className="list-disc pl-5 space-y-1.5 text-gray-400">
                 <li><strong className="text-white">Scraper Fast-Failover</strong>: 2.5 second timeout with automatic fallback to manual modal.</li>
                 <li><strong className="text-white">SSRF Protection (OWASP A01)</strong>: Blocks all private IPv4/IPv6 ranges and AWS metadata endpoints.</li>
-                <li><strong className="text-white">Super Admin Recovery</strong>: Setting <code className="text-white">INITIAL_ADMIN_EMAIL</code> in .env and triggering bootstrap re-creates the initial admin account.</li>
+                <li><strong className="text-white">Super Admin Recovery</strong>: If every administrator account is lost, remove the <code className="text-white">AdminUser</code> rows and restart: the server prints a new one-time setup token for <code className="text-white">/northpole/setup</code>.</li>
                 <li><strong className="text-white">Offline Email Safety</strong>: Falls back gracefully to console simulator during offline or local network operations.</li>
               </ul>
             </div>

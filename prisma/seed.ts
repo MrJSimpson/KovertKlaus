@@ -160,33 +160,29 @@ async function main() {
   // ---------------------------------------------------------------------------
   // 3. Seed Initial Super Admin (Santa Claus)
   // ---------------------------------------------------------------------------
-  const initialAdminPassHash = await hashPassword('G!v!nGSp1r1t');
-  const existingAdmin = await db.adminUser.findFirst({
-    where: { OR: [{ username: 'santa' }, { email: 'admin@kovertklaus.com' }] },
-  });
-
-  if (!existingAdmin) {
+  // No default password ships with KovertKlaus. An existing admin is never modified.
+  //  - INITIAL_ADMIN_PASSWORD set (SaaS secret / operator choice): create the admin with a forced first-login reset.
+  //  - Otherwise: leave AdminUser empty; the server prints a one-time token for /northpole/setup.
+  const adminCount = await db.adminUser.count();
+  if (adminCount > 0) {
+    console.log('🎅 Super Admin already exists - left unchanged.');
+  } else if (process.env.INITIAL_ADMIN_PASSWORD) {
+    const username = (process.env.INITIAL_ADMIN_USERNAME || 'santa').trim().toLowerCase();
+    const email = (process.env.INITIAL_ADMIN_EMAIL || 'admin@kovertklaus.com').trim().toLowerCase();
     await db.adminUser.create({
       data: {
-        username: 'santa',
-        email: 'admin@kovertklaus.com',
+        username,
+        email,
         name: 'Santa Claus',
-        passwordHash: initialAdminPassHash,
+        passwordHash: await hashPassword(process.env.INITIAL_ADMIN_PASSWORD),
         role: 'SUPER_ADMIN',
         isActive: true,
         requiresPasswordReset: true,
       },
     });
-    console.log('🎅 Seeded Super Admin: santa <admin@kovertklaus.com> (requiresPasswordReset: true)');
+    console.log(`🎅 Seeded Super Admin '${username}' from INITIAL_ADMIN_* (requiresPasswordReset: true)`);
   } else {
-    await db.adminUser.update({
-      where: { id: existingAdmin.id },
-      data: {
-        passwordHash: initialAdminPassHash,
-        isActive: true,
-      },
-    });
-    console.log('🔄 Updated Super Admin: santa <admin@kovertklaus.com>');
+    console.log('🎅 No Super Admin seeded. Start the app and complete first-run setup at /northpole/setup (token printed in the server console).');
   }
 
   // ---------------------------------------------------------------------------
