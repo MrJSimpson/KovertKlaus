@@ -92,6 +92,7 @@ There are two distinct types of `Wishlist Manifest` in the system:
 * **Styling:** TailwindCSS with dual-theme mode (🎄 Light Theme & ❄️ Dark Icy Theme).
 * **Database:** PostgreSQL 16/17 Alpine running in Docker container (`kovertklaus-db`) or external PostgreSQL.
 * **ORM:** Prisma ORM. Whenever modifying `prisma/schema.prisma`, execute `npx prisma db push` and `npx prisma generate`.
+* **Schema Separation (`app` / `admin`):** Every model and enum **MUST** declare `@@schema("app")` (reachable by the application role through `db`) or `@@schema("admin")` (owner-only, through `adminDb`). Never put tables in `public`. After any schema change, run `npx tsx scripts/check-db-schema-separation.ts`. See `docs/DEPLOYMENT_GUIDE.md` → Database Schema Separation.
 * **Clean Database Rule:** Production seeds must contain zero dummy users, zero mock exchanges, and zero sample wishlists. Only `AdminUser` is seeded.
 
 ---

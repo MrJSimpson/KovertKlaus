@@ -1,5 +1,6 @@
 datasource db {
   provider = "postgresql"
+  schemas  = ["app", "admin"]
 }
 
 generator client {
@@ -10,6 +11,8 @@ enum AccountStatus {
   ACTIVE
   REMOTE_RESTRICTED
   DISABLED
+
+  @@schema("app")
 }
 
 enum ExchangeStatus {
@@ -19,33 +22,45 @@ enum ExchangeStatus {
   SHIPPED
   EXECUTED
   COMPLETED
+
+  @@schema("app")
 }
 
 enum GiftingType {
   SINGLE
   MULTIPLE
+
+  @@schema("app")
 }
 
 enum PaymentStatus {
   FREE_ANNUAL
   PAID
   EXEMPT_SELF_HOSTED
+
+  @@schema("app")
 }
 
 enum MemberRole {
   ORGANIZER
   MEMBER
+
+  @@schema("app")
 }
 
 enum ShippingStatus {
   PENDING
   LOCAL_DELIVERY
   SHIPPED
+
+  @@schema("app")
 }
 
 enum WishlistType {
   STANDARD
   WHITE_ELEPHANT
+
+  @@schema("app")
 }
 
 enum LogLevel {
@@ -53,23 +68,24 @@ enum LogLevel {
   WARN
   INFO
   DEBUG
+
+  @@schema("admin")
 }
 
-
 model User {
-  id                             String            @id @default(uuid())
-  email                          String            @unique
+  id                             String        @id @default(uuid())
+  email                          String        @unique
   name                           String
   codename                       String?
   preferredCodename              String?
-  autoRandomizeCodename          Boolean           @default(false)
+  autoRandomizeCodename          Boolean       @default(false)
   passwordHash                   String
   streetAddress                  String?
   addressLine2                   String?
   city                           String?
   state                          String?
   zipCode                        String?
-  country                        String?           @default("US")
+  country                        String?       @default("US")
   deliveryNotes                  String?
   shirtSize                      String?
   topHalfSize                    String?
@@ -82,16 +98,16 @@ model User {
   allergiesDiet                  String?
   dislikes                       String?
   favoriteHobbies                String?
-  allowOrganizerViewSizes        Boolean           @default(true)
-  allowOrganizerViewMeasurements Boolean           @default(false)
-  allowOrganizerViewAllergies    Boolean           @default(true)
-  allowOrganizerViewFavorites    Boolean           @default(false)
-  penaltyPoints                  Int               @default(0)
-  accountStatus                  AccountStatus     @default(ACTIVE)
-  isWorkshop                     Boolean           @default(false)
-  emailNotifications             Boolean           @default(true)
-  createdAt                      DateTime          @default(now())
-  updatedAt                      DateTime          @updatedAt
+  allowOrganizerViewSizes        Boolean       @default(true)
+  allowOrganizerViewMeasurements Boolean       @default(false)
+  allowOrganizerViewAllergies    Boolean       @default(true)
+  allowOrganizerViewFavorites    Boolean       @default(false)
+  penaltyPoints                  Int           @default(0)
+  accountStatus                  AccountStatus @default(ACTIVE)
+  isWorkshop                     Boolean       @default(false)
+  emailNotifications             Boolean       @default(true)
+  createdAt                      DateTime      @default(now())
+  updatedAt                      DateTime      @updatedAt
 
   createdExchanges       Exchange[]        @relation("OrganizerExchanges")
   participations         ExchangeMember[]  @relation("MemberUser")
@@ -104,6 +120,8 @@ model User {
   sentMessages           ExchangeMessage[] @relation("MessageSender")
   receivedMessages       ExchangeMessage[] @relation("MessageRecipient")
   exchangeReports        ExchangeReport[]
+
+  @@schema("app")
 }
 
 model Exchange {
@@ -145,6 +163,7 @@ model Exchange {
   @@index([organizerId])
   @@index([status])
   @@index([code])
+  @@schema("app")
 }
 
 model ProductCatalog {
@@ -160,6 +179,8 @@ model ProductCatalog {
   updatedAt    DateTime @updatedAt
 
   items Item[]
+
+  @@schema("app")
 }
 
 model Item {
@@ -181,6 +202,7 @@ model Item {
 
   @@index([userId])
   @@index([catalogId])
+  @@schema("app")
 }
 
 model Wishlist {
@@ -196,6 +218,7 @@ model Wishlist {
   exchangeMembers ExchangeMember[]
 
   @@index([userId])
+  @@schema("app")
 }
 
 model WishlistItem {
@@ -207,19 +230,20 @@ model WishlistItem {
   item       Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@unique([wishlistId, itemId])
+  @@schema("app")
 }
 
 model ExchangeMember {
-  id                 String         @id @default(uuid())
-  exchangeId         String
-  userId             String
-  codename           String?
-  wishlistId         String?
-  role               MemberRole     @default(MEMBER)
-  targetUserId       String?
-  shippingStatus     ShippingStatus @default(PENDING)
-  trackingNumber     String?
-  shippedAt          DateTime?
+  id                     String         @id @default(uuid())
+  exchangeId             String
+  userId                 String
+  codename               String?
+  wishlistId             String?
+  role                   MemberRole     @default(MEMBER)
+  targetUserId           String?
+  shippingStatus         ShippingStatus @default(PENDING)
+  trackingNumber         String?
+  shippedAt              DateTime?
   deliveredConfirmed     Boolean        @default(false)
   propertyWaiverAgreedAt DateTime?
   dropProofPhotoUrl      String?
@@ -231,35 +255,37 @@ model ExchangeMember {
   detectionStatus        String         @default("PENDING") // PENDING | UNDETECTED | BUSTED
   bustedPhotoUrl         String?
   bustedReason           String?
-  badgeAwarded           String?        // KOVERT_KLAUS | VIGILANT_ELF
+  badgeAwarded           String? // KOVERT_KLAUS | VIGILANT_ELF
   joinedAt               DateTime       @default(now())
 
-  exchange Exchange  @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
-  user     User      @relation("MemberUser", fields: [userId], references: [id], onDelete: Cascade)
-  targetUser User?   @relation("TargetUser", fields: [targetUserId], references: [id])
-  wishlist Wishlist? @relation(fields: [wishlistId], references: [id])
+  exchange   Exchange  @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  user       User      @relation("MemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  targetUser User?     @relation("TargetUser", fields: [targetUserId], references: [id])
+  wishlist   Wishlist? @relation(fields: [wishlistId], references: [id])
 
   @@unique([exchangeId, userId])
   @@index([exchangeId, codename])
   @@index([exchangeId])
   @@index([userId])
   @@index([targetUserId])
+  @@schema("app")
 }
 
 model CovertInviteToken {
-  id           String    @id @default(uuid())
+  id           String   @id @default(uuid())
   exchangeId   String
-  exchange     Exchange  @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
-  token        String    @unique
+  exchange     Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  token        String   @unique
   invitedEmail String?
   invitedName  String?
-  isUsed       Boolean   @default(false)
+  isUsed       Boolean  @default(false)
   usedByUserId String?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
   expiresAt    DateTime
 
   @@index([exchangeId])
   @@index([token])
+  @@schema("app")
 }
 
 model ExclusionRule {
@@ -273,6 +299,7 @@ model ExclusionRule {
   restrictedMember User     @relation("ExclusionRestrictedMember", fields: [restrictedMemberId], references: [id], onDelete: Cascade)
 
   @@unique([exchangeId, memberId, restrictedMemberId])
+  @@schema("app")
 }
 
 model ExchangeMessage {
@@ -289,6 +316,7 @@ model ExchangeMessage {
   recipient User     @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
 
   @@index([exchangeId])
+  @@schema("app")
 }
 
 model Notification {
@@ -302,6 +330,7 @@ model Notification {
   createdAt      DateTime @default(now())
 
   @@index([userId, isAcknowledged])
+  @@schema("app")
 }
 
 model ExchangeReport {
@@ -316,6 +345,7 @@ model ExchangeReport {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([exchangeId])
+  @@schema("app")
 }
 
 model ClearanceLead {
@@ -327,6 +357,8 @@ model ClearanceLead {
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@schema("app")
 }
 
 model AdminUser {
@@ -341,97 +373,104 @@ model AdminUser {
   lastLoginAt           DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+
+  @@schema("admin")
 }
 
 model ThemePreset {
-  id               String   @id // e.g. "winter_holiday", "spring_egg_hunt", "tropic_klaus", "spooky_autumn"
-  name             String   // Display Name e.g. "Winter Holiday (Klaus & Kovert)"
-  season           String   @default("winter") // "winter" | "spring" | "summer" | "autumn" | "universal"
-  isDefault        Boolean  @default(false)
-  altHomeKey       String?  @default("coming_soon") // Linked ALT_HOME component key
-  
-  // Seasonal Themed Banner Text
-  bannerTextLight  String?  @default("🎄 Welcome to KovertKlaus! Organize gift exchanges in under 60 seconds.")
-  bannerTextDark   String?  @default("❄️ Winter Night Ops Active — Covert Holiday Gifting")
-  
-  // Visual Strand Style
-  lightsStrandType String   @default("christmas_bulbs") // "christmas_bulbs" | "easter_eggs" | "tropic_lanterns" | "spooky_pumpkins" | "none"
-  
-  // Dual Design System Token Overrides (JSON Objects)
-  lightTokens      Json?    // CSS classes for Light Mode (pageBg, headerBg, btnPrimary, badgeCode, etc.)
-  darkTokens       Json?    // CSS classes for Dark Mode
-  
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id         String  @id // e.g. "winter_holiday", "spring_egg_hunt", "tropic_klaus", "spooky_autumn"
+  name       String // Display Name e.g. "Winter Holiday (Klaus & Kovert)"
+  season     String  @default("winter") // "winter" | "spring" | "summer" | "autumn" | "universal"
+  isDefault  Boolean @default(false)
+  altHomeKey String? @default("coming_soon") // Linked ALT_HOME component key
 
-  systemConfigs    SystemConfig[]
+  // Seasonal Themed Banner Text
+  bannerTextLight String? @default("🎄 Welcome to KovertKlaus! Organize gift exchanges in under 60 seconds.")
+  bannerTextDark  String? @default("❄️ Winter Night Ops Active — Covert Holiday Gifting")
+
+  // Visual Strand Style
+  lightsStrandType String @default("christmas_bulbs") // "christmas_bulbs" | "easter_eggs" | "tropic_lanterns" | "spooky_pumpkins" | "none"
+
+  // Dual Design System Token Overrides (JSON Objects)
+  lightTokens Json? // CSS classes for Light Mode (pageBg, headerBg, btnPrimary, badgeCode, etc.)
+  darkTokens  Json? // CSS classes for Dark Mode
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  systemConfigs SystemConfig[]
+
+  @@schema("app")
 }
 
 model SystemConfig {
-  id                       String       @id @default("singleton")
-  activeThemeId            String       @default("winter_holiday")
-  activeTheme              ThemePreset  @relation(fields: [activeThemeId], references: [id])
-  activeSeason             String       @default("auto") // "auto" | "winter" | "spring" | "summer" | "autumn"
-  announcementBannerActive Boolean      @default(true)
-  maintenanceMode          Boolean      @default(false)
+  id                       String      @id @default("singleton")
+  activeThemeId            String      @default("winter_holiday")
+  activeTheme              ThemePreset @relation(fields: [activeThemeId], references: [id])
+  activeSeason             String      @default("auto") // "auto" | "winter" | "spring" | "summer" | "autumn"
+  announcementBannerActive Boolean     @default(true)
+  maintenanceMode          Boolean     @default(false)
   maintenanceMessage       String?
-  
+
   // Dynamic App & Routing Options (administered via /northpole)
-  altHome                  String?      @default("")
-  appMode                  String       @default("selfhosted") // "selfhosted" | "saas"
-  
+  altHome String? @default("")
+  appMode String  @default("selfhosted") // "selfhosted" | "saas"
+
   // Universal Transactional Email Settings (administered via /northpole)
-  emailProvider            String       @default("auto") // "auto" | "brevo" | "smtp" | "resend" | "console"
-  emailFrom                String       @default("admin@kovertklaus.com")
-  emailFromName            String       @default("KovertKlaus HQ")
-  brevoApiKey              String?
-  brevoSenderEmail         String?
-  brevoSenderName          String?
-  smtpHost                 String?
-  smtpPort                 Int?         @default(587)
-  smtpUser                 String?
-  smtpPass                 String?
-  smtpSecure               Boolean      @default(false)
-  smtpFrom                 String?
-  resendApiKey             String?
-  
+  emailProvider    String  @default("auto") // "auto" | "brevo" | "smtp" | "resend" | "console"
+  emailFrom        String  @default("admin@kovertklaus.com")
+  emailFromName    String  @default("KovertKlaus HQ")
+  brevoApiKey      String?
+  brevoSenderEmail String?
+  brevoSenderName  String?
+  smtpHost         String?
+  smtpPort         Int?    @default(587)
+  smtpUser         String?
+  smtpPass         String?
+  smtpSecure       Boolean @default(false)
+  smtpFrom         String?
+  resendApiKey     String?
+
   // Public Limits & Quotas
-  freeAnnualHostAllowance  Int          @default(1)
-  freeAnnualJoinAllowance  Int          @default(3)
-  paidEventPriceUsd        Decimal      @default(5.00) @db.Decimal(10, 2)
-  maxFreeParticipants      Int          @default(25)
-  maxWishlistItems         Int          @default(50)
-  defaultBudgetMin         Decimal      @default(0.00) @db.Decimal(10, 2)
-  defaultBudgetMax         Decimal      @default(50.00) @db.Decimal(10, 2)
-  defaultCurrency          String       @default("USD")
-  
+  freeAnnualHostAllowance Int     @default(1)
+  freeAnnualJoinAllowance Int     @default(3)
+  paidEventPriceUsd       Decimal @default(5.00) @db.Decimal(10, 2)
+  maxFreeParticipants     Int     @default(25)
+  maxWishlistItems        Int     @default(50)
+  defaultBudgetMin        Decimal @default(0.00) @db.Decimal(10, 2)
+  defaultBudgetMax        Decimal @default(50.00) @db.Decimal(10, 2)
+  defaultCurrency         String  @default("USD")
+
   // Automated Mission Lifecycle Scheduler (administered via /northpole)
-  lifecycleCronEnabled         Boolean      @default(true)
-  lifecycleCronIntervalMinutes Int          @default(60)
+  lifecycleCronEnabled         Boolean   @default(true)
+  lifecycleCronIntervalMinutes Int       @default(60)
   lastLifecycleRunAt           DateTime?
-  lastLifecycleTransitions     Int?         @default(0)
-  
-  updatedAt                DateTime     @updatedAt
-  updatedByAdminId         String?
+  lastLifecycleTransitions     Int?      @default(0)
+
+  updatedAt        DateTime @updatedAt
+  updatedByAdminId String?
+
+  @@schema("admin")
 }
 
 model SystemLog {
-  id          String    @id @default(uuid())
-  level       LogLevel  @default(INFO)
-  category    String    // "EMAIL" | "AUTH" | "DB" | "SCRAPER" | "WORKER" | "OPERATION" | "ADMIN"
-  message     String    @db.Text
-  metadata    Json?     // Structured JSON payload (sanitized & size-capped at 2KB)
-  path        String?   // Request pathname (e.g. "/api/leads", "/api/operations")
-  method      String?   // HTTP method ("POST", "GET", "PATCH", "DELETE")
-  statusCode  Int?      // HTTP status code (e.g. 500, 400, 429)
-  ip          String?   // Client IP (if available)
-  userAgent   String?   // Client user-agent string
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(uuid())
+  level      LogLevel @default(INFO)
+  category   String // "EMAIL" | "AUTH" | "DB" | "SCRAPER" | "WORKER" | "OPERATION" | "ADMIN"
+  message    String   @db.Text
+  metadata   Json? // Structured JSON payload (sanitized & size-capped at 2KB)
+  path       String? // Request pathname (e.g. "/api/leads", "/api/operations")
+  method     String? // HTTP method ("POST", "GET", "PATCH", "DELETE")
+  statusCode Int? // HTTP status code (e.g. 500, 400, 429)
+  ip         String? // Client IP (if available)
+  userAgent  String? // Client user-agent string
+  createdAt  DateTime @default(now())
 
   @@index([createdAt])
   @@index([level, createdAt])
   @@index([category, createdAt])
+  @@schema("admin")
 }
 
 model PreLaunchApproval {
@@ -439,5 +478,6 @@ model PreLaunchApproval {
   email      String   @unique
   inviteCode String   @unique
   createdAt  DateTime @default(now())
-}
 
+  @@schema("app")
+}
