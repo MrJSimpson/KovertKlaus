@@ -19,16 +19,17 @@ function getSavedAdmin(): { id: string; name: string; email: string; role: strin
 export default function NorthPoleLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isLoginPage = pathname === '/northpole/login';
+  // Login and first-run setup must render without an admin session (setup runs before any admin exists).
+  const isAuthPage = pathname === '/northpole/login' || pathname === '/northpole/setup';
 
   const [admin, setAdmin] = useState<{ id: string; name: string; email: string; role: string } | null>(getSavedAdmin);
-  const [loading, setLoading] = useState(!isLoginPage && !getSavedAdmin());
+  const [loading, setLoading] = useState(!isAuthPage && !getSavedAdmin());
 
   useEffect(() => {
     // Non-blocking background pre-warming ping to ensure Neon compute is awake
     fetch('/api/config').catch(() => {});
 
-    if (isLoginPage) {
+    if (isAuthPage) {
       setLoading(false);
       return;
     }
@@ -91,7 +92,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
     }
 
     checkAdminSession();
-  }, [isLoginPage]);
+  }, [isAuthPage]);
 
   async function handleLogout() {
     try {
@@ -112,7 +113,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
     }
   }
 
-  if (isLoginPage) {
+  if (isAuthPage) {
     return <>{children}</>;
   }
 
