@@ -366,6 +366,7 @@ CREATE TABLE "app"."PreLaunchApproval" (
     "email" TEXT NOT NULL,
     "inviteCode" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "PreLaunchApproval_pkey" PRIMARY KEY ("id")
 );
@@ -534,6 +535,6 @@ VALUES ('singleton', 'winter_holiday', 'auto', true, 1, 3, 5.00, 25, 50, NOW())
 ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO admin."AdminUser" ("id", "username", "email", "name", "passwordHash", "role", "isActive", "requiresPasswordReset", "createdAt", "updatedAt")
-VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$scrypt$1024$8$1$cb49ff797231d2983fe771d4dd768619$13cf44c8d92122956becee36ceb936c30c0b74ab2ad2835383f8e9a5894e1175', 'SUPER_ADMIN', true, true, NOW(), NOW())
+VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$scrypt$1024$8$1$c60b5d6d1fe4ff567318e7633f06aa27$8d52fe7ba3dcd1cab9a4fc226b46a4b10098cb5dbb30b55930055cd9dce3cdfe', 'SUPER_ADMIN', true, true, NOW(), NOW())
 ON CONFLICT ("id") DO NOTHING;
 

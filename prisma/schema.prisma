@@ -478,6 +478,7 @@ model PreLaunchApproval {
   email      String   @unique
   inviteCode String   @unique
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@schema("app")
 }
