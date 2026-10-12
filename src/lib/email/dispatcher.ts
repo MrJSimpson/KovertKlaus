@@ -8,6 +8,7 @@ import {
   getAssignmentEmailTemplate,
   getBroadcastEmailTemplate,
   getClearanceConfirmationEmailTemplate,
+  getClearanceApprovalEmailTemplate,
   getInvitationEmailTemplate,
   getNudgeEmailTemplate,
   getWelcomeEmailTemplate,
@@ -16,6 +17,7 @@ import {
   AssignmentEmailParams,
   BroadcastEmailParams,
   ClearanceConfirmationParams,
+  ClearanceApprovalParams,
   EmailConfig,
   EmailMessage,
   EmailResult,
@@ -248,6 +250,24 @@ export async function sendClearanceConfirmationEmail(params: ClearanceConfirmati
       html,
       text,
       tags: ['clearance', 'pre-launch-waitlist'],
+    },
+    params.overrideConfig
+  );
+}
+
+/**
+ * Dispatches an Alpha Clearance Approval Email containing the single-use invite cipher.
+ */
+export async function sendClearanceApprovalEmail(params: ClearanceApprovalParams): Promise<EmailResult> {
+  const { subject, html, text } = getClearanceApprovalEmailTemplate(params);
+  const targetEmail = params.recipientEmail || params.to || '';
+  return sendEmail(
+    {
+      to: targetEmail,
+      subject,
+      html,
+      text,
+      tags: ['clearance-approved', 'pre-launch-approval', 'alpha'],
     },
     params.overrideConfig
   );

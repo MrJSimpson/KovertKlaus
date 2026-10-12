@@ -2,7 +2,7 @@
 
 import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface UserRecord {
@@ -29,6 +29,14 @@ export default function NorthPoleUsersPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [workshopOnly, setWorkshopOnly] = useState(initialWorkshopFilter);
+  // Workshop controls are self-hosted only (SaaS physically excludes /workshop). Hidden until the edition is known.
+  const [isSelfHosted, setIsSelfHosted] = useState(false);
+  useEffect(() => {
+    fetch('/api/config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => setIsSelfHosted(json?.edition === 'selfhosted'))
+      .catch(() => {});
+  }, []);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [editingCodenameUser, setEditingCodenameUser] = useState<UserRecord | null>(null);
   const [newCodename, setNewCodename] = useState('');
@@ -185,18 +193,20 @@ export default function NorthPoleUsersPage() {
               </button>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleToggleWorkshopFilter}
-            className={`px-4 py-3 rounded-xl border text-xs font-mono transition flex items-center gap-2 ${
-              workshopOnly
-                ? 'bg-amber-950/60 border-amber-500/60 text-amber-300 font-bold'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <span>🛠️ Workshop Only</span>
-            {workshopOnly && <span className="text-amber-400 font-bold">●</span>}
-          </button>
+          {isSelfHosted && (
+            <button
+              type="button"
+              onClick={handleToggleWorkshopFilter}
+              className={`px-4 py-3 rounded-xl border text-xs font-mono transition flex items-center gap-2 ${
+                workshopOnly
+                  ? 'bg-amber-950/60 border-amber-500/60 text-amber-300 font-bold'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>🛠️ Workshop Only</span>
+              {workshopOnly && <span className="text-amber-400 font-bold">●</span>}
+            </button>
+          )}
           <button
             type="submit"
             disabled={loading}
@@ -301,18 +311,20 @@ export default function NorthPoleUsersPage() {
 
                 {/* Live Modification Controls */}
                 <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
-                  {/* Workshop Toggle */}
-                  <button
-                    onClick={() => handleUpdateUser(user.id, { isWorkshop: !user.isWorkshop })}
-                    disabled={updatingId === user.id}
-                    className={`px-3 py-1.5 rounded-lg border text-[11px] transition ${
-                      user.isWorkshop
-                        ? 'bg-amber-950/60 border-amber-600/50 text-amber-300 hover:bg-amber-900'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    {user.isWorkshop ? 'Revoke Workshop' : 'Grant Workshop'}
-                  </button>
+                  {/* Workshop Toggle (self-hosted only) */}
+                  {isSelfHosted && (
+                    <button
+                      onClick={() => handleUpdateUser(user.id, { isWorkshop: !user.isWorkshop })}
+                      disabled={updatingId === user.id}
+                      className={`px-3 py-1.5 rounded-lg border text-[11px] transition ${
+                        user.isWorkshop
+                          ? 'bg-amber-950/60 border-amber-600/50 text-amber-300 hover:bg-amber-900'
+                          : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      {user.isWorkshop ? 'Revoke Workshop' : 'Grant Workshop'}
+                    </button>
+                  )}
 
                   {/* Penalty Points Controls */}
                   <div className="flex items-center gap-1">

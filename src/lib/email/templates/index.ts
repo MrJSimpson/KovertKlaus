@@ -2,6 +2,7 @@ import {
   AssignmentEmailParams,
   BroadcastEmailParams,
   ClearanceConfirmationParams,
+  ClearanceApprovalParams,
   InvitationEmailParams,
   NudgeEmailParams,
   WelcomeEmailParams,
@@ -420,6 +421,56 @@ export function getClearanceConfirmationEmailTemplate(params: ClearanceConfirmat
     You will receive your priority activation cipher upon official launch.
     https://kovertklaus.com
     --------------------------------------------------
+  `);
+
+  return { subject, html, text };
+}
+
+/**
+ * Generates email markup for Alpha Clearance Approval with one-time invite cipher.
+ */
+export function getClearanceApprovalEmailTemplate(params: ClearanceApprovalParams): { subject: string; html: string; text: string } {
+  const recipientEmail = params.recipientEmail || params.to || 'Operative';
+  const { inviteCode } = params;
+  const registrationUrl = params.registrationUrl || `https://kovertklaus.com/register?code=${inviteCode}&email=${encodeURIComponent(recipientEmail)}`;
+
+  const subject = `🎄 Alpha Clearance Granted: Your KovertKlaus Activation Cipher`;
+
+  const bodyHtml = `
+    <p>Operative${params.name ? ` ${params.name}` : ''},</p>
+    <p>Your request for early clearance has been <strong>APPROVED</strong> by North Pole Command. You have been granted priority clearance to participate in the KovertKlaus Public Alpha.</p>
+
+    <div class="code-box">
+      <div class="code-label">Single-Use Alpha Activation Cipher</div>
+      <div class="code-value" style="font-size: 22px; letter-spacing: 2px; color: #10b981;">${inviteCode}</div>
+      <p style="margin: 6px 0 0 0; font-size: 13px; color: #94a3b8;">This code is tied to ${recipientEmail} and is consumed upon registration.</p>
+    </div>
+
+    <p style="font-size: 14px; color: #cbd5e1;">
+      Click the button below to register your account and start organizing or joining covert Secret Santa missions.
+    </p>
+  `;
+
+  const html = renderBaseEmail({
+    title: 'Alpha Clearance Approved',
+    preheader: `Your KovertKlaus Public Alpha activation cipher is ${inviteCode}.`,
+    bodyHtml,
+    actionText: 'Complete Alpha Registration →',
+    actionUrl: registrationUrl,
+  });
+
+  const text = stripHtml(`
+    KOVERT KLAUS // ALPHA CLEARANCE GRANTED
+    --------------------------------------------------
+    Operative${params.name ? ` ${params.name}` : ''},
+
+    Your clearance request for ${recipientEmail} has been APPROVED by North Pole Command.
+    Your Single-Use Alpha Activation Cipher: ${inviteCode}
+
+    Complete your registration at:
+    ${registrationUrl}
+
+    This code is tied to your email and expires immediately upon registration.
   `);
 
   return { subject, html, text };

@@ -66,9 +66,13 @@ Performs pre-flight email availability checks or registers a new operative accou
     "name": "James Bond",
     "email": "operative@example.com",
     "password": "SecurePassword10+",
-    "codename": "Agent: 007"
+    "codename": "Agent: 007",
+    "inviteCode": "ALPHA-XXXXXXXXXXXXXXXX"
   }
   ```
+  > [!NOTE]
+  > During Public Alpha (`RELEASE_STAGE=ALPHA`), an `inviteCode` is mandatory. It must either be a single-use pre-launch approval cipher (`ALPHA-XXXXXXXXXXXXXXXX`) granted by the North Pole, or an active exchange invitation code.
+
   **Response `201 Created`**: Returns user profile and signed session token.
 
 ---
@@ -327,12 +331,34 @@ Queries clearance waitlist reservations with on-demand search and status filteri
         "id": "lead_123",
         "email": "agent@example.com",
         "name": "Agent Smith",
-        "source": "coming-soon",
+        "source": "early-access",
         "status": "APPROVED",
+        "cipher": "ALPHA-A1B2C3D4E5F60718",
         "createdAt": "2026-08-21T12:00:00.000Z"
       }
     ],
     "totalCount": 42
+  }
+  ```
+
+---
+
+### `POST /api/northpole/leads` (Alpha Clearance Approval)
+Approves a waitlist reservation, generating a cryptographically secure single-use `ALPHA-XXXXXXXXXXXXXXXX` (64-bit) activation cipher, saving it to `PreLaunchApproval`, updating the lead status to `APPROVED`, and dispatching an activation email with registration link.
+
+- **Request Body**:
+  ```json
+  {
+    "action": "approve",
+    "id": "lead_123"
+  }
+  ```
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "cipher": "ALPHA-A1B2C3D4E5F60718",
+    "message": "Alpha clearance approved and activation email dispatched."
   }
   ```
 
@@ -355,7 +381,7 @@ Purges a waitlist reservation from the clearance queue.
 ### `GET /api/northpole/users` (Lookup-Only)
 Inspects a single operative record by ID, or searches records on demand with zero initial DB table scans.
 
-- **Query Parameters**: `id=usr_123`, `q=claus`, `workshop=true`
+- **Query Parameters**: `id=usr_123`, `q=claus`, `workshop=true` (self-hosted edition only)
 - **Response `200 OK`**:
   ```json
   {
@@ -368,7 +394,7 @@ Inspects a single operative record by ID, or searches records on demand with zer
         "codename": "Agent: 007",
         "demerits": 0,
         "accountStatus": "ACTIVE",
-        "isWorkshop": true
+        "isWorkshop": false
       }
     ],
     "totalCount": 1500

@@ -9,7 +9,8 @@ interface AdminStats {
   totalUsers: number;
   totalOperations: number;
   totalLeads: number;
-  workshopUsersCount: number;
+  workshopUsersCount?: number;
+  approvedLeadsCount?: number;
 }
 
 interface SystemConfigData {
@@ -35,6 +36,8 @@ export default function NorthPoleDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [config, setConfig] = useState<SystemConfigData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Workshop UI is self-hosted only (SaaS physically excludes /workshop). Hidden until the edition is known.
+  const isSelfHosted = config?.appMode === 'selfhosted';
 
   useEffect(() => {
     async function fetchDashboardData(retryCount = 0) {
@@ -97,11 +100,19 @@ export default function NorthPoleDashboard() {
             ⚙️ Edit Config
           </Link>
           <Link
-            href="/workshop"
-            className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-mono text-xs font-black transition-all shadow-md shadow-amber-950/40"
+            href="/northpole/leads"
+            className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-mono text-xs font-bold transition-all shadow-md shadow-emerald-950/40"
           >
-            🧪 Workshop Lab
+            🎟️ Clearance Queue
           </Link>
+          {isSelfHosted && (
+            <Link
+              href="/workshop"
+              className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-mono text-xs font-black transition-all shadow-md shadow-amber-950/40"
+            >
+              🧪 Workshop Lab
+            </Link>
+          )}
         </div>
       </div>
 
@@ -146,24 +157,44 @@ export default function NorthPoleDashboard() {
           </div>
         </div>
 
-        {/* Card 3: Workshop Users */}
-        <div className="p-6 rounded-2xl bg-slate-900 border border-amber-500/30 shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-amber-300">WORKSHOP TESTERS</span>
-            <span className="text-2xl">🧪</span>
+        {/* Card 3: Workshop Testers (self-hosted) or Alpha Clearances (SaaS) */}
+        {isSelfHosted ? (
+          <div className="p-6 rounded-2xl bg-slate-900 border border-amber-500/30 shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono text-amber-300">WORKSHOP TESTERS</span>
+              <span className="text-2xl">🧪</span>
+            </div>
+            <div className="text-3xl font-extrabold text-amber-400 mt-3 font-mono">
+              {loading ? '...' : stats?.workshopUsersCount ?? 0}
+            </div>
+            <p className="text-[11px] text-gray-500 font-mono mt-1">
+              Operatives with <code className="text-amber-300">workshop</code> security tag
+            </p>
+            <div className="mt-4 pt-3 border-t border-slate-800">
+              <Link href="/northpole/users?workshop=true" className="text-xs text-amber-400 hover:underline font-mono">
+                Filter Workshop Users →
+              </Link>
+            </div>
           </div>
-          <div className="text-3xl font-extrabold text-amber-400 mt-3 font-mono">
-            {loading ? '...' : stats?.workshopUsersCount ?? 0}
+        ) : (
+          <div className="p-6 rounded-2xl bg-slate-900 border border-emerald-500/30 shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono text-emerald-300">ALPHA CLEARANCES</span>
+              <span className="text-2xl">🎟️</span>
+            </div>
+            <div className="text-3xl font-extrabold text-emerald-400 mt-3 font-mono">
+              {loading ? '...' : stats?.approvedLeadsCount ?? 0}
+            </div>
+            <p className="text-[11px] text-gray-500 font-mono mt-1">
+              Approved pre-launch clearance ciphers
+            </p>
+            <div className="mt-4 pt-3 border-t border-slate-800">
+              <Link href="/northpole/leads?status=APPROVED" className="text-xs text-emerald-400 hover:underline font-mono">
+                View Approved Operatives →
+              </Link>
+            </div>
           </div>
-          <p className="text-[11px] text-gray-500 font-mono mt-1">
-            Operatives with <code className="text-amber-300">workshop</code> security tag
-          </p>
-          <div className="mt-4 pt-3 border-t border-slate-800">
-            <Link href="/northpole/users?workshop=true" className="text-xs text-amber-400 hover:underline font-mono">
-              Filter Workshop Users →
-            </Link>
-          </div>
-        </div>
+        )}
 
         {/* Card 4: Clearance Leads */}
         <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-md">
@@ -266,13 +297,25 @@ export default function NorthPoleDashboard() {
               </p>
             </div>
 
+            {isSelfHosted && (
+              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                <div className="font-bold text-white flex items-center gap-2">
+                  <span className="text-amber-400">● /workshop/*</span>
+                  <span className="text-[10px] font-mono bg-amber-950 text-amber-300 px-1.5 py-0.5 rounded">Security Tag: workshop</span>
+                </div>
+                <p className="text-gray-400 text-[11px]">
+                  User-testing and QA testing lab. Requires authenticated user with the hidden <code className="text-amber-300">isWorkshop: true</code> flag.
+                </p>
+              </div>
+            )}
+
             <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
               <div className="font-bold text-white flex items-center gap-2">
-                <span className="text-amber-400">● /workshop/*</span>
-                <span className="text-[10px] font-mono bg-amber-950 text-amber-300 px-1.5 py-0.5 rounded">Security Tag: workshop</span>
+                <span className="text-emerald-400">● /api/clearance & PreLaunchApproval</span>
+                <span className="text-[10px] font-mono bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded">Alpha Security Gateway</span>
               </div>
               <p className="text-gray-400 text-[11px]">
-                User-testing and QA testing lab. Requires authenticated user with the hidden <code className="text-amber-300">isWorkshop: true</code> flag.
+                Closed Alpha registration security gateway. Operatives must present an approved single-use PreLaunchApproval cipher or exchange mission invitation code.
               </p>
             </div>
 

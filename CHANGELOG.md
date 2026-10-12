@@ -15,7 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`db:seed` no longer touches an existing administrator.** Previously it reset the existing admin's password to the default on every run.
 - **Database schema separation (`app` / `admin`).** Admin tables (`AdminUser`, `SystemConfig`, `SystemLog`) move to an `admin` schema the application role cannot enter. App tables move to `app`, where new tables are granted to the application role automatically. Includes forward/rollback SQL and a read-only audit (`scripts/check-db-schema-separation.ts`).
 
+### Added
+- **Pre-Launch Alpha Clearance** (ported from the SaaS edition, now available in both editions): admins approve waitlist leads in `/northpole/leads`, which issues a single-use `ALPHA-` activation code bound to the lead's email and emails a pre-filled registration link. During `RELEASE_STAGE=ALPHA`, registration accepts either a mission invite code or an approved activation code, and the code is deleted on use.
+
 ### Changed
+- Alpha activation codes now carry 64 random bits (`ALPHA-` + 16 hex), up from 32. Codes issued earlier remain valid.
+- Workshop UI (links, dashboard card, roster filter) is shown only when the server reports the self-hosted edition (`edition` field on `/api/config`). The SaaS edition does not ship `/workshop`.
 - `INITIAL_ADMIN_PASSWORD` is now optional and empty by default. Set it only for unattended deployments; it forces a reset on first login.
 - The SQL dump no longer contains an `AdminUser` row.
 - `AGENTS.md` is now contributor guidance; `CONTRIBUTING.md` documents that issues and pull requests from people and AI agents are welcome and reviewed by the owner and team.

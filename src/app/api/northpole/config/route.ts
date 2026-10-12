@@ -54,11 +54,12 @@ export async function GET() {
       orderBy: { createdAt: 'asc' },
     });
 
-    const [totalUsers, totalOperations, totalLeads, workshopUsersCount] = await Promise.all([
+    const [totalUsers, totalOperations, totalLeads, workshopUsersCount, approvedLeadsCount] = await Promise.all([
       adminDb.user.count(),
       adminDb.exchange.count(),
       adminDb.clearanceLead.count(),
       adminDb.user.count({ where: { isWorkshop: true } }),
+      adminDb.clearanceLead.count({ where: { status: 'APPROVED' } }),
     ]);
 
     return NextResponse.json({
@@ -73,6 +74,7 @@ export async function GET() {
         totalOperations,
         totalLeads,
         workshopUsersCount,
+        approvedLeadsCount,
       },
     });
   } catch (error: any) {

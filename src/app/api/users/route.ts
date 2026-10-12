@@ -5,6 +5,7 @@ import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
 import { setSessionCookie } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/email';
 import { RELEASE_STAGE } from '@/lib/version';
+import { logInfo } from '@/lib/logger';
 
 export async function POST(request: Request) {
   try {
@@ -40,51 +41,75 @@ export async function POST(request: Request) {
     // Alpha Gate: Closed Friend-of-a-Friend Secret Santa Invitation Invariant
     // -------------------------------------------------------------------------
     const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
-    const rawInviteCode = (body as any).inviteCode || (body as any).operationCode || (body as any).exchangeCode;
+    const rawInviteCode = (body as any).inviteCode || (body as any).operationCode || (body as any).exchangeCode || (body as any).code || (body as any).alphaCode;
 
     let targetExchange: any = null;
+    let matchedPreLaunchApproval: any = null;
+
     if (isAlpha) {
       if (!rawInviteCode) {
         return NextResponse.json(
           {
             error:
-              'Direct registration is closed during Alpha. You must be invited to a Secret Santa mission, or request early clearance on the home page.',
+              'Direct registration is closed during Alpha. You must be invited to a Secret Santa mission, or enter your approved Pre-Launch Alpha activation cipher.',
           },
           { status: 403 }
         );
       }
 
-      targetExchange = await db.exchange.findUnique({
-        where: { code: String(rawInviteCode).trim().toUpperCase() },
-        include: { members: true },
+      const cleanCode = String(rawInviteCode).trim().toUpperCase();
+
+      // 1. Check if the code matches an active PreLaunchApproval for this email address
+      matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
+        where: {
+          email: { equals: cleanEmail, mode: 'insensitive' },
+          inviteCode: cleanCode,
+        },
       });
 
-      if (!targetExchange) {
-        return NextResponse.json(
-          { error: 'Invalid mission invite code. Please verify your invitation link.' },
-          { status: 404 }
-        );
-      }
+      // 2. If not a pre-launch clearance cipher, check if it is a valid Exchange invitation code
+      if (!matchedPreLaunchApproval) {
+        targetExchange = await db.exchange.findUnique({
+          where: { code: cleanCode },
+          include: { members: true },
+        });
 
-      if (targetExchange.status !== 'RECRUITING') {
-        return NextResponse.json(
-          { error: 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.' },
-          { status: 400 }
-        );
-      }
+        if (!targetExchange) {
+          return NextResponse.json(
+            { error: 'Invalid invitation code or pre-launch alpha cipher. Please verify your activation link.' },
+            { status: 404 }
+          );
+        }
 
-      if (targetExchange.maxParticipants && targetExchange.members.length >= targetExchange.maxParticipants) {
-        return NextResponse.json(
-          { error: 'This exchange has reached its maximum operative capacity.' },
-          { status: 400 }
-        );
+        if (targetExchange.status !== 'RECRUITING') {
+          return NextResponse.json(
+            { error: 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.' },
+            { status: 400 }
+          );
+        }
+
+        if (targetExchange.maxParticipants && targetExchange.members.length >= targetExchange.maxParticipants) {
+          return NextResponse.json(
+            { error: 'This exchange has reached its maximum operative capacity.' },
+            { status: 400 }
+          );
+        }
       }
     } else if (rawInviteCode) {
-      // In Beta/GA, if an invite code was provided, look it up for auto-enrollment
-      targetExchange = await db.exchange.findUnique({
-        where: { code: String(rawInviteCode).trim().toUpperCase() },
-        include: { members: true },
+      const cleanCode = String(rawInviteCode).trim().toUpperCase();
+      matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
+        where: {
+          email: { equals: cleanEmail, mode: 'insensitive' },
+          inviteCode: cleanCode,
+        },
       });
+
+      if (!matchedPreLaunchApproval) {
+        targetExchange = await db.exchange.findUnique({
+          where: { code: cleanCode },
+          include: { members: true },
+        });
+      }
     }
 
     const cleanName = sanitizeText(name);
@@ -110,6 +135,23 @@ export async function POST(request: Request) {
         penaltyPoints: true,
       },
     });
+
+    // If registered via PreLaunchApproval, immediately consume & remove the code to prevent reuse
+    if (matchedPreLaunchApproval) {
+      try {
+        await db.preLaunchApproval.delete({
+          where: { id: matchedPreLaunchApproval.id },
+        });
+        await logInfo('AUTH', `Operative ${user.email} successfully completed Alpha registration using PreLaunchApproval cipher ${matchedPreLaunchApproval.inviteCode}`, {
+          dbClient: db,
+          metadata: { userId: user.id, email: user.email, inviteCode: matchedPreLaunchApproval.inviteCode },
+          path: '/api/users',
+          statusCode: 201,
+        }).catch(() => {});
+      } catch (cleanupErr) {
+        console.warn('Failed to delete used PreLaunchApproval record:', cleanupErr);
+      }
+    }
 
     // If joining via an exchange invite, automatically enroll the new operative
     if (targetExchange) {

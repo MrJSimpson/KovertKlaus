@@ -24,10 +24,16 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
   const [admin, setAdmin] = useState<{ id: string; name: string; email: string; role: string } | null>(getSavedAdmin);
   const [loading, setLoading] = useState(!isAuthPage && !getSavedAdmin());
+  // Workshop is self-hosted only (SaaS physically excludes /workshop). Hidden until the edition is known.
+  const [isSelfHosted, setIsSelfHosted] = useState(false);
 
   useEffect(() => {
-    // Non-blocking background pre-warming ping to ensure Neon compute is awake
-    fetch('/api/config').catch(() => {});
+    // Non-blocking background pre-warming ping to ensure Neon compute is awake.
+    // Its `edition` field also decides whether the self-hosted-only Workshop link is shown.
+    fetch('/api/config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => setIsSelfHosted(json?.edition === 'selfhosted'))
+      .catch(() => {});
 
     if (isAuthPage) {
       setLoading(false);
@@ -191,12 +197,14 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
           {/* Quick Links & Admin Profile */}
           <div className="flex items-center gap-3 text-xs font-mono">
-            <Link
-              href="/workshop"
-              className="bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 px-2.5 py-1.5 rounded-lg transition-colors font-bold flex items-center gap-1"
-            >
-              🧪 Workshop
-            </Link>
+            {isSelfHosted && (
+              <Link
+                href="/workshop"
+                className="bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 px-2.5 py-1.5 rounded-lg transition-colors font-bold flex items-center gap-1"
+              >
+                🧪 Workshop
+              </Link>
+            )}
 
             <Link
               href="/"

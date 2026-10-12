@@ -20,6 +20,7 @@ import {
   sendWelcomeEmail,
   sendInvitationEmail,
   sendClearanceConfirmationEmail,
+  sendClearanceApprovalEmail,
   sendAssignmentEmail,
   sendNudgeEmail,
 } from './lib/email';
@@ -312,23 +313,24 @@ export default {
       // 4. /api/northpole/config (GET / PATCH)
       if (pathname === '/api/northpole/config') {
         if (request.method === 'GET') {
-          const [config, themes, totalUsers, totalOperations, totalLeads, workshopUsersCount] = await Promise.all([
+          const [config, themes, totalUsers, totalOperations, totalLeads, approvedLeadsCount] = await Promise.all([
             adminDb.systemConfig.findUnique({ where: { id: 'singleton' } }),
             adminDb.themePreset.findMany({ orderBy: { id: 'asc' } }),
             adminDb.user.count(),
             adminDb.exchange.count(),
             adminDb.clearanceLead.count(),
-            adminDb.user.count({ where: { isWorkshop: true } }),
+            adminDb.clearanceLead.count({ where: { status: 'APPROVED' } }),
           ]);
           return Response.json({
             success: true,
-            config,
+            config: config ? { ...config, appMode: 'saas' } : config, // The edge worker only serves the SaaS edition
             themes,
             stats: {
               totalUsers,
               totalOperations,
               totalLeads,
-              workshopUsersCount,
+              approvedLeadsCount,
+              workshopUsersCount: 0,
             },
           });
         }
@@ -607,14 +609,20 @@ export default {
             whereClause.status = status;
           }
 
-          const [leads, totalCount] = await Promise.all([
+          const [leads, totalCount, approvals] = await Promise.all([
             adminDb.clearanceLead.findMany({
               where: whereClause,
               orderBy: { createdAt: 'desc' },
               take: 100,
             }),
             adminDb.clearanceLead.count({ where: whereClause }),
+            adminDb.preLaunchApproval.findMany(),
           ]);
+
+          const approvalMap = new Map<string, string>();
+          for (const app of approvals) {
+            approvalMap.set(app.email.toLowerCase(), app.inviteCode);
+          }
 
           return Response.json({
             success: true,
@@ -624,6 +632,7 @@ export default {
               name: lead.name,
               source: lead.source,
               status: lead.status,
+              inviteCode: approvalMap.get(lead.email.toLowerCase()) || null,
               createdAt: lead.createdAt,
               updatedAt: lead.updatedAt,
             })),
@@ -703,6 +712,78 @@ export default {
               message: emailResult.success
                 ? `Clearance confirmation briefing re-dispatched to ${lead.email} via ${emailResult.provider}.`
                 : `Email dispatch failed: ${emailResult.error}`,
+            });
+          }
+
+          if (action === 'approve' || action === 'resend_approval') {
+            const lead = id
+              ? await adminDb.clearanceLead.findUnique({ where: { id } })
+              : email
+              ? await adminDb.clearanceLead.findUnique({ where: { email: email.trim().toLowerCase() } })
+              : null;
+
+            if (!lead) {
+              return Response.json({ error: 'Clearance lead not found' }, { status: 404 });
+            }
+
+            const hex = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+              .map(b => b.toString(16).padStart(2, '0'))
+              .join('')
+              .toUpperCase();
+            const inviteCode = `ALPHA-${hex}`;
+
+            await adminDb.preLaunchApproval.upsert({
+              where: { email: lead.email.toLowerCase() },
+              update: { inviteCode },
+              create: {
+                email: lead.email.toLowerCase(),
+                inviteCode,
+              },
+            });
+
+            await adminDb.clearanceLead.update({
+              where: { id: lead.id },
+              data: { status: 'APPROVED' },
+            });
+
+            const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+            const appUrl = (new URL(request.url)).origin || 'https://kovertklaus.com';
+            const registrationUrl = `${appUrl}/register?code=${inviteCode}&email=${encodeURIComponent(lead.email)}`;
+
+            const emailResult = await sendClearanceApprovalEmail({
+              to: lead.email,
+              name: lead.name || undefined,
+              inviteCode,
+              registrationUrl,
+              overrideConfig: emailConfig,
+            });
+
+            if (!emailResult.success) {
+              await logError('EMAIL', `Failed to dispatch Alpha clearance approval to ${lead.email}: ${emailResult.error}`, {
+                dbClient: adminDb,
+                metadata: { email: lead.email, leadId: lead.id, inviteCode, provider: emailResult.provider, error: emailResult.error },
+                path: pathname,
+                statusCode: 500,
+                env,
+              }).catch(() => {});
+            } else {
+              await logInfo('ADMIN', `Admin approved Alpha clearance for ${lead.email} (Cipher: ${inviteCode})`, {
+                dbClient: adminDb,
+                metadata: { adminId, email: lead.email, inviteCode, provider: emailResult.provider },
+                path: pathname,
+                statusCode: 200,
+                env,
+              }).catch(() => {});
+            }
+
+            return Response.json({
+              success: true,
+              inviteCode,
+              status: 'APPROVED',
+              emailResult,
+              message: emailResult.success
+                ? `Alpha clearance approved! Cipher ${inviteCode} dispatched to ${lead.email}.`
+                : `Alpha clearance approved with cipher ${inviteCode}, but email dispatch failed: ${emailResult.error}`,
             });
           }
 
@@ -820,7 +901,7 @@ export default {
       if (pathname === '/api/config' && request.method === 'GET') {
         const config = await db.systemConfig.findUnique({ where: { id: 'singleton' } });
         const theme = config ? await db.themePreset.findUnique({ where: { id: config.activeThemeId } }) : null;
-        return Response.json({ config, theme });
+        return Response.json({ config, theme, edition: 'saas' }); // The edge worker only serves the SaaS edition
       }
 
       // 9. /api/clearance / /api/leads (POST)
@@ -1065,53 +1146,78 @@ export default {
 
         // Alpha Gate: Closed Friend-of-a-Friend Secret Santa Invitation Invariant
         const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
-        const rawInviteCode = body.inviteCode || body.operationCode || body.exchangeCode;
+        const rawInviteCode = body.inviteCode || body.operationCode || body.exchangeCode || body.code || body.alphaCode;
 
+        const cleanEmail = email.trim().toLowerCase();
         let targetExchange: any = null;
+        let matchedPreLaunchApproval: any = null;
+
         if (isAlpha) {
           if (!rawInviteCode) {
             return Response.json(
               {
                 error:
-                  'Direct registration is closed during Alpha. You must be invited to a Secret Santa mission, or request early clearance on the home page.',
+                  'Direct registration is closed during Alpha. You must be invited to a Secret Santa mission, or enter your approved Pre-Launch Alpha activation cipher.',
               },
               { status: 403 }
             );
           }
 
-          targetExchange = await db.exchange.findUnique({
-            where: { code: String(rawInviteCode).trim().toUpperCase() },
-            include: { members: true },
+          const cleanCode = String(rawInviteCode).trim().toUpperCase();
+
+          // 1. Check if the code matches an active PreLaunchApproval for this email address
+          matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
+            where: {
+              email: { equals: cleanEmail, mode: 'insensitive' },
+              inviteCode: cleanCode,
+            },
           });
 
-          if (!targetExchange) {
-            return Response.json(
-              { error: 'Invalid mission invite code. Please verify your invitation link.' },
-              { status: 404 }
-            );
-          }
+          // 2. If not a pre-launch clearance cipher, check if it is a valid Exchange invitation code
+          if (!matchedPreLaunchApproval) {
+            targetExchange = await db.exchange.findUnique({
+              where: { code: cleanCode },
+              include: { members: true },
+            });
 
-          if (targetExchange.status !== 'RECRUITING') {
-            return Response.json(
-              { error: 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.' },
-              { status: 400 }
-            );
-          }
+            if (!targetExchange) {
+              return Response.json(
+                { error: 'Invalid invitation code or pre-launch alpha cipher. Please verify your activation link.' },
+                { status: 404 }
+              );
+            }
 
-          if (targetExchange.maxParticipants && targetExchange.members.length >= targetExchange.maxParticipants) {
-            return Response.json(
-              { error: 'This exchange has reached its maximum operative capacity.' },
-              { status: 400 }
-            );
+            if (targetExchange.status !== 'RECRUITING') {
+              return Response.json(
+                { error: 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.' },
+                { status: 400 }
+              );
+            }
+
+            if (targetExchange.maxParticipants && targetExchange.members.length >= targetExchange.maxParticipants) {
+              return Response.json(
+                { error: 'This exchange has reached its maximum operative capacity.' },
+                { status: 400 }
+              );
+            }
           }
         } else if (rawInviteCode) {
-          targetExchange = await db.exchange.findUnique({
-            where: { code: String(rawInviteCode).trim().toUpperCase() },
-            include: { members: true },
+          const cleanCode = String(rawInviteCode).trim().toUpperCase();
+          matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
+            where: {
+              email: { equals: cleanEmail, mode: 'insensitive' },
+              inviteCode: cleanCode,
+            },
           });
+
+          if (!matchedPreLaunchApproval) {
+            targetExchange = await db.exchange.findUnique({
+              where: { code: cleanCode },
+              include: { members: true },
+            });
+          }
         }
 
-        const cleanEmail = email.trim().toLowerCase();
         const passwordHash = await hashPassword(password);
 
         try {
@@ -1124,6 +1230,24 @@ export default {
             },
             select: { id: true, email: true, name: true, codename: true, accountStatus: true, penaltyPoints: true },
           });
+
+          // If registered via PreLaunchApproval, immediately consume & remove the code to prevent reuse
+          if (matchedPreLaunchApproval) {
+            try {
+              await db.preLaunchApproval.delete({
+                where: { id: matchedPreLaunchApproval.id },
+              });
+              await logInfo('AUTH', `Operative ${user.email} successfully completed Alpha registration using PreLaunchApproval cipher ${matchedPreLaunchApproval.inviteCode}`, {
+                dbClient: db,
+                metadata: { userId: user.id, email: user.email, inviteCode: matchedPreLaunchApproval.inviteCode },
+                path: pathname,
+                statusCode: 201,
+                env,
+              }).catch(() => {});
+            } catch (cleanupErr) {
+              console.warn('[Worker PreLaunchApproval Cleanup Warning]', cleanupErr);
+            }
+          }
 
           // Auto-enroll if registering via mission invite
           if (targetExchange) {
@@ -2440,27 +2564,6 @@ export default {
             return Response.json({ success: true, message: 'Wishlist deleted' });
           }
         }
-      }
-
-      // 17. /api/workshop/auth (GET / POST)
-      if (pathname === '/api/workshop/auth') {
-        const adminId = getAdminIdFromRequest(request);
-        if (adminId) {
-          const admin = await adminDb.adminUser.findUnique({ where: { id: adminId } });
-          if (admin && admin.isActive) {
-            return Response.json({ authenticated: true, authorized: true, isAdmin: true, user: { id: admin.id, name: admin.name, email: admin.email, role: 'ADMIN', isWorkshop: true } });
-          }
-        }
-
-        const userId = getUserIdFromRequest(request);
-        if (userId) {
-          const user = await db.user.findUnique({ where: { id: userId } });
-          if (user) {
-            return Response.json({ authenticated: true, authorized: Boolean(user.isWorkshop), isAdmin: false, user });
-          }
-        }
-
-        return Response.json({ authenticated: false, authorized: false, isAdmin: false, user: null });
       }
 
     } catch (err: any) {

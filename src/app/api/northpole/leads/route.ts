@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { adminDb } from '@/lib/adminDb';
 import { verifyAdminSession } from '@/lib/adminAuth';
-import { sendClearanceConfirmationEmail } from '@/lib/email';
+import { sendClearanceConfirmationEmail, sendClearanceApprovalEmail } from '@/lib/email';
 import { logError, logInfo } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -31,14 +32,20 @@ export async function GET(request: Request) {
       whereClause.status = status;
     }
 
-    const [leads, totalCount] = await Promise.all([
+    const [leads, totalCount, approvals] = await Promise.all([
       adminDb.clearanceLead.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),
       adminDb.clearanceLead.count({ where: whereClause }),
+      adminDb.preLaunchApproval.findMany(),
     ]);
+
+    const approvalMap = new Map<string, string>();
+    for (const app of approvals) {
+      approvalMap.set(app.email.toLowerCase(), app.inviteCode);
+    }
 
     return NextResponse.json({
       success: true,
@@ -48,6 +55,7 @@ export async function GET(request: Request) {
         name: lead.name,
         source: lead.source,
         status: lead.status,
+        inviteCode: approvalMap.get(lead.email.toLowerCase()) || null,
         createdAt: lead.createdAt,
         updatedAt: lead.updatedAt,
       })),
@@ -155,6 +163,73 @@ export async function POST(request: Request) {
       });
     }
 
+    if (action === 'approve' || action === 'resend_approval') {
+      const lead = id
+        ? await adminDb.clearanceLead.findUnique({ where: { id } })
+        : email
+        ? await adminDb.clearanceLead.findUnique({ where: { email: email.trim().toLowerCase() } })
+        : null;
+
+      if (!lead) {
+        return NextResponse.json({ error: 'Clearance lead not found' }, { status: 404 });
+      }
+
+      // Generate single-use Alpha Invite Cipher: ALPHA- + 64 random bits (16 hex). Bound to one email; deleted on use.
+      const inviteCode = `ALPHA-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
+
+      // Populate / update PreLaunchApproval table
+      await adminDb.preLaunchApproval.upsert({
+        where: { email: lead.email.toLowerCase() },
+        update: { inviteCode },
+        create: {
+          email: lead.email.toLowerCase(),
+          inviteCode,
+        },
+      });
+
+      // Update ClearanceLead status to APPROVED
+      await adminDb.clearanceLead.update({
+        where: { id: lead.id },
+        data: { status: 'APPROVED' },
+      });
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com';
+      const registrationUrl = `${appUrl}/register?code=${inviteCode}&email=${encodeURIComponent(lead.email)}`;
+
+      // Dispatch Alpha Clearance Approval email with single-use cipher
+      const emailResult = await sendClearanceApprovalEmail({
+        to: lead.email,
+        name: lead.name || undefined,
+        inviteCode,
+        registrationUrl,
+      });
+
+      if (!emailResult.success) {
+        await logError('EMAIL', `Failed to dispatch Alpha clearance approval to ${lead.email}: ${emailResult.error}`, {
+          dbClient: adminDb,
+          metadata: { email: lead.email, leadId: lead.id, inviteCode, provider: emailResult.provider, error: emailResult.error },
+          path: '/api/northpole/leads',
+          statusCode: 500,
+        }).catch(() => {});
+      } else {
+        await logInfo('ADMIN', `Admin ${admin.username || admin.email} approved Alpha clearance for ${lead.email} (Cipher: ${inviteCode})`, {
+          dbClient: adminDb,
+          metadata: { adminId: admin.id, email: lead.email, inviteCode, provider: emailResult.provider },
+          path: '/api/northpole/leads',
+          statusCode: 200,
+        }).catch(() => {});
+      }
+
+      return NextResponse.json({
+        success: true,
+        inviteCode,
+        status: 'APPROVED',
+        emailResult,
+        message: emailResult.success
+          ? `Alpha clearance approved! Cipher ${inviteCode} dispatched to ${lead.email}.`
+          : `Alpha clearance approved with cipher ${inviteCode}, but email dispatch failed: ${emailResult.error}`,
+      });
+    }
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
   } catch (error: any) {
