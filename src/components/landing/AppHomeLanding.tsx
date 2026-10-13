@@ -152,6 +152,10 @@ export function AppHomeLanding() {
         if (emailParam) setEmail(emailParam.trim());
         setAuthMode('register');
         setLoginModalOpen(true);
+      } else if (params.has('signin') || window.location.pathname.replace(/\/+$/, '') === '/signin') {
+        // /signin (and ?signin) opens the operative sign-in form directly.
+        setAuthMode('login');
+        setLoginModalOpen(true);
       }
     }
   }, []);
