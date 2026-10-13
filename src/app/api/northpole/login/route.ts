@@ -12,6 +12,7 @@ import {
   findAdminByIdentifier,
 } from '@/lib/adminAuth';
 import { signToken } from '@/lib/security';
+import { announceSetupToken } from '@/lib/adminSetup';
 
 export async function POST(request: Request) {
   try {
@@ -29,8 +30,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Username/email and password are required' }, { status: 400 });
     }
 
-    // Auto-bootstrap initial Super Admin (username: santa, password: G!v!nGSp1r1t) if DB is empty
-    await bootstrapInitialAdmin();
+    // Apply INITIAL_ADMIN_* configuration if present; otherwise first-run setup is required.
+    if ((await bootstrapInitialAdmin()) === 'setup-required') {
+      announceSetupToken();
+      await verifyDummyPassword(password);
+      return NextResponse.json(
+        { error: 'No administrator exists yet. Complete first-run setup at /northpole/setup.', setupRequired: true },
+        { status: 409 }
+      );
+    }
 
     const admin = await findAdminByIdentifier(loginId);
 

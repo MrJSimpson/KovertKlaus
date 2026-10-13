@@ -52,52 +52,38 @@ There are two distinct types of `Wishlist Manifest` in the system:
 
 ---
 
-### 🗺️ 4. Master Release Roadmap & Semantic Versioning
+## ✅ 4. Definition of Done
 
-* **`v0.1.0-prealpha` (Completed / Aug – Sep 2026)**: Core engine refactoring, algorithmic derangements, email dispatch test harness, and TSDoc codebase annotations.
-* **`v0.2.0-alpha` (Active / October 2026)**: Self-hosted community edition with pristine clean database (zero dummy users), initial admin password `G!v!nGSp1r1t` with NIST first-login reset, and full developer test benches (`/workshop`).
-* **`v1.0.0-beta` (Target: Nov 1, 2026)**: Season 1 Public Winter Launch (Nov 1 – Jan 31), live public exchanges, and Cloudflare SaaS multi-tenant gateway.
-* **`v1.0.0-ga` (Target: Jan 31, 2027)**: General Availability & Q2 Spring Egg Hunt Rotation.
-
----
-
-## 📋 5. Weekly 6 Sprint Framework & Monday Cadence
-
-* Every week has exactly **6 High-Priority Action Items** tracked in `docs/sprints/YYYY-Wxx.md` and `docs/CURRENT_SPRINT.md`.
-* **Monday Retrospective & Planning Ceremony**:
-  1. Review empirical test proofs from previous week.
-  2. Identify areas for improvement and blockers.
-  3. Lock the upcoming week's 6 actionable deliverable cards.
-* **Definition of Done (DoD)**:
+Every change (from maintainers, contributors, or AI agents) must meet:
   - 100% typed TypeScript with 3-tier TSDoc annotations.
-  - Automated test suite passes 100% (`draw.test.ts`, `email.test.ts`, `logger.test.ts`, etc.).
+  - Automated test suite passes 100% (`npm test`).
   - Next.js Turbopack build succeeds with 0 errors (`npm run build`).
-  - Multi-repo synchronization (`kovertklaus` $\leftrightarrow$ `kovertklaus-saas`).
+  - Contributions follow [`CONTRIBUTING.md`](CONTRIBUTING.md). All issues and pull requests are reviewed by the owner and team before merge.
 
 ---
 
-## 🔒 6. Cybersecurity & Privacy Requirements (OWASP Aligned)
+## 🔒 5. Cybersecurity & Privacy Requirements (OWASP Aligned)
 
 * **Password Security:** Minimum **10-character complex passwords** for users; administrative passphrases require **12+ characters** conforming to NIST SP 800-63B.
 * **Password Hashing:** Passwords MUST be hashed using modern **scrypt** modular crypt format (`$scrypt$N$r$p$salt$hash`), with automatic backward-compatible legacy bcrypt upgrade upon login. Never store or log plaintext passwords.
-* **Admin Initial Password:** Fresh installations bootstrap `AdminUser` (`santa` / `admin@kovertklaus.com`) with initial password `G!v!nGSp1r1t` and mandatory first-login reset (`requiresPasswordReset: true`).
+* **First-Run Admin Setup:** No default administrator password ships. With no `AdminUser` and no `INITIAL_ADMIN_PASSWORD`, the server prints a one-time setup token to its console and `/northpole/setup` creates the first administrator (`src/lib/adminSetup.ts`). Never add a default password to code, seeds, dumps, or docs.
 * **Session Management:** Single HTTP-Only, `SameSite=Lax`, `Secure` cookie (`kovertklaus_session`) with a **24-hour expiration time**.
 * **Zero Telemetry:** No tracking, analytics, or external telemetry scripts allowed.
 
 ---
 
-## 🏗️ 7. Technology Stack & Database Rules
+## 🏗️ 6. Technology Stack & Database Rules
 
 * **Framework:** Next.js 16 (App Router + Turbopack + React 19).
 * **Styling:** TailwindCSS with dual-theme mode (🎄 Light Theme & ❄️ Dark Icy Theme).
 * **Database:** PostgreSQL 16/17 Alpine running in Docker container (`kovertklaus-db`) or external PostgreSQL.
 * **ORM:** Prisma ORM. Whenever modifying `prisma/schema.prisma`, execute `npx prisma db push` and `npx prisma generate`.
 * **Schema Separation (`app` / `admin`):** Every model and enum **MUST** declare `@@schema("app")` (reachable by the application role through `db`) or `@@schema("admin")` (owner-only, through `adminDb`). Never put tables in `public`. After any schema change, run `npx tsx scripts/check-db-schema-separation.ts`. See `docs/DEPLOYMENT_GUIDE.md` → Database Schema Separation.
-* **Clean Database Rule:** Production seeds must contain zero dummy users, zero mock exchanges, and zero sample wishlists. Only `AdminUser` is seeded.
+* **Clean Database Rule:** Seeds contain zero dummy users, zero mock exchanges, and zero sample wishlists. No `AdminUser` is seeded unless `INITIAL_ADMIN_PASSWORD` is configured.
 
 ---
 
-## 🎲 8. Secret Target Assignment & Swap Algorithms
+## 🎲 7. Secret Target Assignment & Swap Algorithms
 
 * **Secret Santa Operations:** Target assignment MUST use Sattolo's algorithm derangement (`src/lib/draw.ts`). No `Elf Agent` can be assigned to themselves ($A[i] \neq i$).
 * **100% Bidirectional Exclusion Rules ($A \iff B$)**: Prevented pairs apply equally in both directions. Never create single-direction exclusion toggles.
@@ -105,17 +91,16 @@ There are two distinct types of `Wishlist Manifest` in the system:
 
 ---
 
-## 🌿 9. Mandatory Git Feature Branching Protocol (NON-NEGOTIABLE)
+## 🌿 8. Mandatory Git Feature Branching Protocol (NON-NEGOTIABLE)
 
-1. **Zero Direct-to-Main Changes**: NEVER make edits or commit directly to `main` in any repository, ESPECIALLY `kovertklaus-saas`.
+1. **Zero Direct-to-Main Changes**: NEVER make edits or commit directly to `main` in this repository. Contributors work on a fork or feature branch and open a pull request.
 2. **Branch Creation**: Always create a descriptive feature/fix branch before modifying code:
-   `git checkout -b <type>/<short-description>` (e.g., `feat/sprint-w34-demerits`, `sec/rbac-guards`).
+   `git checkout -b <type>/<short-description>` (e.g., `feat/wishlist-sharing`, `sec/rbac-guards`).
 3. **Verification**: Complete and test all changes on the branch (`npm run build`, unit tests).
-4. **Merge & Sync**: Once the feature is 100% verified, merge the branch into `main`, push to remote, and clean up the local branch.
+4. **Review & Merge**: Open a pull request. The owner and team review it; only maintainers merge to `main`.
 
 ---
 
-## 🛠️ 10. Developer Workshop & Self-Hosted Preservation
+## 🛠️ 9. Developer Workshop & Self-Hosted Preservation
 
 1. **Retain `/workshop` in Self-Hosted**: All internal QA test benches (`/workshop/draw`, `/workshop/lifecycle`, `/workshop/scraper`, `/workshop/theme`, `/workshop/manifest`, `/workshop/party`, `/workshop/aar`) are preserved in this repository for local developers and home-lab instances.
-2. **SaaS Boundary**: In contrast to this repository, the public SaaS distribution (`kovertklaus-saas`) physically deletes `/workshop` routes before edge deployment.

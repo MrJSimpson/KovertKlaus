@@ -12,6 +12,19 @@ All contributors and maintainers are expected to adhere to our [Code of Conduct]
 
 ---
 
+## 🤝 Who Can Contribute & How Review Works
+
+KovertKlaus is open source. **Everyone is welcome**, people and AI agents alike, to:
+- **Fork** the repository and build on it.
+- **Open issues** for bugs, questions, and feature ideas.
+- **Submit pull requests** from a fork or feature branch.
+
+**Every issue and pull request is reviewed by the project owner and team before anything is merged.** Only maintainers merge to `main`. AI-assisted contributions are held to the same standard as any other: the Definition of Done in [`AGENTS.md`](./AGENTS.md) applies, and the submitting human or agent operator is responsible for the change.
+
+**Security vulnerabilities:** do not open a public issue. Follow [`SECURITY.md`](./SECURITY.md) for private disclosure.
+
+---
+
 ## 🌲 Git Branching & Feature Workflow
 
 We enforce a strict **pre-flight feature branching policy**:

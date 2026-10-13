@@ -26,6 +26,16 @@ export default function NorthPoleLoginPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
+        const setupRes = await fetch('/api/northpole/setup', { cache: 'no-store' });
+        const setupJson = await setupRes.json().catch(() => ({}));
+        if (setupRes.ok && setupJson.setupRequired) {
+          window.location.href = '/northpole/setup';
+          return;
+        }
+      } catch {
+        // Setup endpoint unavailable (e.g. SaaS edge): continue to normal login.
+      }
+      try {
         const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
         const res = await fetch('/api/northpole/me', {
           credentials: 'include',
@@ -59,6 +69,10 @@ export default function NorthPoleLoginPage() {
       });
 
       const json = await res.json().catch(() => ({}));
+      if (json.setupRequired) {
+        window.location.href = '/northpole/setup';
+        return;
+      }
       if (!res.ok) {
         throw new Error(json.error || `Authentication failed (HTTP ${res.status})`);
       }
@@ -79,8 +93,8 @@ export default function NorthPoleLoginPage() {
       }
 
       window.location.href = '/northpole';
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -97,11 +111,6 @@ export default function NorthPoleLoginPage() {
 
     if (newPassword.length < 12) {
       setError('NIST standard requires a minimum length of 12 characters.');
-      return;
-    }
-
-    if (newPassword.toLowerCase() === '1secretdel!very') {
-      setError('New password cannot be the initial default installation password.');
       return;
     }
 
@@ -136,8 +145,8 @@ export default function NorthPoleLoginPage() {
       setTimeout(() => {
         window.location.href = '/northpole';
       }, 1000);
-    } catch (err: any) {
-      setError(err.message || 'Password update failed');
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'Password update failed');
     } finally {
       setLoading(false);
     }
@@ -171,7 +180,7 @@ export default function NorthPoleLoginPage() {
           </h1>
           <p className="text-xs text-gray-400 mt-1 font-mono">
             {isResetRequired
-              ? 'First-time install detected. Replace default credentials before access is unlocked.'
+              ? 'Initial credentials detected. Choose your own passphrase before access is unlocked.'
               : 'Site Administration, Database Governance & System Controls'}
           </p>
         </div>
@@ -234,7 +243,7 @@ export default function NorthPoleLoginPage() {
               </div>
               <ul className="list-disc pl-4 space-y-0.5 text-gray-400">
                 <li>Minimum length: 12 characters</li>
-                <li>Cannot be the initial default password</li>
+                <li>Cannot be the initial password or a known default</li>
                 <li>Cannot contain your username</li>
                 <li>Passphrases, spaces, and special symbols are encouraged</li>
               </ul>

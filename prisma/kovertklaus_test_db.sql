@@ -527,14 +527,10 @@ ALTER TABLE "admin"."SystemConfig" ADD CONSTRAINT "SystemConfig_activeThemeId_fk
 
 
 -- -----------------------------------------------------------------------------
--- PRODUCTION CLEAN DATA SEED (SystemConfig, Super Admin)
+-- PRODUCTION CLEAN DATA SEED (SystemConfig). No AdminUser: first-run setup at /northpole/setup creates it.
 -- -----------------------------------------------------------------------------
 
 INSERT INTO admin."SystemConfig" ("id", "activeThemeId", "activeSeason", "announcementBannerActive", "freeAnnualHostAllowance", "freeAnnualJoinAllowance", "paidEventPriceUsd", "maxFreeParticipants", "maxWishlistItems", "updatedAt")
 VALUES ('singleton', 'winter_holiday', 'auto', true, 1, 3, 5.00, 25, 50, NOW())
-ON CONFLICT ("id") DO NOTHING;
-
-INSERT INTO admin."AdminUser" ("id", "username", "email", "name", "passwordHash", "role", "isActive", "requiresPasswordReset", "createdAt", "updatedAt")
-VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$scrypt$1024$8$1$c60b5d6d1fe4ff567318e7633f06aa27$8d52fe7ba3dcd1cab9a4fc226b46a4b10098cb5dbb30b55930055cd9dce3cdfe', 'SUPER_ADMIN', true, true, NOW(), NOW())
 ON CONFLICT ("id") DO NOTHING;
 

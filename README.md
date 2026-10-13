@@ -11,7 +11,7 @@
 > [!IMPORTANT]
 > **ACTIVE RELEASE: `v0.2.0-alpha` (Self-Hosted Community Edition)**  
 > Clean Database Architecture | Internal Workshop Benches (`/workshop`) | NIST SP 800-63B Auth  
-> Tracked via Weekly 6 Sprints ([`docs/CURRENT_SPRINT.md`](./docs/CURRENT_SPRINT.md)).
+> Contributions welcome: see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 KovertKlaus turns standard Secret Santa and White Elephant gift exchanges into engaging, covert holiday missions. Featuring automated reliability tracking (Coal Citations), reusable Wishlist Manifests, automated product metadata scraping, 100% bidirectional match exclusion rules, Sattolo target derangement algorithms, mobile-first 2-way target cascade swapping, phase-scoped Head Elf command consoles, After-Action Reports (AAR), and containerized PostgreSQL database management.
 
@@ -84,8 +84,8 @@ http://localhost:3000
 
 ### 🎅 North Pole Command Center & Developer Workshop
 - **Admin HUD**: Navigate to [`/northpole`](http://localhost:3000/northpole)
-- **Default Super Admin**: `santa` (`admin@kovertklaus.com`) | Temporary Initial Password: `G!v!nGSp1r1t`
-- **NIST SP 800-63B Compliance**: Self-hosted bootstrap enforces mandatory password reset upon first administrative login.
+- **First-Run Setup**: No default password ships. On first launch the server prints a one-time setup token to its console (`docker logs kovertklaus-app`); open [`/northpole/setup`](http://localhost:3000/northpole/setup) to create your administrator.
+- **NIST SP 800-63B Compliance**: Administrator passphrases require 12+ characters and can never be a known default.
 - **Developer Workshop (`/workshop`)**: This self-hosted repository includes all internal QA test benches (`/workshop/draw`, `/workshop/lifecycle`, `/workshop/scraper`, `/workshop/theme`, `/workshop/manifest`, `/workshop/party`, `/workshop/aar`).
 - **Clean Database**: Production seeds contain zero dummy users or mock exchanges.
 
