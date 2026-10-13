@@ -109,6 +109,14 @@ export function ComingSoonLanding() {
             <span className="text-[10px] text-slate-400 font-medium">The Covert Holiday Gift Exchange</span>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+        {/* Approved operatives sign in here: the pre-launch page has no other sign-in entry point. */}
+        <a
+          href="/signin"
+          className="font-mono text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 px-3.5 py-1.5 rounded-full shadow-md shadow-emerald-950/40 transition-colors"
+        >
+          🔑 Operative Sign In
+        </a>
         <div className="font-mono text-xs text-slate-300 border border-slate-800 bg-slate-900/80 px-3.5 py-1.5 rounded-full shadow-inner flex items-center gap-2">
           <span className="text-amber-400 font-bold">kovertklaus.com</span>
           <span className="text-slate-600">|</span>
@@ -116,6 +124,7 @@ export function ComingSoonLanding() {
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
             WORKSHOP READY
           </span>
+        </div>
         </div>
       </header>
 
