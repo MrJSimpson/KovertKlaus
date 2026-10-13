@@ -2,6 +2,7 @@ import { comparePassword, hashPassword, verifyDummyPassword, isLegacyBcryptHash 
 import * as cheerio from 'cheerio';
 import { Prisma } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
+import { toPublicConfig } from './lib/config/publicConfig';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { validateNistPassword } from './lib/adminAuth';
 import {
@@ -899,9 +900,14 @@ export default {
 
       // 8. /api/config (GET)
       if (pathname === '/api/config' && request.method === 'GET') {
-        const config = await db.systemConfig.findUnique({ where: { id: 'singleton' } });
-        const theme = config ? await db.themePreset.findUnique({ where: { id: config.activeThemeId } }) : null;
-        return Response.json({ config, theme, edition: 'saas' }); // The edge worker only serves the SaaS edition
+        // Public, allowlisted view only (toPublicConfig): SystemConfig also holds SMTP/API secrets.
+        // Read via adminDb: SystemConfig lives in the admin schema the app role cannot reach.
+        // The edge worker only serves the SaaS edition.
+        const config = await adminDb.systemConfig.findUnique({ where: { id: 'singleton' } });
+        const theme = config ? await adminDb.themePreset.findUnique({ where: { id: config.activeThemeId } }) : null;
+        return Response.json(toPublicConfig(config, theme, 'saas'), {
+          headers: { 'Cache-Control': 'public, max-age=60' },
+        });
       }
 
       // 9. /api/clearance / /api/leads (POST)
@@ -2587,7 +2593,8 @@ export default {
 
       await invalidateCachedDb().catch(() => {});
       await invalidateCachedAdminDb().catch(() => {});
-      return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
+      // Details are logged above; never echo internal error text (DB/Prisma messages) to clients.
+      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
