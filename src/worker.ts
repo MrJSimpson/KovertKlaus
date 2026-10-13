@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import { Prisma } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
+import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { validateNistPassword } from './lib/adminAuth';
 import {
@@ -140,8 +141,10 @@ async function resolveWorkerEmailConfig(
 
 
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+/**
+ * Handles one HTTP request. Runs inside a per-request database scope (see `fetch` below).
+ */
+async function handleFetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const rawPath = url.pathname;
     const pathname = rawPath.replace(/\/+$/, '') || '/';
@@ -2611,6 +2614,21 @@ export default {
 
     // Fallback: Serve static assets from Cloudflare edge CDN
     return env.ASSETS.fetch(request);
+}
+
+/** Minimal Cloudflare ExecutionContext surface used here. */
+interface WorkerContext {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
+export default {
+  /**
+   * Every request gets its own Prisma/Neon clients (runWithDbScope): Workers bind sockets to the
+   * request that opened them, so module-cached pools reused across concurrent requests crashed the
+   * worker (Cloudflare error 1101). Clients are closed after the response via waitUntil.
+   */
+  async fetch(request: Request, env: Env, ctx?: WorkerContext): Promise<Response> {
+    return runWithDbScope(() => handleFetch(request, env), ctx ? (p) => ctx.waitUntil(p) : undefined);
   },
 
   /**
@@ -2623,7 +2641,8 @@ export default {
    * - executionDate    -> EXECUTED
    */
   async scheduled(event: any, env: Env, ctx: any): Promise<void> {
-    const lifecyclePromise = (async () => {
+    // Own database scope for the cron run (clients closed when it finishes).
+    const lifecyclePromise = runWithDbScope(async () => {
       try {
         if (env.DATABASE_URL) process.env.DATABASE_URL = env.DATABASE_URL;
         if (env.DATABASE_ADMIN_URL) process.env.DATABASE_ADMIN_URL = env.DATABASE_ADMIN_URL;
@@ -2700,7 +2719,7 @@ export default {
           env,
         }).catch(() => {});
       }
-    })();
+    });
 
     if (ctx && typeof ctx.waitUntil === 'function') {
       ctx.waitUntil(lifecyclePromise);

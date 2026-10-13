@@ -4,6 +4,7 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 import { neonConfig } from '@neondatabase/serverless';
 import pg from 'pg';
 import ws from 'ws';
+import { dropScopedClient, getScopedClient, inDbScope } from './dbRequestScope';
 
 // In Node.js runtimes, configure ws constructor for Neon WebSocket communication
 if (typeof process !== 'undefined' && process.versions?.node) {
@@ -28,6 +29,11 @@ const BACKOFF_DELAYS = [500, 1200, 2500];
  * before wiping references to prevent socket and connection leaks.
  */
 export async function invalidateCachedAdminDb(): Promise<void> {
+  if (inDbScope()) {
+    const scopedConn = process.env.DATABASE_ADMIN_URL || process.env.DIRECT_URL || process.env.DATABASE_URL;
+    if (scopedConn) await dropScopedClient(`admin:${scopedConn}`);
+    return;
+  }
   const dbToDisconnect = cachedAdminDb;
   const poolToClose = cachedAdminPool;
 
@@ -63,10 +69,26 @@ export function getRawAdminDb(overrideConnStr?: string): PrismaClient {
     throw new Error('DATABASE_ADMIN_URL (or DATABASE_URL) is not defined in the environment.');
   }
 
+  // Edge worker: one client per request (sockets cannot cross requests). Node.js: module cache.
+  const scoped = getScopedClient(`admin:${adminConnectionString}`, () => createAdminClient(adminConnectionString));
+  if (scoped) return scoped;
+
   if (cachedAdminDb && lastAdminConnStr === adminConnectionString) {
     return cachedAdminDb;
   }
 
+  const created = createAdminClient(adminConnectionString);
+  cachedAdminDb = created.client;
+  cachedAdminPool = created.pool;
+  lastAdminConnStr = adminConnectionString;
+  return cachedAdminDb;
+}
+
+/**
+ * Builds a Prisma client (Neon WebSocket adapter for neon.tech, pg pool otherwise) together with
+ * a closer that releases its connections. Used for both the module cache and per-request scopes.
+ */
+function createAdminClient(adminConnectionString: string): { client: PrismaClient; pool: pg.Pool | null; close: () => Promise<void> } {
   const isNeon = adminConnectionString.includes('neon.tech');
   const isLocalOrInternal =
     adminConnectionString.includes('localhost') ||
@@ -79,6 +101,7 @@ export function getRawAdminDb(overrideConnStr?: string): PrismaClient {
     (!isLocalOrInternal && !adminConnectionString.includes('sslmode=disable'));
 
   let adapter: any;
+  let pool: pg.Pool | null = null;
   if (isNeon) {
     adapter = new PrismaNeon(
       {
@@ -99,13 +122,19 @@ export function getRawAdminDb(overrideConnStr?: string): PrismaClient {
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
     });
-    cachedAdminPool = adminPool;
+    pool = adminPool;
     adapter = new PrismaPg(adminPool);
   }
 
-  cachedAdminDb = new PrismaClient({ adapter });
-  lastAdminConnStr = adminConnectionString;
-  return cachedAdminDb;
+  const client = new PrismaClient({ adapter });
+  return {
+    client,
+    pool,
+    close: async () => {
+      await client.$disconnect().catch(() => {});
+      if (pool) await pool.end().catch(() => {});
+    },
+  };
 }
 
 /**

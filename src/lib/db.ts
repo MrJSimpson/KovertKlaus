@@ -4,6 +4,7 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 import { neonConfig } from '@neondatabase/serverless';
 import pg from 'pg';
 import ws from 'ws';
+import { dropScopedClient, getScopedClient, inDbScope } from './dbRequestScope';
 
 // In Node.js runtimes, configure ws constructor for Neon WebSocket communication
 if (typeof process !== 'undefined' && process.versions?.node) {
@@ -28,6 +29,11 @@ const BACKOFF_DELAYS = [500, 1200, 2500];
  * before wiping references to prevent socket and connection leaks.
  */
 export async function invalidateCachedDb(): Promise<void> {
+  if (inDbScope()) {
+    const scopedConn = process.env.DATABASE_URL;
+    if (scopedConn) await dropScopedClient(`app:${scopedConn}`);
+    return;
+  }
   const dbToDisconnect = cachedDb;
   const poolToClose = cachedPool;
 
@@ -61,10 +67,26 @@ export function getRawDb(overrideConnStr?: string): PrismaClient {
     throw new Error('DATABASE_URL is not defined in the environment.');
   }
 
+  // Edge worker: one client per request (sockets cannot cross requests). Node.js: module cache.
+  const scoped = getScopedClient(`app:${connectionString}`, () => createAppClient(connectionString));
+  if (scoped) return scoped;
+
   if (cachedDb && lastConnStr === connectionString) {
     return cachedDb;
   }
 
+  const created = createAppClient(connectionString);
+  cachedDb = created.client;
+  cachedPool = created.pool;
+  lastConnStr = connectionString;
+  return cachedDb;
+}
+
+/**
+ * Builds a Prisma client (Neon WebSocket adapter for neon.tech, pg pool otherwise) together with
+ * a closer that releases its connections. Used for both the module cache and per-request scopes.
+ */
+function createAppClient(connectionString: string): { client: PrismaClient; pool: pg.Pool | null; close: () => Promise<void> } {
   const isNeon = connectionString.includes('neon.tech');
   const isLocalOrInternal =
     connectionString.includes('localhost') ||
@@ -77,6 +99,7 @@ export function getRawDb(overrideConnStr?: string): PrismaClient {
     (!isLocalOrInternal && !connectionString.includes('sslmode=disable'));
 
   let adapter: any;
+  let pool: pg.Pool | null = null;
   if (isNeon) {
     adapter = new PrismaNeon(
       {
@@ -90,20 +113,26 @@ export function getRawDb(overrideConnStr?: string): PrismaClient {
       }
     );
   } else {
-    const pool = new pg.Pool({
+    const appPool = new pg.Pool({
       connectionString,
       ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
     });
-    cachedPool = pool;
-    adapter = new PrismaPg(pool);
+    pool = appPool;
+    adapter = new PrismaPg(appPool);
   }
 
-  cachedDb = new PrismaClient({ adapter });
-  lastConnStr = connectionString;
-  return cachedDb;
+  const client = new PrismaClient({ adapter });
+  return {
+    client,
+    pool,
+    close: async () => {
+      await client.$disconnect().catch(() => {});
+      if (pool) await pool.end().catch(() => {});
+    },
+  };
 }
 
 /**
