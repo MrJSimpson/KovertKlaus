@@ -47,6 +47,11 @@ This is the official production deployment configuration for `kovertklaus.com`.
    $env:DIRECT_URL="postgresql://neondb_owner:password@ep-host.aws.neon.tech/neondb?sslmode=require"
    npx prisma db push
    ```
+4. Verify the `app` / `admin` schema separation (see [Database Schema Separation](#-database-schema-separation-app--admin)):
+   ```powershell
+   $env:DATABASE_ADMIN_URL="<owner connection string>"
+   npx tsx scripts/check-db-schema-separation.ts
+   ```
 
 ---
 
@@ -137,6 +142,34 @@ Access your instance at: `http://localhost:3000`
 | `SMTP_USER` | Optional | `operative@yourdomain.com` | SMTP username. |
 | `SMTP_PASS` | Optional | `********` | SMTP password. |
 | `APP_MODE` | Optional | `selfhosted` (`saas`) | Open-core mode toggle vector. |
+
+---
+
+## 🗂️ Database Schema Separation (`app` / `admin`)
+
+Tables live in two Postgres schemas instead of `public`. **A table's location decides who can reach it**, enforced by Postgres itself:
+
+| Schema | Tables | Reached by |
+| :--- | :--- | :--- |
+| `app` | User, Exchange, ExchangeMember, Wishlist, WishlistItem, Item, ProductCatalog, CovertInviteToken, ExclusionRule, ExchangeMessage, Notification, ExchangeReport, ClearanceLead, ThemePreset, PreLaunchApproval | `db` (application role, e.g. `kovert_app`) and `adminDb` |
+| `admin` | AdminUser, SystemConfig, SystemLog | `adminDb` only (owner role). The application role has **no USAGE** on this schema. |
+
+**Why:** Postgres grants nothing on new tables and Prisma never issues `GRANT`s, so tables added to `public` were unreachable by the application role until someone remembered a manual grant. Default privileges on `app` now grant every new app table to the application role automatically. Anything in `admin` stays unreachable unless explicitly granted.
+
+### Adding a new model
+1. Add `@@schema("app")` or `@@schema("admin")` to the model (and any new enum). Prisma rejects a model without it.
+2. Push the schema with the **owner** role on the **direct** (non-pooler) host, so the default privileges apply.
+3. Run the audit: `npx tsx scripts/check-db-schema-separation.ts`. It exits 1 on any drift.
+
+### One-time migration of an existing database
+Databases created before this change have every table in `public`. Move them (metadata only, data and grants are kept) with:
+```powershell
+npx prisma db execute --file prisma/sql/2026-10-12_schema-separation.forward.sql   # owner role, direct host
+npx tsx scripts/check-db-schema-separation.ts
+```
+Rollback: `prisma/sql/2026-10-12_schema-separation.rollback.sql`. **Deploy the schema-aware build at the same time.** Older builds query `public.*` and fail after the move, and the new build fails before it.
+
+**Local Docker:** run the same forward script against your dev database once (`docker exec -i kovertklaus-db psql -U kovert -d kovertklaus < prisma/sql/2026-10-12_schema-separation.forward.sql`). Without it, the regenerated Prisma client looks for `app.*`/`admin.*` and finds nothing.
 
 ---
 

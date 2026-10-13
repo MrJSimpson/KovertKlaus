@@ -12,7 +12,7 @@ if (-not (Test-Path $dumpPath)) {
     exit 1
 }
 
-& docker exec -i kovertklaus-db psql -U kovert -d kovertklaus -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+& docker exec -i kovertklaus-db psql -U kovert -d kovertklaus -c "DROP SCHEMA IF EXISTS app CASCADE; DROP SCHEMA IF EXISTS admin CASCADE; DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 Get-Content $dumpPath | & docker exec -i kovertklaus-db psql -U kovert -d kovertklaus
 
 if ($LASTEXITCODE -eq 0) {

@@ -2,34 +2,37 @@
 -- Conforms strictly to prisma/schema.prisma (Zero Dummy Records)
 
 -- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
+CREATE SCHEMA IF NOT EXISTS "admin";
+
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "app";
 
 -- CreateEnum
-CREATE TYPE "AccountStatus" AS ENUM ('ACTIVE', 'REMOTE_RESTRICTED', 'DISABLED');
+CREATE TYPE "app"."AccountStatus" AS ENUM ('ACTIVE', 'REMOTE_RESTRICTED', 'DISABLED');
 
 -- CreateEnum
-CREATE TYPE "ExchangeStatus" AS ENUM ('SETUP', 'RECRUITING', 'MATCHED', 'SHIPPED', 'EXECUTED', 'COMPLETED');
+CREATE TYPE "app"."ExchangeStatus" AS ENUM ('SETUP', 'RECRUITING', 'MATCHED', 'SHIPPED', 'EXECUTED', 'COMPLETED');
 
 -- CreateEnum
-CREATE TYPE "GiftingType" AS ENUM ('SINGLE', 'MULTIPLE');
+CREATE TYPE "app"."GiftingType" AS ENUM ('SINGLE', 'MULTIPLE');
 
 -- CreateEnum
-CREATE TYPE "PaymentStatus" AS ENUM ('FREE_ANNUAL', 'PAID', 'EXEMPT_SELF_HOSTED');
+CREATE TYPE "app"."PaymentStatus" AS ENUM ('FREE_ANNUAL', 'PAID', 'EXEMPT_SELF_HOSTED');
 
 -- CreateEnum
-CREATE TYPE "MemberRole" AS ENUM ('ORGANIZER', 'MEMBER');
+CREATE TYPE "app"."MemberRole" AS ENUM ('ORGANIZER', 'MEMBER');
 
 -- CreateEnum
-CREATE TYPE "ShippingStatus" AS ENUM ('PENDING', 'LOCAL_DELIVERY', 'SHIPPED');
+CREATE TYPE "app"."ShippingStatus" AS ENUM ('PENDING', 'LOCAL_DELIVERY', 'SHIPPED');
 
 -- CreateEnum
-CREATE TYPE "WishlistType" AS ENUM ('STANDARD', 'WHITE_ELEPHANT');
+CREATE TYPE "app"."WishlistType" AS ENUM ('STANDARD', 'WHITE_ELEPHANT');
 
 -- CreateEnum
-CREATE TYPE "LogLevel" AS ENUM ('ERROR', 'WARN', 'INFO', 'DEBUG');
+CREATE TYPE "admin"."LogLevel" AS ENUM ('ERROR', 'WARN', 'INFO', 'DEBUG');
 
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE "app"."User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -60,7 +63,7 @@ CREATE TABLE "User" (
     "allowOrganizerViewAllergies" BOOLEAN NOT NULL DEFAULT true,
     "allowOrganizerViewFavorites" BOOLEAN NOT NULL DEFAULT false,
     "penaltyPoints" INTEGER NOT NULL DEFAULT 0,
-    "accountStatus" "AccountStatus" NOT NULL DEFAULT 'ACTIVE',
+    "accountStatus" "app"."AccountStatus" NOT NULL DEFAULT 'ACTIVE',
     "isWorkshop" BOOLEAN NOT NULL DEFAULT false,
     "emailNotifications" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -70,14 +73,14 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "Exchange" (
+CREATE TABLE "app"."Exchange" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT,
     "code" TEXT NOT NULL,
     "organizerId" TEXT NOT NULL,
     "maxParticipants" INTEGER,
-    "giftingType" "GiftingType" NOT NULL DEFAULT 'SINGLE',
+    "giftingType" "app"."GiftingType" NOT NULL DEFAULT 'SINGLE',
     "isLocalOnly" BOOLEAN NOT NULL DEFAULT false,
     "eventLocation" TEXT,
     "isWhiteElephant" BOOLEAN NOT NULL DEFAULT false,
@@ -90,12 +93,12 @@ CREATE TABLE "Exchange" (
     "assignmentDate" TIMESTAMP(3) NOT NULL,
     "shippingDate" TIMESTAMP(3),
     "executionDate" TIMESTAMP(3) NOT NULL,
-    "status" "ExchangeStatus" NOT NULL DEFAULT 'RECRUITING',
+    "status" "app"."ExchangeStatus" NOT NULL DEFAULT 'RECRUITING',
     "isFreeAnnualExchange" BOOLEAN NOT NULL DEFAULT false,
     "enforcePenalties" BOOLEAN NOT NULL DEFAULT true,
     "isCovertDelivery" BOOLEAN NOT NULL DEFAULT false,
     "propertyWaiverText" TEXT,
-    "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'FREE_ANNUAL',
+    "paymentStatus" "app"."PaymentStatus" NOT NULL DEFAULT 'FREE_ANNUAL',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -103,7 +106,7 @@ CREATE TABLE "Exchange" (
 );
 
 -- CreateTable
-CREATE TABLE "ProductCatalog" (
+CREATE TABLE "app"."ProductCatalog" (
     "id" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -119,7 +122,7 @@ CREATE TABLE "ProductCatalog" (
 );
 
 -- CreateTable
-CREATE TABLE "Item" (
+CREATE TABLE "app"."Item" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "catalogId" TEXT,
@@ -136,11 +139,11 @@ CREATE TABLE "Item" (
 );
 
 -- CreateTable
-CREATE TABLE "Wishlist" (
+CREATE TABLE "app"."Wishlist" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "type" "WishlistType" NOT NULL DEFAULT 'STANDARD',
+    "type" "app"."WishlistType" NOT NULL DEFAULT 'STANDARD',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -148,7 +151,7 @@ CREATE TABLE "Wishlist" (
 );
 
 -- CreateTable
-CREATE TABLE "WishlistItem" (
+CREATE TABLE "app"."WishlistItem" (
     "id" TEXT NOT NULL,
     "wishlistId" TEXT NOT NULL,
     "itemId" TEXT NOT NULL,
@@ -158,15 +161,15 @@ CREATE TABLE "WishlistItem" (
 );
 
 -- CreateTable
-CREATE TABLE "ExchangeMember" (
+CREATE TABLE "app"."ExchangeMember" (
     "id" TEXT NOT NULL,
     "exchangeId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "codename" TEXT,
     "wishlistId" TEXT,
-    "role" "MemberRole" NOT NULL DEFAULT 'MEMBER',
+    "role" "app"."MemberRole" NOT NULL DEFAULT 'MEMBER',
     "targetUserId" TEXT,
-    "shippingStatus" "ShippingStatus" NOT NULL DEFAULT 'PENDING',
+    "shippingStatus" "app"."ShippingStatus" NOT NULL DEFAULT 'PENDING',
     "trackingNumber" TEXT,
     "shippedAt" TIMESTAMP(3),
     "deliveredConfirmed" BOOLEAN NOT NULL DEFAULT false,
@@ -187,7 +190,7 @@ CREATE TABLE "ExchangeMember" (
 );
 
 -- CreateTable
-CREATE TABLE "CovertInviteToken" (
+CREATE TABLE "app"."CovertInviteToken" (
     "id" TEXT NOT NULL,
     "exchangeId" TEXT NOT NULL,
     "token" TEXT NOT NULL,
@@ -202,7 +205,7 @@ CREATE TABLE "CovertInviteToken" (
 );
 
 -- CreateTable
-CREATE TABLE "ExclusionRule" (
+CREATE TABLE "app"."ExclusionRule" (
     "id" TEXT NOT NULL,
     "exchangeId" TEXT NOT NULL,
     "memberId" TEXT NOT NULL,
@@ -212,7 +215,7 @@ CREATE TABLE "ExclusionRule" (
 );
 
 -- CreateTable
-CREATE TABLE "ExchangeMessage" (
+CREATE TABLE "app"."ExchangeMessage" (
     "id" TEXT NOT NULL,
     "exchangeId" TEXT NOT NULL,
     "senderId" TEXT NOT NULL,
@@ -225,7 +228,7 @@ CREATE TABLE "ExchangeMessage" (
 );
 
 -- CreateTable
-CREATE TABLE "Notification" (
+CREATE TABLE "app"."Notification" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -238,7 +241,7 @@ CREATE TABLE "Notification" (
 );
 
 -- CreateTable
-CREATE TABLE "ExchangeReport" (
+CREATE TABLE "app"."ExchangeReport" (
     "id" TEXT NOT NULL,
     "exchangeId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -250,7 +253,7 @@ CREATE TABLE "ExchangeReport" (
 );
 
 -- CreateTable
-CREATE TABLE "ClearanceLead" (
+CREATE TABLE "app"."ClearanceLead" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
@@ -264,7 +267,7 @@ CREATE TABLE "ClearanceLead" (
 );
 
 -- CreateTable
-CREATE TABLE "AdminUser" (
+CREATE TABLE "admin"."AdminUser" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "username" TEXT,
@@ -281,7 +284,7 @@ CREATE TABLE "AdminUser" (
 );
 
 -- CreateTable
-CREATE TABLE "ThemePreset" (
+CREATE TABLE "app"."ThemePreset" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "season" TEXT NOT NULL DEFAULT 'winter',
@@ -300,7 +303,7 @@ CREATE TABLE "ThemePreset" (
 );
 
 -- CreateTable
-CREATE TABLE "SystemConfig" (
+CREATE TABLE "admin"."SystemConfig" (
     "id" TEXT NOT NULL DEFAULT 'singleton',
     "activeThemeId" TEXT NOT NULL DEFAULT 'winter_holiday',
     "activeSeason" TEXT NOT NULL DEFAULT 'auto',
@@ -341,9 +344,9 @@ CREATE TABLE "SystemConfig" (
 );
 
 -- CreateTable
-CREATE TABLE "SystemLog" (
+CREATE TABLE "admin"."SystemLog" (
     "id" TEXT NOT NULL,
-    "level" "LogLevel" NOT NULL DEFAULT 'INFO',
+    "level" "admin"."LogLevel" NOT NULL DEFAULT 'INFO',
     "category" TEXT NOT NULL,
     "message" TEXT NOT NULL,
     "metadata" JSONB,
@@ -358,167 +361,168 @@ CREATE TABLE "SystemLog" (
 );
 
 -- CreateTable
-CREATE TABLE "PreLaunchApproval" (
+CREATE TABLE "app"."PreLaunchApproval" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "inviteCode" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "PreLaunchApproval_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "User_email_key" ON "app"."User"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Exchange_code_key" ON "Exchange"("code");
+CREATE UNIQUE INDEX "Exchange_code_key" ON "app"."Exchange"("code");
 
 -- CreateIndex
-CREATE INDEX "Exchange_organizerId_idx" ON "Exchange"("organizerId");
+CREATE INDEX "Exchange_organizerId_idx" ON "app"."Exchange"("organizerId");
 
 -- CreateIndex
-CREATE INDEX "Exchange_status_idx" ON "Exchange"("status");
+CREATE INDEX "Exchange_status_idx" ON "app"."Exchange"("status");
 
 -- CreateIndex
-CREATE INDEX "Exchange_code_idx" ON "Exchange"("code");
+CREATE INDEX "Exchange_code_idx" ON "app"."Exchange"("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ProductCatalog_url_key" ON "ProductCatalog"("url");
+CREATE UNIQUE INDEX "ProductCatalog_url_key" ON "app"."ProductCatalog"("url");
 
 -- CreateIndex
-CREATE INDEX "Item_userId_idx" ON "Item"("userId");
+CREATE INDEX "Item_userId_idx" ON "app"."Item"("userId");
 
 -- CreateIndex
-CREATE INDEX "Item_catalogId_idx" ON "Item"("catalogId");
+CREATE INDEX "Item_catalogId_idx" ON "app"."Item"("catalogId");
 
 -- CreateIndex
-CREATE INDEX "Wishlist_userId_idx" ON "Wishlist"("userId");
+CREATE INDEX "Wishlist_userId_idx" ON "app"."Wishlist"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WishlistItem_wishlistId_itemId_key" ON "WishlistItem"("wishlistId", "itemId");
+CREATE UNIQUE INDEX "WishlistItem_wishlistId_itemId_key" ON "app"."WishlistItem"("wishlistId", "itemId");
 
 -- CreateIndex
-CREATE INDEX "ExchangeMember_exchangeId_codename_idx" ON "ExchangeMember"("exchangeId", "codename");
+CREATE INDEX "ExchangeMember_exchangeId_codename_idx" ON "app"."ExchangeMember"("exchangeId", "codename");
 
 -- CreateIndex
-CREATE INDEX "ExchangeMember_exchangeId_idx" ON "ExchangeMember"("exchangeId");
+CREATE INDEX "ExchangeMember_exchangeId_idx" ON "app"."ExchangeMember"("exchangeId");
 
 -- CreateIndex
-CREATE INDEX "ExchangeMember_userId_idx" ON "ExchangeMember"("userId");
+CREATE INDEX "ExchangeMember_userId_idx" ON "app"."ExchangeMember"("userId");
 
 -- CreateIndex
-CREATE INDEX "ExchangeMember_targetUserId_idx" ON "ExchangeMember"("targetUserId");
+CREATE INDEX "ExchangeMember_targetUserId_idx" ON "app"."ExchangeMember"("targetUserId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ExchangeMember_exchangeId_userId_key" ON "ExchangeMember"("exchangeId", "userId");
+CREATE UNIQUE INDEX "ExchangeMember_exchangeId_userId_key" ON "app"."ExchangeMember"("exchangeId", "userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "CovertInviteToken_token_key" ON "CovertInviteToken"("token");
+CREATE UNIQUE INDEX "CovertInviteToken_token_key" ON "app"."CovertInviteToken"("token");
 
 -- CreateIndex
-CREATE INDEX "CovertInviteToken_exchangeId_idx" ON "CovertInviteToken"("exchangeId");
+CREATE INDEX "CovertInviteToken_exchangeId_idx" ON "app"."CovertInviteToken"("exchangeId");
 
 -- CreateIndex
-CREATE INDEX "CovertInviteToken_token_idx" ON "CovertInviteToken"("token");
+CREATE INDEX "CovertInviteToken_token_idx" ON "app"."CovertInviteToken"("token");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ExclusionRule_exchangeId_memberId_restrictedMemberId_key" ON "ExclusionRule"("exchangeId", "memberId", "restrictedMemberId");
+CREATE UNIQUE INDEX "ExclusionRule_exchangeId_memberId_restrictedMemberId_key" ON "app"."ExclusionRule"("exchangeId", "memberId", "restrictedMemberId");
 
 -- CreateIndex
-CREATE INDEX "ExchangeMessage_exchangeId_idx" ON "ExchangeMessage"("exchangeId");
+CREATE INDEX "ExchangeMessage_exchangeId_idx" ON "app"."ExchangeMessage"("exchangeId");
 
 -- CreateIndex
-CREATE INDEX "Notification_userId_isAcknowledged_idx" ON "Notification"("userId", "isAcknowledged");
+CREATE INDEX "Notification_userId_isAcknowledged_idx" ON "app"."Notification"("userId", "isAcknowledged");
 
 -- CreateIndex
-CREATE INDEX "ExchangeReport_exchangeId_idx" ON "ExchangeReport"("exchangeId");
+CREATE INDEX "ExchangeReport_exchangeId_idx" ON "app"."ExchangeReport"("exchangeId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ClearanceLead_email_key" ON "ClearanceLead"("email");
+CREATE UNIQUE INDEX "ClearanceLead_email_key" ON "app"."ClearanceLead"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "AdminUser_email_key" ON "AdminUser"("email");
+CREATE UNIQUE INDEX "AdminUser_email_key" ON "admin"."AdminUser"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "AdminUser_username_key" ON "AdminUser"("username");
+CREATE UNIQUE INDEX "AdminUser_username_key" ON "admin"."AdminUser"("username");
 
 -- CreateIndex
-CREATE INDEX "SystemLog_createdAt_idx" ON "SystemLog"("createdAt");
+CREATE INDEX "SystemLog_createdAt_idx" ON "admin"."SystemLog"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "SystemLog_level_createdAt_idx" ON "SystemLog"("level", "createdAt");
+CREATE INDEX "SystemLog_level_createdAt_idx" ON "admin"."SystemLog"("level", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "SystemLog_category_createdAt_idx" ON "SystemLog"("category", "createdAt");
+CREATE INDEX "SystemLog_category_createdAt_idx" ON "admin"."SystemLog"("category", "createdAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PreLaunchApproval_email_key" ON "PreLaunchApproval"("email");
+CREATE UNIQUE INDEX "PreLaunchApproval_email_key" ON "app"."PreLaunchApproval"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PreLaunchApproval_inviteCode_key" ON "PreLaunchApproval"("inviteCode");
+CREATE UNIQUE INDEX "PreLaunchApproval_inviteCode_key" ON "app"."PreLaunchApproval"("inviteCode");
 
 -- AddForeignKey
-ALTER TABLE "Exchange" ADD CONSTRAINT "Exchange_organizerId_fkey" FOREIGN KEY ("organizerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "app"."Exchange" ADD CONSTRAINT "Exchange_organizerId_fkey" FOREIGN KEY ("organizerId") REFERENCES "app"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Item" ADD CONSTRAINT "Item_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."Item" ADD CONSTRAINT "Item_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Item" ADD CONSTRAINT "Item_catalogId_fkey" FOREIGN KEY ("catalogId") REFERENCES "ProductCatalog"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "app"."Item" ADD CONSTRAINT "Item_catalogId_fkey" FOREIGN KEY ("catalogId") REFERENCES "app"."ProductCatalog"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Wishlist" ADD CONSTRAINT "Wishlist_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."Wishlist" ADD CONSTRAINT "Wishlist_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WishlistItem" ADD CONSTRAINT "WishlistItem_wishlistId_fkey" FOREIGN KEY ("wishlistId") REFERENCES "Wishlist"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."WishlistItem" ADD CONSTRAINT "WishlistItem_wishlistId_fkey" FOREIGN KEY ("wishlistId") REFERENCES "app"."Wishlist"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WishlistItem" ADD CONSTRAINT "WishlistItem_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."WishlistItem" ADD CONSTRAINT "WishlistItem_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "app"."Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExchangeMember" ADD CONSTRAINT "ExchangeMember_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExchangeMember" ADD CONSTRAINT "ExchangeMember_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "app"."Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExchangeMember" ADD CONSTRAINT "ExchangeMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExchangeMember" ADD CONSTRAINT "ExchangeMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExchangeMember" ADD CONSTRAINT "ExchangeMember_targetUserId_fkey" FOREIGN KEY ("targetUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "app"."ExchangeMember" ADD CONSTRAINT "ExchangeMember_targetUserId_fkey" FOREIGN KEY ("targetUserId") REFERENCES "app"."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExchangeMember" ADD CONSTRAINT "ExchangeMember_wishlistId_fkey" FOREIGN KEY ("wishlistId") REFERENCES "Wishlist"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "app"."ExchangeMember" ADD CONSTRAINT "ExchangeMember_wishlistId_fkey" FOREIGN KEY ("wishlistId") REFERENCES "app"."Wishlist"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CovertInviteToken" ADD CONSTRAINT "CovertInviteToken_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."CovertInviteToken" ADD CONSTRAINT "CovertInviteToken_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "app"."Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExclusionRule" ADD CONSTRAINT "ExclusionRule_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExclusionRule" ADD CONSTRAINT "ExclusionRule_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "app"."Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExclusionRule" ADD CONSTRAINT "ExclusionRule_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExclusionRule" ADD CONSTRAINT "ExclusionRule_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "app"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExclusionRule" ADD CONSTRAINT "ExclusionRule_restrictedMemberId_fkey" FOREIGN KEY ("restrictedMemberId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExclusionRule" ADD CONSTRAINT "ExclusionRule_restrictedMemberId_fkey" FOREIGN KEY ("restrictedMemberId") REFERENCES "app"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExchangeMessage" ADD CONSTRAINT "ExchangeMessage_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExchangeMessage" ADD CONSTRAINT "ExchangeMessage_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "app"."Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExchangeMessage" ADD CONSTRAINT "ExchangeMessage_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExchangeMessage" ADD CONSTRAINT "ExchangeMessage_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "app"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExchangeMessage" ADD CONSTRAINT "ExchangeMessage_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExchangeMessage" ADD CONSTRAINT "ExchangeMessage_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "app"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExchangeReport" ADD CONSTRAINT "ExchangeReport_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExchangeReport" ADD CONSTRAINT "ExchangeReport_exchangeId_fkey" FOREIGN KEY ("exchangeId") REFERENCES "app"."Exchange"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExchangeReport" ADD CONSTRAINT "ExchangeReport_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app"."ExchangeReport" ADD CONSTRAINT "ExchangeReport_userId_fkey" FOREIGN KEY ("userId") REFERENCES "app"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SystemConfig" ADD CONSTRAINT "SystemConfig_activeThemeId_fkey" FOREIGN KEY ("activeThemeId") REFERENCES "ThemePreset"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "admin"."SystemConfig" ADD CONSTRAINT "SystemConfig_activeThemeId_fkey" FOREIGN KEY ("activeThemeId") REFERENCES "app"."ThemePreset"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 
 
@@ -526,11 +530,11 @@ ALTER TABLE "SystemConfig" ADD CONSTRAINT "SystemConfig_activeThemeId_fkey" FORE
 -- PRODUCTION CLEAN DATA SEED (SystemConfig, Super Admin)
 -- -----------------------------------------------------------------------------
 
-INSERT INTO "SystemConfig" ("id", "activeThemeId", "activeSeason", "announcementBannerActive", "freeAnnualHostAllowance", "freeAnnualJoinAllowance", "paidEventPriceUsd", "maxFreeParticipants", "maxWishlistItems", "updatedAt")
+INSERT INTO admin."SystemConfig" ("id", "activeThemeId", "activeSeason", "announcementBannerActive", "freeAnnualHostAllowance", "freeAnnualJoinAllowance", "paidEventPriceUsd", "maxFreeParticipants", "maxWishlistItems", "updatedAt")
 VALUES ('singleton', 'winter_holiday', 'auto', true, 1, 3, 5.00, 25, 50, NOW())
 ON CONFLICT ("id") DO NOTHING;
 
-INSERT INTO "AdminUser" ("id", "username", "email", "name", "passwordHash", "role", "isActive", "requiresPasswordReset", "createdAt", "updatedAt")
-VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$scrypt$1024$8$1$e429a73ffbca4cef0e0f956fe08c8b46$83b1b0f2d961ffda6cc2ede1ae2193efa96859cd0509702b8e4488929dd0c6bc', 'SUPER_ADMIN', true, true, NOW(), NOW())
+INSERT INTO admin."AdminUser" ("id", "username", "email", "name", "passwordHash", "role", "isActive", "requiresPasswordReset", "createdAt", "updatedAt")
+VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '$scrypt$1024$8$1$c60b5d6d1fe4ff567318e7633f06aa27$8d52fe7ba3dcd1cab9a4fc226b46a4b10098cb5dbb30b55930055cd9dce3cdfe', 'SUPER_ADMIN', true, true, NOW(), NOW())
 ON CONFLICT ("id") DO NOTHING;
 

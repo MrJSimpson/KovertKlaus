@@ -23,12 +23,12 @@ async function generateModernSqlDump() {
   sqlData += '-- -----------------------------------------------------------------------------\n\n';
 
   // SystemConfig
-  sqlData += `INSERT INTO "SystemConfig" ("id", "activeThemeId", "activeSeason", "announcementBannerActive", "freeAnnualHostAllowance", "freeAnnualJoinAllowance", "paidEventPriceUsd", "maxFreeParticipants", "maxWishlistItems", "updatedAt")\n`;
+  sqlData += `INSERT INTO admin."SystemConfig" ("id", "activeThemeId", "activeSeason", "announcementBannerActive", "freeAnnualHostAllowance", "freeAnnualJoinAllowance", "paidEventPriceUsd", "maxFreeParticipants", "maxWishlistItems", "updatedAt")\n`;
   sqlData += `VALUES ('singleton', 'winter_holiday', 'auto', true, 1, 3, 5.00, 25, 50, NOW())\n`;
   sqlData += `ON CONFLICT ("id") DO NOTHING;\n\n`;
 
   // AdminUser
-  sqlData += `INSERT INTO "AdminUser" ("id", "username", "email", "name", "passwordHash", "role", "isActive", "requiresPasswordReset", "createdAt", "updatedAt")\n`;
+  sqlData += `INSERT INTO admin."AdminUser" ("id", "username", "email", "name", "passwordHash", "role", "isActive", "requiresPasswordReset", "createdAt", "updatedAt")\n`;
   sqlData += `VALUES ('00000000-0000-4000-a000-000000000001', 'santa', 'admin@kovertklaus.com', 'Santa Claus', '${adminPassHash}', 'SUPER_ADMIN', true, true, NOW(), NOW())\n`;
   sqlData += `ON CONFLICT ("id") DO NOTHING;\n\n`;
 
