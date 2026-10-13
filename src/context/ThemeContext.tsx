@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { getThemeClasses, ThemeClasses, LightsStrandType } from '@/lib/theme';
-import { PublicSystemConfigResponse } from '@/app/api/config/route';
+import type { PublicSystemConfigResponse } from '@/lib/config/publicConfig';
 
 const THEME_STORAGE_KEY = 'kovertklaus_theme_mode';
 
