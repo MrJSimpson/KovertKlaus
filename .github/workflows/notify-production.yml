@@ -23,5 +23,7 @@ jobs:
             echo "::notice::SAAS_DISPATCH_TOKEN not set; production will pick this up on its hourly sync."
             exit 0
           fi
-          gh workflow run upstream-sync.yml -R MrJSimpson/kovertklaus-saas -f ref=main
+          # REST workflow-dispatch with an explicit ref: needs only Actions: write. (`gh workflow run`
+          # first looks up the default branch over GraphQL, which this narrow token may not do.)
+          gh api --method POST repos/MrJSimpson/kovertklaus-saas/actions/workflows/upstream-sync.yml/dispatches -f ref=main -f "inputs[ref]=main"
           echo "Production sync requested for ${GITHUB_SHA::7}."
