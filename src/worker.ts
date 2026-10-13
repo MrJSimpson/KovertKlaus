@@ -45,6 +45,7 @@ import {
   BADGE_KOVERT_KLAUS,
   BADGE_VIGILANT_ELF,
 } from './lib/covertDelivery';
+import { PROFILE_DOSSIER_SELECT, buildProfileUpdate, organizerVisibilityAliases } from './lib/profile-update';
 
 const ADMIN_COOKIE_NAME = ADMIN_SESSION_COOKIE_NAME;
 const USER_COOKIE_NAME = SESSION_COOKIE_NAME;
@@ -1053,8 +1054,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           let user = await db.user.findUnique({
             where: { id: userId },
             select: {
-              id: true, email: true, name: true, codename: true, streetAddress: true, city: true, state: true,
-              zipCode: true, country: true, emailNotifications: true, penaltyPoints: true, isWorkshop: true, accountStatus: true, createdAt: true,
+              id: true, email: true, name: true, codename: true, emailNotifications: true,
+              penaltyPoints: true, isWorkshop: true, accountStatus: true, createdAt: true,
+              ...PROFILE_DOSSIER_SELECT,
               participations: {
                 include: {
                   exchange: {
@@ -1104,22 +1106,19 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           return Response.json({
             success: true,
             authenticated: true,
-            user: { ...user, demerits: user.penaltyPoints, wishlists: formattedWishlists },
+            user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints, wishlists: formattedWishlists },
           });
         }
 
-        if (request.method === 'PATCH') {
+        // The preferences modal sends PUT; PATCH stays for existing callers.
+        if (request.method === 'PATCH' || request.method === 'PUT') {
           const body = (await request.json().catch(() => ({}))) as any;
-          const { name, codename, streetAddress, city, state, zipCode, country, emailNotifications, oldPassword, newPassword } = body;
-          const updateData: Record<string, any> = {};
+          const { name, codename, emailNotifications, newPassword } = body;
+          const oldPassword = body.currentPassword ?? body.oldPassword;
+          const updateData: Record<string, any> = buildProfileUpdate(body);
 
           if (name) updateData.name = sanitizeText(name);
           if (codename) updateData.codename = sanitizeText(codename);
-          if (streetAddress !== undefined) updateData.streetAddress = sanitizeText(streetAddress);
-          if (city !== undefined) updateData.city = sanitizeText(city);
-          if (state !== undefined) updateData.state = sanitizeText(state);
-          if (zipCode !== undefined) updateData.zipCode = sanitizeText(zipCode);
-          if (country !== undefined) updateData.country = sanitizeText(country);
           if (emailNotifications !== undefined) updateData.emailNotifications = Boolean(emailNotifications);
 
           if (newPassword) {
@@ -1136,9 +1135,16 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const updatedUser = await db.user.update({
             where: { id: userId },
             data: updateData,
+            select: {
+              id: true, email: true, name: true, codename: true, emailNotifications: true, ...PROFILE_DOSSIER_SELECT,
+            },
           });
 
-          return Response.json({ success: true, message: 'Preferences updated', user: updatedUser });
+          return Response.json({
+            success: true,
+            message: 'Preferences updated',
+            user: { ...updatedUser, ...organizerVisibilityAliases(updatedUser) },
+          });
         }
       }
 
