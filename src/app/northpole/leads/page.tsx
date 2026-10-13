@@ -10,6 +10,7 @@ interface ClearanceLeadRecord {
   name?: string | null;
   source: string;
   status: string;
+  inviteCode?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +26,7 @@ export default function NorthPoleLeadsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteLead, setConfirmDeleteLead] = useState<ClearanceLeadRecord | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLeads();
@@ -130,6 +132,39 @@ export default function NorthPoleLeadsPage() {
     }
   }
 
+  async function handleApproveLead(lead: ClearanceLeadRecord) {
+    setApprovingId(lead.id);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
+      const res = await fetch('/api/northpole/leads', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-admin-token': token } : {}),
+        },
+        body: JSON.stringify({ action: 'approve', id: lead.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) {
+        setLeads((prev) =>
+          prev.map((l) => (l.id === lead.id ? { ...l, status: 'APPROVED', inviteCode: json.inviteCode } : l))
+        );
+        setIsError(false);
+        setActionMessage(json.message || `Alpha clearance granted! Activation cipher ${json.inviteCode} dispatched to ${lead.email}`);
+        setTimeout(() => setActionMessage(null), 6000);
+      } else {
+        setIsError(true);
+        setActionMessage(json.error || 'Failed to approve clearance lead');
+      }
+    } catch (err: any) {
+      setIsError(true);
+      setActionMessage(err?.message || 'Network error during clearance approval');
+    } finally {
+      setApprovingId(null);
+    }
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -219,6 +254,7 @@ export default function NorthPoleLeadsPage() {
                   <th className="py-3 px-4">Operative / Email</th>
                   <th className="py-3 px-4">Source Channel</th>
                   <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Pre-Launch Cipher</th>
                   <th className="py-3 px-4">Timestamp</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -248,11 +284,38 @@ export default function NorthPoleLeadsPage() {
                         {lead.status}
                       </span>
                     </td>
+                    <td className="py-3.5 px-4">
+                      {lead.inviteCode ? (
+                        <div className="flex items-center gap-1.5">
+                          <code className="text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded text-[11px] font-bold select-all">
+                            {lead.inviteCode}
+                          </code>
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 text-[10px] italic">Awaiting Approval</span>
+                      )}
+                    </td>
                     <td className="py-3.5 px-4 text-slate-400 text-[11px]">
                       {new Date(lead.createdAt).toLocaleDateString()}{' '}
                       <span className="text-slate-500 text-[10px]">{new Date(lead.createdAt).toLocaleTimeString()}</span>
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-2">
+                      <button
+                        onClick={() => handleApproveLead(lead)}
+                        disabled={approvingId === lead.id}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition disabled:opacity-50 font-bold border ${
+                          lead.status === 'APPROVED'
+                            ? 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-emerald-700/40'
+                            : 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border-emerald-600/50 shadow-sm'
+                        }`}
+                        title={lead.status === 'APPROVED' ? 'Regenerate cipher & re-dispatch approval email' : 'Approve clearance & dispatch activation cipher'}
+                      >
+                        {approvingId === lead.id
+                          ? 'Generating...'
+                          : lead.status === 'APPROVED'
+                          ? '🔄 Re-Approve'
+                          : '✓ Approve Alpha'}
+                      </button>
                       <button
                         onClick={() => handleResendConfirmation(lead)}
                         disabled={resendingId === lead.id}

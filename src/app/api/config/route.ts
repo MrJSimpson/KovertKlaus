@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { IS_SAAS } from '@/lib/config/mode';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,8 @@ export interface PublicSystemConfigResponse {
   defaultBudgetMin: number;
   defaultBudgetMax: number;
   defaultCurrency: string;
+  /** Deployment edition. Clients use it to show edition-specific UI (e.g. the self-hosted Workshop link). */
+  edition?: 'saas' | 'selfhosted';
 }
 
 const DEFAULT_CONFIG_FALLBACK: PublicSystemConfigResponse = {
@@ -52,6 +55,7 @@ const DEFAULT_CONFIG_FALLBACK: PublicSystemConfigResponse = {
   defaultBudgetMin: 0.0,
   defaultBudgetMax: 50.0,
   defaultCurrency: 'USD',
+  edition: IS_SAAS ? 'saas' : 'selfhosted',
 };
 
 export async function GET() {
@@ -85,6 +89,7 @@ export async function GET() {
       defaultBudgetMin: Number(config.defaultBudgetMin),
       defaultBudgetMax: Number(config.defaultBudgetMax),
       defaultCurrency: config.defaultCurrency,
+      edition: IS_SAAS ? 'saas' : 'selfhosted',
     };
 
     return NextResponse.json(response);

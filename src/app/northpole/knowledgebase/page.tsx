@@ -14,8 +14,9 @@ export default function NorthPoleKnowledgeBasePage() {
     { id: 'email', title: '5. Universal Email Gateway 📧', badge: 'EGRESS' },
     { id: 'northpole', title: '6. North Pole Administration ⚙️', badge: 'SYSADMIN' },
     { id: 'workshop', title: '7. Santa\'s Workshop QA Lab 🧪', badge: 'TESTING' },
-    { id: 'config', title: '8. Minimized ENV & Runtime Settings 📊', badge: 'CONFIG' },
-    { id: 'limits', title: '9. System Limits & Recovery ⚡', badge: 'TROUBLESHOOTING' },
+    { id: 'clearance', title: '8. Alpha Clearance & PreLaunchApproval 🎟️', badge: 'ONBOARDING' },
+    { id: 'config', title: '9. Minimized ENV & Runtime Settings 📊', badge: 'CONFIG' },
+    { id: 'limits', title: '10. System Limits & Recovery ⚡', badge: 'TROUBLESHOOTING' },
   ];
 
   return (
@@ -215,6 +216,7 @@ export default function NorthPoleKnowledgeBasePage() {
               <ul className="list-disc pl-5 space-y-1 text-gray-400">
                 <li><strong className="text-white">/northpole</strong>: Telemetry overview & stats.</li>
                 <li><strong className="text-white">/northpole/config</strong>: Seasonal theme switching, email credentials, quotas, and maintenance mode.</li>
+                <li><strong className="text-white">/northpole/leads</strong>: Clearance queue, waitlist management, and single-use alpha activation cipher granting.</li>
                 <li><strong className="text-white">/northpole/users</strong>: User moderation, demerits, and workshop clearance granting.</li>
                 <li><strong className="text-white">/northpole/operations</strong>: Global inspection of all operations.</li>
                 <li><strong className="text-white">/northpole/themes</strong>: Theme presets manager.</li>
@@ -238,11 +240,28 @@ export default function NorthPoleKnowledgeBasePage() {
             </div>
           )}
 
-          {/* Section 8 */}
+          {/* Section 8: Alpha Clearance */}
+          {activeSection === 'clearance' && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold text-white border-b border-slate-800 pb-2">
+                8. Alpha Clearance & PreLaunchApproval Protocol
+              </h2>
+              <p>During the Public Alpha phase, direct public account registration is restricted to prevent bot abuse and ensure system stability:</p>
+              <ul className="list-disc pl-5 space-y-1 text-gray-400">
+                <li><strong className="text-white">Clearance Lead Queue</strong>: Interested users submit an early access request via <code className="text-emerald-400">/api/clearance</code> and are placed in the <code className="text-emerald-300">ClearanceLead</code> waitlist.</li>
+                <li><strong className="text-white">North Pole Approval</strong>: Admins review and approve candidates in <code className="text-white">/northpole/leads</code>. Approving a request generates a unique single-use activation cipher (<code className="text-emerald-300">ALPHA-XXXXXXXXXXXXXXXX</code>) and stores it in the <code className="text-emerald-300">PreLaunchApproval</code> table.</li>
+                <li><strong className="text-white">Direct Activation Link</strong>: The system dispatches an encrypted approval email containing a direct registration link pre-populated with their activation cipher and email.</li>
+                <li><strong className="text-white">Single-Use Code Invariant</strong>: Upon successful user registration, the code is immediately purged from <code className="text-emerald-300">PreLaunchApproval</code> to prevent replay attacks and multi-account abuse. Admins can re-dispatch new ciphers if needed.</li>
+                <li><strong className="text-white">SaaS Alpha vs. Local Workshop</strong>: Santa's QA Workshop (<code className="text-amber-300">/workshop/*</code>) is removed from the public SaaS alpha deployment and remains exclusively with locally hosted installations.</li>
+              </ul>
+            </div>
+          )}
+
+          {/* Section 9 */}
           {activeSection === 'config' && (
             <div className="space-y-4">
               <h2 className="text-lg font-bold text-white border-b border-slate-800 pb-2">
-                8. Minimized ENV & Runtime Settings
+                9. Minimized ENV & Runtime Settings
               </h2>
               <p>
                 To minimize footprint, <code className="text-white">.env</code> contains ONLY startup initialization vector (<code className="text-emerald-400">MODE=&quot;SELFHOSTED&quot;</code>), connection strings (<code className="text-amber-400">DATABASE_URL</code>, <code className="text-amber-400">DIRECT_URL</code>), <code className="text-amber-400">SESSION_SECRET</code>, and optional bootstrap credentials. All other settings are database-driven:
@@ -258,11 +277,11 @@ export default function NorthPoleKnowledgeBasePage() {
             </div>
           )}
 
-          {/* Section 9 */}
+          {/* Section 10 */}
           {activeSection === 'limits' && (
             <div className="space-y-4">
               <h2 className="text-lg font-bold text-white border-b border-slate-800 pb-2">
-                9. System Limits & Failure Recovery
+                10. System Limits & Failure Recovery
               </h2>
               <ul className="list-disc pl-5 space-y-1.5 text-gray-400">
                 <li><strong className="text-white">Scraper Fast-Failover</strong>: 2.5 second timeout with automatic fallback to manual modal.</li>

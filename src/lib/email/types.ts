@@ -116,3 +116,12 @@ export interface ClearanceConfirmationParams {
   overrideConfig?: Partial<EmailConfig>;
 }
 
+export interface ClearanceApprovalParams {
+  recipientEmail?: string;
+  to?: string;
+  name?: string;
+  inviteCode: string;
+  registrationUrl?: string;
+  overrideConfig?: Partial<EmailConfig>;
+}
+

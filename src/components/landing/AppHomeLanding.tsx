@@ -132,6 +132,7 @@ export function AppHomeLanding() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [codename, setCodename] = useState('');
+  const [alphaCipher, setAlphaCipher] = useState('');
 
   // Exchange Specific Inputs
   const [title, setTitle] = useState('');
@@ -142,6 +143,17 @@ export function AppHomeLanding() {
 
   useEffect(() => {
     checkCurrentUser();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const codeParam = params.get('code') || params.get('alphaCode');
+      const emailParam = params.get('email');
+      if (codeParam) {
+        setAlphaCipher(codeParam.trim().toUpperCase());
+        if (emailParam) setEmail(emailParam.trim());
+        setAuthMode('register');
+        setLoginModalOpen(true);
+      }
+    }
   }, []);
 
   async function checkCurrentUser() {
@@ -221,6 +233,7 @@ export function AppHomeLanding() {
           email: email.trim(),
           codename: cleanCodename,
           password,
+          inviteCode: alphaCipher.trim() || undefined,
         }),
       });
 
@@ -855,7 +868,7 @@ export function AppHomeLanding() {
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
-                <span>{isAlpha ? '🔑 Operative Sign In' : (authMode === 'login' ? '🔑 Sign In' : '✨ Create Elf Agent Profile')}</span>
+                <span>{authMode === 'login' ? (isAlpha ? '🔑 Operative Sign In' : '🔑 Sign In') : (isAlpha ? '🎟️ Alpha Activation' : '✨ Create Elf Agent Profile')}</span>
               </h3>
               <button
                 onClick={() => setLoginModalOpen(false)}
@@ -865,47 +878,31 @@ export function AppHomeLanding() {
               </button>
             </div>
 
-            {/* Tab Navigation / Alpha Advisory Header */}
-            {isAlpha ? (
-              <div className="mb-5 pb-3 border-b border-stone-200 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                    🔑 Operative Sign In
-                  </span>
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${theme.badgeCode}`}>
-                    Alpha Dogfooding
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                  Public sign-up is closed during Alpha. Accounts can be created by joining an exchange with an invite code, or by requesting early clearance on the home page.
-                </p>
-              </div>
-            ) : (
-              <div className="flex border-b border-stone-200 dark:border-slate-800 mb-5 font-bold text-xs">
-                <button
-                  type="button"
-                  onClick={() => { setAuthMode('login'); setErrorMessage(''); }}
-                  className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
-                    authMode === 'login'
-                      ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  🔑 Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAuthMode('register'); setErrorMessage(''); }}
-                  className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
-                    authMode === 'register'
-                      ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  ✨ Sign Up (New Elf Agent)
-                </button>
-              </div>
-            )}
+            {/* Tab Navigation */}
+            <div className="flex border-b border-stone-200 dark:border-slate-800 mb-5 font-bold text-xs">
+              <button
+                type="button"
+                onClick={() => { setAuthMode('login'); setErrorMessage(''); }}
+                className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                  authMode === 'login'
+                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                🔑 Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('register'); setErrorMessage(''); }}
+                className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
+                  authMode === 'register'
+                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                {isAlpha ? '🎟️ Alpha Activation' : '✨ Sign Up'}
+              </button>
+            </div>
 
             {errorMessage && (
               <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
@@ -977,9 +974,40 @@ export function AppHomeLanding() {
               </form>
             )}
 
-            {/* TAB 2: CREATE AGENT PROFILE (SIGN UP) - RESTRICTED IN ALPHA */}
-            {authMode === 'register' && !isAlpha && (
+            {/* TAB 2: CREATE AGENT PROFILE / ALPHA ACTIVATION */}
+            {authMode === 'register' && (
               <form onSubmit={handleDirectRegister} className="space-y-4 text-xs font-semibold">
+                {isAlpha && (
+                  <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-[11px] text-amber-900 dark:text-amber-200">
+                    <div className="font-bold mb-1 flex items-center gap-1.5">
+                      <span>🎟️</span>
+                      <span>Early Alpha Access Gate</span>
+                    </div>
+                    <p className="text-amber-800 dark:text-amber-300 text-[11px] leading-relaxed">
+                      Public registration is restricted. Enter your single-use Pre-Launch Activation Cipher from your clearance email.
+                    </p>
+                  </div>
+                )}
+
+                {isAlpha && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-slate-500">Pre-Launch Activation Cipher *</label>
+                      <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                        ALPHA-XXXXXXXXXXXXXXXX
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="ALPHA-XXXXXXXXXXXXXXXX"
+                      value={alphaCipher}
+                      onChange={(e) => setAlphaCipher(e.target.value.toUpperCase())}
+                      className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono tracking-wider focus:outline-none uppercase ${theme.inputModalBg}`}
+                    />
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-slate-500 mb-1">Full Name *</label>
                   <input
@@ -1076,7 +1104,9 @@ export function AppHomeLanding() {
                     disabled={loading}
                     className={`w-1/2 font-bold py-3 rounded-2xl text-sm transition-all cursor-pointer shadow-md ${theme.btnPrimary}`}
                   >
-                    {loading ? 'Creating Profile...' : '🚀 Create Agent Profile'}
+                    {loading
+                      ? (isAlpha ? 'Activating Profile...' : 'Creating Profile...')
+                      : (isAlpha ? '🎟️ Activate Alpha Profile' : '🚀 Create Agent Profile')}
                   </button>
                 </div>
               </form>
