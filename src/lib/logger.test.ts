@@ -95,10 +95,21 @@ async function runTests() {
     },
   };
 
-  await logError('EMAIL', 'Failed to dispatch email test', {
-    dbClient: mockDbClient,
-    metadata: { recipient: 'test@kovertklaus.com', error: 'Brevo 401' },
-  });
+  // With real database settings present, the logger deliberately writes through the admin
+  // connection (SystemLog lives in the admin schema the app role cannot reach), ignoring a
+  // passed client. Isolate this test from the caller's environment (e.g. CI with a database)
+  // so it exercises the "no database configured, use the provided client" path it targets.
+  const dbEnvKeys = ['DATABASE_ADMIN_URL', 'DIRECT_URL', 'DATABASE_URL'] as const;
+  const savedDbEnv = Object.fromEntries(dbEnvKeys.map((k) => [k, process.env[k]]));
+  for (const k of dbEnvKeys) delete process.env[k];
+  try {
+    await logError('EMAIL', 'Failed to dispatch email test', {
+      dbClient: mockDbClient,
+      metadata: { recipient: 'test@kovertklaus.com', error: 'Brevo 401' },
+    });
+  } finally {
+    for (const k of dbEnvKeys) if (savedDbEnv[k] !== undefined) process.env[k] = savedDbEnv[k];
+  }
 
   assert(mockDbCreated === true, 'logError triggers systemLog.create on passed dbClient');
 
