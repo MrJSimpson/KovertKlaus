@@ -1,0 +1,27 @@
+# Tells the private production repo to sync as soon as main changes.
+# Uses a fine-grained token limited to kovertklaus-saas with only Actions: read & write (start
+# workflows); it cannot read or change that repo's code.
+# Without the secret this workflow does nothing (production still syncs hourly).
+# Secrets are never exposed to pull requests from forks.
+name: notify-production
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start upstream-sync in kovertklaus-saas
+        env:
+          GH_TOKEN: ${{ secrets.SAAS_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::SAAS_DISPATCH_TOKEN not set; production will pick this up on its hourly sync."
+            exit 0
+          fi
+          gh workflow run upstream-sync.yml -R MrJSimpson/kovertklaus-saas -f ref=main
+          echo "Production sync requested for ${GITHUB_SHA::7}."
