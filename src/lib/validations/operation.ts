@@ -86,6 +86,9 @@ export function validateOperationConfig(input: CreateOperationInput): { isValid:
     errors.push('White Elephant gifting is restricted to local in-person events only.');
   }
 
+  // Operative capacity (optional; when set it must sit within the supported group size)
+  errors.push(...validateCapacity(input.maxParticipants));
+
   // All 4 Dates are Strictly Required
   if (!input.inviteCutoffDate) errors.push('Go/No-Go Date (Invite Cutoff) is required.');
   if (!input.assignmentDate) errors.push('Target Assignment Date is required.');
@@ -131,4 +134,69 @@ export function validateOperationConfig(input: CreateOperationInput): { isValid:
     isValid: errors.length === 0,
     errors,
   };
+}
+
+/** Operative capacity bounds enforced by the create form and the server (families and groups of 4+). */
+export const MIN_OPERATIVES = 4;
+export const MAX_OPERATIVES = 25;
+
+/** The editable (non-timeline) settings of an existing Holiday Mission, after merging the patch. */
+export interface OperationSettingsInput {
+  title: string;
+  budgetMin?: number | null;
+  budgetMax: number;
+  maxParticipants?: number | null;
+  isLocalOnly: boolean;
+  eventLocation?: string | null;
+  isWhiteElephant: boolean;
+  /** Agents already enrolled; capacity may not drop below this. */
+  currentMemberCount: number;
+}
+
+/**
+ * Validates a Head Elf's settings edit on an existing Holiday Mission.
+ *
+ * Tier 1 (what): Checks title, budget range, capacity and the local / White Elephant rules on the
+ * merged (existing + patched) settings.
+ * Tier 2 (why): Timeline dates are validated separately by `validateOperationConfig`. Running that
+ * here would reject every settings edit once the Go/No-Go date has passed.
+ * Tier 3 (how): Pure; returns the same `{ isValid, errors }` shape as `validateOperationConfig`.
+ */
+export function validateOperationSettings(input: OperationSettingsInput): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!input.title || !input.title.trim()) errors.push('Operation title is required.');
+  if (!Number.isFinite(input.budgetMax) || input.budgetMax <= 0) errors.push('Maximum budget must be greater than $0.');
+  if (input.budgetMin != null && (!Number.isFinite(input.budgetMin) || input.budgetMin < 0)) {
+    errors.push('Minimum budget must be $0 or more.');
+  }
+  if (input.budgetMin != null && input.budgetMin > input.budgetMax) {
+    errors.push('Minimum budget cannot exceed maximum budget.');
+  }
+  errors.push(...validateCapacity(input.maxParticipants));
+  if (input.maxParticipants != null && input.maxParticipants < input.currentMemberCount) {
+    errors.push(`Capacity cannot be lower than the ${input.currentMemberCount} agents already enrolled.`);
+  }
+  if (input.isLocalOnly && (!input.eventLocation || !input.eventLocation.trim())) {
+    errors.push('Local operations require an event location address.');
+  }
+  if (input.isWhiteElephant && !input.isLocalOnly) {
+    errors.push('White Elephant gifting is restricted to local in-person events only.');
+  }
+
+  return { isValid: errors.length === 0, errors };
+}
+
+/**
+ * Validates an optional operative capacity against `MIN_OPERATIVES`..`MAX_OPERATIVES`.
+ *
+ * @param maxParticipants - Capacity, or null/undefined for "no explicit cap".
+ * @returns Error messages (empty when valid).
+ */
+export function validateCapacity(maxParticipants: number | null | undefined): string[] {
+  if (maxParticipants == null) return [];
+  if (!Number.isInteger(maxParticipants) || maxParticipants < MIN_OPERATIVES || maxParticipants > MAX_OPERATIVES) {
+    return [`Max Operative capacity must be between ${MIN_OPERATIVES} and ${MAX_OPERATIVES} agents.`];
+  }
+  return [];
 }

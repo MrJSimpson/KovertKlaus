@@ -72,7 +72,13 @@ export async function POST(request: Request) {
     const resolution = resolveUniqueCodename(preferred, existingRosterCodenames, shouldRandomize);
 
     // 5. Auto-Link or Provision Master Wishlist Manifest
-    let linkedWishlistId = wishlistId || null;
+    let linkedWishlistId: string | null = null;
+    if (wishlistId) {
+      // Only a manifest the caller owns may be attached.
+      const owned = await db.wishlist.findFirst({ where: { id: wishlistId, userId: activeUserId }, select: { id: true } });
+      if (!owned) return NextResponse.json({ error: 'Wishlist Manifest not found' }, { status: 404 });
+      linkedWishlistId = owned.id;
+    }
     if (!linkedWishlistId) {
       const targetType = exchange.isWhiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD';
       const existingWishlist = await db.wishlist.findFirst({

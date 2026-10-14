@@ -3,6 +3,8 @@ import * as cheerio from 'cheerio';
 import { Prisma } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
+import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
+import { EXCHANGE_MEMBERS_INCLUDE, sanitizeExchangeMember } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { validateNistPassword } from './lib/adminAuth';
@@ -34,6 +36,9 @@ import { advanceMissionLifecycle } from './lib/mission-lifecycle';
 import { detectCarrier } from './lib/carrier-tracking';
 import { detectProductCategory, getCategorySuggestedKeys, updateCatalogIntelligence, sanitizeItemDetails } from './lib/product-intelligence';
 import { validateAndSanitizeManifestItem } from './lib/validations/manifest';
+import { validateOperationConfig, validateOperationSettings } from './lib/validations/operation';
+import { validateReportInput } from './lib/validations/report';
+import { resolveUniqueCodename } from './lib/codename';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -49,6 +54,40 @@ import { PROFILE_DOSSIER_SELECT, buildProfileUpdate, organizerVisibilityAliases 
 
 const ADMIN_COOKIE_NAME = ADMIN_SESSION_COOKIE_NAME;
 const USER_COOKIE_NAME = SESSION_COOKIE_NAME;
+
+/**
+ * Every API path this worker serves. Used to tell "wrong method" (405) from "no such route" (404),
+ * and checked by `worker.test.ts` against `src/app/api/<path>/route.ts`, so a Next.js route can
+ * never ship again without its edge counterpart.
+ */
+export const WORKER_API_PATHS = new Set([
+  '/api/clearance',
+  '/api/config',
+  '/api/demerits/audit',
+  '/api/invitations',
+  '/api/invitations/accept',
+  '/api/leads',
+  '/api/northpole/config',
+  '/api/northpole/email/test',
+  '/api/northpole/leads',
+  '/api/northpole/login',
+  '/api/northpole/logs',
+  '/api/northpole/me',
+  '/api/northpole/operations',
+  '/api/northpole/reset-password',
+  '/api/northpole/setup',
+  '/api/northpole/users',
+  '/api/operations',
+  '/api/operations/lifecycle',
+  '/api/opkits',
+  '/api/scraper',
+  '/api/shipping',
+  '/api/users',
+  '/api/users/login',
+  '/api/users/me',
+  '/api/users/profile',
+  '/api/workshop/auth',
+]);
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
@@ -90,6 +129,45 @@ function getAdminIdFromRequest(request: Request): string | null {
   }
 
   return null;
+}
+
+/**
+ * Resolves the request to an active, fully set-up North Pole administrator, or `null`.
+ *
+ * Admin and user session tokens share one signing format, so a valid signature alone does not
+ * prove the caller is an admin: a user's token would pass `getAdminIdFromRequest`. Looking the ID
+ * up in `AdminUser` closes that gap (matching `verifyAdminSession` in the Next.js routes). Every
+ * `/api/northpole/*` handler that needs admin rights must gate on this, never on the raw ID.
+ */
+async function requireAdmin(request: Request, adminDb: ReturnType<typeof getAdminDb>) {
+  const adminId = getAdminIdFromRequest(request);
+  if (!adminId) return null;
+  const admin = await adminDb.adminUser.findUnique({ where: { id: adminId } });
+  if (!admin || !admin.isActive || admin.requiresPasswordReset) return null;
+  return admin;
+}
+
+/**
+ * Returns the Wishlist Manifest a member should attach when enrolling, creating one if needed.
+ *
+ * Secret Santa missions use the user's oldest STANDARD manifest; White Elephant missions use a
+ * WHITE_ELEPHANT manifest (the single brought gift). Enrolling without one left `wishlistId`
+ * null, so the draw saw the agent as having no manifest.
+ */
+async function resolveMemberWishlistId(db: ReturnType<typeof getDb>, userId: string, isWhiteElephant: boolean): Promise<string> {
+  const type = isWhiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD';
+  const existing = await db.wishlist.findFirst({ where: { userId, type }, orderBy: { createdAt: 'asc' }, select: { id: true } });
+  if (existing) return existing.id;
+  const created = await db.wishlist.create({
+    data: { userId, type, name: isWhiteElephant ? 'White Elephant Gift' : 'Master Wishlist Manifest' },
+    select: { id: true },
+  });
+  return created.id;
+}
+
+/** JSON 405 for a known API path called with a method it does not support. */
+function methodNotAllowed(pathname: string, method: string): Response {
+  return Response.json({ error: `Method ${method} not allowed on ${pathname}` }, { status: 405 });
 }
 
 function getUserIdFromRequest(request: Request): string | null {
@@ -317,6 +395,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 4. /api/northpole/config (GET / PATCH)
       if (pathname === '/api/northpole/config') {
+        // SystemConfig holds provider API keys and SMTP credentials: admins only.
+        const admin = await requireAdmin(request, adminDb);
+        if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
         if (request.method === 'GET') {
           const [config, themes, totalUsers, totalOperations, totalLeads, approvedLeadsCount] = await Promise.all([
             adminDb.systemConfig.findUnique({ where: { id: 'singleton' } }),
@@ -340,20 +422,26 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           });
         }
         if (request.method === 'PATCH') {
-          const body = (await request.json().catch(() => ({}))) as any;
+          const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+          const updateData = buildSystemConfigUpdate(body, admin.id);
           const updated = await adminDb.systemConfig.upsert({
             where: { id: 'singleton' },
-            update: body,
-            create: { id: 'singleton', ...body },
+            update: updateData,
+            create: {
+              id: 'singleton',
+              activeThemeId: (updateData.activeThemeId as string | undefined) || 'winter_holiday',
+              ...updateData,
+            },
           });
-          return Response.json({ success: true, config: updated });
+          return Response.json({ success: true, config: { ...updated, appMode: 'saas' } });
         }
+        return methodNotAllowed(pathname, request.method);
       }
 
       // 5. /api/northpole/users (GET / PATCH)
       if (pathname === '/api/northpole/users') {
-        const adminId = getAdminIdFromRequest(request);
-        if (!adminId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        const admin = await requireAdmin(request, adminDb);
+        if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
         if (request.method === 'GET') {
           const id = url.searchParams.get('id')?.trim();
@@ -462,21 +550,35 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as any;
           const { userId, penaltyPoints, isWorkshop, accountStatus, codename } = body;
+          if (!userId) return Response.json({ error: 'userId required' }, { status: 400 });
+          const points = penaltyPoints !== undefined ? Number(penaltyPoints) : undefined;
+          if (points !== undefined && (!Number.isInteger(points) || points < 0)) {
+            return Response.json({ error: 'penaltyPoints must be a non-negative integer' }, { status: 400 });
+          }
           const user = await adminDb.user.update({
             where: { id: userId },
             data: {
-              ...(penaltyPoints !== undefined ? { penaltyPoints } : {}),
-              ...(isWorkshop !== undefined ? { isWorkshop } : {}),
+              ...(points !== undefined ? { penaltyPoints: points } : {}),
+              ...(isWorkshop !== undefined ? { isWorkshop: Boolean(isWorkshop) } : {}),
               ...(accountStatus !== undefined ? { accountStatus } : {}),
-              ...(codename !== undefined ? { codename } : {}),
+              ...(codename !== undefined ? { codename: codename ? sanitizeText(String(codename)) : null } : {}),
+            },
+            // Never return credential columns (passwordHash) to the browser.
+            select: {
+              id: true, name: true, email: true, codename: true, penaltyPoints: true,
+              accountStatus: true, isWorkshop: true, createdAt: true,
             },
           });
           return Response.json({ success: true, user: { ...user, demerits: user.penaltyPoints } });
         }
+        return methodNotAllowed(pathname, request.method);
       }
 
       // 6. /api/northpole/operations (GET)
       if (pathname === '/api/northpole/operations' && request.method === 'GET') {
+        const admin = await requireAdmin(request, adminDb);
+        if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
         const id = url.searchParams.get('id')?.trim();
         const code = url.searchParams.get('code')?.trim().toUpperCase();
         const q = (url.searchParams.get('q') || '').trim().toLowerCase();
@@ -556,11 +658,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 7. /api/northpole/email/test (POST)
       if (pathname === '/api/northpole/email/test' && request.method === 'POST') {
-        const adminId = getAdminIdFromRequest(request);
-        if (!adminId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
-        const admin = await adminDb.adminUser.findUnique({ where: { id: adminId } });
-        if (!admin) return Response.json({ error: 'Admin not found' }, { status: 404 });
+        const admin = await requireAdmin(request, adminDb);
+        if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = (await request.json().catch(() => ({}))) as any;
         const targetEmail = (body.recipientEmail || admin.email).trim();
@@ -595,8 +694,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 7b. /api/northpole/leads (GET / DELETE / POST)
       if (pathname === '/api/northpole/leads') {
-        const adminId = getAdminIdFromRequest(request);
-        if (!adminId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        const admin = await requireAdmin(request, adminDb);
+        if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        const adminId = admin.id;
 
         if (request.method === 'GET') {
           const query = (url.searchParams.get('q') || '').trim().toLowerCase();
@@ -798,8 +898,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 7c. /api/northpole/logs (GET / DELETE)
       if (pathname === '/api/northpole/logs') {
-        const adminId = getAdminIdFromRequest(request);
-        if (!adminId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        const admin = await requireAdmin(request, adminDb);
+        if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
         if (request.method === 'GET') {
           const query = (url.searchParams.get('q') || '').trim().toLowerCase();
@@ -901,6 +1001,23 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
       // =======================================================================
       // SECTION 2: USER APPLICATION & PUBLIC ENDPOINTS
       // =======================================================================
+
+      // 7d. Self-hosted-only endpoints. The SaaS edge answers them explicitly instead of 404ing:
+      // first-run setup never applies here (admins are provisioned), and the developer Workshop
+      // is retained for self-hosted installs only (AGENTS.md §9).
+      if (pathname === '/api/northpole/setup') {
+        if (request.method === 'GET') return Response.json({ setupRequired: false });
+        return Response.json({ error: 'First-run setup is only available on self-hosted installs.' }, { status: 403 });
+      }
+      if (pathname === '/api/workshop/auth' && request.method === 'GET') {
+        return Response.json({
+          authenticated: false,
+          authorized: false,
+          isAdmin: false,
+          user: null,
+          reason: 'workshop_selfhosted_only',
+        });
+      }
 
       // 8. /api/config (GET)
       if (pathname === '/api/config' && request.method === 'GET') {
@@ -1326,12 +1443,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               where: { code: code.trim().toUpperCase() },
               include: {
                 organizer: { select: { id: true, name: true, codename: true } },
-                members: {
-                  include: {
-                    user: { select: { id: true, name: true, codename: true, streetAddress: true, city: true, state: true, zipCode: true } },
-                    targetUser: { select: { id: true, name: true, codename: true, streetAddress: true, city: true, state: true, zipCode: true } },
-                  },
-                },
+                members: { include: EXCHANGE_MEMBERS_INCLUDE },
                 exclusionRules: {
                   include: {
                     member: { select: { id: true, name: true, codename: true } },
@@ -1345,33 +1457,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
             // Sanitize targetUser and physical addresses server-side
             const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
-            const sanitizedMembers = exchange.members.map((m) => {
-              const isSelf = Boolean(activeUserId && m.userId === activeUserId);
-              const canViewDetails = isOrganizer || isSelf;
-
-              return {
-                id: m.id,
-                userId: m.userId,
-                codename: m.codename || m.user.codename,
-                role: m.role,
-                shippingStatus: m.shippingStatus,
-                trackingNumber: canViewDetails ? m.trackingNumber : undefined,
-                shippedAt: m.shippedAt,
-                deliveredConfirmed: m.deliveredConfirmed,
-                joinedAt: m.joinedAt,
-                user: {
-                  id: m.user.id,
-                  name: m.user.name,
-                  codename: m.codename || m.user.codename,
-                  streetAddress: canViewDetails ? m.user.streetAddress : null,
-                  city: canViewDetails ? m.user.city : null,
-                  state: canViewDetails ? m.user.state : null,
-                  zipCode: canViewDetails ? m.user.zipCode : null,
-                },
-                targetUserId: canViewDetails ? m.targetUserId : null,
-                targetUser: canViewDetails ? m.targetUser : null,
-              };
-            });
+            const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer }));
 
             return Response.json({
               success: true,
@@ -1510,16 +1596,34 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             }
           }
 
-          // Action 3: Add Exclusion Rule
+          // Action 3: Add Exclusion Rule (bidirectional in the draw; both agents must be enrolled here)
           if (action === 'addExclusion' && operationId) {
             const { agentId: memberId, restrictedAgentId: restrictedMemberId } = body;
             if (!memberId || !restrictedMemberId) {
               return Response.json({ error: 'agentId and restrictedAgentId required' }, { status: 400 });
             }
+            if (memberId === restrictedMemberId) {
+              return Response.json({ error: 'An agent cannot be excluded from themselves' }, { status: 400 });
+            }
 
-            const ex = await db.exchange.findUnique({ where: { id: operationId } });
+            const ex = await db.exchange.findUnique({ where: { id: operationId }, include: { members: { select: { userId: true } } } });
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can configure exclusions' }, { status: 403 });
+            const enrolled = new Set(ex.members.map((m) => m.userId));
+            if (!enrolled.has(memberId) || !enrolled.has(restrictedMemberId)) {
+              return Response.json({ error: 'Both agents must be enrolled in this operation' }, { status: 400 });
+            }
+
+            const existing = await db.exclusionRule.findFirst({
+              where: {
+                exchangeId: operationId,
+                OR: [
+                  { memberId, restrictedMemberId },
+                  { memberId: restrictedMemberId, restrictedMemberId: memberId },
+                ],
+              },
+            });
+            if (existing) return Response.json({ error: 'This preventative match rule already exists' }, { status: 409 });
 
             await db.exclusionRule.create({
               data: { exchangeId: operationId, memberId, restrictedMemberId },
@@ -1536,7 +1640,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can remove exclusions' }, { status: 403 });
 
-            await db.exclusionRule.delete({ where: { id: exclusionId } });
+            // Scoped to this exchange: an organizer can only remove their own mission's rules.
+            const removed = await db.exclusionRule.deleteMany({ where: { id: exclusionId, exchangeId: operationId } });
+            if (removed.count === 0) return Response.json({ error: 'Exclusion rule not found' }, { status: 404 });
             return Response.json({ success: true, message: 'Exclusion rule removed' });
           }
 
@@ -1631,9 +1737,15 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             return Response.json({ success: true, message: 'Broadcast dispatched' });
           }
 
-          // Action 8: Create Report
+          // Action 8: Create Report (After-Action Report entries are for enrolled agents only)
           if (action === 'createReport' && operationId) {
             const { thankYouText, photoUrl } = body;
+            const reportError = validateReportInput(thankYouText, photoUrl);
+            if (reportError) return Response.json({ error: reportError }, { status: 400 });
+            const member = await db.exchangeMember.findUnique({
+              where: { exchangeId_userId: { exchangeId: operationId, userId } },
+            });
+            if (!member) return Response.json({ error: 'Only enrolled agents can post to this After-Action Report' }, { status: 403 });
             const report = await db.exchangeReport.create({
               data: {
                 exchangeId: operationId,
@@ -1645,7 +1757,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 user: { select: { id: true, name: true, codename: true } },
               },
             });
-            return Response.json({ success: true, data: report });
+            return Response.json({ success: true, message: 'Exchange Report entry posted!', data: report });
           }
 
           // Action 9: Create KDM Tokens
@@ -1823,18 +1935,32 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Create Exchange
           if (config) {
+            const validation = validateOperationConfig(config);
+            if (!validation.isValid) {
+              return Response.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
+            }
+
+            // Invite codes are random; retry on the (rare) collision instead of failing the create.
             let inviteCode = generateInviteCode();
+            for (let attempt = 0; attempt < 5; attempt++) {
+              const taken = await db.exchange.findUnique({ where: { code: inviteCode }, select: { id: true } });
+              if (!taken) break;
+              inviteCode = generateInviteCode();
+            }
+
+            const organizerWishlistId = await resolveMemberWishlistId(db, userId, Boolean(config.isWhiteElephant));
             const newExchange = await db.exchange.create({
               data: {
-                title: config.title.trim(),
-                description: config.description?.trim(),
+                title: sanitizeText(String(config.title)).trim(),
+                description: config.description ? sanitizeText(String(config.description)).trim() : undefined,
                 code: inviteCode,
                 organizerId: userId,
-                maxParticipants: config.maxParticipants,
+                maxParticipants: config.maxParticipants ? Number(config.maxParticipants) : null,
                 giftingType: config.giftingType,
-                isLocalOnly: config.isLocalOnly,
-                eventLocation: config.eventLocation?.trim(),
-                isWhiteElephant: config.isWhiteElephant,
+                isLocalOnly: Boolean(config.isLocalOnly),
+                eventLocation: config.eventLocation ? sanitizeText(String(config.eventLocation)).trim() : undefined,
+                isWhiteElephant: Boolean(config.isWhiteElephant),
+                enforcePenalties: config.enforcePenalties !== undefined ? Boolean(config.enforcePenalties) : true,
                 budgetMin: config.budgetMin,
                 budgetMax: config.budgetMax,
                 currency: config.currency || 'USD',
@@ -1843,11 +1969,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 shippingDate: new Date(config.shippingDate),
                 executionDate: new Date(config.executionDate),
                 paymentStatus: 'EXEMPT_SELF_HOSTED',
-                members: { create: { userId, role: 'ORGANIZER' } },
+                members: { create: { userId, role: 'ORGANIZER', wishlistId: organizerWishlistId } },
               },
             });
             return Response.json({ success: true, data: newExchange });
           }
+
+          return Response.json({ error: `Unsupported operation action: ${action ?? '(none)'}` }, { status: 400 });
         }
 
         if (request.method === 'PATCH') {
@@ -1855,7 +1983,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
           const body = (await request.json().catch(() => ({}))) as any;
-          const { operationId, action, dates, settings, agentId: memberId, newRole, targetUserId, demeritPoints } = body;
+          const { operationId, action, dates, settings, agentId: memberId, newRole, targetUserId } = body;
 
           if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
 
@@ -1863,19 +1991,26 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
           if (ex.organizerId !== activeUserId) return Response.json({ error: 'Only organizer can perform admin actions' }, { status: 403 });
 
+          // Member-scoped actions must target a member of THIS exchange, never an arbitrary row.
+          const findScopedMember = (id: string) =>
+            db.exchangeMember.findFirst({ where: { id, exchangeId: operationId } });
+
           if (action === 'update_agent_role' && memberId && newRole) {
+            const member = await findScopedMember(memberId);
+            if (!member) return Response.json({ error: 'Member not found in this operation' }, { status: 404 });
+            if (member.userId === ex.organizerId) return Response.json({ error: 'Cannot change the primary Head Elf role' }, { status: 400 });
             const updatedMember = await db.exchangeMember.update({
-              where: { id: memberId },
+              where: { id: member.id },
               data: { role: newRole === 'ORGANIZER' || newRole === 'OPS_LEADER' ? 'ORGANIZER' : 'MEMBER' },
             });
-            return Response.json({ success: true, data: updatedMember });
+            return Response.json({ success: true, message: 'Agent role updated', data: updatedMember });
           }
 
           if (action === 'remove_agent' && memberId) {
-            const memberToDelete = await db.exchangeMember.findUnique({ where: { id: memberId } });
-            if (!memberToDelete) return Response.json({ error: 'Member not found' }, { status: 404 });
+            const memberToDelete = await findScopedMember(memberId);
+            if (!memberToDelete) return Response.json({ error: 'Member not found in this operation' }, { status: 404 });
             if (memberToDelete.userId === ex.organizerId) return Response.json({ error: 'Cannot remove primary organizer' }, { status: 400 });
-            await db.exchangeMember.delete({ where: { id: memberId } });
+            await db.exchangeMember.delete({ where: { id: memberToDelete.id } });
             return Response.json({ success: true, message: 'Member removed' });
           }
 
@@ -1886,8 +2021,17 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (ex.status !== 'COMPLETED') {
               return Response.json({ error: 'Demerits can only be assigned when the mission is completed' }, { status: 400 });
             }
+            const targetMember = await db.exchangeMember.findUnique({
+              where: { exchangeId_userId: { exchangeId: operationId, userId: targetUserId } },
+            });
+            if (!targetMember) return Response.json({ error: 'Agent is not enrolled in this operation' }, { status: 404 });
+            // Carrier Protection Waiver: verified delivery or a carrier tracking number grants immunity.
+            if (targetMember.deliveredConfirmed || targetMember.trackingNumber) {
+              return Response.json({ error: 'Demerit Waiver Active: this agent has verified delivery or carrier tracking.' }, { status: 400 });
+            }
 
-            const pts = demeritPoints || 1;
+            // One citation per call; the client never needs more and an unbounded value would be abusable.
+            const pts = 1;
             const updatedUser = await db.user.update({
               where: { id: targetUserId },
               data: { penaltyPoints: { increment: pts } },
@@ -1896,8 +2040,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           }
 
           if (action === 'nudge_agent' && memberId) {
+            const scoped = await findScopedMember(memberId);
+            if (!scoped) return Response.json({ error: 'Member not found in this operation' }, { status: 404 });
             const memberToNudge = await db.exchangeMember.findUnique({
-              where: { id: memberId },
+              where: { id: scoped.id },
               include: { user: true, exchange: { include: { organizer: true } } },
             });
             if (!memberToNudge) return Response.json({ error: 'Member not found' }, { status: 404 });
@@ -1934,23 +2080,38 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           if (action === 'update_settings' || settings) {
             if (!settings) return Response.json({ error: 'Settings payload required' }, { status: 400 });
-            const updatedExchange = await db.exchange.update({
-              where: { id: operationId },
-              data: {
-                title: settings.title !== undefined ? settings.title.trim() : ex.title,
-                description: settings.description !== undefined ? settings.description.trim() : ex.description,
-                budgetMin: settings.budgetMin !== undefined ? Number(settings.budgetMin) : ex.budgetMin,
-                budgetMax: settings.budgetMax !== undefined ? Number(settings.budgetMax) : ex.budgetMax,
-                maxParticipants: settings.maxParticipants !== undefined ? (settings.maxParticipants ? Number(settings.maxParticipants) : null) : ex.maxParticipants,
-                isLocalOnly: settings.isLocalOnly !== undefined ? settings.isLocalOnly : ex.isLocalOnly,
-                eventLocation: settings.eventLocation !== undefined ? settings.eventLocation.trim() : ex.eventLocation,
-                enforcePenalties: settings.enforcePenalties !== undefined ? settings.enforcePenalties : ex.enforcePenalties,
-              },
-            });
+            const memberCount = await db.exchangeMember.count({ where: { exchangeId: operationId } });
+            const merged = {
+              title: settings.title !== undefined ? sanitizeText(String(settings.title)).trim() : ex.title,
+              description: settings.description !== undefined ? sanitizeText(String(settings.description)).trim() : ex.description,
+              budgetMin: settings.budgetMin !== undefined && settings.budgetMin !== null ? Number(settings.budgetMin) : (ex.budgetMin == null ? null : Number(ex.budgetMin)),
+              budgetMax: settings.budgetMax !== undefined ? Number(settings.budgetMax) : Number(ex.budgetMax),
+              maxParticipants: settings.maxParticipants !== undefined ? (settings.maxParticipants ? Number(settings.maxParticipants) : null) : ex.maxParticipants,
+              isLocalOnly: settings.isLocalOnly !== undefined ? Boolean(settings.isLocalOnly) : ex.isLocalOnly,
+              eventLocation: settings.eventLocation !== undefined ? sanitizeText(String(settings.eventLocation)).trim() : ex.eventLocation,
+              enforcePenalties: settings.enforcePenalties !== undefined ? Boolean(settings.enforcePenalties) : ex.enforcePenalties,
+            };
+            const validation = validateOperationSettings({ ...merged, isWhiteElephant: ex.isWhiteElephant, currentMemberCount: memberCount });
+            if (!validation.isValid) {
+              return Response.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
+            }
+            const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: merged });
             return Response.json({ success: true, data: updatedExchange });
           }
 
           if (dates) {
+            const validation = validateOperationConfig({
+              title: ex.title,
+              giftingType: ex.giftingType as any,
+              isLocalOnly: ex.isLocalOnly,
+              eventLocation: ex.eventLocation ?? undefined,
+              isWhiteElephant: ex.isWhiteElephant,
+              budgetMax: Number(ex.budgetMax),
+              ...dates,
+            });
+            if (!validation.isValid) {
+              return Response.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
+            }
             const updatedExchange = await db.exchange.update({
               where: { id: operationId },
               data: {
@@ -1962,7 +2123,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             });
             return Response.json({ success: true, data: updatedExchange });
           }
+
+          return Response.json({ error: `Unsupported operation update action: ${action ?? '(none)'}` }, { status: 400 });
         }
+        return methodNotAllowed(pathname, request.method);
       }
 
       // 14. /api/invitations (POST)
@@ -1977,6 +2141,11 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
         const exchange = await db.exchange.findUnique({ where: { id: operationId }, include: { organizer: true, members: true } });
         if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+        // Only the Head Elf may send platform invitation emails (parity with the Next.js route).
+        if (exchange.organizerId !== activeUserId) return Response.json({ error: 'Only the Head Elf can send invitations' }, { status: 403 });
+        if (typeof recipientEmail !== 'string' || !isValidEmail(recipientEmail.trim())) {
+          return Response.json({ error: 'A valid recipient email is required' }, { status: 400 });
+        }
 
         const targetUser = await db.user.findUnique({ where: { email: recipientEmail.trim().toLowerCase() } });
         const cleanEmail = recipientEmail.trim().toLowerCase();
@@ -2019,7 +2188,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const { operationCode, wishlistId } = body;
 
         if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
-        if (!operationCode) return Response.json({ error: 'operationCode required' }, { status: 400 });
+        if (!operationCode || typeof operationCode !== 'string') return Response.json({ error: 'operationCode required' }, { status: 400 });
 
         const exchange = await db.exchange.findUnique({ where: { code: operationCode.trim().toUpperCase() }, include: { members: true } });
         if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
@@ -2028,13 +2197,46 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
 
         const existing = exchange.members.find((m) => m.userId === activeUserId);
-        if (existing) return Response.json({ error: 'Already enrolled in exchange' }, { status: 400 });
+        if (existing) return Response.json({ error: 'You are already enrolled in this exchange.', exchangeCode: exchange.code }, { status: 409 });
+        if (exchange.maxParticipants && exchange.members.length >= exchange.maxParticipants) {
+          return Response.json({ error: 'This exchange has reached its maximum operative capacity.' }, { status: 400 });
+        }
+
+        // Attach a manifest the caller owns; otherwise link (or create) the right one for this mission.
+        let memberWishlistId: string;
+        if (wishlistId) {
+          const owned = await db.wishlist.findFirst({ where: { id: wishlistId, userId: activeUserId }, select: { id: true } });
+          if (!owned) return Response.json({ error: 'Wishlist Manifest not found' }, { status: 404 });
+          memberWishlistId = owned.id;
+        } else {
+          memberWishlistId = await resolveMemberWishlistId(db, activeUserId, exchange.isWhiteElephant);
+        }
+
+        // Event-scoped codename, unique within this roster (parity with the Next.js route).
+        const user = await db.user.findUnique({
+          where: { id: activeUserId },
+          select: { name: true, codename: true, preferredCodename: true, autoRandomizeCodename: true },
+        });
+        const rosterCodenames = exchange.members.map((m) => m.codename).filter(Boolean) as string[];
+        const { customCodename, randomizeCodename } = body;
+        const preferred = customCodename || user?.preferredCodename || user?.codename || user?.name || 'Agent';
+        const resolution = resolveUniqueCodename(preferred, rosterCodenames, Boolean(randomizeCodename || user?.autoRandomizeCodename));
 
         const member = await db.exchangeMember.create({
-          data: { exchangeId: exchange.id, userId: activeUserId, wishlistId: wishlistId || null, role: 'MEMBER' },
+          data: {
+            exchangeId: exchange.id,
+            userId: activeUserId,
+            codename: resolution.codename,
+            wishlistId: memberWishlistId,
+            role: 'MEMBER',
+          },
         });
 
-        return Response.json({ success: true, message: 'Enrolled in exchange', data: member });
+        return Response.json({
+          success: true,
+          message: 'Member successfully enrolled in exchange!',
+          data: { ...member, assignedCodename: resolution.codename, wasCollided: resolution.wasCollided, isRandomized: resolution.isRandomized },
+        });
       }
 
       // 16. /api/shipping (POST)
@@ -2148,13 +2350,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 17b. /api/operations/lifecycle (POST)
       if (pathname === '/api/operations/lifecycle' && request.method === 'POST') {
-        const adminId = getAdminIdFromRequest(request);
+        const admin = await requireAdmin(request, adminDb);
         const authHeader = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
         const cronHeader = request.headers.get('x-cron-secret');
         const expectedCronSecret = (env as any).CRON_SECRET || (typeof process !== 'undefined' ? process.env.CRON_SECRET : undefined);
         const isCronAuthorized = Boolean(expectedCronSecret && (authHeader === expectedCronSecret || cronHeader === expectedCronSecret));
 
-        if (!adminId && !isCronAuthorized) {
+        if (!admin && !isCronAuthorized) {
           return Response.json({ error: 'Unauthorized. Valid admin session or CRON_SECRET required.' }, { status: 401 });
         }
 
@@ -2413,6 +2615,19 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
             const { data: itemData } = validation;
 
+            const wishlist = await db.wishlist.findUnique({
+              where: { id: wishlistId },
+              include: { _count: { select: { wishlistItems: true } } },
+            });
+            if (!wishlist || wishlist.userId !== activeUserId) {
+              return Response.json({ error: 'Wishlist Manifest not found or unauthorized' }, { status: 404 });
+            }
+            if (wishlist.type === 'WHITE_ELEPHANT' && wishlist._count.wishlistItems >= 1) {
+              return Response.json({
+                error: '🐘 White Elephant Wishlist Manifests are strictly limited to 1 brought gift item per operative!',
+              }, { status: 400 });
+            }
+
             const item = await db.item.create({
               data: {
                 userId: activeUserId,
@@ -2458,9 +2673,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             const newW = await db.wishlist.create({
               data: { userId: activeUserId, name: sanitizeText(name), type: type === 'WHITE_ELEPHANT' ? 'WHITE_ELEPHANT' : 'STANDARD' },
             });
-            const createdObj = { id: newW.id, name: newW.name, manifestItems: [], opTools: [] };
+            const createdObj = { id: newW.id, name: newW.name, type: newW.type, manifestItems: [], opTools: [] };
             return Response.json({ success: true, manifest: createdObj, opKit: createdObj });
           }
+          return Response.json({ error: 'Provide a manifest name or a Manifest Item to add' }, { status: 400 });
         }
 
         if (request.method === 'PATCH') {
@@ -2578,7 +2794,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             await db.wishlist.deleteMany({ where: { id: wishlistId, userId: activeUserId } });
             return Response.json({ success: true, message: 'Wishlist deleted' });
           }
+          return Response.json({ error: 'itemId or wishlistId required' }, { status: 400 });
         }
+        return methodNotAllowed(pathname, request.method);
       }
 
     } catch (err: any) {
@@ -2610,8 +2828,14 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
     }
 
 
-    // Never serve static HTML for unmatched API routes
+    // Never serve static HTML for unmatched API routes. A known path reached here was called with a
+    // method its handler does not support: answer 405, not a misleading "route not found".
     if (pathname.startsWith('/api/')) {
+      if (WORKER_API_PATHS.has(pathname)) {
+        console.warn(`[Worker API] ${request.method} not allowed on ${pathname}`);
+        return methodNotAllowed(pathname, request.method);
+      }
+      console.warn(`[Worker API] Unknown API route ${request.method} ${pathname}`);
       return new Response(JSON.stringify({ error: `API route not found: ${pathname}` }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },

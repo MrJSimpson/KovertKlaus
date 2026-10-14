@@ -1,0 +1,53 @@
+import test from 'node:test';
+import assert from 'node:assert';
+import { sanitizeExchangeMember } from './exchange-view';
+
+const member = {
+  id: 'm1',
+  userId: 'giver',
+  codename: null,
+  role: 'MEMBER',
+  trackingNumber: '9400111899562537624132',
+  targetUserId: 'target',
+  user: { id: 'giver', name: 'Gina', codename: 'Agent: Gale', streetAddress: '1 Main', city: 'X', state: 'WA', zipCode: '98000' },
+  targetUser: {
+    id: 'target',
+    name: 'Tom',
+    codename: 'Agent: Tide',
+    streetAddress: '2 Elm',
+    city: 'Y',
+    state: 'WA',
+    zipCode: '98001',
+    topHalfSize: 'L',
+    favoriteColors: 'Green',
+    allergiesDiet: 'Peanuts',
+    allowOrganizerViewSizes: false,
+    allowOrganizerViewFavorites: false,
+    allowOrganizerViewAllergies: true,
+    allowOrganizerViewMeasurements: false,
+    wishlists: [{ wishlistItems: [{ item: { id: 'i1', name: 'Scarf', price: '20', url: 'https://x.test', thumbnailUrl: null } }] }],
+  },
+};
+
+test('Exchange View - the giver sees their target dossier and Wishlist Manifest', () => {
+  const view = sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false });
+  assert.strictEqual(view.targetUser?.topHalfSize, 'L');
+  assert.strictEqual(view.targetUser?.favoriteColors, 'Green');
+  assert.deepStrictEqual(view.targetUser?.wishlistItems.map((i: { title: string }) => i.title), ['Scarf']);
+  assert.strictEqual(view.trackingNumber, '9400111899562537624132');
+});
+
+test('Exchange View - another agent sees no address, tracking or target', () => {
+  const view = sanitizeExchangeMember(member, { activeUserId: 'someone', isOrganizer: false });
+  assert.strictEqual(view.targetUser, null);
+  assert.strictEqual(view.targetUserId, null);
+  assert.strictEqual(view.user.streetAddress, null);
+  assert.strictEqual(view.trackingNumber, undefined);
+});
+
+test('Exchange View - the Head Elf sees only dossier fields the target allowed', () => {
+  const view = sanitizeExchangeMember(member, { activeUserId: 'organizer', isOrganizer: true });
+  assert.strictEqual(view.targetUser?.topHalfSize, undefined);
+  assert.strictEqual(view.targetUser?.favoriteColors, undefined);
+  assert.strictEqual(view.targetUser?.allergiesDiet, 'Peanuts');
+});

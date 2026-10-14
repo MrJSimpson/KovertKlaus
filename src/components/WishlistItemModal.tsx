@@ -191,51 +191,39 @@ export function WishlistItemModal({
 
           onSaveSuccess(json.manifestItem || json.opTool);
         } else {
-          // Client-side fallback if wishlistId is not provided
-          onSaveSuccess({
-            id: Math.random().toString(36).substring(2, 9),
-            url: url.trim(),
-            title: title.trim(),
-            price: parsedPrice,
-            description: cleanDescription,
-            thumbnail: thumbnail.trim() || undefined,
-            properties: {
-              isPersonalized: isPersonalizedMode,
-              details: cleanDetails,
-            },
-          });
+          // Never fake a save: without a Wishlist Manifest the item would vanish on reload.
+          throw new Error('No Wishlist Manifest is selected. Reload the page and try again.');
         }
       } else {
         // Edit Mode
-        if (initialData?.id && !initialData.id.startsWith('mock-') && initialData.id.length > 10) {
-          try {
-            const res = await fetch('/api/opkits', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                itemId: initialData.id,
-                title: title.trim(),
-                price: parsedPrice,
-                description: cleanDescription,
-                thumbnail: thumbnail.trim() || undefined,
-                properties: {
-                  isPersonalized: isPersonalizedMode,
-                  details: cleanDetails,
-                },
-              }),
-            });
+        if (initialData?.id && !initialData.id.startsWith('mock-')) {
+          const res = await fetch('/api/opkits', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              itemId: initialData.id,
+              title: title.trim(),
+              price: parsedPrice,
+              description: cleanDescription,
+              // Empty string clears the thumbnail server-side.
+              thumbnail: thumbnail.trim(),
+              properties: {
+                isPersonalized: isPersonalizedMode,
+                details: cleanDetails,
+              },
+            }),
+          });
 
-            const json = await res.json();
-            if (res.ok && json.success) {
-              onSaveSuccess(json.manifestItem);
-              onClose();
-              return;
-            }
-          } catch {
-            // Fall through to local update
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || !json.success) {
+            throw new Error(json.error || 'Failed to update Manifest Item');
           }
+          onSaveSuccess(json.manifestItem);
+          onClose();
+          return;
         }
 
+        // Unsaved local preview items (mock- IDs) are only updated in memory.
         onSaveSuccess({
           id: initialData?.id || Math.random().toString(36).substring(2, 9),
           url: url.trim(),

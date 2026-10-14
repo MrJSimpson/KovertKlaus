@@ -108,6 +108,11 @@ interface OperationData {
   afterActionReports?: AARReportEntry[];
 }
 
+/** True for a member role with Head Elf clearance. The database stores `ORGANIZER`; `OPS_LEADER` is the legacy alias. */
+function isLeaderRole(role?: string): boolean {
+  return role === 'ORGANIZER' || role === 'OPS_LEADER';
+}
+
 export default function OperationCommandCenterPage() {
   const params = useParams();
   const router = useRouter();
@@ -639,6 +644,19 @@ export default function OperationCommandCenterPage() {
     setItemModalOpen(true);
   }
 
+  // Remove a Manifest Item from the agent's Wishlist Manifest (server first, then local state)
+  async function handleRemoveManifestItem(itemId: string) {
+    setValidationError('');
+    try {
+      const res = await fetch(`/api/opkits?itemId=${encodeURIComponent(itemId)}`, { method: 'DELETE' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to remove Manifest Item');
+      setUserManifest((prev) => prev.filter((i) => i.id !== itemId));
+    } catch (err: any) {
+      setValidationError(err?.message || 'Failed to remove Manifest Item');
+    }
+  }
+
   function handleItemSaveSuccess(savedItem: any) {
     if (!savedItem) return;
     setUserManifest((prev) => {
@@ -715,7 +733,9 @@ export default function OperationCommandCenterPage() {
   const organizerData = operation?.organizer || operation?.opsLeader;
   const organizerIdVal = operation?.organizerId || operation?.opsLeaderId;
   const currentAgent = membersList.find((a) => a.userId === userId);
-  const isOpsLeader = organizerIdVal === userId || currentAgent?.role === 'ORGANIZER' || currentAgent?.role === 'OPS_LEADER';
+  // Head Elf controls follow the server: only the primary organizer may run them. Promoted agents
+  // (role ORGANIZER) carry the co-lead badge but the API rejects their admin actions.
+  const isOpsLeader = Boolean(userId && organizerIdVal === userId);
   const assignedTarget = currentAgent?.targetUser;
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -1579,7 +1599,7 @@ export default function OperationCommandCenterPage() {
                                 ✏️ Edit Details
                               </button>
                               <button
-                                onClick={() => { setValidationError(''); setUserManifest((prev) => prev.filter((i) => i.id !== item.id)); }}
+                                onClick={() => handleRemoveManifestItem(item.id)}
                                 className="text-xs text-red-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
                               >
                                 Remove
@@ -1722,15 +1742,15 @@ export default function OperationCommandCenterPage() {
                               </button>
                             )}
 
-                            {operation.status !== 'RECRUITING' && (
+                            {operation.status !== 'RECRUITING' && agent.userId !== organizerIdVal && (
                               <button
                                 onClick={() => handleAgentAction('update_agent_role', agent, {
-                                  newRole: agent.role === 'OPS_LEADER' ? 'FIELD_AGENT' : 'OPS_LEADER'
+                                  newRole: isLeaderRole(agent.role) ? 'FIELD_AGENT' : 'OPS_LEADER'
                                 })}
                                 title="Toggle OpsLeader Clearance"
                                 className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-stone-300 dark:border-slate-700 hover:bg-stone-200 transition-all cursor-pointer"
                               >
-                                {agent.role === 'OPS_LEADER' ? '🔻 Demote' : '⭐ Promote'}
+                                {isLeaderRole(agent.role) ? '🔻 Demote' : '⭐ Promote'}
                               </button>
                             )}
 
@@ -2054,7 +2074,7 @@ export default function OperationCommandCenterPage() {
             },
             targetUserId: a.targetUserId,
             targetUser: a.targetUser,
-            wishlistId: a.id,
+            wishlistId: a.wishlistId,
           }))}
           exclusionRules={operation.exclusionRules || []}
           onAssignmentsUpdated={() => fetchExchangeDetails()}
