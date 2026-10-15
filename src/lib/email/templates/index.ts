@@ -107,7 +107,9 @@ export function renderBaseEmail({
  * Generates an Invitation email template.
  */
 export function getInvitationEmailTemplate(params: InvitationEmailParams): { subject: string; html: string; text: string } {
-  const { organizerName, exchangeTitle, inviteCode, joinUrl, budgetMin, budgetMax, isLatePass, kdmToken, isCovertDelivery } = params;
+  const { organizerName, exchangeTitle, inviteCode, joinUrl, budgetMin, budgetMax, isLatePass, kdmToken, isCovertDelivery, isExistingUser } = params;
+  // New recipients register with the mission code (their alpha clearance); existing users open the mission to accept.
+  const actionText = isCovertDelivery ? 'Review Accord & Join Operation' : isExistingUser ? 'Review & Accept Invitation' : 'Join Exchange';
   
   const budgetText = budgetMin && budgetMax
     ? `$${budgetMin} – $${budgetMax}`
@@ -152,7 +154,9 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
     <p style="text-align: center; color: #94a3b8; font-size: 13px;">
       ${kdmToken
         ? 'Click the button below to review the Property Access Accord and accept your classified mission.'
-        : 'Click the button below to review mission directives and accept your assignment.'}
+        : isExistingUser
+        ? 'Open the mission to accept or decline. You can also answer from Active Operations on your dashboard.'
+        : 'Click Join Exchange to create your operative profile. Your invitation clears you for the KovertKlaus alpha and enrolls you in this mission.'}
     </p>
   `;
 
@@ -160,7 +164,7 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
     title: `Recruitment Order: ${exchangeTitle}`,
     preheader: `${organizerName} has recruited you to join ${exchangeTitle}!`,
     bodyHtml,
-    actionText: isCovertDelivery ? 'Review Accord & Join Operation' : 'Accept Mission Directive',
+    actionText,
     actionUrl: joinUrl,
   });
 
@@ -174,7 +178,7 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
     ${isLatePass ? '\n[LATE PASS AUTHORIZATION ACTIVE] The standard RSVP cutoff has passed; emergency clearance granted.\n' : ''}
     Your Invite Code: ${inviteCode}
 
-    Accept your mission here:
+    ${isExistingUser ? 'Accept or decline here:' : 'Join here (creates your profile and enrolls you):'}
     ${joinUrl}
 
     --------------------------------------------------

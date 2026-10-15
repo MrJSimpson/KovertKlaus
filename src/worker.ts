@@ -39,6 +39,7 @@ import { validateOperationConfig, validateOperationSettings } from './lib/valida
 import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
 import { rewriteExchangeShellPath } from './lib/exchange-route';
+import { listMissionInvitations, listMyInvitations, markInvitationAccepted, sendMissionInvitation, updateInvitation } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { resolveUniqueCodename } from './lib/codename';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
@@ -1423,6 +1424,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                   wishlistId: userManifest.id,
                 },
               });
+              await markInvitationAccepted(db, targetExchange.id, user.email, user.id);
             } catch (enrollErr) {
               console.warn('[Worker Auto-Enroll Warning]', enrollErr);
             }
@@ -2128,55 +2130,32 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
       }
 
       // 14. /api/invitations (POST)
-      if (pathname === '/api/invitations' && request.method === 'POST') {
+      // /api/invitations (GET / POST / PATCH): emailed invitations, shared with the Next route.
+      if (pathname === '/api/invitations') {
         const activeUserId = getUserIdFromRequest(request);
         if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
-        const body = (await request.json().catch(() => ({}))) as any;
-        const { operationId, recipientEmail } = body;
-
-        if (!operationId || !recipientEmail) return Response.json({ error: 'operationId and recipientEmail required' }, { status: 400 });
-
-        const exchange = await db.exchange.findUnique({ where: { id: operationId }, include: { organizer: true, members: true } });
-        if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
-        // Only the Head Elf may send platform invitation emails (parity with the Next.js route).
-        if (exchange.organizerId !== activeUserId) return Response.json({ error: 'Only the Head Elf can send invitations' }, { status: 403 });
-        if (typeof recipientEmail !== 'string' || !isValidEmail(recipientEmail.trim())) {
-          return Response.json({ error: 'A valid recipient email is required' }, { status: 400 });
+        if (request.method === 'GET') {
+          const operationId = url.searchParams.get('operationId');
+          const result = operationId ? await listMissionInvitations(db, operationId, activeUserId) : await listMyInvitations(db, activeUserId);
+          return Response.json(result.body, { status: result.status });
         }
-
-        const targetUser = await db.user.findUnique({ where: { email: recipientEmail.trim().toLowerCase() } });
-        const cleanEmail = recipientEmail.trim().toLowerCase();
-
-        if (targetUser) {
-          await db.notification.create({
-            data: {
-              userId: targetUser.id,
-              title: `📩 Invited to: ${exchange.title}`,
-              message: `You have been invited to join "${exchange.title}". Code: ${exchange.code}`,
-              exchangeId: exchange.id,
-            },
-          });
-        }
-
-        try {
+        if (request.method === 'POST') {
+          const body = (await request.json().catch(() => ({}))) as { operationId?: unknown; recipientEmail?: unknown; isLatePass?: unknown };
           const emailConfig = await resolveWorkerEmailConfig(env, db);
-          await sendInvitationEmail({
-            recipientEmail: cleanEmail,
-            recipientName: targetUser?.name,
-            organizerName: exchange.organizer.name,
-            exchangeTitle: exchange.title,
-            inviteCode: exchange.code,
-            budgetMin: exchange.budgetMin ? Number(exchange.budgetMin) : null,
-            budgetMax: Number(exchange.budgetMax),
-            joinUrl: `https://kovertklaus.com/exchange/${exchange.code}`,
-            overrideConfig: emailConfig,
-          });
-        } catch (inviteErr) {
-          console.warn('[Invitation Email Error]', inviteErr);
+          const result = await sendMissionInvitation(
+            db,
+            { baseUrl: url.origin || 'https://kovertklaus.com', sendEmail: (email) => sendInvitationEmail({ ...email, overrideConfig: emailConfig }) },
+            { exchangeId: body.operationId, inviterId: activeUserId, email: body.recipientEmail, isLatePass: body.isLatePass }
+          );
+          return Response.json(result.body, { status: result.status });
         }
-
-        return Response.json({ success: true, message: `Invitation sent to ${cleanEmail}` });
+        if (request.method === 'PATCH') {
+          const body = (await request.json().catch(() => ({}))) as { invitationId?: unknown; action?: unknown };
+          const result = await updateInvitation(db, { invitationId: body.invitationId, userId: activeUserId, action: body.action });
+          return Response.json(result.body, { status: result.status });
+        }
+        return methodNotAllowed(pathname, request.method);
       }
 
       // 15. /api/invitations/accept (POST)
@@ -2213,7 +2192,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         // Event-scoped codename, unique within this roster (parity with the Next.js route).
         const user = await db.user.findUnique({
           where: { id: activeUserId },
-          select: { name: true, codename: true, preferredCodename: true, autoRandomizeCodename: true },
+          select: { email: true, name: true, codename: true, preferredCodename: true, autoRandomizeCodename: true },
         });
         const rosterCodenames = exchange.members.map((m) => m.codename).filter(Boolean) as string[];
         const { customCodename, randomizeCodename } = body;
@@ -2229,6 +2208,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             role: 'MEMBER',
           },
         });
+        if (user?.email) await markInvitationAccepted(db, exchange.id, user.email, activeUserId);
 
         return Response.json({
           success: true,

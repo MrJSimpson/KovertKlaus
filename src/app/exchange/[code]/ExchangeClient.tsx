@@ -146,6 +146,45 @@ export default function OperationCommandCenterPage() {
   const [enlisting, setEnlisting] = useState(false);
   const [enlistError, setEnlistError] = useState('');
 
+  // Pending email invitation to this mission for the signed-in, not-yet-enrolled user (/api/invitations)
+  const [myInvitation, setMyInvitation] = useState<{ id: string; organizerName: string } | null>(null);
+  const [inviteDeclined, setInviteDeclined] = useState(false);
+  const inviteExchangeId = operation?.id;
+  const inviteNeedsAnswer = Boolean(userId && operation && !(operation.members || operation.agents || []).some((m) => m.userId === userId));
+  useEffect(() => {
+    if (!inviteExchangeId || !inviteNeedsAnswer) return;
+    let cancelled = false;
+    fetch('/api/invitations')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled || !json) return;
+        const match = (json.invitations || []).find((inv: { exchange: { id: string } }) => inv.exchange.id === inviteExchangeId);
+        setMyInvitation(match ? { id: match.id, organizerName: match.exchange.organizer?.codename || match.exchange.organizer?.name || 'the Head Elf' } : null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteExchangeId, inviteNeedsAnswer]);
+
+  async function handleDeclineInvitation() {
+    if (!myInvitation) return;
+    setEnlistError('');
+    try {
+      const res = await fetch('/api/invitations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invitationId: myInvitation.id, action: 'decline' }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Could not decline the invitation');
+      setMyInvitation(null);
+      setInviteDeclined(true);
+    } catch (err) {
+      setEnlistError(err instanceof Error ? err.message : 'Could not decline the invitation');
+    }
+  }
+
   // OpsLeader Control Panel State
   const [drawingTargets, setDrawingTargets] = useState(false);
   const [drawSuccessMessage, setDrawSuccessMessage] = useState('');
@@ -1020,23 +1059,36 @@ export default function OperationCommandCenterPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🎁</span>
                           <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                            Operative Clearance Verified
+                            {myInvitation ? `📩 Invited by ${formatCodename(myInvitation.organizerName)}` : 'Operative Clearance Verified'}
                           </span>
                         </div>
                         <h2 className="text-xl font-black mt-1">
-                          Enlist as Operative in {operation.title}
+                          {myInvitation ? `You're invited to ${operation.title}` : `Enlist as Operative in ${operation.title}`}
                         </h2>
                         <p className={`text-xs mt-1 max-w-xl ${theme.textSubLabel}`}>
-                          You are authenticated as <strong>{userName || 'Operative'}</strong>. Enlist now to submit your wishlist manifest and enter the Secret Santa assignment draw.
+                          {inviteDeclined
+                            ? 'You declined this invitation. You can still enlist while recruitment is open.'
+                            : <>You are authenticated as <strong>{userName || 'Operative'}</strong>. {myInvitation ? 'Accept to' : 'Enlist now to'} submit your wishlist manifest and enter the Secret Santa assignment draw.</>}
                         </p>
                       </div>
-                      <button
-                        onClick={handleEnlistCurrentSession}
-                        disabled={enlisting}
-                        className={`font-bold px-6 py-3 rounded-2xl text-xs transition-all shadow-md cursor-pointer ${theme.btnPrimary}`}
-                      >
-                        {enlisting ? 'Enlisting...' : '🚀 Enlist in Mission Now'}
-                      </button>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={handleEnlistCurrentSession}
+                          disabled={enlisting}
+                          className={`font-bold px-6 py-3 rounded-2xl text-xs transition-all shadow-md cursor-pointer ${theme.btnPrimary}`}
+                        >
+                          {enlisting ? 'Enlisting...' : myInvitation ? '✅ Accept Invitation' : '🚀 Enlist in Mission Now'}
+                        </button>
+                        {myInvitation && (
+                          <button
+                            onClick={handleDeclineInvitation}
+                            disabled={enlisting}
+                            className={`font-bold px-4 py-3 rounded-2xl text-xs transition-all cursor-pointer ${theme.btnNeutral}`}
+                          >
+                            Decline
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )
                 ) : (

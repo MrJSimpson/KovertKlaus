@@ -1,167 +1,69 @@
+/**
+ * @file route.ts
+ * @description `/api/invitations`: emailed mission invitations (self-hosted edition).
+ *
+ * Tier 1 (what): POST sends an invitation (Head Elf only). GET lists the caller's open
+ * invitations, or with `?operationId=` every invitation of a mission for its Head Elf. PATCH
+ * declines (invitee) or revokes (Head Elf) one: `{ invitationId, action: 'decline' | 'revoke' }`.
+ * Tier 2 (why): The edge worker serves the same path in SaaS; both delegate to
+ * `@/lib/invitations` so the rules live in one place.
+ * Tier 3 (how): Accepting is enrolling, via `POST /api/invitations/accept` or registration with the
+ * mission code; both mark the invitation accepted.
+ */
+
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { sendInvitationEmail } from '@/lib/email';
+import { listMissionInvitations, listMyInvitations, sendMissionInvitation, updateInvitation } from '@/lib/invitations';
 
+export const dynamic = 'force-dynamic';
+
+/** Lists the caller's open invitations, or a mission's invitations for its Head Elf. */
+export async function GET(request: Request) {
+  try {
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    const operationId = new URL(request.url).searchParams.get('operationId');
+    const result = operationId ? await listMissionInvitations(db, operationId, userId) : await listMyInvitations(db, userId);
+    return NextResponse.json(result.body, { status: result.status });
+  } catch (error) {
+    console.error('[Invitations] list failed:', error);
+    return NextResponse.json({ error: 'Failed to load invitations' }, { status: 500 });
+  }
+}
+
+/** Sends an invitation: `{ operationId, recipientEmail, isLatePass? }`. */
 export async function POST(request: Request) {
   try {
-    const activeUserId = await getSessionUserId();
-    if (!activeUserId) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { operationId, recipientEmail, isLatePass } = body as {
-      operationId: string;
-      recipientEmail: string;
-      isLatePass?: boolean;
-    };
-
-    if (!operationId || !recipientEmail) {
-      return NextResponse.json(
-        { error: 'operationId and recipientEmail are required' },
-        { status: 400 }
-      );
-    }
-
-    // 1. Verify Exchange & Organizer Authority
-    const exchange = await db.exchange.findUnique({
-      where: { id: operationId },
-      include: { organizer: true, members: true },
-    });
-
-    if (!exchange) {
-      return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
-    }
-
-    if (exchange.organizerId !== activeUserId) {
-      return NextResponse.json(
-        { error: 'Only the Organizer can issue invitations for this exchange.' },
-        { status: 403 }
-      );
-    }
-
-    // 2. Check Cutoff Date Policy
-    const now = new Date();
-    const isPastCutoff = now > new Date(exchange.inviteCutoffDate);
-
-    // 3. Look up recipient in system
-    const targetUser = await db.user.findUnique({
-      where: { email: recipientEmail.trim().toLowerCase() },
-    });
-
-    if (isPastCutoff) {
-      if (!isLatePass) {
-        return NextResponse.json(
-          {
-            error:
-              'The Invite Cutoff Date for this exchange has passed. Standard invitations are disabled.',
-            canUseLatePass: !!targetUser,
-          },
-          { status: 400 }
-        );
-      }
-
-      // Late Pass Enforcement: Recipient MUST have a pre-registered account
-      if (!targetUser) {
-        return NextResponse.json(
-          {
-            error:
-              'Post-cutoff invites require a pre-registered account. The target user must register an account first before a Late Pass invite can be generated.',
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    // 4. Check if recipient is already enrolled
-    if (targetUser && exchange.members.some((a: { userId: string }) => a.userId === targetUser.id)) {
-      return NextResponse.json(
-        { error: 'User is already enrolled in this exchange.' },
-        { status: 400 }
-      );
-    }
-
-    // 5. Generate Invitation Token / Link & Automatic KDM Token for Covert Delivery
-    const inviteToken = `INV-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-    const cleanEmail = recipientEmail.trim().toLowerCase();
-
-    let kdmToken: string | undefined = undefined;
-    if (exchange.isCovertDelivery) {
-      const { generateKdmToken } = await import('@/lib/covertDelivery');
-      kdmToken = generateKdmToken();
-      const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60);
-      await db.covertInviteToken.create({
-        data: {
-          exchangeId: exchange.id,
-          token: kdmToken,
-          invitedEmail: cleanEmail,
-          invitedName: targetUser?.name || null,
-          expiresAt,
-        },
-      });
-    }
-
-    // 6. If target user is found in system, create an in-app Notification for their Dashboard
-    if (targetUser) {
-      await db.notification.create({
-        data: {
-          userId: targetUser.id,
-          title: exchange.isCovertDelivery
-            ? `🕶️ Kovert Delivery Invitation: ${exchange.title}`
-            : `📩 Invited to Exchange: ${exchange.title}`,
-          message: exchange.isCovertDelivery
-            ? `You have been recruited by ${exchange.organizer.name} for a Kovert Delivery operation! Your single-use access key is ${kdmToken}.`
-            : `You have been invited by ${exchange.organizer.name} to join "${exchange.title}". Use Invite Code: ${exchange.code}`,
-          exchangeId: exchange.id,
-        },
-      });
-    }
-
-    // 7. Dispatch Email Notification via Universal Email Dispatcher
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com';
-    const joinUrl = kdmToken
-      ? `${baseUrl}/exchange/${exchange.code}?kdm=${kdmToken}`
-      : `${baseUrl}/exchange/${exchange.code}`;
-
-    const emailResult = await sendInvitationEmail({
-      recipientEmail: cleanEmail,
-      recipientName: targetUser?.name,
-      organizerName: exchange.organizer.name,
-      exchangeTitle: exchange.title,
-      inviteCode: exchange.code,
-      budgetMin: exchange.budgetMin ? Number(exchange.budgetMin) : null,
-      budgetMax: Number(exchange.budgetMax),
-      joinUrl,
-      isLatePass: isPastCutoff,
-      kdmToken,
-      isCovertDelivery: exchange.isCovertDelivery,
-    });
-
-    if (!emailResult.success) {
-      console.warn(`[EMAIL DISPATCH WARNING] Invitation email failed via ${emailResult.provider}:`, emailResult.error);
-    }
-
-    // Return Invitation Dispatch Payload
-    return NextResponse.json({
-      success: true,
-      message: targetUser
-        ? `Invitation dispatched! Email sent to ${cleanEmail} and alert posted to their dashboard.`
-        : `Invitation dispatched! Email notification sent to ${cleanEmail}.`,
-      data: {
-        operationId: exchange.id,
-        operationTitle: exchange.title,
-        recipientEmail: cleanEmail,
-        inviteCode: exchange.code,
-        inviteToken,
-        kdmToken,
-        isCovertDelivery: exchange.isCovertDelivery,
-        isLatePass: isPastCutoff,
-        targetUserFound: !!targetUser,
-        joinUrl,
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    const body = (await request.json().catch(() => ({}))) as { operationId?: unknown; recipientEmail?: unknown; isLatePass?: unknown };
+    const result = await sendMissionInvitation(
+      db,
+      {
+        baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com',
+        sendEmail: (email) => sendInvitationEmail(email),
       },
-    });
-  } catch {
+      { exchangeId: body.operationId, inviterId: userId, email: body.recipientEmail, isLatePass: body.isLatePass }
+    );
+    return NextResponse.json(result.body, { status: result.status });
+  } catch (error) {
+    console.error('[Invitations] send failed:', error);
     return NextResponse.json({ error: 'Failed to process invitation' }, { status: 500 });
+  }
+}
+
+/** Declines or revokes an invitation: `{ invitationId, action }`. */
+export async function PATCH(request: Request) {
+  try {
+    const userId = await getSessionUserId();
+    if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    const body = (await request.json().catch(() => ({}))) as { invitationId?: unknown; action?: unknown };
+    const result = await updateInvitation(db, { invitationId: body.invitationId, userId, action: body.action });
+    return NextResponse.json(result.body, { status: result.status });
+  } catch (error) {
+    console.error('[Invitations] update failed:', error);
+    return NextResponse.json({ error: 'Failed to update invitation' }, { status: 500 });
   }
 }

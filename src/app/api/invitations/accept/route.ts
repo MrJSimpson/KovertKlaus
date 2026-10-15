@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
+import { markInvitationAccepted } from '@/lib/invitations';
 
 export async function POST(request: Request) {
   try {
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     // 4. Resolve Unique Event-Scoped Codename
     const user = await db.user.findUnique({
       where: { id: activeUserId },
-      select: { name: true, codename: true, preferredCodename: true, autoRandomizeCodename: true },
+      select: { email: true, name: true, codename: true, preferredCodename: true, autoRandomizeCodename: true },
     });
 
     const existingRosterCodenames = exchange.members
@@ -118,6 +119,7 @@ export async function POST(request: Request) {
         },
       },
     });
+    if (user?.email) await markInvitationAccepted(db, exchange.id, user.email, activeUserId);
 
     return NextResponse.json({
       success: true,

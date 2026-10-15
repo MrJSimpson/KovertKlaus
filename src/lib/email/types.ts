@@ -60,6 +60,8 @@ export interface InvitationEmailParams {
   budgetMin?: number | null;
   budgetMax?: number | null;
   isLatePass?: boolean;
+  /** True when the recipient already has an account: the button opens the mission to accept. */
+  isExistingUser?: boolean;
   kdmToken?: string;
   isCovertDelivery?: boolean;
   overrideConfig?: Partial<EmailConfig>;

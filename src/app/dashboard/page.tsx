@@ -78,6 +78,22 @@ interface UserData {
   }>;
 }
 
+/** One open invitation from `GET /api/invitations`. */
+interface PendingInvitation {
+  id: string;
+  isLatePass: boolean;
+  exchange: {
+    id: string;
+    title: string;
+    code: string;
+    executionDate: string;
+    budgetMin: number | null;
+    budgetMax: number;
+    currency: string;
+    organizer: { name: string; codename: string | null };
+  };
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { isDarkMode, toggleTheme, theme } = useTheme();
@@ -109,6 +125,53 @@ export default function DashboardPage() {
   // Inline Wishlist Manifest Rename State
   const [editingManifestId, setEditingManifestId] = useState<string | null>(null);
   const [editingManifestName, setEditingManifestName] = useState('');
+
+  // Pending email invitations (/api/invitations): accept enrolls through the normal join path and
+  // opens the mission; decline just removes the card.
+  const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
+  const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteReload, setInviteReload] = useState(0);
+  const signedInUserId = user?.id;
+  useEffect(() => {
+    if (!signedInUserId) return;
+    let cancelled = false;
+    fetch('/api/invitations')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!cancelled && json) setInvitations(json.invitations || []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [signedInUserId, inviteReload]);
+
+  async function handleInvitation(inv: PendingInvitation, accept: boolean) {
+    setInviteBusyId(inv.id);
+    setInviteError('');
+    try {
+      const res = accept
+        ? await fetch('/api/invitations/accept', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ operationCode: inv.exchange.code }),
+          })
+        : await fetch('/api/invitations', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invitationId: inv.id, action: 'decline' }),
+          });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || (accept ? 'Could not join the mission' : 'Could not decline the invitation'));
+      setInviteReload((n) => n + 1);
+      if (accept) router.push(`/exchange/${inv.exchange.code}`);
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : 'Invitation update failed');
+    } finally {
+      setInviteBusyId(null);
+    }
+  }
 
   useEffect(() => {
     fetchUserData();
@@ -443,6 +506,37 @@ export default function DashboardPage() {
                 }
                 secondaryAction={<Button href="/operations" variant="toggle">⚙️ Manage All Operations →</Button>}
               />
+
+              {/* Pending email invitations */}
+              {invitations.length > 0 && (
+                <div className="mb-6 space-y-3">
+                  {inviteError && <p className="text-xs font-bold text-red-500">⚠️ {inviteError}</p>}
+                  {invitations.map((inv) => (
+                    <Card key={inv.id} className="border-amber-500/40">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                            📩 Invitation{inv.isLatePass ? ' · Late Pass' : ''} from {formatCodename(inv.exchange.organizer.codename, inv.exchange.organizer.name)}
+                          </span>
+                          <h3 className="text-base font-bold">{inv.exchange.title}</h3>
+                          <p className="text-xs text-slate-500">
+                            Budget ${inv.exchange.budgetMin || 0}–${inv.exchange.budgetMax} {inv.exchange.currency} · Exchange Day {formatDateString(inv.exchange.executionDate)} ·{' '}
+                            <Link href={`/exchange/${inv.exchange.code}`} className="underline">View mission</Link>
+                          </p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <Button onClick={() => handleInvitation(inv, true)} variant="primary" disabled={inviteBusyId === inv.id}>
+                            {inviteBusyId === inv.id ? 'Working...' : '✅ Accept'}
+                          </Button>
+                          <Button onClick={() => handleInvitation(inv, false)} variant="secondary" disabled={inviteBusyId === inv.id}>
+                            Decline
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
 
               {/* Operations Cards Grid */}
               {recentParticipations.length === 0 ? (
