@@ -81,7 +81,7 @@ Every change (from maintainers, contributors, or AI agents) must meet:
 * **Database:** PostgreSQL 16/17 Alpine running in Docker container (`kovertklaus-db`) or external PostgreSQL.
 * **ORM:** Prisma ORM. Whenever modifying `prisma/schema.prisma`, execute `npx prisma db push` and `npx prisma generate`.
 * **Schema Separation (`app` / `admin`):** Every model and enum **MUST** declare `@@schema("app")` (reachable by the application role through `db`) or `@@schema("admin")` (owner-only, through `adminDb`). Never put tables in `public`. After any schema change, run `npx tsx scripts/check-db-schema-separation.ts`. See `docs/DEPLOYMENT_GUIDE.md` → Database Schema Separation.
-* **Clean Database Rule:** Seeds contain zero dummy users, zero mock exchanges, and zero sample wishlists. No `AdminUser` is seeded unless `INITIAL_ADMIN_PASSWORD` is configured.
+* **Clean Database Rule:** Seeds contain zero dummy users, zero mock exchanges, and zero sample wishlists. No `AdminUser` is seeded unless `INITIAL_ADMIN_PASSWORD` is configured. The only sample data is the opt-in, self-hosted demo (`npm run demo:load`, `scripts/demo-db.ts`): `@demo.invalid` accounts, a password generated at load time (never committed), local databases only. See `docs/DEMO_DATABASE.md`.
 
 ---
 

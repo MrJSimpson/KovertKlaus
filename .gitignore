@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Wrangler local dev state
 .wrangler/
+
+# Local database backups (export-db) hold real data: never commit them
+/backups/
