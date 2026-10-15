@@ -182,14 +182,6 @@ export default function FeaturesPage() {
                 KovertKlaus is free for families, friend groups, non-profits, and home labs. On <strong>January 1, 2030</strong>, the codebase automatically transitions to <strong>GPLv3</strong> open source forever.
               </p>
             </div>
-            <Link
-              href="/tests"
-              className={`font-bold text-sm px-5 py-3 rounded-xl transition-all shadow-md shrink-0 ${
-                isDarkMode ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : 'bg-red-600 text-white hover:bg-red-700'
-              }`}
-            >
-              Try Test Bench Simulation →
-            </Link>
           </div>
         </div>
 
