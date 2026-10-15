@@ -15,16 +15,11 @@ const DEFAULT_CONFIG: PublicSystemConfigResponse = {
   bannerTextDark: '❄️ Winter Night Ops Active — Covert Holiday Gifting',
   lightsStrandType: 'christmas_bulbs',
   lightTokens: {
-    accentColor: '#dc2626',
-    heroBadgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    btnPrimary: 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-md shadow-red-900/20',
-    btnSecondary: 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm',
+    // Winter uses the base palette tokens (globals.css, theme.ts); only the accent swatch is set.
+    accentColor: '#a70006',
   },
   darkTokens: {
-    accentColor: '#38bdf8',
-    heroBadgeBg: 'bg-sky-950/70 text-sky-300 border-sky-800/80',
-    btnPrimary: 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-slate-950 font-bold shadow-md shadow-sky-500/20',
-    btnSecondary: 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700',
+    accentColor: '#fde7be',
   },
   freeAnnualHostAllowance: 1,
   freeAnnualJoinAllowance: 3,

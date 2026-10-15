@@ -1,26 +1,144 @@
 @import "tailwindcss";
 
+/*
+ * `dark:` utilities follow the in-app theme toggle (the `.dark` class ThemeContext sets on <html>),
+ * not the operating system preference. Without this, Tailwind v4 keys `dark:` to
+ * `prefers-color-scheme`, so a light-mode page on a dark-mode OS mixes both palettes.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * KovertKlaus winter palette (semantic tokens).
+ *
+ * Light, Klaus Mode: the classic Christmas palette (holly reds, pine greens, gold, linen and snow).
+ * Dark, Kovert Mode: the blue and gold palette (Indigo dye, Lion, Ecru, Wheat, Alice blue,
+ * French gray, Cambridge blue). Page and inset shades are darker steps of Indigo dye.
+ *
+ * Components use the `kk-*` color utilities (`bg-kk-surface`, `text-kk-muted`, ...). Each one
+ * resolves to the variable below, so one class works in both modes. Every text pairing meets
+ * WCAG AA (4.5:1) on the surface it is used on.
+ */
+@theme inline {
+  --color-kk-page: var(--kk-page);
+  --color-kk-surface: var(--kk-surface);
+  --color-kk-inset: var(--kk-inset);
+  --color-kk-border: var(--kk-border);
+  --color-kk-border-strong: var(--kk-border-strong);
+  --color-kk-ink: var(--kk-ink);
+  --color-kk-muted: var(--kk-muted);
+  --color-kk-heading: var(--kk-heading);
+  --color-kk-accent: var(--kk-accent);
+  --color-kk-brand: var(--kk-brand);
+  --color-kk-primary: var(--kk-primary);
+  --color-kk-primary-hover: var(--kk-primary-hover);
+  --color-kk-on-primary: var(--kk-on-primary);
+  --color-kk-secondary: var(--kk-secondary);
+  --color-kk-secondary-hover: var(--kk-secondary-hover);
+  --color-kk-on-secondary: var(--kk-on-secondary);
+  --color-kk-header: var(--kk-header);
+  --color-kk-on-header: var(--kk-on-header);
+  --color-kk-header-nav: var(--kk-header-nav);
+  --color-kk-gold: var(--kk-gold);
+  --color-kk-on-gold: var(--kk-on-gold);
+  --color-kk-gold-ink: var(--kk-gold-ink);
+  --color-kk-success: var(--kk-success);
+  --color-kk-on-success: var(--kk-on-success);
+  --color-kk-warning: var(--kk-warning);
+  --color-kk-on-warning: var(--kk-on-warning);
+  --color-kk-danger: var(--kk-danger);
+  --color-kk-danger-soft: var(--kk-danger-soft);
+  --color-kk-on-danger-soft: var(--kk-on-danger-soft);
+  --color-kk-focus: var(--kk-focus);
+  --color-kk-festive-red: var(--kk-festive-red);
+  --color-kk-festive-green: var(--kk-festive-green);
+}
+
 @layer base {
   :root {
-    --bg-dark: #090d16;
-    --bg-card: rgba(17, 24, 39, 0.75);
-    --border-card: rgba(255, 255, 255, 0.08);
-    --accent-emerald: #10b981;
-    --accent-emerald-glow: rgba(16, 185, 129, 0.25);
-    --accent-amber: #f59e0b;
-    --accent-crimson: #ef4444;
-    --text-primary: #f3f4f6;
-    --text-muted: #9ca3af;
+    color-scheme: light;
+    /* Classic Christmas */
+    --kk-page: #f0f0f0;            /* Snow gray */
+    --kk-surface: #ffffff;         /* Snow */
+    --kk-inset: #f0f0f0;
+    --kk-border: #e0d2c5;          /* Linen */
+    --kk-border-strong: #bca875;   /* Antique gold */
+    --kk-ink: #1c2618;             /* Pine, darkened for body text */
+    --kk-muted: #535233;           /* Olive bark */
+    --kk-heading: #1c2618;
+    --kk-accent: #a70006;          /* Holly red */
+    --kk-brand: #34502b;           /* Pine */
+    --kk-primary: #a70006;
+    --kk-primary-hover: #941f1f;   /* Cranberry */
+    --kk-on-primary: #ffffff;
+    --kk-secondary: #34502b;
+    --kk-secondary-hover: #2a4123;
+    --kk-on-secondary: #ffffff;
+    --kk-header: #34502b;
+    --kk-on-header: #ffffff;
+    --kk-header-nav: #f0d890;      /* Candle gold */
+    --kk-gold: #f0d890;
+    --kk-on-gold: #1c2618;
+    --kk-gold-ink: #6e5c2e;        /* Antique gold, darkened for text */
+    --kk-success: #a7e3c1;         /* Mint */
+    --kk-on-success: #34502b;
+    --kk-warning: #eee0b7;         /* Parchment */
+    --kk-on-warning: #535233;
+    --kk-danger: #a70006;
+    --kk-danger-soft: #f9e3e3;
+    --kk-on-danger-soft: #941f1f;
+    --kk-focus: #058e27;           /* Evergreen */
+    --kk-festive-red: #c50537;     /* Berry */
+    --kk-festive-green: #058e27;
+  }
+
+  .dark {
+    color-scheme: dark;
+    /* Blue & Gold */
+    --kk-page: #062038;            /* Indigo dye, night step */
+    --kk-surface: #0b3d69;         /* Indigo dye, dusk step */
+    --kk-inset: #082c4d;
+    --kk-border: #275985;
+    --kk-border-strong: #a28b61;   /* Lion */
+    --kk-ink: #dbe2ea;             /* Alice blue */
+    --kk-muted: #b7b7bf;           /* French gray */
+    --kk-heading: #fde7be;         /* Wheat */
+    --kk-accent: #cab48b;          /* Ecru */
+    --kk-brand: #fde7be;
+    --kk-primary: #fde7be;
+    --kk-primary-hover: #cab48b;
+    --kk-on-primary: #062038;
+    --kk-secondary: #0e4d82;       /* Indigo dye */
+    --kk-secondary-hover: #135a96;
+    --kk-on-secondary: #fde7be;
+    --kk-header: #0e4d82;
+    --kk-on-header: #fde7be;
+    --kk-header-nav: #dbe2ea;
+    --kk-gold: #a28b61;
+    --kk-on-gold: #062038;
+    --kk-gold-ink: #cab48b;        /* Ecru */
+    --kk-success: #8c9985;         /* Cambridge blue */
+    --kk-on-success: #062038;
+    --kk-warning: #cab48b;
+    --kk-on-warning: #062038;
+    --kk-danger: #f2a1a1;
+    --kk-danger-soft: #4a1830;
+    --kk-on-danger-soft: #ffd9d9;
+    --kk-focus: #fde7be;
+    --kk-festive-red: #cab48b;
+    --kk-festive-green: #8c9985;
   }
 
   body {
-    background-color: var(--bg-dark);
-    color: var(--text-primary);
+    background-color: var(--kk-page);
+    color: var(--kk-ink);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     min-height: 100dvh;
-    background-image: 
-      radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
-      radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
+  }
+
+  /* Visible keyboard focus everywhere, in the theme's focus color. */
+  :focus-visible {
+    outline: 2px solid var(--kk-focus);
+    outline-offset: 2px;
   }
 }
 
@@ -54,38 +172,6 @@
   }
 }
 
-
-/* Covert Tactical UI Utilities */
-.glass-panel {
-  background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-card);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-}
-
-.glass-panel-interactive {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glass-panel-interactive:hover {
-  border-color: rgba(16, 185, 129, 0.3);
-  box-shadow: 0 12px 40px 0 rgba(16, 185, 129, 0.15);
-  transform: translateY(-2px);
-}
-
-.classified-tag {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  font-family: monospace;
-  letter-spacing: 0.1em;
-}
-
-.ops-glow-emerald {
-  box-shadow: 0 0 20px var(--accent-emerald-glow);
-}
-
 @keyframes pulse-radar {
   0% { transform: scale(0.95); opacity: 0.8; }
   50% { transform: scale(1.05); opacity: 1; }
@@ -94,4 +180,10 @@
 
 .animate-radar {
   animation: pulse-radar 3s infinite ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-radar {
+    animation: none;
+  }
 }
