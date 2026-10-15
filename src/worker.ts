@@ -38,6 +38,7 @@ import { validateAndSanitizeManifestItem } from './lib/validations/manifest';
 import { validateOperationConfig, validateOperationSettings } from './lib/validations/operation';
 import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
+import { rewriteExchangeShellPath } from './lib/exchange-route';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { resolveUniqueCodename } from './lib/codename';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
@@ -2855,6 +2856,14 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    // Mission pages: the static export has one shell (/exchange/preview); serve it for every code.
+    const shellPath = request.method === 'GET' || request.method === 'HEAD' ? rewriteExchangeShellPath(pathname) : null;
+    if (shellPath) {
+      const shellUrl = new URL(request.url);
+      shellUrl.pathname = shellPath;
+      return env.ASSETS.fetch(new Request(shellUrl.toString(), request));
     }
 
     // Fallback: Serve static assets from Cloudflare edge CDN

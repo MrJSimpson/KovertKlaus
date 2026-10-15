@@ -19,6 +19,7 @@ import { WishlistItemModal } from '@/components/WishlistItemModal';
 import { detectCarrier } from '@/lib/carrier-tracking';
 import { UserDossierPreferences } from '@/lib/product-intelligence';
 import { generateRandomCodename } from '@/lib/codenameGenerator';
+import { resolveExchangeCode } from '@/lib/exchange-route';
 import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
 
@@ -112,7 +113,9 @@ interface OperationData {
 export default function OperationCommandCenterPage() {
   const params = useParams();
   const router = useRouter();
-  const code = (params?.code as string)?.toUpperCase() || '';
+  // The SaaS static export serves one shell page for every mission, so useParams() says 'preview'
+  // there; the browser URL carries the real code (src/lib/exchange-route.ts).
+  const code = resolveExchangeCode(params?.code, typeof window !== 'undefined' ? window.location.pathname : null);
 
   const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
