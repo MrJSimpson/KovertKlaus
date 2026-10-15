@@ -30,7 +30,7 @@ export function SectionHeader({
       </div>
 
       {(primaryAction || secondaryAction) && (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Primary creation action ALWAYS comes first per UX rule */}
           {primaryAction}
           {secondaryAction}

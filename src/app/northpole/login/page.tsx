@@ -291,7 +291,7 @@ export default function NorthPoleLoginPage() {
 
         <div className="pt-4 border-t border-kk-border text-center space-y-2 font-mono">
           <div>
-            <Link href="/" className="text-xs text-kk-brand hover:underline font-mono">
+            <Link href="/" className="inline-flex items-center min-h-11 text-xs text-kk-brand hover:underline font-mono">
               ← Return to Main Application
             </Link>
           </div>

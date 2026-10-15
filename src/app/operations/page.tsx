@@ -143,39 +143,44 @@ export default function OperationCenterPage() {
       
       {/* Navigation Header */}
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="h-10 w-10 shrink-0 rounded-xl flex items-center justify-center font-extrabold text-xl shadow-md bg-kk-primary text-kk-on-primary border border-kk-border-strong">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-xl flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-xs font-bold ${theme.textGoldOnDark}`}>
+              <span className="text-lg sm:text-xl font-black tracking-tight block">KovertKlaus</span>
+              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textGoldOnDark}`}>
                 Exchange Workspace
               </span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
+              className={`p-2 min-h-[44px] min-w-[44px] rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center ${theme.btnToggle}`}
+              title={isDarkMode ? 'Switch to Klaus Mode' : 'Switch to Kovert Mode'}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}
+              <span className="sm:hidden text-base">{isDarkMode ? '🎅' : '🕶️'}</span>
+              <span className="hidden sm:inline">{isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}</span>
             </button>
 
             <Link
               href="/dashboard"
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
+              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center whitespace-nowrap rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
             >
-              ← Back to Dashboard
+              <span className="sm:hidden">← Back</span>
+              <span className="hidden sm:inline">← Back to Dashboard</span>
             </Link>
 
             <button
               onClick={handleSignOut}
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
+              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
             >
-              Sign Out
+              <span className="sm:hidden">Exit</span>
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>
@@ -228,9 +233,9 @@ export default function OperationCenterPage() {
             />
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto text-xs font-semibold">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto text-xs font-semibold">
             {/* Role Filter */}
-            <div className={`flex items-center gap-1 p-1 rounded-xl border bg-kk-inset border-kk-border`}>
+            <div className={`flex flex-wrap items-center gap-1 p-1 rounded-xl border bg-kk-inset border-kk-border`}>
               <button
                 onClick={() => setRoleFilter('ALL')}
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
@@ -264,7 +269,7 @@ export default function OperationCenterPage() {
             </div>
 
             {/* Status Filter */}
-            <div className={`flex items-center gap-1 p-1 rounded-xl border bg-kk-inset border-kk-border`}>
+            <div className={`flex flex-wrap items-center gap-1 p-1 rounded-xl border bg-kk-inset border-kk-border`}>
               <button
                 onClick={() => setStatusFilter('ALL')}
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${

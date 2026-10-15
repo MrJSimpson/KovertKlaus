@@ -498,7 +498,7 @@ export default function DashboardPage() {
                 title="🎯 Active Operations (Exchanges)"
                 subtitle="Gift exchanges you are currently organizing or participating in — Showing 3 most recent."
                 primaryAction={
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button onClick={() => setJoinOpModalOpen(true)} variant="secondary">
                       🕵️ Join Exchange
                     </Button>

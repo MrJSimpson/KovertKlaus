@@ -1443,14 +1443,14 @@ export function AppHomeLanding() {
       <footer className={`border-t py-8 text-xs font-medium transition-colors ${theme.footerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="pl-12 sm:pl-0 flex items-center gap-2">
-            <span>© 2026 KovertKlaus by <span className="font-semibold text-kk-gold-ink">Joshua Simpson</span>.</span>
+            <span>© 2026 KovertKlaus by <span className="font-semibold text-kk-header-nav">Joshua Simpson</span>.</span>
             <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border bg-kk-success text-kk-on-success border-kk-on-success/30`}>
               {APP_VERSION_LABEL}
             </span>
           </div>
           <div className="flex gap-6 font-semibold items-center">
-            <Link href="/features" className={`transition-colors hover:text-kk-danger`}>Features &amp; Specs</Link>
-            <WhatsNewLink className={`transition-colors hover:text-kk-danger`} />            <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className={`transition-colors hover:text-kk-danger`}>GitHub</a>
+            <Link href="/features" className="inline-flex items-center min-h-11 transition-colors hover:underline">Features &amp; Specs</Link>
+            <WhatsNewLink className="inline-flex items-center min-h-11 transition-colors hover:underline" />            <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className="inline-flex items-center min-h-11 transition-colors hover:underline">GitHub</a>
           </div>
         </div>
       </footer>

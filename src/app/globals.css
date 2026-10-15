@@ -134,6 +134,7 @@
   body {
     background-color: var(--kk-page);
     color: var(--kk-ink);
+    accent-color: var(--kk-primary); /* checkboxes, radios, range sliders */
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     min-height: 100dvh;
   }
@@ -172,6 +173,23 @@
   select,
   textarea {
     font-size: 16px !important;
+  }
+}
+
+/*
+ * Touch targets: on touch screens every button and form control is at least 44px, the Apple HIG
+ * and Material minimum (WCAG 2.2 AA requires 24px). Desktop layouts keep their compact sizes.
+ */
+@media (pointer: coarse) {
+  button,
+  select,
+  [role="button"],
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) {
+    min-height: 44px;
+  }
+
+  button {
+    min-width: 44px;
   }
 }
 

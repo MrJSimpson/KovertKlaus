@@ -1074,7 +1074,7 @@ export default function WorkshopDrawBench() {
               <div className="p-3 rounded-xl bg-kk-inset border border-kk-border space-y-1.5">
                 <div className="text-kk-gold-ink font-bold">2. O(1) Pre-Indexed Bidirectional Constraints:</div>
                 <p className="text-kk-muted text-[11px]">
-                  Compiled <strong className="text-kk-ink">{exclusionRules.length}</strong> blocked pair rules into bidirectional composite keys (<code className="text-kk-gold-ink">{A}:{B}</code>). Graph verification completes in strictly O(N) time.
+                  Compiled <strong className="text-kk-ink">{exclusionRules.length}</strong> blocked pair rules into bidirectional composite keys (<code className="text-kk-gold-ink">${'{A}'}:${'{B}'}</code>). Graph verification completes in strictly O(N) time.
                 </p>
               </div>
 

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **New winter palette.** Light mode (Klaus) uses the classic Christmas colors and dark mode (Kovert) uses blue and gold (Indigo dye, Lion, Ecru, Wheat, Alice blue, French gray, Cambridge blue). Colors are semantic `kk-*` tokens in `src/app/globals.css`, so every page, modal, the North Pole and the Workshop follow the active theme, and every text color meets WCAG AA contrast. Spring, summer and autumn presets are unchanged. Existing databases keep the old winter button overrides until the seed runs again (`npm run db:seed`).
+- **Emails are always light.** Every email uses the light Christmas palette and declares `color-scheme: light only`, whatever the reader's theme.
+- **Light by default.** Pages start in light mode; a saved dark choice is applied before first paint. The Features page and the pre-launch page now follow the app theme.
+- **Mobile.** On touch screens buttons and form controls are at least 44px tall; the landing, Features, pre-launch and Operations headers fit a 390px phone; Operations filters and section actions wrap instead of being cut off.
+
+### Fixed
+- `dark:` styles followed the operating system's dark mode instead of the in-app toggle, which mixed palettes (for example the Head Elf's Invite button showed near-black text on a dark button).
+- Header subtitles used pine text on the pine header.
+
 ---
 
 ## [0.4.0-alpha] - 2026-10-15
