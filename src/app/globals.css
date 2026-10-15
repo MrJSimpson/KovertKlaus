@@ -52,6 +52,23 @@
   --color-kk-focus: var(--kk-focus);
   --color-kk-festive-red: var(--kk-festive-red);
   --color-kk-festive-green: var(--kk-festive-green);
+  --color-kk-stage1: var(--kk-stage1);
+  --color-kk-on-stage1: var(--kk-on-stage1);
+  --color-kk-stage1-soft: var(--kk-stage1-soft);
+  --color-kk-stage1-accent: var(--kk-stage1-accent);
+  --color-kk-stage2: var(--kk-stage2);
+  --color-kk-on-stage2: var(--kk-on-stage2);
+  --color-kk-stage2-soft: var(--kk-stage2-soft);
+  --color-kk-stage2-accent: var(--kk-stage2-accent);
+  --color-kk-stage3: var(--kk-stage3);
+  --color-kk-on-stage3: var(--kk-on-stage3);
+  --color-kk-stage3-soft: var(--kk-stage3-soft);
+  --color-kk-stage3-accent: var(--kk-stage3-accent);
+  --color-kk-stage4: var(--kk-stage4);
+  --color-kk-on-stage4: var(--kk-on-stage4);
+  --color-kk-stage4-soft: var(--kk-stage4-soft);
+  --color-kk-stage4-accent: var(--kk-stage4-accent);
+  --color-kk-info: var(--kk-info);
 }
 
 @layer base {
@@ -92,6 +109,24 @@
     --kk-focus: #058e27;           /* Evergreen */
     --kk-festive-red: #c50537;     /* Berry */
     --kk-festive-green: #058e27;
+    /* Mission stages (timeline + status): solid fill, text on the fill, soft tint, border accent. */
+    --kk-stage1: #f0d890;          /* 1 RSVP: candle gold */
+    --kk-on-stage1: #1c2618;
+    --kk-stage1-soft: #faf3dc;
+    --kk-stage1-accent: #8c7840;
+    --kk-stage2: #a70006;          /* 2 Match: holly red */
+    --kk-on-stage2: #ffffff;
+    --kk-stage2-soft: #f9e3e3;
+    --kk-stage2-accent: #a70006;
+    --kk-stage3: #04741f;          /* 3 Sleigh: evergreen, darkened for white text */
+    --kk-on-stage3: #ffffff;
+    --kk-stage3-soft: #ddf3e5;
+    --kk-stage3-accent: #04741f;
+    --kk-stage4: #34502b;          /* 4 Party: pine */
+    --kk-on-stage4: #ffffff;
+    --kk-stage4-soft: #e3e8dc;
+    --kk-stage4-accent: #34502b;
+    --kk-info: #ebefc9;            /* Info panels above action rows: pale lime */
   }
 
   .dark {
@@ -129,6 +164,23 @@
     --kk-focus: #fde7be;
     --kk-festive-red: #cab48b;
     --kk-festive-green: #8c9985;
+    --kk-stage1: #a28b61;          /* 1 RSVP: Lion */
+    --kk-on-stage1: #062038;
+    --kk-stage1-soft: #3d3524;
+    --kk-stage1-accent: #a28b61;
+    --kk-stage2: #cab48b;          /* 2 Match: Ecru */
+    --kk-on-stage2: #062038;
+    --kk-stage2-soft: #45402f;
+    --kk-stage2-accent: #cab48b;
+    --kk-stage3: #8c9985;          /* 3 Sleigh: Cambridge blue */
+    --kk-on-stage3: #062038;
+    --kk-stage3-soft: #1e3b36;
+    --kk-stage3-accent: #8c9985;
+    --kk-stage4: #dbe2ea;          /* 4 Party: Alice blue */
+    --kk-on-stage4: #062038;
+    --kk-stage4-soft: #24496b;
+    --kk-stage4-accent: #dbe2ea;
+    --kk-info: #082c4d;
   }
 
   body {

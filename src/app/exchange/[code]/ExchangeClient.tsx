@@ -5,7 +5,8 @@ import { USER_ID_KEY } from '@/lib/constants/auth';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatCodename, formatDateString } from '@/lib/security';
+import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
+import { stageCardClass, stagePillClass, stageState, statusBadgeClass, type MissionStage } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
 import { evaluateDrawFeasibility, FieldAgent, ExclusionRuleInput } from '@/lib/draw';
 import { InviteAgentModal } from '@/components/InviteAgentModal';
@@ -843,6 +844,8 @@ export default function OperationCommandCenterPage() {
   // A mission has exactly one Head Elf: the organizer. Leader promotion is not a feature yet.
   const isOpsLeader = Boolean(userId && organizerIdVal === userId);
   const assignedTarget = currentAgent?.targetUser;
+  // Current timeline stage: colors the status badge and the 4-stage timeline (src/lib/stage-colors.ts).
+  const missionPhase = getNextMilestoneCountdown(operation);
   const todayStr = new Date().toISOString().split('T')[0];
 
   // Timeline edit rules (server: src/lib/validations/timeline.ts): a date you change must be after
@@ -955,7 +958,7 @@ export default function OperationCommandCenterPage() {
           <div className="space-y-8">
             
             {/* Primary Operation Banner */}
-            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 ${theme.cardBg}`}>
+            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-kk-header text-kk-on-header border-kk-border-strong/50`}>
               <div>
                 <div className="flex items-center gap-3 mb-2 flex-wrap">
                   <span className={`text-xs px-3 py-1 rounded-full font-mono font-bold ${theme.badgeCode}`}>
@@ -968,31 +971,35 @@ export default function OperationCommandCenterPage() {
                     {operation.isWhiteElephant ? '🐘 White Elephant' : '🎁 Secret Santa'}
                   </span>
 
+                  <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase ${statusBadgeClass(missionPhase)}`}>
+                    ● {missionPhase.phaseStatusLabel}
+                  </span>
+
                   {operation.isLocalOnly && (
                     <span className={`text-xs px-3 py-1 rounded-full font-bold ${theme.badgeAmber}`}>
                       📍 Local In-Person Event
                     </span>
                   )}
 
-                  <span className={`text-xs font-semibold ${theme.textSubLabel}`}>
-                    Head Elf: <strong className={theme.textLabel}>{organizerData?.name || 'Organizer'} ({formatCodename(organizerData?.codename, organizerData?.name)})</strong>
+                  <span className="text-xs font-semibold text-kk-header-nav">
+                    Head Elf: <strong className="text-kk-on-header">{organizerData?.name || 'Organizer'} ({formatCodename(organizerData?.codename, organizerData?.name)})</strong>
                   </span>
                 </div>
 
-                <h1 className="text-3xl font-black">{operation.title}</h1>
+                <h1 className="text-3xl font-black text-kk-on-header">{operation.title}</h1>
                 
                 {operation.description && (
-                  <p className={`text-xs mt-1 italic ${theme.textSubLabel}`}>
+                  <p className="text-xs mt-1 italic text-kk-on-header/90">
                     "{operation.description}"
                   </p>
                 )}
 
-                <div className={`text-xs mt-2 space-y-0.5 ${theme.textSubLabel}`}>
+                <div className="text-xs mt-2 space-y-0.5 text-kk-on-header/90">
                   <p>
-                    Budget Limit: <strong className={theme.textAccent}>${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong>
+                    Budget Limit: <strong className="text-kk-header-nav font-bold">${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong>
                   </p>
                   {operation.isLocalOnly && operation.eventLocation && (
-                    <p className={`font-bold ${theme.textLabel}`}>
+                    <p className="font-bold text-kk-on-header">
                       📍 Event Location: {operation.eventLocation}
                     </p>
                   )}
@@ -1005,7 +1012,7 @@ export default function OperationCommandCenterPage() {
                     navigator.clipboard.writeText(operation.code);
                     alert(`Copied Invite Code to clipboard: ${operation.code}`);
                   }}
-                  className={`px-5 py-3 rounded-2xl font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnPrimary}`}
+                  className={`px-5 py-3 rounded-2xl font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnAmber}`}
                 >
                   <span>📋 Copy Invite Code ({operation.code})</span>
                 </button>
@@ -1109,74 +1116,57 @@ export default function OperationCommandCenterPage() {
 
             {/* 4-Stage Operational Timeline Cards */}
             <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-              <div className="flex items-center justify-between mb-4">
-                <span className={`text-xs font-bold uppercase tracking-wider block ${theme.textLabel}`}>
+              <div className={`flex items-center justify-between ${theme.sectionBand}`}>
+                <span className="text-sm font-black uppercase tracking-wider block">
                   📅 4-Stage Operational Timeline
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
-                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className={`text-xs uppercase font-mono font-extrabold block text-kk-gold-ink`}>
-                    STAGE 1
-                  </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>RSVP Cutoff Date</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Final Headcount)</span>
-                  <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
-                    {formatDateString(operation.inviteCutoffDate)}
-                  </strong>
-                </div>
-
-                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className={`text-xs uppercase font-mono font-extrabold block text-kk-accent`}>
-                    STAGE 2
-                  </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Secret Santa Match</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Targets Drawn)</span>
-                  <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
-                    {formatDateString(operation.assignmentDate)}
-                  </strong>
-                </div>
-
-                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className={`text-xs uppercase font-mono font-extrabold block text-kk-gold-ink`}>
-                    STAGE 3
-                  </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Santa's Sleigh Departure</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Gifts In-Transit)</span>
-                  <strong className={`text-base font-black block mt-2 ${theme.textDate}`}>
-                    {formatDateString(operation.shippingDate)}
-                  </strong>
-                </div>
-
-                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className={`text-xs uppercase font-mono font-extrabold block text-kk-brand`}>
-                    STAGE 4
-                  </span>
-                  <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Holiday Mission Exchange Party</span>
-                  <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>(Unwrapping Day)</span>
-                  <strong className={`text-base font-black block mt-2 ${theme.textAccent}`}>
-                    {formatDateString(operation.executionDate)}
-                  </strong>
-                </div>
+                {([
+                  { stage: 1, title: 'RSVP Cutoff Date', note: '(Final Headcount)', date: operation.inviteCutoffDate },
+                  { stage: 2, title: 'Secret Santa Match', note: '(Targets Drawn)', date: operation.assignmentDate },
+                  { stage: 3, title: "Santa's Sleigh Departure", note: '(Gifts In-Transit)', date: operation.shippingDate },
+                  { stage: 4, title: 'Holiday Mission Exchange Party', note: '(Unwrapping Day)', date: operation.executionDate },
+                ] as { stage: MissionStage; title: string; note: string; date: string }[]).map((s) => {
+                  const state = stageState(s.stage, missionPhase.stage, missionPhase.isComplete);
+                  const isCurrent = state === 'current';
+                  return (
+                    <div key={s.stage} className={`p-4 rounded-2xl transition-all ${stageCardClass(s.stage, state)}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-[11px] uppercase font-mono font-extrabold px-2 py-0.5 rounded-full ${isCurrent ? 'bg-kk-surface/25 border border-current' : stagePillClass(s.stage)}`}>
+                          Stage {s.stage}
+                        </span>
+                        <span className="text-[10px] uppercase font-mono font-bold tracking-wider">
+                          {state === 'done' ? '✓ Done' : isCurrent ? '● Now' : 'Upcoming'}
+                        </span>
+                      </div>
+                      <span className="font-bold block text-sm mt-2">{s.title}</span>
+                      <span className={`text-[11px] block mt-0.5 ${isCurrent ? 'opacity-90' : theme.textSubLabel}`}>{s.note}</span>
+                      <strong className="text-base font-black block mt-2">
+                        {formatDateString(s.date)}
+                      </strong>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* OpsLeader Administrative Control Console (Clean High-Contrast Theme) */}
             {isOpsLeader && (
               <div className={`p-6 rounded-3xl ${theme.consoleCard}`}>
-                <div className="flex items-center justify-between">
+                <div className={`flex items-center justify-between gap-3 ${theme.sectionBand}`}>
                   <div>
-                    <span className={theme.consoleHeading}>
-                      🎖️ OpsLeader Administrative Console
+                    <span className="font-black tracking-wider uppercase text-lg">
+                      🎖️ Head Elf Administrative Console
                     </span>
-                    <p className={theme.consoleText}>
-                      As the designated OpsLeader, you control enrollment deadlines, operation options, target draws, and compliance logs.
+                    <p className="text-xs font-semibold mt-0.5 text-kk-on-header/90">
+                      As the designated Head Elf, you control enrollment deadlines, operation options, target draws, and compliance logs.
                     </p>
                   </div>
 
-                  <span className={theme.consoleBadge}>
-                    OpsLeader Clearance
+                  <span className={`shrink-0 ${theme.consoleBadge}`}>
+                    Head Elf Clearance
                   </span>
                 </div>
 
@@ -1326,7 +1316,7 @@ export default function OperationCommandCenterPage() {
                 {/* Secret Santa Target Assignment Card */}
                 {!operation.isWhiteElephant && (
                   <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
                       <h2 className="text-xl font-bold flex items-center gap-2">
                         🎯 Your Secret Assignment
                       </h2>
@@ -1364,37 +1354,37 @@ export default function OperationCommandCenterPage() {
                             </span>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                               {assignedTarget.topHalfSize && (
-                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
                                   <span className="text-[10px] text-kk-muted block">Shirt / Top:</span>
                                   <span className="font-bold">{assignedTarget.topHalfSize}</span>
                                 </div>
                               )}
                               {assignedTarget.bottomHalfSize && (
-                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
                                   <span className="text-[10px] text-kk-muted block">Pants / Bottom:</span>
                                   <span className="font-bold">{assignedTarget.bottomHalfSize}</span>
                                 </div>
                               )}
                               {assignedTarget.shoeSize && (
-                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
                                   <span className="text-[10px] text-kk-muted block">Shoe Size:</span>
                                   <span className="font-bold">{assignedTarget.shoeSize}</span>
                                 </div>
                               )}
                               {assignedTarget.favoriteColors && (
-                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
                                   <span className="text-[10px] text-kk-muted block">Colors:</span>
                                   <span className="font-bold">{assignedTarget.favoriteColors}</span>
                                 </div>
                               )}
                               {assignedTarget.favoriteHobbies && (
-                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
                                   <span className="text-[10px] text-kk-muted block">Hobbies:</span>
                                   <span className="font-bold">{assignedTarget.favoriteHobbies}</span>
                                 </div>
                               )}
                               {assignedTarget.allergiesDiet && (
-                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
                                   <span className="text-[10px] text-kk-muted block">Diet / Allergies:</span>
                                   <span className="font-bold text-kk-gold-ink">{assignedTarget.allergiesDiet}</span>
                                 </div>
@@ -1424,7 +1414,7 @@ export default function OperationCommandCenterPage() {
                                 return (
                                   <div
                                     key={item.id}
-                                    className="p-3 rounded-xl border border-kk-border bg-kk-inset/50 flex items-center justify-between gap-3 text-xs"
+                                    className="p-3 rounded-xl border border-kk-border bg-kk-surface shadow-sm flex items-center justify-between gap-3 text-xs"
                                   >
                                     <div className="flex items-center gap-3 min-w-0">
                                       {item.thumbnail ? (
@@ -1582,9 +1572,11 @@ export default function OperationCommandCenterPage() {
 
                 {/* Wishlist Manifest & Manifest Items Scraper Section */}
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                  <h2 className="text-xl font-bold mb-0.5 flex items-center gap-2">
-                    {operation.isWhiteElephant ? '🐘 White Elephant Brought Gift Manifest' : '🎁 My Wishlist Manifest'}
-                  </h2>
+                  <div className={theme.sectionBand}>
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                      {operation.isWhiteElephant ? '🐘 White Elephant Brought Gift Manifest' : '🎁 My Wishlist Manifest'}
+                    </h2>
+                  </div>
                   <p className={`text-xs font-semibold mb-1 ${theme.textAccent}`}>
                     (Wishlist Manifest = {operation.isWhiteElephant ? 'Single Brought Gift' : 'Your Secret Santa Wishlist'} | Manifest Items = Wished-for Gift Items)
                   </p>
@@ -1744,7 +1736,7 @@ export default function OperationCommandCenterPage() {
                 {/* Mission Messaging: Command, Intel and Debrief */}
                 {intelEnrolled && (
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                  <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                  <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       💬 Mission Comms
                     </h2>
@@ -1893,32 +1885,33 @@ export default function OperationCommandCenterPage() {
               {/* Right Column: Participant Roster & Shipping Status */}
               <div className="lg:col-span-5 space-y-6">
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                  <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+                  <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       👥 Elf Agents ({membersList.length})
                       {isOpsLeader && pendingInviteCount > 0 && (
-                        <span className={`text-xs font-semibold ${theme.textSubLabel}`}>· {pendingInviteCount} invited</span>
+                        <span className="text-xs font-semibold text-kk-header-nav">· {pendingInviteCount} invited</span>
                       )}
                     </h2>
                     <div className="flex items-center gap-2">
                       {isOpsLeader && (
                         <button
                           onClick={() => setInviteModalOpen(true)}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 ${theme.btnPrimary}`}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 ${theme.btnAmber}`}
                         >
                           <span>✉️ + Invite Elf Agent</span>
                         </button>
                       )}
-                      <span className={`text-xs font-mono font-bold px-2 py-1 rounded-md ${theme.badgeCode}`}>
-                        Status: {operation.status}
+                      <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full ${statusBadgeClass(missionPhase)}`}>
+                        ● {missionPhase.phaseStatusLabel}
                       </span>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     {membersList.map((agent, i) => (
-                      <div key={agent.id} className={`p-4 rounded-2xl border space-y-2 text-xs ${theme.cardInnerBg}`}>
-                        <div className="flex items-center justify-between">
+                      <div key={agent.id} className="rounded-2xl border-2 border-kk-border overflow-hidden text-xs bg-kk-surface shadow-sm">
+                        {/* Agent info: tinted panel. Actions below sit on the plain card so they stand out. */}
+                        <div className={`p-4 flex items-center justify-between ${theme.infoPanel}`}>
                           <div className="flex items-center gap-2.5">
                             <span className={`font-mono text-xs ${theme.textSubLabel}`}>#{i + 1}</span>
                             <div>
@@ -1961,11 +1954,11 @@ export default function OperationCommandCenterPage() {
 
                         {/* OpsLeader Agent Management Action Bar */}
                         {isOpsLeader && (
-                          <div className="pt-2 border-t border-kk-border flex items-center justify-between gap-1 flex-wrap">
+                          <div className="px-4 py-3 border-t-2 border-kk-border bg-kk-surface flex items-center gap-2 flex-wrap">
                             <button
                               onClick={() => handleAgentAction('nudge_agent', agent)}
                               title="Remind this agent about their next deadline (Command message, notification and email)"
-                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-kk-inset text-kk-accent border border-kk-border-strong hover:border-kk-border-strong transition-all cursor-pointer"
+                              className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary shadow-sm transition-all cursor-pointer"
                             >
                               🔔 Nudge
                             </button>
@@ -1974,7 +1967,7 @@ export default function OperationCommandCenterPage() {
                               <button
                                 onClick={() => handleAgentAction('issue_demerit', agent)}
                                 title="Issue Coal Citation for deadline non-compliance"
-                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-kk-warning text-kk-on-warning border border-kk-border-strong hover:brightness-95 transition-all cursor-pointer"
+                                className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-gold text-kk-on-gold border border-kk-border-strong hover:brightness-95 shadow-sm transition-all cursor-pointer"
                               >
                                 🪨 Issue Coal Citation
                               </button>
@@ -1984,7 +1977,7 @@ export default function OperationCommandCenterPage() {
                               <button
                                 onClick={() => handleAgentAction('remove_agent', agent)}
                                 title="Disenroll agent from operation"
-                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40 hover:brightness-95 transition-all cursor-pointer"
+                                className="ml-auto text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-surface text-kk-danger border-2 border-kk-danger/60 hover:bg-kk-danger-soft transition-all cursor-pointer"
                               >
                                 ❌ Disenroll
                               </button>

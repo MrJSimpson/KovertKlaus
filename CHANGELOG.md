@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Light by default.** Pages start in light mode; a saved dark choice is applied before first paint. The Features page and the pre-launch page now follow the app theme.
 - **Mobile.** On touch screens buttons and form controls are at least 44px tall; the landing, Features, pre-launch and Operations headers fit a 390px phone; Operations filters and section actions wrap instead of being cut off.
 
+- **Mission stage colors.** Each timeline stage has its own hue, used by the timeline, mission status badges and countdown pills (light: gold, holly, evergreen, pine; dark: Lion, Ecru, Cambridge blue, Alice blue). The current stage is solid, finished stages are tinted with ✓, upcoming stages are outlined (`src/lib/stage-colors.ts`).
+- **Mission page layout.** Section headers are colored bands matching the page header, the title card uses the header color, items inside panels sit on a contrasting surface, and Elf Agent and invitation rows separate info (tinted) from actions (plain). The console now says Head Elf.
+
 ### Fixed
+- Mission Center's Assigned filter and a drawn (`MATCHED`) mission's phase looked for a status that does not exist (`ASSIGNED`), so drawn missions were shown as recruiting.
 - `dark:` styles followed the operating system's dark mode instead of the in-app toggle, which mixed palettes (for example the Head Elf's Invite button showed near-black text on a dark button).
 - Header subtitles used pine text on the pine header.
 

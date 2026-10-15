@@ -136,7 +136,8 @@ export function InvitedAgentsList({ operationId, refreshKey, onPendingCountChang
         {invitations.map((inv) => {
           const canResend = inv.status === 'PENDING' || inv.status === 'EXPIRED' || inv.status === 'REVOKED';
           return (
-            <li key={inv.id} className={`p-3 rounded-2xl border text-xs ${theme.cardInnerBg}`}>
+            <li key={inv.id} className="rounded-2xl border-2 border-kk-border overflow-hidden text-xs bg-kk-surface shadow-sm">
+              <div className={`p-3 ${theme.infoPanel}`}>
               <div className="flex items-center justify-between gap-2">
                 <span className={`truncate font-mono font-bold ${theme.textLabel}`} title={inv.email}>{inv.email}</span>
                 <span className="flex items-center gap-1.5 shrink-0">
@@ -149,15 +150,16 @@ export function InvitedAgentsList({ operationId, refreshKey, onPendingCountChang
                   Last sent {new Date(inv.lastSentAt).toLocaleString()}
                 </span>
               )}
+              </div>
               {canResend && (
-                <div className="mt-2 pt-2 border-t border-kk-border flex items-center gap-1.5 flex-wrap">
+                <div className="px-3 py-2.5 border-t-2 border-kk-border bg-kk-surface flex items-center gap-2 flex-wrap">
                   {canResend && (
                     <button
                       type="button"
                       onClick={() => act(inv, 'resend')}
                       disabled={busyId === inv.id}
                       title="Email this invitation again"
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-kk-inset text-kk-accent border border-kk-border-strong hover:border-kk-border-strong transition-all cursor-pointer disabled:opacity-50"
+                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary shadow-sm transition-all cursor-pointer disabled:opacity-50"
                     >
                       {busyId === inv.id ? '⏳ Sending...' : '🔁 Resend'}
                     </button>
@@ -168,7 +170,7 @@ export function InvitedAgentsList({ operationId, refreshKey, onPendingCountChang
                       onClick={() => act(inv, 'revoke')}
                       disabled={busyId === inv.id}
                       title="Withdraw this invitation"
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40 hover:brightness-95 transition-all cursor-pointer disabled:opacity-50"
+                      className="ml-auto text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-surface text-kk-danger border-2 border-kk-danger/60 hover:bg-kk-danger-soft transition-all cursor-pointer disabled:opacity-50"
                     >
                       ❌ Revoke
                     </button>

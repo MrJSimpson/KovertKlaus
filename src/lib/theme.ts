@@ -46,6 +46,10 @@ function getBaseThemeClasses(isDarkMode: boolean) {
     cardBg: `bg-kk-surface border-2 border-kk-border text-kk-ink ${shadow}`,
     cardInnerBg: 'bg-kk-inset border border-kk-border text-kk-ink',
     modalBg: 'bg-kk-surface border-2 border-kk-border-strong/60 text-kk-ink shadow-2xl',
+    // Colored header band across the top of a p-6 section card (same color as the page header).
+    sectionBand: '-mx-6 -mt-6 mb-5 px-6 py-3.5 rounded-t-[22px] bg-kk-header text-kk-on-header border-b-2 border-kk-border-strong/50',
+    // Info area above an action row: tinted so the plain action row below stands out.
+    infoPanel: 'bg-kk-info text-kk-ink',
 
     // Head Elf Console Special Card Styling
     consoleCard: `bg-kk-surface border-2 border-kk-border-strong text-kk-ink ${shadow}`,

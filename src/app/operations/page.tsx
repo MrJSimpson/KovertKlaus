@@ -5,6 +5,7 @@ import { USER_ID_KEY } from '@/lib/constants/auth';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
+import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
@@ -41,6 +42,13 @@ interface OperationItem {
   exchange?: ExchangeData;
   mission?: ExchangeData;
 }
+
+/** Which ExchangeStatus values each Mission Center status filter shows. */
+const STATUS_FILTER_GROUPS: Record<'RECRUITING' | 'ASSIGNED' | 'COMPLETED', string[]> = {
+  RECRUITING: ['RECRUITING', 'SETUP'],
+  ASSIGNED: ['MATCHED', 'SHIPPED', 'EXECUTED'],
+  COMPLETED: ['COMPLETED'],
+};
 
 export default function OperationCenterPage() {
   const { isDarkMode, toggleTheme, theme } = useTheme();
@@ -122,7 +130,8 @@ export default function OperationCenterPage() {
       item.role === roleFilter ||
       (roleFilter === 'ORGANIZER' && item.role === 'OPS_LEADER') ||
       (roleFilter === 'MEMBER' && item.role === 'FIELD_AGENT');
-    const statusMatch = statusFilter === 'ALL' || ex.status === statusFilter;
+    // Filters group the real ExchangeStatus values: Recruiting covers setup, Assigned covers drawn missions.
+    const statusMatch = statusFilter === 'ALL' || STATUS_FILTER_GROUPS[statusFilter].includes(ex.status);
     return (titleMatch || codeMatch) && roleMatch && statusMatch;
   });
 
@@ -349,9 +358,7 @@ export default function OperationCenterPage() {
                       <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg ${theme.badgeCode}`}>
                         CODE: {ex.code}
                       </span>
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
-                        ex.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
-                      }`}>
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${statusBadgeClass(countdown)}`}>
                         ● {countdown.phaseStatusLabel}
                       </span>
                     </div>
@@ -388,13 +395,7 @@ export default function OperationCenterPage() {
                         <span className={`flex items-center gap-1 ${theme.textLabel}`}>
                           ⏳ {countdown.milestoneLabel}:
                         </span>
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${
-                          countdown.isToday
-                            ? theme.badgeCountdownToday
-                            : countdown.daysLeft <= 7 && !countdown.isPast
-                            ? theme.badgeCountdownUrgent
-                            : theme.badgeCountdown
-                        }`}>
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${countdownBadgeClass(countdown)}`}>
                           {countdown.formattedText}
                         </span>
                       </div>

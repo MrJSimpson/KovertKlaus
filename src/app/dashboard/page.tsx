@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
+import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
 import { Card, SectionHeader, Button, Badge, DataRow } from '@/components/ui';
 import { AccountPreferencesModal } from '@/components/AccountPreferencesModal';
@@ -572,9 +573,9 @@ export default function DashboardPage() {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <Badge variant="code">CODE: {ex.code}</Badge>
-                            <Badge variant={ex.isWhiteElephant ? 'white-elephant' : 'secret-santa'}>
+                            <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-flex items-center gap-1 ${statusBadgeClass(countdown)}`}>
                               ● {countdown.phaseStatusLabel}
-                            </Badge>
+                            </span>
                           </div>
 
                           <h3 className="text-xl font-black mt-2">{ex.title}</h3>
@@ -595,13 +596,7 @@ export default function DashboardPage() {
                               <span className={`flex items-center gap-1 ${theme.textLabel}`}>
                                 ⏳ {countdown.milestoneLabel}:
                               </span>
-                              <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${
-                                countdown.isToday
-                                  ? theme.badgeCountdownToday
-                                  : countdown.daysLeft <= 7 && !countdown.isPast
-                                  ? theme.badgeCountdownUrgent
-                                  : theme.badgeCountdown
-                              }`}>
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${countdownBadgeClass(countdown)}`}>
                                 {countdown.formattedText}
                               </span>
                             </div>

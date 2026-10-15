@@ -177,9 +177,9 @@ export function AfterActionReportSection({
   }
 
   return (
-    <div className={`p-6 sm:p-8 rounded-3xl border shadow-md ${theme.cardBg}`}>
+    <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-kk-border">
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.sectionBand}`}>
         <div>
           <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono tracking-wider ${theme.badgeCode}`}>
             🏆 Mission Debriefing
@@ -188,8 +188,8 @@ export function AfterActionReportSection({
             <span>📸 Operation After-Action Report (AAR)</span>
           </h2>
         </div>
-        <div className="flex items-center gap-2 text-xs text-kk-muted font-mono">
-          <span className="w-2 h-2 rounded-full bg-kk-secondary animate-pulse" />
+        <div className="flex items-center gap-2 text-xs text-kk-header-nav font-mono">
+          <span className="w-2 h-2 rounded-full bg-kk-header-nav motion-safe:animate-pulse" />
           <span>Completed Mission Log</span>
         </div>
       </div>
