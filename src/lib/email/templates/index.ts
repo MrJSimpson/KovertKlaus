@@ -26,7 +26,32 @@ export function stripHtml(html: string): string {
 }
 
 /**
- * Responsive, highly-compatible HTML email container matching KovertKlaus aesthetic.
+ * Email palette: the light, classic Christmas theme, always.
+ *
+ * Emails never follow a viewer's theme preference. Mail clients cannot read the in-app toggle,
+ * and a fixed light palette renders the same in every client. Values match the light `kk-*`
+ * tokens in `src/app/globals.css`; every text color meets WCAG AA on the surface it sits on.
+ */
+export const EMAIL_PALETTE = {
+  page: '#f0f0f0',
+  surface: '#ffffff',
+  panel: '#f8f3ec',
+  border: '#e0d2c5',
+  ink: '#1c2618',
+  muted: '#535233',
+  pine: '#34502b',
+  holly: '#a70006',
+  cranberry: '#941f1f',
+  gold: '#bca875',
+  goldInk: '#6e5c2e',
+  candleGold: '#f0d890',
+  parchment: '#eee0b7',
+  dangerSoft: '#f9e3e3',
+} as const;
+
+/**
+ * Responsive, highly-compatible HTML email container in the light KovertKlaus palette
+ * (`EMAIL_PALETTE`). `color-scheme: light only` asks clients not to recolor it for dark mode.
  */
 export function renderBaseEmail({
   title,
@@ -48,28 +73,31 @@ export function renderBaseEmail({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light">
   <title>${title}</title>
   <style>
-    body { margin: 0; padding: 0; background-color: #090d16; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0; -webkit-font-smoothing: antialiased; }
+    :root { color-scheme: light only; supported-color-schemes: light; }
+    body { margin: 0; padding: 0; background-color: ${EMAIL_PALETTE.page}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: ${EMAIL_PALETTE.ink}; -webkit-font-smoothing: antialiased; }
     table { border-collapse: collapse; }
-    .wrapper { width: 100%; table-layout: fixed; background-color: #090d16; padding-bottom: 40px; }
-    .main { background-color: #0f172a; margin: 0 auto; width: 100%; max-width: 600px; border-spacing: 0; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; }
-    .header-cell { background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%); padding: 32px 24px; text-align: center; border-bottom: 2px solid #059669; }
-    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #10b981; margin: 0 0 6px 0; text-transform: uppercase; }
-    .brand-subtitle { font-size: 11px; font-weight: 700; letter-spacing: 3px; color: #94a3b8; margin: 0; text-transform: uppercase; }
-    .content-cell { padding: 32px 28px; color: #cbd5e1; font-size: 15px; line-height: 1.6; }
-    .content-title { font-size: 20px; font-weight: 700; color: #f8fafc; margin-top: 0; margin-bottom: 16px; }
-    .code-box { background-color: #1e293b; border: 1px dashed #38bdf8; border-radius: 8px; padding: 16px; text-align: center; margin: 24px 0; }
-    .code-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
-    .code-value { font-size: 24px; font-weight: 800; letter-spacing: 4px; color: #f59e0b; font-family: Courier, monospace; margin: 0; }
+    .wrapper { width: 100%; table-layout: fixed; background-color: ${EMAIL_PALETTE.page}; padding: 24px 0 40px 0; }
+    .main { background-color: ${EMAIL_PALETTE.surface}; margin: 0 auto; width: 100%; max-width: 600px; border-spacing: 0; border: 1px solid ${EMAIL_PALETTE.border}; border-radius: 12px; overflow: hidden; }
+    .header-cell { background-color: ${EMAIL_PALETTE.pine}; padding: 32px 24px; text-align: center; border-bottom: 4px solid ${EMAIL_PALETTE.holly}; }
+    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: ${EMAIL_PALETTE.candleGold}; margin: 0 0 6px 0; text-transform: uppercase; }
+    .brand-subtitle { font-size: 11px; font-weight: 700; letter-spacing: 3px; color: #ffffff; margin: 0; text-transform: uppercase; }
+    .content-cell { padding: 32px 28px; color: ${EMAIL_PALETTE.ink}; font-size: 15px; line-height: 1.6; }
+    .content-title { font-size: 20px; font-weight: 700; color: ${EMAIL_PALETTE.ink}; margin-top: 0; margin-bottom: 16px; }
+    .code-box { background-color: ${EMAIL_PALETTE.panel}; border: 1px dashed ${EMAIL_PALETTE.gold}; border-radius: 8px; padding: 16px; text-align: center; margin: 24px 0; }
+    .code-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: ${EMAIL_PALETTE.pine}; text-transform: uppercase; margin-bottom: 6px; }
+    .code-value { font-size: 24px; font-weight: 800; letter-spacing: 4px; color: ${EMAIL_PALETTE.holly}; font-family: Courier, monospace; margin: 0; }
     .btn-container { text-align: center; margin: 32px 0 16px 0; }
-    .btn-link { display: inline-block; background-color: #059669; color: #ffffff !important; font-size: 15px; font-weight: 700; letter-spacing: 1px; text-decoration: none; padding: 14px 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4); text-transform: uppercase; }
-    .footer-cell { background-color: #090d16; padding: 24px 28px; text-align: center; border-top: 1px solid #1e293b; color: #64748b; font-size: 12px; line-height: 1.5; }
-    .footer-cell a { color: #10b981; text-decoration: none; }
+    .btn-link { display: inline-block; background-color: ${EMAIL_PALETTE.holly}; color: #ffffff !important; font-size: 15px; font-weight: 700; letter-spacing: 1px; text-decoration: none; padding: 14px 32px; border-radius: 8px; text-transform: uppercase; }
+    .footer-cell { background-color: ${EMAIL_PALETTE.page}; padding: 24px 28px; text-align: center; border-top: 1px solid ${EMAIL_PALETTE.border}; color: ${EMAIL_PALETTE.muted}; font-size: 12px; line-height: 1.5; }
+    .footer-cell a { color: ${EMAIL_PALETTE.pine}; text-decoration: underline; }
   </style>
 </head>
-<body>
-  ${preheader ? `<div style="display:none;font-size:1px;color:#090d16;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${preheader}</div>` : ''}
+<body style="background-color: ${EMAIL_PALETTE.page}; color: ${EMAIL_PALETTE.ink};">
+  ${preheader ? `<div style="display:none;font-size:1px;color:${EMAIL_PALETTE.page};line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${preheader}</div>` : ''}
   <center class="wrapper">
     <table class="main" width="100%">
       <!-- Header -->
@@ -129,21 +157,21 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
     <p>Agent, you have been officially recruited by <strong>${organizerName}</strong> to join the classified gift exchange operation: <strong>${exchangeTitle}</strong>.</p>
     
     ${isCovertDelivery ? `
-    <div style="background-color: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
-      <strong style="color: #fbbf24;">🕶️ KOVERT DELIVERY MISSION</strong>
-      <p style="margin: 4px 0 0 0; font-size: 13px; color: #fde68a;">This is a local stealth porch-drop operation for trusted friends & family. A mandatory Property Access & Safe Conduct Accord is required upon joining.</p>
+    <div style="background-color: ${EMAIL_PALETTE.parchment}; border-left: 4px solid ${EMAIL_PALETTE.gold}; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+      <strong style="color: ${EMAIL_PALETTE.goldInk};">🕶️ KOVERT DELIVERY MISSION</strong>
+      <p style="margin: 4px 0 0 0; font-size: 13px; color: ${EMAIL_PALETTE.muted};">This is a local stealth porch-drop operation for trusted friends & family. A mandatory Property Access & Safe Conduct Accord is required upon joining.</p>
     </div>` : isLatePass ? `
-    <div style="background-color: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
-      <strong style="color: #f87171;">⚠️ LATE PASS AUTHORIZATION ACTIVE</strong>
-      <p style="margin: 4px 0 0 0; font-size: 13px; color: #fca5a5;">The standard RSVP cutoff for this operation has passed. The OpsLeader has granted you late emergency clearance to enroll.</p>
+    <div style="background-color: ${EMAIL_PALETTE.dangerSoft}; border-left: 4px solid ${EMAIL_PALETTE.holly}; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+      <strong style="color: ${EMAIL_PALETTE.holly};">⚠️ LATE PASS AUTHORIZATION ACTIVE</strong>
+      <p style="margin: 4px 0 0 0; font-size: 13px; color: ${EMAIL_PALETTE.cranberry};">The standard RSVP cutoff for this operation has passed. The OpsLeader has granted you late emergency clearance to enroll.</p>
     </div>` : `
     <p>Prepare your Wishlist Manifest, accept your assignment, and get ready for a covert gift exchange mission.</p>`}
 
-    <div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin: 20px 0;">
-      <div style="font-size: 11px; font-family: monospace; color: #38bdf8; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">OPERATION DIRECTIVE</div>
-      <div style="font-size: 16px; font-weight: bold; color: #ffffff; margin-bottom: 8px;">${exchangeTitle}</div>
-      <div style="font-size: 13px; color: #94a3b8;">Host: <strong style="color: #f8fafc;">${organizerName}</strong></div>
-      <div style="font-size: 13px; color: #94a3b8;">Target Budget: <strong style="color: #10b981;">${budgetText}</strong></div>
+    <div style="background-color: ${EMAIL_PALETTE.panel}; border: 1px solid ${EMAIL_PALETTE.border}; border-radius: 8px; padding: 16px; margin: 20px 0;">
+      <div style="font-size: 11px; font-family: monospace; color: ${EMAIL_PALETTE.holly}; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">OPERATION DIRECTIVE</div>
+      <div style="font-size: 16px; font-weight: bold; color: ${EMAIL_PALETTE.ink}; margin-bottom: 8px;">${exchangeTitle}</div>
+      <div style="font-size: 13px; color: ${EMAIL_PALETTE.muted};">Host: <strong style="color: ${EMAIL_PALETTE.ink};">${organizerName}</strong></div>
+      <div style="font-size: 13px; color: ${EMAIL_PALETTE.muted};">Target Budget: <strong style="color: ${EMAIL_PALETTE.pine};">${budgetText}</strong></div>
     </div>
 
     <div class="code-box">
@@ -151,7 +179,7 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
       <div class="code-value">${kdmToken || inviteCode}</div>
     </div>
 
-    <p style="text-align: center; color: #94a3b8; font-size: 13px;">
+    <p style="text-align: center; color: ${EMAIL_PALETTE.muted}; font-size: 13px;">
       ${kdmToken
         ? 'Click the button below to review the Property Access Accord and accept your classified mission.'
         : isExistingUser
@@ -205,16 +233,16 @@ export function getAssignmentEmailTemplate(params: AssignmentEmailParams): { sub
     <div class="code-box">
       <div class="code-label">Your Assigned Target</div>
       <div class="code-value">${targetCodename}</div>
-      ${targetName ? `<p style="margin: 6px 0 0 0; font-size: 14px; color: #cbd5e1;">(Operative: ${targetName})</p>` : ''}
+      ${targetName ? `<p style="margin: 6px 0 0 0; font-size: 14px; color: ${EMAIL_PALETTE.ink};">(Operative: ${targetName})</p>` : ''}
     </div>
 
-    <div style="background-color: #1e293b; border-radius: 8px; padding: 16px; margin: 16px 0;">
-      <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 700; color: #10b981;">📅 OPERATION TIMELINE DIRECTIVES:</p>
-      ${shippingDeadline ? `<p style="margin: 4px 0; font-size: 14px; color: #cbd5e1;">📦 <strong>Shipping Deadline:</strong> ${shippingDeadline}</p>` : ''}
-      ${exchangeDate ? `<p style="margin: 4px 0; font-size: 14px; color: #cbd5e1;">🎉 <strong>Exchange Event Day:</strong> ${exchangeDate}</p>` : ''}
+    <div style="background-color: ${EMAIL_PALETTE.panel}; border-radius: 8px; padding: 16px; margin: 16px 0;">
+      <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 700; color: ${EMAIL_PALETTE.pine};">📅 OPERATION TIMELINE DIRECTIVES:</p>
+      ${shippingDeadline ? `<p style="margin: 4px 0; font-size: 14px; color: ${EMAIL_PALETTE.ink};">📦 <strong>Shipping Deadline:</strong> ${shippingDeadline}</p>` : ''}
+      ${exchangeDate ? `<p style="margin: 4px 0; font-size: 14px; color: ${EMAIL_PALETTE.ink};">🎉 <strong>Exchange Event Day:</strong> ${exchangeDate}</p>` : ''}
     </div>
 
-    <p style="font-size: 14px; color: #94a3b8;">
+    <p style="font-size: 14px; color: ${EMAIL_PALETTE.muted};">
       Inspect your target's classified Wishlist Manifest and log your package tracking number to earn Demerit Immunity!
     </p>
   `;
@@ -258,11 +286,11 @@ export function getNudgeEmailTemplate(params: NudgeEmailParams): { subject: stri
     <p>Agent <strong>${recipientName}</strong>,</p>
     <p>Your OpsLeader <strong>${organizerName}</strong> has broadcast an operational nudge for <strong>${exchangeTitle}</strong>:</p>
 
-    <div style="background-color: #1e293b; border-left: 4px solid #f59e0b; padding: 14px 18px; margin: 20px 0; border-radius: 6px; font-style: italic; color: #f1f5f9;">
+    <div style="background-color: ${EMAIL_PALETTE.panel}; border-left: 4px solid ${EMAIL_PALETTE.gold}; padding: 14px 18px; margin: 20px 0; border-radius: 6px; font-style: italic; color: ${EMAIL_PALETTE.ink};">
       "${message}"
     </div>
 
-    <p style="font-size: 14px; color: #94a3b8;">
+    <p style="font-size: 14px; color: ${EMAIL_PALETTE.muted};">
       Please access the Command Center to review your tasks and keep your operation compliant.
     </p>
   `;
@@ -305,12 +333,12 @@ export function getWelcomeEmailTemplate(params: WelcomeEmailParams): { subject: 
 
     <div class="code-box">
       <div class="code-label">OPERATIVE PROFILE</div>
-      <div class="code-value" style="font-size: 18px; color: #38bdf8;">${agentDisplay}</div>
+      <div class="code-value" style="font-size: 18px; color: ${EMAIL_PALETTE.holly};">${agentDisplay}</div>
     </div>
 
-    <div style="background-color: #1e293b; border-radius: 8px; padding: 16px; margin: 16px 0;">
-      <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 700; color: #10b981;">⚡ QUICK START DIRECTIVES:</p>
-      <ul style="margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 13px; line-height: 1.8;">
+    <div style="background-color: ${EMAIL_PALETTE.panel}; border-radius: 8px; padding: 16px; margin: 16px 0;">
+      <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 700; color: ${EMAIL_PALETTE.pine};">⚡ QUICK START DIRECTIVES:</p>
+      <ul style="margin: 0; padding-left: 20px; color: ${EMAIL_PALETTE.ink}; font-size: 13px; line-height: 1.8;">
         <li><strong>Initialize Your Wishlist Manifest:</strong> Add Manifest Items from Amazon, Target, Etsy, or any store link.</li>
         <li><strong>Set Sizing & Preferences:</strong> Add hobbies, clothing/shoe sizes, and dietary notes for tailored gifting.</li>
         <li><strong>Join or Create an Exchange:</strong> Host an operation for your family or join with an invite code.</li>
@@ -354,7 +382,7 @@ export function getBroadcastEmailTemplate(params: BroadcastEmailParams): { subje
   const bodyHtml = `
     <p>Message from <strong>${senderName}</strong> regarding <strong>${exchangeTitle}</strong>:</p>
 
-    <div style="background-color: #1e293b; border-left: 4px solid #38bdf8; border-radius: 0 8px 8px 0; padding: 18px 20px; margin: 20px 0; color: #f8fafc; font-size: 14px; line-height: 1.7;">
+    <div style="background-color: ${EMAIL_PALETTE.panel}; border-left: 4px solid ${EMAIL_PALETTE.pine}; border-radius: 0 8px 8px 0; padding: 18px 20px; margin: 20px 0; color: ${EMAIL_PALETTE.ink}; font-size: 14px; line-height: 1.7;">
       ${message.replace(/\n/g, '<br>')}
     </div>
   `;
@@ -397,11 +425,11 @@ export function getClearanceConfirmationEmailTemplate(params: ClearanceConfirmat
 
     <div class="code-box">
       <div class="code-label">Access Status</div>
-      <div class="code-value" style="font-size: 18px; color: #10b981;">STAGED FOR LAUNCH</div>
-      ${positionNumber ? `<p style="margin: 6px 0 0 0; font-size: 13px; color: #94a3b8;">Roster Position: #${positionNumber}</p>` : ''}
+      <div class="code-value" style="font-size: 18px; color: ${EMAIL_PALETTE.pine};">STAGED FOR LAUNCH</div>
+      ${positionNumber ? `<p style="margin: 6px 0 0 0; font-size: 13px; color: ${EMAIL_PALETTE.muted};">Roster Position: #${positionNumber}</p>` : ''}
     </div>
 
-    <p style="font-size: 14px; color: #cbd5e1;">
+    <p style="font-size: 14px; color: ${EMAIL_PALETTE.ink};">
       When our global operation opens for the upcoming holiday season, you will receive your priority activation cipher directly to this email address.
     </p>
   `;
@@ -446,11 +474,11 @@ export function getClearanceApprovalEmailTemplate(params: ClearanceApprovalParam
 
     <div class="code-box">
       <div class="code-label">Single-Use Alpha Activation Cipher</div>
-      <div class="code-value" style="font-size: 22px; letter-spacing: 2px; color: #10b981;">${inviteCode}</div>
-      <p style="margin: 6px 0 0 0; font-size: 13px; color: #94a3b8;">This code is tied to ${recipientEmail} and is consumed upon registration.</p>
+      <div class="code-value" style="font-size: 22px; letter-spacing: 2px; color: ${EMAIL_PALETTE.pine};">${inviteCode}</div>
+      <p style="margin: 6px 0 0 0; font-size: 13px; color: ${EMAIL_PALETTE.muted};">This code is tied to ${recipientEmail} and is consumed upon registration.</p>
     </div>
 
-    <p style="font-size: 14px; color: #cbd5e1;">
+    <p style="font-size: 14px; color: ${EMAIL_PALETTE.ink};">
       Click the button below to register your account and start organizing or joining covert Secret Santa missions.
     </p>
   `;
