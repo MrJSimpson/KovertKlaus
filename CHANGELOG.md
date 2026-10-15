@@ -9,14 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.3.0-alpha] - 2026-10-15
+
+The first release under the versioning protocol (`docs/VERSIONING.md`). It collects everything merged since 0.2.0-alpha (pull requests #1 to #18).
+
+### Added
+- **Mission Comms** (`/api/messages`, `src/lib/intel-messages.ts`): three channels per mission. **Command** (Head Elf and one agent; send until completion, read forever), **Intel** (Secret Santa and target, Santa anonymous; from the draw until completion), **Debrief** (everyone, after completion; readable for 14 days). 500-character limit, 20 messages per hour. Schema: `MessageChannel`, `ExchangeMessage.channel`, nullable `recipientId`, `Exchange.completedAt`.
+- **Email invitations** (`src/lib/invitations.ts`, `MissionInvitation`): Head Elf only. New users get a Join Exchange link to registration (registering with a mission code is their alpha clearance and enrolls them); existing users accept or decline on the mission page or dashboard. Pending invites expire after the cutoff day; Late Pass for registered users after the cutoff. Sharing the mission code still works.
+- **Elf Agents roster:** the mission page lists enrolled agents and, for the Head Elf, invited agents with **Resend** (10-minute cooldown) and **Revoke**. The Invite Agent modal only sends.
+- **Timeline edits:** Head Elves can change cutoff, draw, ship-by and exchange dates. A changed date must be after today; the timeline must stay strictly increasing; completed missions are frozen (`src/lib/validations/timeline.ts`).
+- **Announcements page** (`/announcements`) with a What's New link and an unseen-update dot.
+- **Versioning protocol** (`docs/VERSIONING.md`) and a version-consistency test.
+- `/register` route so Alpha Clearance approval links work.
+- **Pre-Launch Alpha Clearance** (ported from the SaaS edition, now available in both editions): admins approve waitlist leads in `/northpole/leads`, which issues a single-use `ALPHA-` activation code bound to the lead's email and emails a pre-filled registration link. During `RELEASE_STAGE=ALPHA`, registration accepts either a mission invite code or an approved activation code, and the code is deleted on use.
+
 ### Security
 - **No default administrator password.** First-run setup replaces the published initial password: with no `AdminUser` and no `INITIAL_ADMIN_PASSWORD`, the server prints a one-time setup token to its console, and `/northpole/setup` creates the first administrator with a passphrase the operator chooses. The token is 256-bit, compared in constant time, held only as a digest in memory, revoked after use, and reissued on restart.
 - **Retired defaults are permanently banned** by the NIST passphrase validator, so an upgraded or restored install cannot be left on a previously published credential.
 - **`db:seed` no longer touches an existing administrator.** Previously it reset the existing admin's password to the default on every run.
 - **Database schema separation (`app` / `admin`).** Admin tables (`AdminUser`, `SystemConfig`, `SystemLog`) move to an `admin` schema the application role cannot enter. App tables move to `app`, where new tables are granted to the application role automatically. Includes forward/rollback SQL and a read-only audit (`scripts/check-db-schema-separation.ts`).
+- **Expiring, typed sessions** (`src/lib/session-token.ts`): user sessions last 24 hours, renewed while active; admin sessions are fixed at 8 hours. The kind and expiry are signed into the token. Older tokens are rejected (one forced re-login).
+- **Edge worker hardening:** admin endpoints check the admin account in the database (`requireAdmin`); members are scoped to their own mission; ownership checks on manifests and items; validated forms; `405` for a wrong method instead of `404`.
+- `/api/config` no longer exposes `SystemConfig` internals; North Pole reads live settings.
 
-### Added
-- **Pre-Launch Alpha Clearance** (ported from the SaaS edition, now available in both editions): admins approve waitlist leads in `/northpole/leads`, which issues a single-use `ALPHA-` activation code bound to the lead's email and emails a pre-filled registration link. During `RELEASE_STAGE=ALPHA`, registration accepts either a mission invite code or an approved activation code, and the code is deleted on use.
+### Fixed
+- **User-facing email was not being sent** from the SaaS edge worker (invitations, welcome, assignment, nudge and broadcast). Email settings are now read through the admin client, and a fallback is logged.
+- **Mission links** (`/exchange/<code>`) returned 404 on the SaaS edition for every real mission code; they now open the right mission.
+- Edge worker API parity: every self-hosted API route has a worker handler (guarded by a test), fixing "route does not exist" errors.
+- Worker uses per-request database clients (stopped error 1101 under concurrent load).
+- `/api/users/profile` accepts `PUT` and saves the Operative Dossier.
+- Operative sign-in works while the pre-launch landing page is live.
+- White Elephant manifests are limited to one item on the edge worker as well.
+- Removed dead `/tests` links from the landing page.
 
 ### Changed
 - Alpha activation codes now carry 64 random bits (`ALPHA-` + 16 hex), up from 32. Codes issued earlier remain valid.
@@ -51,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Pristine Production Database Sanitization**:
   - Purged all example/test accounts, dummy users (`@example.com`), mock exchanges (`SIMPSON-2026`, `TEST-2026`), and sample wishlists from seed data.
-  - Initial Super Admin password updated to `G!v!nGSp1r1t` (`requiresPasswordReset: true` enforcing NIST SP 800-63B first-login reset for self-hosters).
+  - Initial Super Admin password replaced with a new installation default, with `requiresPasswordReset: true` enforcing a NIST SP 800-63B first-login reset for self-hosters. (Retired in 0.3.0-alpha: no default password ships; first-run setup creates the administrator.)
   - Regenerated clean PostgreSQL DDL and seed in `prisma/kovertklaus_test_db.sql`.
 - **Developer Workshop Preservation**:
   - Confirmed and verified all `/workshop/*` internal test benches remain fully operational for self-hosted community instances.

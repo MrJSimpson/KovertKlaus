@@ -10,6 +10,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { SeasonalLightsStrand } from '@/components/ui/SeasonalLightsStrand';
 import { generateRandomCodename } from '@/lib/codenameGenerator';
 import { APP_VERSION_LABEL, RELEASE_STAGE } from '@/lib/version';
+import { WhatsNewLink } from '@/components/WhatsNewLink';
 
 
 
@@ -1464,7 +1465,8 @@ export function AppHomeLanding() {
             </span>
           </div>
           <div className="flex gap-6 font-semibold items-center">
-            <Link href="/features" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>Features &amp; Specs</Link>            <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>GitHub</a>
+            <Link href="/features" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>Features &amp; Specs</Link>
+            <WhatsNewLink className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`} />            <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>GitHub</a>
           </div>
         </div>
       </footer>

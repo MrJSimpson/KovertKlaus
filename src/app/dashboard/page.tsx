@@ -11,6 +11,7 @@ import { Card, SectionHeader, Button, Badge, DataRow } from '@/components/ui';
 import { AccountPreferencesModal } from '@/components/AccountPreferencesModal';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
+import { WhatsNewLink } from '@/components/WhatsNewLink';
 
 interface WishlistManifest {
   id: string;
@@ -369,6 +370,10 @@ export default function DashboardPage() {
           </Link>
 
           <div className="flex items-center gap-1.5 sm:gap-3">
+            <WhatsNewLink
+              compact
+              className={`text-xs font-bold px-3 py-2 min-h-[44px] min-w-[44px] justify-center rounded-xl border transition-all ${theme.btnToggle}`}
+            />
             <button
               onClick={toggleTheme}
               className={`p-2 min-h-[44px] min-w-[44px] rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center ${theme.btnToggle}`}

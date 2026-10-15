@@ -29,6 +29,7 @@ All system documentation is maintained in both standard repository Markdown and 
 | 🔒 **[`docs/SECURITY_INVARIANTS.md`](./docs/SECURITY_INVARIANTS.md)** | HMAC-SHA256 Sessions, Parameter Tampering & SSRF Defense | [`SECURITY.md`](./SECURITY.md) |
 | ⚖️ **[`docs/DEMERIT_SYSTEM.md`](./docs/DEMERIT_SYSTEM.md)** | Coal Citation State Machine, Waivers & Auto-Rehabilitation | [Draw.io State Machine](./docs/kovertklaus_demerit_state_machine.drawio) |
 | ✉️ **[`docs/EMAIL_SYSTEM.md`](./docs/EMAIL_SYSTEM.md)** | Multi-Provider Engine with 3-Attempt Exponential Retries | [Draw.io Flow](./docs/kovertklaus_universal_email_architecture.drawio) |
+| 🏷️ **[`docs/VERSIONING.md`](./docs/VERSIONING.md)** | When versions change, release checklist, branch pruning, where history is recorded | [`CHANGELOG.md`](./CHANGELOG.md) |
 | 🗄️ **Prisma Database Schema** | Relational Entities, Foreign Keys & Schema Indexes | [Draw.io ERD](./docs/kovertklaus_database_erd.drawio) |
 
 ---

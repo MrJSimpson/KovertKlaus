@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { cookies } from 'next/headers';
 import { hashPassword } from '@/lib/password';
 import { adminDb } from '@/lib/adminDb';
@@ -13,8 +14,19 @@ export { DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_USERNAME };
  * Passwords that shipped as installation defaults in earlier releases. They are permanently
  * banned so an upgraded or restored installation can never be left on a published credential.
  * No default password ships any more: see `src/lib/adminSetup.ts`.
+ *
+ * Stored as SHA-256 digests of the lowercased password, so the repository never contains a
+ * readable credential (not even a retired one). Add a digest, never the password itself.
  */
-const RETIRED_DEFAULT_PASSWORDS = ['g!v!ngsp1r1t', '1secretdel!very'];
+export const RETIRED_DEFAULT_PASSWORD_SHA256 = [
+  'b225221b522b6e915e9033daff80e978028d44c21e99dafc520645396bf6fa7f',
+  '4a99c2827eb021824bb28fe09ef5a62e33bd0c06cb90001de74320e333896bf7',
+];
+
+/** True when `password` (any case) is one of the retired installation defaults. */
+export function isRetiredDefaultPassword(password: string, digests: readonly string[] = RETIRED_DEFAULT_PASSWORD_SHA256): boolean {
+  return digests.includes(createHash('sha256').update(password.toLowerCase()).digest('hex'));
+}
 
 /**
  * Validates a password against NIST SP 800-63B Digital Identity Guidelines:
@@ -48,7 +60,6 @@ export function validateNistPassword(
 
   // Check against prohibited default / trivial passwords
   const prohibitedList = [
-    ...RETIRED_DEFAULT_PASSWORDS,
     'giv1ngsp1r1t',
     'giving spirit',
     'password1234',
@@ -59,7 +70,7 @@ export function validateNistPassword(
   ];
 
   const lowerPass = password.toLowerCase();
-  if (prohibitedList.includes(lowerPass)) {
+  if (prohibitedList.includes(lowerPass) || isRetiredDefaultPassword(password)) {
     return {
       isValid: false,
       error: 'Password cannot be a default installation password or known common phrase.',
