@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **New winter palette.** Light mode (Klaus) uses the classic Christmas colors and dark mode (Kovert) uses blue and gold (Indigo dye, Lion, Ecru, Wheat, Alice blue, French gray, Cambridge blue). Colors are semantic `kk-*` tokens in `src/app/globals.css`, so every page, modal, the North Pole and the Workshop follow the active theme, and every text color meets WCAG AA contrast. Spring, summer and autumn presets are unchanged. Existing databases keep the old winter button overrides until the seed runs again (`npm run db:seed`).
+- **Emails are always light.** Every email uses the light Christmas palette and declares `color-scheme: light only`, whatever the reader's theme.
+- **Light by default.** Pages start in light mode; a saved dark choice is applied before first paint. The Features page and the pre-launch page now follow the app theme.
+- **Mobile.** On touch screens buttons and form controls are at least 44px tall; the landing, Features, pre-launch and Operations headers fit a 390px phone; Operations filters and section actions wrap instead of being cut off.
+
+- **Mission stage colors.** Each timeline stage has its own hue, used by the timeline, mission status badges and countdown pills (light: gold, holly, evergreen, pine; dark: jewel tones on indigo, gold, rose cranberry, mint evergreen, ice blue). The current stage is solid; finished stages are tinted with ✓ in light mode and get a colored top stripe in dark mode; upcoming stages are dashed (`src/lib/stage-colors.ts`).
+- **Mission page layout.** Section headers are colored bands matching the page header, the title card uses the header color, items inside panels sit on a contrasting surface, and Elf Agent and invitation rows separate info (tinted) from actions (plain). The console now says Head Elf.
+
+### Fixed
+- Mission Center's Assigned filter and a drawn (`MATCHED`) mission's phase looked for a status that does not exist (`ASSIGNED`), so drawn missions were shown as recruiting.
+- `dark:` styles followed the operating system's dark mode instead of the in-app toggle, which mixed palettes (for example the Head Elf's Invite button showed near-black text on a dark button).
+- Header subtitles used pine text on the pine header.
+
 ---
 
 ## [0.4.0-alpha] - 2026-10-15

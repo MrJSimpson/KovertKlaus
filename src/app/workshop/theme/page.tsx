@@ -53,18 +53,18 @@ export default function WorkshopThemeGallery() {
   return (
     <div className="space-y-8 pb-16">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-kk-border">
         <div>
           <div className="flex items-center gap-3">
-            <span className="h-3 w-3 rounded-full bg-purple-400 animate-pulse inline-block"></span>
-            <span className="text-xs px-2 py-0.5 rounded font-mono uppercase bg-purple-950/80 text-purple-300 border border-purple-500/30">
+            <span className="h-3 w-3 rounded-full bg-kk-gold animate-pulse inline-block"></span>
+            <span className="text-xs px-2 py-0.5 rounded font-mono uppercase bg-kk-warning text-kk-on-warning border border-kk-border-strong">
               WORKSHOP LAB // DESIGN SYSTEM & TOKENS
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 text-white flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 text-kk-heading flex items-center gap-2">
             <span>Design Token & Theme Inspection Gallery</span>
           </h1>
-          <p className="text-gray-400 text-xs font-mono mt-1">
+          <p className="text-kk-muted text-xs font-mono mt-1">
             Inspect live UI tokens across Klaus Mode 🎄 and Kovert Mode ❄️ with animated seasonal lights strands.
           </p>
         </div>
@@ -72,25 +72,25 @@ export default function WorkshopThemeGallery() {
         <div className="flex items-center gap-2">
           <Link
             href="/workshop/draw"
-            className="bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
+            className="bg-kk-success hover:brightness-95 text-kk-on-success border border-kk-on-success/30 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
           >
             🎯 Draw
           </Link>
           <Link
             href="/workshop/lifecycle"
-            className="bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
+            className="bg-kk-warning hover:brightness-95 text-kk-on-warning border border-kk-border-strong px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
           >
             ⏰ Schedule
           </Link>
           <Link
             href="/workshop/scraper"
-            className="bg-sky-950/60 hover:bg-sky-900/80 text-sky-300 border border-sky-500/40 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
+            className="bg-kk-inset/60 hover:bg-kk-inset text-kk-accent border border-kk-border-strong px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
           >
             🔎 Scraper
           </Link>
           <Link
             href="/workshop"
-            className="bg-slate-800 hover:bg-slate-700 text-gray-300 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
+            className="bg-kk-surface hover:border-kk-border-strong text-kk-ink px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
           >
             ← Hub
           </Link>
@@ -98,25 +98,25 @@ export default function WorkshopThemeGallery() {
       </div>
 
       {/* Mode & Season Sandbox Controller */}
-      <div className="p-6 rounded-3xl bg-slate-900 border-2 border-purple-500/40 shadow-xl space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="p-6 rounded-3xl bg-kk-surface border-2 border-kk-border-strong shadow-xl space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-kk-border pb-4">
           <div>
-            <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-purple-400">
+            <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-kk-gold-ink">
               🎨 THEME SANDBOX CONTROLLER
             </h2>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-kk-muted">
               Switch visual mode and seasonal presets to preview real-time token rendering.
             </p>
           </div>
 
           {/* Mode Switcher Toggle */}
-          <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 font-mono text-xs">
+          <div className="flex items-center gap-2 bg-kk-inset p-1.5 rounded-2xl border border-kk-border font-mono text-xs">
             <button
               onClick={() => setSelectedMode('KOVERT')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                 selectedMode === 'KOVERT'
-                  ? 'bg-sky-500 text-slate-950 shadow-md font-black'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-kk-primary text-kk-on-primary shadow-md font-black'
+                  : 'text-kk-muted hover:text-kk-ink'
               }`}
             >
               ❄️ Kovert Mode (Dark)
@@ -125,8 +125,8 @@ export default function WorkshopThemeGallery() {
               onClick={() => setSelectedMode('KLAUS')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                 selectedMode === 'KLAUS'
-                  ? 'bg-red-700 text-white shadow-md font-black'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-kk-primary text-kk-on-primary shadow-md font-black'
+                  : 'text-kk-muted hover:text-kk-ink'
               }`}
             >
               🎄 Klaus Mode (Light)
@@ -142,15 +142,15 @@ export default function WorkshopThemeGallery() {
               onClick={() => setSelectedStrand(preset.strand)}
               className={`p-3.5 rounded-2xl text-left border transition-all font-mono text-xs cursor-pointer ${
                 selectedStrand === preset.strand
-                  ? 'bg-purple-950/60 border-purple-400 shadow-lg shadow-purple-950/60 text-white'
-                  : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-gray-400'
+                  ? 'bg-kk-warning border-kk-border-strong shadow-lg shadow-black/20 text-kk-on-warning'
+                  : 'bg-kk-inset border-kk-border hover:border-kk-border-strong text-kk-muted'
               }`}
             >
-              <div className="font-bold text-slate-100 flex items-center justify-between">
+              <div className="font-bold text-kk-ink flex items-center justify-between">
                 <span>{preset.name}</span>
-                {selectedStrand === preset.strand && <span className="text-purple-400 font-black">✓</span>}
+                {selectedStrand === preset.strand && <span className="text-kk-gold-ink font-black">✓</span>}
               </div>
-              <div className="text-[11px] text-gray-500 mt-1 line-clamp-2 font-sans">{preset.desc}</div>
+              <div className="text-[11px] text-kk-muted mt-1 line-clamp-2 font-sans">{preset.desc}</div>
             </button>
           ))}
         </div>
@@ -159,7 +159,7 @@ export default function WorkshopThemeGallery() {
       {/* Animated Seasonal Lights Strand Showcase */}
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+          <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-kk-ink">
             ✨ ANIMATED SEASONAL LIGHTS STRAND ({selectedStrand.toUpperCase()})
           </h2>
           <div className="flex gap-2">
@@ -169,8 +169,8 @@ export default function WorkshopThemeGallery() {
                 onClick={() => setSelectedStrand(type)}
                 className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
                   selectedStrand === type
-                    ? 'bg-amber-500 text-slate-950 font-black'
-                    : 'bg-slate-800 text-gray-400 hover:text-white'
+                    ? 'bg-kk-gold text-kk-on-gold font-black'
+                    : 'bg-kk-surface text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 {type.replace('_', ' ')}
@@ -179,13 +179,13 @@ export default function WorkshopThemeGallery() {
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
+        <div className="p-4 rounded-2xl bg-kk-surface border border-kk-border overflow-hidden">
           <SeasonalLightsStrand type={selectedStrand} isDarkMode={isGalleryDark} />
         </div>
       </div>
 
       {/* Side-by-Side Component Showcase Preview Box */}
-      <div className={`p-6 sm:p-8 rounded-3xl border-2 transition-all space-y-8 ${tokens.sectionFrame}`}>
+      <div className={`p-6 sm:p-8 rounded-3xl border-2 transition-all space-y-8 ${isGalleryDark ? 'dark' : 'light'} ${tokens.sectionFrame}`}>
         
         {/* Gallery Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b pb-4">
@@ -377,12 +377,12 @@ export default function WorkshopThemeGallery() {
       </div>
 
       {/* Raw Token Dictionary Inspector */}
-      <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-3 font-mono text-xs">
-        <div className="flex items-center justify-between text-slate-300 border-b border-slate-800 pb-2">
+      <div className="p-6 rounded-3xl bg-kk-surface border border-kk-border space-y-3 font-mono text-xs">
+        <div className="flex items-center justify-between text-kk-ink border-b border-kk-border pb-2">
           <span className="font-bold">📋 RESOLVED TAILWIND TOKENS DICTIONARY ({selectedMode})</span>
-          <span className="text-gray-500 text-[11px]">{Object.keys(tokens).length} ACTIVE TOKENS</span>
+          <span className="text-kk-muted text-[11px]">{Object.keys(tokens).length} ACTIVE TOKENS</span>
         </div>
-        <pre className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-sky-300 overflow-x-auto max-h-72">
+        <pre className="p-4 bg-kk-inset rounded-2xl border border-kk-border text-kk-accent overflow-x-auto max-h-72">
           {JSON.stringify(tokens, null, 2)}
         </pre>
       </div>

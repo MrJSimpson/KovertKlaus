@@ -97,25 +97,25 @@ export default function StealthDropConsole({
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 space-y-6 shadow-xl">
+    <div className="bg-kk-surface border border-kk-border rounded-3xl p-6 sm:p-7 space-y-6 shadow-xl">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+      <div className="flex items-center justify-between gap-4 border-b border-kk-border pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-500/40 flex items-center justify-center text-xl">
+          <div className="w-10 h-10 rounded-2xl bg-kk-warning border border-kk-border-strong flex items-center justify-center text-xl">
             📦
           </div>
           <div>
-            <div className="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-bold">
+            <div className="text-[10px] font-mono text-kk-gold-ink uppercase tracking-widest font-bold">
               KOVERT INFILTRATION CONSOLE
             </div>
-            <h3 className="text-base font-bold text-white">
+            <h3 className="text-base font-bold text-kk-heading">
               Log Stealth Gift Drop
             </h3>
           </div>
         </div>
 
         {isSuccess && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-kk-success text-kk-on-success border border-kk-on-success/30 text-xs font-mono font-bold">
             <span>✓</span> STASH LOGGED
           </span>
         )}
@@ -123,17 +123,17 @@ export default function StealthDropConsole({
 
       {/* Target Coordinates */}
       {targetAddress && (
-        <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-start gap-2.5 text-xs font-mono text-slate-300">
-          <span className="text-red-400 text-sm mt-0.5">📍</span>
+        <div className="p-3.5 bg-kk-inset/80 border border-kk-border rounded-2xl flex items-start gap-2.5 text-xs font-mono text-kk-ink">
+          <span className="text-kk-danger text-sm mt-0.5">📍</span>
           <div>
-            <span className="text-slate-400 font-bold block text-[10px] uppercase">TARGET DROP COORDINATES:</span>
-            <span className="text-white">{targetName || 'Classified Operative'} — {targetAddress}</span>
+            <span className="text-kk-muted font-bold block text-[10px] uppercase">TARGET DROP COORDINATES:</span>
+            <span className="text-kk-ink">{targetName || 'Classified Operative'} — {targetAddress}</span>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="p-3 bg-rose-950/50 border border-rose-500/50 text-rose-300 rounded-xl text-xs font-mono">
+        <div className="p-3 bg-kk-danger-soft border border-kk-danger/40 text-kk-on-danger-soft rounded-xl text-xs font-mono">
           {error}
         </div>
       )}
@@ -141,19 +141,19 @@ export default function StealthDropConsole({
       <form onSubmit={handleSubmitDrop} className="space-y-4">
         {/* Photo Uploader */}
         <div className="space-y-2">
-          <label className="block text-xs font-mono text-slate-300 font-bold">
+          <label className="block text-xs font-mono text-kk-ink font-bold">
             DROP SITE PROOF PHOTO (WEBP COMPRESSED):
           </label>
 
           {photoUrl ? (
-            <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+            <div className="relative rounded-2xl overflow-hidden border border-kk-border bg-kk-inset">
               <img src={photoUrl} alt="Drop Site" className="w-full max-h-52 object-cover" />
-              <div className="p-2.5 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono">
-                <span className="text-emerald-400 font-bold flex items-center gap-1">
+              <div className="p-2.5 bg-kk-surface/90 border-t border-kk-border flex items-center justify-between text-[11px] font-mono">
+                <span className="text-kk-brand font-bold flex items-center gap-1">
                   <span>✓</span> Drop Photo Loaded
                 </span>
                 {savings && (
-                  <span className="text-slate-400">
+                  <span className="text-kk-muted">
                     {formatFileSize(savings.comp)} (saved {Math.round((1 - savings.comp / savings.orig) * 100)}%)
                   </span>
                 )}
@@ -164,7 +164,7 @@ export default function StealthDropConsole({
                       setPhotoUrl(null);
                       setSavings(null);
                     }}
-                    className="text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
+                    className="text-kk-danger hover:underline font-bold cursor-pointer"
                   >
                     Change Photo
                   </button>
@@ -172,12 +172,12 @@ export default function StealthDropConsole({
               </div>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-800 hover:border-amber-500/50 rounded-2xl bg-slate-950/50 hover:bg-slate-950 cursor-pointer transition">
+            <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-kk-border hover:border-kk-border-strong rounded-2xl bg-kk-inset/50 hover:bg-kk-inset cursor-pointer transition">
               <span className="text-3xl mb-2">📸</span>
-              <span className="text-xs text-slate-300 font-mono font-bold">
+              <span className="text-xs text-kk-ink font-mono font-bold">
                 {compressing ? 'Compressing WebP...' : 'Take or Upload Drop Site Photo'}
               </span>
-              <span className="text-[10px] text-slate-500 font-mono mt-1">
+              <span className="text-[10px] text-kk-muted font-mono mt-1">
                 Show where the gift is hidden (e.g. behind planter, on side porch)
               </span>
               <input
@@ -194,7 +194,7 @@ export default function StealthDropConsole({
 
         {/* Location Clue */}
         <div>
-          <label className="block text-xs font-mono text-slate-300 mb-1 font-bold">
+          <label className="block text-xs font-mono text-kk-ink mb-1 font-bold">
             STASH LOCATION CLUE (OPTIONAL):
           </label>
           <input
@@ -203,7 +203,7 @@ export default function StealthDropConsole({
             value={stashNote}
             onChange={(e) => setStashNote(e.target.value)}
             disabled={isSuccess}
-            className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder:text-slate-600 focus:outline-none transition disabled:opacity-60"
+            className="w-full bg-kk-inset border border-kk-border focus:border-kk-focus rounded-xl px-4 py-2.5 text-xs text-kk-ink font-mono placeholder:text-kk-muted focus:outline-none transition disabled:opacity-60"
           />
         </div>
 
@@ -211,7 +211,7 @@ export default function StealthDropConsole({
           <button
             type="submit"
             disabled={submitting || !photoUrl}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 disabled:opacity-40 disabled:pointer-events-none text-white font-mono text-xs font-bold shadow-lg shadow-amber-600/20 flex items-center justify-center gap-2 transition cursor-pointer"
+            className="w-full py-3 rounded-xl bg-kk-primary hover:bg-kk-primary-hover disabled:opacity-40 disabled:pointer-events-none text-kk-on-primary font-mono text-xs font-bold shadow-lg shadow-black/20 flex items-center justify-center gap-2 transition cursor-pointer"
           >
             {submitting ? 'Logging Infiltration...' : 'Confirm Drop & Stash Clue 🕶️'}
           </button>

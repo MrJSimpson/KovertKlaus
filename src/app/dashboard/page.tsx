@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
+import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
 import { Card, SectionHeader, Button, Badge, DataRow } from '@/components/ui';
 import { AccountPreferencesModal } from '@/components/AccountPreferencesModal';
@@ -356,14 +357,12 @@ export default function DashboardPage() {
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-lg sm:text-xl shadow-md shrink-0 ${
-              isDarkMode ? 'bg-gradient-to-br from-sky-400 to-slate-700' : 'bg-gradient-to-br from-red-600 to-emerald-800'
-            }`}>
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md shrink-0 bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
             <div>
               <span className="text-lg sm:text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textBrand}`}>
+              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textGoldOnDark}`}>
                 Operative Dashboard
               </span>
             </div>
@@ -411,8 +410,8 @@ export default function DashboardPage() {
                   <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeCode}`}>
                     OPERATIVE STATUS: ACTIVE
                   </span>
-                  <span className="text-xs text-slate-500 font-mono">
-                    Coal Citations: <strong className={user.demerits > 0 ? 'text-red-500' : 'text-emerald-600 dark:text-sky-400'}>{user.demerits}/3</strong>
+                  <span className="text-xs text-kk-muted font-mono">
+                    Coal Citations: <strong className={user.demerits > 0 ? 'text-kk-danger' : 'text-kk-brand'}>{user.demerits}/3</strong>
                   </span>
                 </div>
 
@@ -444,7 +443,7 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={notif.id}
-                      className={`p-5 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${theme.cardBg} border-amber-500/50`}
+                      className={`p-5 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${theme.cardBg} border-kk-border-strong`}
                     >
                       <div className="flex items-start gap-3">
                         <span className="text-2xl">📩</span>
@@ -500,7 +499,7 @@ export default function DashboardPage() {
                 title="🎯 Active Operations (Exchanges)"
                 subtitle="Gift exchanges you are currently organizing or participating in — Showing 3 most recent."
                 primaryAction={
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button onClick={() => setJoinOpModalOpen(true)} variant="secondary">
                       🕵️ Join Exchange
                     </Button>
@@ -515,16 +514,16 @@ export default function DashboardPage() {
               {/* Pending email invitations */}
               {invitations.length > 0 && (
                 <div className="mb-6 space-y-3">
-                  {inviteError && <p className="text-xs font-bold text-red-500">⚠️ {inviteError}</p>}
+                  {inviteError && <p className="text-xs font-bold text-kk-danger">⚠️ {inviteError}</p>}
                   {invitations.map((inv) => (
-                    <Card key={inv.id} className="border-amber-500/40">
+                    <Card key={inv.id} className="border-kk-border-strong">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-kk-gold-ink">
                             📩 Invitation{inv.isLatePass ? ' · Late Pass' : ''} from {formatCodename(inv.exchange.organizer.codename, inv.exchange.organizer.name)}
                           </span>
                           <h3 className="text-base font-bold">{inv.exchange.title}</h3>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-kk-muted">
                             Budget ${inv.exchange.budgetMin || 0}–${inv.exchange.budgetMax} {inv.exchange.currency} · Exchange Day {formatDateString(inv.exchange.executionDate)} ·{' '}
                             <Link href={`/exchange/${inv.exchange.code}`} className="underline">View mission</Link>
                           </p>
@@ -548,7 +547,7 @@ export default function DashboardPage() {
                 <Card className="text-center py-8">
                   <div className="text-3xl mb-2">🎁</div>
                   <h3 className="text-base font-bold mb-1">No Active Operations</h3>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-xs text-kk-muted mb-4">
                     You haven't joined or created any secret santa gift exchanges yet.
                   </p>
                   <div className="flex items-center justify-center gap-3">
@@ -574,9 +573,9 @@ export default function DashboardPage() {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <Badge variant="code">CODE: {ex.code}</Badge>
-                            <Badge variant={ex.isWhiteElephant ? 'white-elephant' : 'secret-santa'}>
+                            <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-flex items-center gap-1 ${statusBadgeClass(countdown)}`}>
                               ● {countdown.phaseStatusLabel}
-                            </Badge>
+                            </span>
                           </div>
 
                           <h3 className="text-xl font-black mt-2">{ex.title}</h3>
@@ -593,24 +592,18 @@ export default function DashboardPage() {
                               valueVariant="date"
                             />
 
-                            <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 dark:border-slate-800/80">
+                            <div className="flex justify-between items-center pt-2 border-t border-kk-border">
                               <span className={`flex items-center gap-1 ${theme.textLabel}`}>
                                 ⏳ {countdown.milestoneLabel}:
                               </span>
-                              <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${
-                                countdown.isToday
-                                  ? theme.badgeCountdownToday
-                                  : countdown.daysLeft <= 7 && !countdown.isPast
-                                  ? theme.badgeCountdownUrgent
-                                  : theme.badgeCountdown
-                              }`}>
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${countdownBadgeClass(countdown)}`}>
                                 {countdown.formattedText}
                               </span>
                             </div>
                           </Card>
                         </div>
 
-                        <div className="mt-6 flex items-center justify-between gap-2 pt-3 border-t border-stone-200 dark:border-slate-800">
+                        <div className="mt-6 flex items-center justify-between gap-2 pt-3 border-t border-kk-border">
                           <div className="flex items-center gap-1.5 shrink-0">
                             <span className={`text-xs ${theme.textLabel}`}>Role:</span>
                             <Badge variant={ex?.organizerId === user.id ? 'opsleader' : 'code'}>
@@ -655,7 +648,7 @@ export default function DashboardPage() {
                 <div className={`p-8 text-center rounded-3xl border ${theme.cardBg}`}>
                   <div className="text-3xl mb-2">🧰</div>
                   <h3 className="text-base font-bold mb-1">No Wishlist Manifests Created Yet</h3>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-xs text-kk-muted mb-4">
                     Create your first Wishlist Manifest to add wished-for gift items for your Secret Santa.
                   </p>
                   <button
@@ -677,7 +670,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-xl">{kit.isMaster ? '⭐' : kit.type === 'WHITE_ELEPHANT' ? '🐘' : '🎁'}</span>
                           {kit.isMaster && (
-                            <span className="text-[10px] bg-amber-200 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 font-bold px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] bg-kk-warning text-kk-on-warning font-bold px-2 py-0.5 rounded-full">
                               Master Wishlist Manifest
                             </span>
                           )}
@@ -726,7 +719,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="mt-6 flex items-center justify-end pt-3 border-t border-stone-200 dark:border-slate-800">
+                    <div className="mt-6 flex items-center justify-end pt-3 border-t border-kk-border">
                       <Link
                         href="/opkits"
                         className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
@@ -754,15 +747,15 @@ export default function DashboardPage() {
 
       {/* MODAL: CREATE QUICK WISHLIST MANIFEST */}
       {createManifestModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
           <div className={`w-full sm:max-w-md max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl border transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
-            <div className="p-4 sm:p-6 pb-3 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+            <div className="p-4 sm:p-6 pb-3 border-b border-kk-border flex items-center justify-between shrink-0">
               <h3 className="text-xl sm:text-2xl font-black flex items-center gap-2">
                 <span>🧰 Create Quick Wishlist Manifest</span>
               </h3>
               <button
                 onClick={() => setCreateManifestModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
+                className="text-kk-muted hover:text-kk-ink font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
               >
                 ✕
               </button>
@@ -771,7 +764,7 @@ export default function DashboardPage() {
             <form onSubmit={handleCreateQuickManifest} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
                 <div>
-                  <label className="block text-slate-500 mb-1">Wishlist Manifest Name *</label>
+                  <label className="block text-kk-muted mb-1">Wishlist Manifest Name *</label>
                   <input
                     type="text"
                     required
@@ -783,7 +776,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1">Category Type *</label>
+                  <label className="block text-kk-muted mb-1">Category Type *</label>
                   <select
                     value={newManifestType}
                     onChange={(e) => setNewManifestType(e.target.value as 'WISHLIST' | 'WHITE_ELEPHANT')}
@@ -795,7 +788,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
+              <div className="p-4 sm:p-6 border-t border-kk-border shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
                 <button
                   type="button"
                   onClick={() => setCreateManifestModalOpen(false)}

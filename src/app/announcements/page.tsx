@@ -38,14 +38,12 @@ export default function AnnouncementsPage() {
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-3xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-3">
           <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
-            <div className={`h-9 w-9 rounded-xl flex items-center justify-center font-extrabold text-white text-lg shadow-md ${
-              isDarkMode ? 'bg-gradient-to-br from-sky-400 to-slate-700' : 'bg-gradient-to-br from-red-600 to-emerald-800'
-            }`}>
+            <div className="h-9 w-9 shrink-0 rounded-xl flex items-center justify-center font-extrabold text-lg shadow-md bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
             <div>
               <span className="text-lg font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-[10px] sm:text-xs font-bold ${theme.textBrand}`}>What&apos;s New</span>
+              <span className={`text-[10px] sm:text-xs font-bold ${theme.textGoldOnDark}`}>What&apos;s New</span>
             </div>
           </Link>
           <div className="flex items-center gap-2">
@@ -74,7 +72,7 @@ export default function AnnouncementsPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${theme.badgeCode}`}>v{a.version}</span>
               <span className={`text-xs font-semibold ${theme.textSubLabel}`}>{formatDate(a.date)}</span>
-              {i === 0 && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30">Latest</span>}
+              {i === 0 && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40">Latest</span>}
             </div>
             <h2 className={`mt-3 text-xl sm:text-2xl font-black ${theme.textHeading}`}>{a.title}</h2>
             <p className={`mt-2 text-sm ${theme.textSubLabel}`}>{a.summary}</p>
@@ -85,7 +83,7 @@ export default function AnnouncementsPage() {
                     <span aria-hidden>{h.emoji}</span>
                     <span className={`font-bold ${theme.textLabel}`}>{h.title}</span>
                     {h.selfHostedOnly && (
-                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border border-slate-500/30 text-slate-500">Self-hosted</span>
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border border-kk-border text-kk-muted">Self-hosted</span>
                     )}
                   </div>
                   <p className={`mt-1 ${theme.textSubLabel}`}>{h.text}</p>

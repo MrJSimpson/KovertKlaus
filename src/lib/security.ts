@@ -133,6 +133,10 @@ export interface OperationPhaseInfo {
   formattedText: string;
   isPast: boolean;
   isToday: boolean;
+  /** Current timeline stage: 1 RSVP, 2 Match, 3 Sleigh (shipping), 4 Party. Drives stage colors. */
+  stage: 1 | 2 | 3 | 4;
+  /** True once the mission is over; every stage then shows as done. */
+  isComplete: boolean;
 }
 
 /**
@@ -154,6 +158,8 @@ export function getNextMilestoneCountdown(mission?: {
       formattedText: 'N/A',
       isPast: false,
       isToday: false,
+      stage: 1,
+      isComplete: false,
     };
   }
 
@@ -191,6 +197,7 @@ export function getNextMilestoneCountdown(mission?: {
   let phaseStatusLabel = 'Recruiting';
   let milestoneLabel = 'RSVP Cutoff';
   let targetDate: Date | null = cutoff;
+  let stage: 1 | 2 | 3 | 4 = 1;
 
   if (rawStatus === 'COMPLETED' || rawStatus === 'EXECUTED' || (exec && now > exec)) {
     // Phase 5: Completed
@@ -201,9 +208,12 @@ export function getNextMilestoneCountdown(mission?: {
       formattedText: 'Operation Completed',
       isPast: true,
       isToday: false,
+      stage: 4,
+      isComplete: true,
     };
   } else if (rawStatus === 'SHIPPED' || (ship && now > ship && (!exec || now <= exec))) {
     // Phase 4: Awaiting Execution (Pre-Exchange)
+    stage = 4;
     targetDate = exec;
     milestoneLabel = 'Exchange Day';
     if (exec && exec.getTime() === now.getTime()) {
@@ -211,8 +221,9 @@ export function getNextMilestoneCountdown(mission?: {
     } else {
       phaseStatusLabel = 'Awaiting Execution...';
     }
-  } else if (rawStatus === 'ASSIGNED' || (assign && now > assign && (!ship || now <= ship))) {
+  } else if (rawStatus === 'MATCHED' || rawStatus === 'ASSIGNED' || (assign && now > assign && (!ship || now <= ship))) {
     // Phase 3: Acquiring Manifest Items / Shipping
+    stage = 3;
     targetDate = ship || exec;
     milestoneLabel = ship ? 'Ship Deadline' : 'Exchange Day';
     if (ship && ship.getTime() === now.getTime()) {
@@ -222,6 +233,7 @@ export function getNextMilestoneCountdown(mission?: {
     }
   } else if (rawStatus === 'SETUP' || (cutoff && now > cutoff && (!assign || now <= assign))) {
     // Phase 2: Waiting Target Assignment
+    stage = 2;
     targetDate = assign || ship || exec;
     milestoneLabel = assign ? 'Target Draw' : 'Ship Deadline';
     if (assign && assign.getTime() === now.getTime()) {
@@ -248,6 +260,8 @@ export function getNextMilestoneCountdown(mission?: {
       formattedText: 'N/A',
       isPast: false,
       isToday: false,
+      stage,
+      isComplete: false,
     };
   }
 
@@ -273,6 +287,8 @@ export function getNextMilestoneCountdown(mission?: {
     formattedText,
     isPast: daysLeft < 0,
     isToday,
+    stage,
+    isComplete: false,
   };
 }
 

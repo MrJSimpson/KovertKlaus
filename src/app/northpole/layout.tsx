@@ -125,8 +125,8 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
   if (loading || !admin) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 font-mono text-xs gap-3">
-        <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-red-600 to-emerald-800 flex items-center justify-center text-xl shadow-lg animate-pulse">
+      <div className="min-h-screen bg-kk-inset flex flex-col items-center justify-center text-kk-muted font-mono text-xs gap-3">
+        <div className="h-10 w-10 rounded-2xl bg-kk-primary text-kk-on-primary border border-kk-border-strong flex items-center justify-center text-xl shadow-lg animate-pulse">
           🎅
         </div>
         <span>Verifying North Pole Clearance...</span>
@@ -147,28 +147,28 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
+    <div className="min-h-screen bg-kk-inset text-kk-ink font-sans flex flex-col">
       {/* Top Admin HUD Header */}
-      <header className="border-b border-red-900/40 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-kk-danger/40 bg-kk-surface/90 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
           
           {/* Brand */}
           <div className="flex items-center gap-3">
             <Link href="/northpole" className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-red-600 to-emerald-800 flex items-center justify-center text-lg shadow-md">
+              <div className="h-9 w-9 rounded-xl bg-kk-primary text-kk-on-primary border border-kk-border-strong flex items-center justify-center text-lg shadow-md">
                 🎅
               </div>
               <div>
-                <span className="font-extrabold text-base tracking-tight text-white flex items-center gap-2">
+                <span className="font-extrabold text-base tracking-tight text-kk-heading flex items-center gap-2">
                   <span>NORTH POLE</span>
-                  <span className="text-[10px] font-mono bg-red-950 text-red-300 border border-red-500/40 px-1.5 py-0.5 rounded font-bold">
+                  <span className="text-[10px] font-mono bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40 px-1.5 py-0.5 rounded font-bold">
                     HQ ADMIN
                   </span>
-                  <span className="text-[10px] font-mono bg-slate-800 text-sky-300 border border-sky-600/40 px-1.5 py-0.5 rounded font-bold">
+                  <span className="text-[10px] font-mono bg-kk-surface text-kk-accent border border-kk-border-strong px-1.5 py-0.5 rounded font-bold">
                     {APP_VERSION_LABEL}
                   </span>
                 </span>
-                <span className="text-[11px] text-gray-400 font-mono block">
+                <span className="text-[11px] text-kk-muted font-mono block">
                   KovertKlaus Administration
                 </span>
               </div>
@@ -185,8 +185,8 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
                   href={item.href}
                   className={`px-3 py-1.5 rounded-lg transition-colors font-bold ${
                     isActive
-                      ? 'bg-red-600 text-white shadow-sm'
-                      : 'text-gray-300 hover:text-white hover:bg-slate-800'
+                      ? 'bg-kk-primary text-kk-on-primary shadow-sm'
+                      : 'text-kk-ink hover:text-kk-ink hover:bg-kk-surface'
                   }`}
                 >
                   {item.label}
@@ -200,7 +200,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
             {isSelfHosted && (
               <Link
                 href="/workshop"
-                className="bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 px-2.5 py-1.5 rounded-lg transition-colors font-bold flex items-center gap-1"
+                className="bg-kk-warning hover:brightness-95 text-kk-on-warning border border-kk-border-strong px-2.5 py-1.5 rounded-lg transition-colors font-bold flex items-center gap-1"
               >
                 🧪 Workshop
               </Link>
@@ -208,14 +208,14 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
 
             <Link
               href="/"
-              className="bg-slate-800 hover:bg-slate-700 text-gray-300 px-2.5 py-1.5 rounded-lg transition-colors"
+              className="bg-kk-surface hover:border-kk-border-strong text-kk-ink px-2.5 py-1.5 rounded-lg transition-colors"
             >
               Live Site
             </Link>
 
             <button
               onClick={handleLogout}
-              className="bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+              className="bg-kk-danger-soft hover:brightness-95 text-kk-on-danger-soft border border-kk-danger/40 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
             >
               Logout
             </button>
@@ -230,7 +230,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
       </main>
 
       {/* Admin Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs font-mono text-gray-600">
+      <footer className="border-t border-kk-border bg-kk-inset py-6 text-center text-xs font-mono text-kk-muted">
         KovertKlaus North Pole Administration // Database Isolated RBAC // Version 2.0
       </footer>
     </div>

@@ -15,28 +15,20 @@ import { WhatsNewLink } from '@/components/WhatsNewLink';
 
 
 // Charlie Brown Retro Glowing Christmas Lights Strand
-function ChristmasLightsStrand({ isDarkMode }: { isDarkMode: boolean }) {
+function ChristmasLightsStrand() {
+  // Classic Christmas bulbs in light mode, blue and gold in dark mode (kk-* tokens switch with the theme).
   const bulbs = [
-    { color: 'bg-red-500 shadow-red-500/90 ring-red-400/50', delay: '0s' },
-    { color: 'bg-emerald-500 shadow-emerald-500/90 ring-emerald-400/50', delay: '0.4s' },
-    { color: 'bg-amber-400 shadow-amber-400/90 ring-amber-300/50', delay: '0.8s' },
-    { color: 'bg-sky-400 shadow-sky-400/90 ring-sky-300/50', delay: '0.2s' },
-    { color: 'bg-purple-500 shadow-purple-500/90 ring-purple-400/50', delay: '0.6s' },
-    { color: 'bg-yellow-300 shadow-yellow-300/90 ring-yellow-200/50', delay: '1s' },
-    { color: 'bg-rose-600 shadow-rose-600/90 ring-rose-400/50', delay: '0.3s' },
-    { color: 'bg-emerald-400 shadow-emerald-400/90 ring-emerald-300/50', delay: '0.7s' },
-    { color: 'bg-blue-500 shadow-blue-500/90 ring-blue-400/50', delay: '0.5s' },
-    { color: 'bg-orange-500 shadow-orange-500/90 ring-orange-400/50', delay: '0.9s' },
+    { color: 'bg-kk-festive-red shadow-kk-festive-red/80 ring-kk-festive-red/40', delay: '0s' },
+    { color: 'bg-kk-festive-green shadow-kk-festive-green/80 ring-kk-festive-green/40', delay: '0.4s' },
+    { color: 'bg-kk-gold shadow-kk-gold/80 ring-kk-border-strong/50', delay: '0.8s' },
+    { color: 'bg-kk-primary shadow-kk-primary/80 ring-kk-primary/40', delay: '0.2s' },
+    { color: 'bg-kk-header-nav shadow-kk-header-nav/80 ring-kk-border-strong/50', delay: '0.6s' },
   ];
 
   return (
-    <div className={`w-full py-1.5 relative z-30 overflow-hidden select-none transition-colors ${
-      isDarkMode ? 'bg-slate-950/80 border-b border-slate-800/80' : 'bg-transparent'
-    }`}>
+    <div className={`w-full py-1.5 relative z-30 overflow-hidden select-none transition-colors bg-transparent`}>
       {/* Hanging Wire Strand */}
-      <div className={`absolute top-2 left-0 right-0 h-0.5 pointer-events-none ${
-        isDarkMode ? 'bg-slate-700' : 'bg-slate-800'
-      }`}></div>
+      <div className="absolute top-2 left-0 right-0 h-0.5 pointer-events-none bg-kk-border-strong"></div>
 
       <div className="max-w-7xl mx-auto px-4 flex justify-between items-center relative z-10">
         {Array.from({ length: 26 }).map((_, i) => {
@@ -44,10 +36,10 @@ function ChristmasLightsStrand({ isDarkMode }: { isDarkMode: boolean }) {
           return (
             <div key={i} className="flex flex-col items-center group cursor-pointer">
               {/* Wire socket */}
-              <div className="w-2 h-2 bg-slate-800 border border-slate-600 rounded-t-sm z-10"></div>
+              <div className="w-2 h-2 bg-kk-border-strong rounded-t-sm z-10"></div>
               {/* Glowing Teardrop Bulb */}
               <div
-                className={`w-3.5 h-5 rounded-b-full shadow-lg ring-1 transition-all animate-pulse transform group-hover:scale-125 ${bulb.color}`}
+                className={`w-3.5 h-5 rounded-b-full shadow-lg ring-1 transition-all motion-safe:animate-pulse transform group-hover:scale-125 ${bulb.color}`}
                 style={{ animationDelay: bulb.delay, animationDuration: '1.6s' }}
               ></div>
             </div>
@@ -59,22 +51,22 @@ function ChristmasLightsStrand({ isDarkMode }: { isDarkMode: boolean }) {
 }
 
 // Playful / "Charlie Brown" Cute Christmas Tree Artwork
-function CharlieBrownTree({ isDarkMode }: { isDarkMode: boolean }) {
+function CharlieBrownTree() {
   return (
     <div className="relative inline-flex flex-col items-center group cursor-pointer">
-      <div className="text-amber-400 animate-bounce text-xl leading-none filter drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+      <div className="text-kk-gold-ink animate-bounce text-xl leading-none filter drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
         ⭐
       </div>
       <div className="text-center font-black leading-none select-none text-2xl tracking-tighter filter drop-shadow-md">
-        <div className="text-emerald-600 dark:text-emerald-400 hover:scale-110 transition-transform">▲</div>
-        <div className="text-emerald-700 dark:text-emerald-500 hover:scale-110 transition-transform -mt-2">▲▲</div>
-        <div className="text-emerald-800 dark:text-emerald-600 hover:scale-110 transition-transform -mt-2.5">▲▲▲</div>
+        <div className="text-kk-brand hover:scale-110 transition-transform">▲</div>
+        <div className="text-kk-brand hover:scale-110 transition-transform -mt-2">▲▲</div>
+        <div className="text-kk-brand hover:scale-110 transition-transform -mt-2.5">▲▲▲</div>
       </div>
       <div className="absolute right-1 top-6 text-[10px] animate-pulse">
         🔴
       </div>
-      <div className="w-3 h-2 bg-amber-900 rounded-b-sm border-t border-amber-950 mt-0.5"></div>
-      <div className="w-6 h-1 bg-amber-950 rounded-full mt-0.5 opacity-60"></div>
+      <div className="w-3 h-2 bg-kk-warning rounded-b-sm border-t border-kk-border-strong mt-0.5"></div>
+      <div className="w-6 h-1 bg-kk-warning rounded-full mt-0.5 opacity-60"></div>
     </div>
   );
 }
@@ -433,11 +425,7 @@ export function AppHomeLanding() {
       
       {/* Dynamic Announcement Banner */}
       {bannerActive && (
-        <div className={`text-xs py-2 px-4 text-center font-medium transition-colors ${
-          isDarkMode
-            ? 'bg-slate-900 text-sky-300 border-b border-sky-500/20 shadow-inner'
-            : 'bg-red-600 text-white shadow-inner'
-        }`}>
+        <div className={`text-xs py-2 px-4 text-center font-medium transition-colors bg-kk-primary text-kk-on-primary shadow-inner`}>
           <span>{bannerText}</span>
         </div>
       )}
@@ -448,27 +436,21 @@ export function AppHomeLanding() {
 
       {/* Main Header */}
       <header className={`border-b transition-colors sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md group-hover:scale-105 transition-all ${
-              isDarkMode
-                ? 'bg-gradient-to-br from-sky-400 via-sky-500 to-slate-700 shadow-sky-950/50'
-                : 'bg-gradient-to-br from-red-600 via-red-700 to-emerald-800'
-            }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group min-w-0">
+            <div className="h-10 w-10 shrink-0 rounded-xl flex items-center justify-center font-extrabold text-xl shadow-md group-hover:scale-105 transition-all bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-black tracking-tight block">
+                <span className="text-xl sm:text-2xl font-black tracking-tight block">
                   KovertKlaus
                 </span>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                  isDarkMode ? 'bg-sky-950/80 text-sky-300 border-sky-800' : 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                }`}>
+                <span className="hidden sm:inline-block text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border bg-kk-success text-kk-on-success border-kk-on-success/30">
                   {APP_VERSION_LABEL}
                 </span>
               </div>
-              <span className={`text-xs block font-bold ${theme.textGoldOnDark}`}>
+              <span className={`text-xs hidden sm:block font-bold ${theme.textGoldOnDark}`}>
                 {isDarkMode ? 'Stealth Winter Exchange' : 'Simple & Fun Gift Exchanges'}
               </span>
             </div>
@@ -486,34 +468,40 @@ export function AppHomeLanding() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               onClick={toggleTheme}
               title="Toggle Theme Mode"
-              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${theme.btnToggle}`}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className={`min-h-11 min-w-11 p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${theme.btnToggle}`}
             >
-              <span>{isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}</span>
+              <span aria-hidden>{isDarkMode ? '🎅' : '🕶️'}</span>
+              <span className="hidden sm:inline">{isDarkMode ? 'Klaus Mode' : 'Kovert Mode'}</span>
             </button>
 
             {currentUser ? (
               <div className="flex items-center gap-2">
                 <Link
                   href="/dashboard"
-                  className={`font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm flex items-center gap-1.5 ${theme.badgeCode}`}
+                  aria-label="Dashboard"
+                  className={`min-h-11 font-bold text-xs px-3 sm:px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm flex items-center gap-1.5 ${theme.badgeCode}`}
                 >
-                  <span>👤 Dashboard</span>
+                  <span aria-hidden>👤</span>
+                  <span className="hidden sm:inline">Dashboard</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className={`font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer ${theme.btnSecondary}`}
+                  aria-label="Sign out"
+                  className={`min-h-11 font-bold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl transition-all cursor-pointer ${theme.btnSecondary}`}
                 >
-                  🚪 Sign Out
+                  <span aria-hidden>🚪</span>
+                  <span className="hidden sm:inline"> Sign Out</span>
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => { resetAuthStates(); setAuthMode('login'); setLoginModalOpen(true); }}
-                className={`font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
+                className={`min-h-11 whitespace-nowrap font-bold text-xs px-3 sm:px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm transform hover:-translate-y-0.5 ${theme.btnPrimary}`}
               >
                 {isAlpha ? '🔑 Sign In' : '🔑 Login / Sign Up'}
               </button>
@@ -523,7 +511,7 @@ export function AppHomeLanding() {
       </header>
 
       {/* Christmas Lights Strand */}
-      <ChristmasLightsStrand isDarkMode={isDarkMode} />
+      <ChristmasLightsStrand />
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-16 w-full flex-1 flex flex-col justify-center">
@@ -535,7 +523,7 @@ export function AppHomeLanding() {
                 <span>{isDarkMode ? '❄️ Winter Night Stealth Mode Active' : '🎅 Secret Santa & Holiday Gift Exchanges Made Effortless'}</span>
               </div>
               <div className="hidden sm:block">
-                <CharlieBrownTree isDarkMode={isDarkMode} />
+                <CharlieBrownTree />
               </div>
             </div>
 
@@ -620,14 +608,14 @@ export function AppHomeLanding() {
                 </p>
 
                 {clearanceSubmitted ? (
-                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
+                  <div className="p-3.5 rounded-xl bg-kk-success border border-kk-on-success/30 text-kk-on-success text-xs font-medium flex items-center gap-2">
                     <span>✓</span>
                     <span>Clearance request queued! You will be notified at <strong>{clearanceEmail}</strong> when approved or when public beta launches.</span>
                   </div>
                 ) : (
                   <form onSubmit={handleClearanceSubmit} className="space-y-2">
                     {clearanceError && (
-                      <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-[11px] font-semibold">
+                      <div className="p-2 rounded-lg bg-kk-danger-soft border border-kk-danger/40 text-kk-on-danger-soft text-[11px] font-semibold">
                         ⚠️ {clearanceError}
                       </div>
                     )}
@@ -660,9 +648,7 @@ export function AppHomeLanding() {
               </div>
             )}
 
-            <div className={`pt-4 grid grid-cols-3 gap-4 border-t text-xs font-medium ${
-              isDarkMode ? 'border-slate-800 text-slate-400' : 'border-stone-200 text-slate-600'
-            }`}>
+            <div className={`pt-4 grid grid-cols-3 gap-4 border-t text-xs font-medium border-kk-border text-kk-muted`}>
               <div>
                 <span className={`block font-bold text-sm ${theme.textAccent}`}>⚡ 60-Second Setup</span>
                 <span>No complicated setup</span>
@@ -680,9 +666,9 @@ export function AppHomeLanding() {
 
           <div className="lg:col-span-5">
             <div className={`rounded-3xl p-6 sm:p-8 border shadow-2xl transition-all relative overflow-hidden ${theme.cardBg}`}>
-              <div className="flex items-center justify-between pb-4 border-b border-stone-200 dark:border-slate-800">
+              <div className="flex items-center justify-between pb-4 border-b border-kk-border">
                 <div className={`flex items-center gap-2 text-xs font-bold ${theme.textAccent}`}>
-                  <span className={`h-2.5 w-2.5 rounded-full inline-block animate-pulse ${isDarkMode ? 'bg-sky-400' : 'bg-red-600'}`}></span>
+                  <span className={`h-2.5 w-2.5 rounded-full inline-block animate-pulse bg-kk-primary`}></span>
                   <span>LIVE EXCHANGE PREVIEW</span>
                 </div>
                 <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${theme.badgeCode}`}>
@@ -698,7 +684,7 @@ export function AppHomeLanding() {
                   <div className="text-xl font-black mt-1">
                     North Pole Holiday Mission
                   </div>
-                  <div className="mt-3 flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <div className="mt-3 flex items-center justify-between text-xs font-medium text-kk-muted">
                     <span>Budget: <strong className={theme.textAccent}>$25 – $50</strong></span>
                     <span>Exchange: <strong className={theme.textDate}>Dec 25, 2026</strong></span>
                   </div>
@@ -711,7 +697,7 @@ export function AppHomeLanding() {
                   <div className="mt-2 flex items-center justify-between">
                     <div>
                       <span className="text-lg font-bold block">Agent: Sarah</span>
-                      <span className="text-xs text-slate-500">Wishlist: 3 Items Added</span>
+                      <span className="text-xs text-kk-muted">Wishlist: 3 Items Added</span>
                     </div>
                     <span className={`text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm ${theme.btnPrimary}`}>
                       View Wishlist →
@@ -727,7 +713,7 @@ export function AppHomeLanding() {
       </section>
 
       {/* SECTION 1: HOW IT WORKS */}
-      <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-8 py-16 w-full border-t border-stone-200 dark:border-slate-800">
+      <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-8 py-16 w-full border-t border-kk-border">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-3 ${theme.badgeCode}`}>
             ✨ Simple 4-Step Process
@@ -744,7 +730,7 @@ export function AppHomeLanding() {
           {/* Step 1 */}
           <div className={`p-6 rounded-3xl border flex flex-col justify-between transition-all hover:-translate-y-1 ${theme.cardBg}`}>
             <div>
-              <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-800 flex items-center justify-center text-2xl font-black text-red-700 dark:text-red-400 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-kk-danger-soft border border-kk-danger/40 flex items-center justify-center text-2xl font-black text-kk-on-danger-soft mb-4">
                 1
               </div>
               <h3 className="text-xl font-bold mb-2">Create Your Exchange</h3>
@@ -752,7 +738,7 @@ export function AppHomeLanding() {
                 Set a gift budget ($25–$50) and exchange date in 60 seconds. Perfect for groups of 4 or more! Invite your family and friends with a simple code or direct link.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-stone-200 dark:border-slate-800 text-[11px] font-bold text-red-700 dark:text-sky-400">
+            <div className="mt-4 pt-3 border-t border-kk-border text-[11px] font-bold text-kk-danger">
               ⚡ Takes less than 1 minute
             </div>
           </div>
@@ -760,7 +746,7 @@ export function AppHomeLanding() {
           {/* Step 2 */}
           <div className={`p-6 rounded-3xl border flex flex-col justify-between transition-all hover:-translate-y-1 ${theme.cardBg}`}>
             <div>
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-2xl font-black text-emerald-800 dark:text-emerald-400 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-kk-success border border-kk-on-success/30 flex items-center justify-center text-2xl font-black text-kk-on-success mb-4">
                 2
               </div>
               <h3 className="text-xl font-bold mb-2">Build Your Wishlist</h3>
@@ -768,7 +754,7 @@ export function AppHomeLanding() {
                 Add gift ideas from any website or online store! Paste links or search items so your Secret Santa knows what brings you joy.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-stone-200 dark:border-slate-800 text-[11px] font-bold text-emerald-800 dark:text-emerald-400">
+            <div className="mt-4 pt-3 border-t border-kk-border text-[11px] font-bold text-kk-brand">
               🎁 Works with any web store
             </div>
           </div>
@@ -776,7 +762,7 @@ export function AppHomeLanding() {
           {/* Step 3 */}
           <div className={`p-6 rounded-3xl border flex flex-col justify-between transition-all hover:-translate-y-1 ${theme.cardBg}`}>
             <div>
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-2xl font-black text-amber-800 dark:text-amber-400 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-kk-warning border border-kk-border-strong flex items-center justify-center text-2xl font-black text-kk-on-warning mb-4">
                 3
               </div>
               <h3 className="text-xl font-bold mb-2">Get Secret Match</h3>
@@ -784,7 +770,7 @@ export function AppHomeLanding() {
                 Our system randomly assigns everyone a secret target. View their wishlist, preferences, and size details in total secrecy!
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-stone-200 dark:border-slate-800 text-[11px] font-bold text-amber-800 dark:text-amber-400">
+            <div className="mt-4 pt-3 border-t border-kk-border text-[11px] font-bold text-kk-gold-ink">
               🕵️ 100% Confidential
             </div>
           </div>
@@ -792,7 +778,7 @@ export function AppHomeLanding() {
           {/* Step 4 */}
           <div className={`p-6 rounded-3xl border flex flex-col justify-between transition-all hover:-translate-y-1 ${theme.cardBg}`}>
             <div>
-              <div className="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 flex items-center justify-center text-2xl font-black text-sky-700 dark:text-sky-400 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-kk-inset border border-kk-border-strong flex items-center justify-center text-2xl font-black text-kk-accent mb-4">
                 4
               </div>
               <h3 className="text-xl font-bold mb-2">Ship & Celebrate</h3>
@@ -800,7 +786,7 @@ export function AppHomeLanding() {
                 Ship your gift directly to your target&apos;s shipping address before the cutoff date, then meet up or join a call to unwrap!
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-stone-200 dark:border-slate-800 text-[11px] font-bold text-sky-700 dark:text-sky-400">
+            <div className="mt-4 pt-3 border-t border-kk-border text-[11px] font-bold text-kk-accent">
               📦 Automated Shipping Reminders
             </div>
           </div>
@@ -824,7 +810,7 @@ export function AppHomeLanding() {
       </section>
 
       {/* SECTION 2: WHY KOVERTKLAUS */}
-      <section id="benefits" className="max-w-7xl mx-auto px-4 sm:px-8 py-16 w-full border-t border-stone-200 dark:border-slate-800">
+      <section id="benefits" className="max-w-7xl mx-auto px-4 sm:px-8 py-16 w-full border-t border-kk-border">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-3 ${theme.badgeCode}`}>
             💡 Stress-Free Holiday Gifting
@@ -869,7 +855,7 @@ export function AppHomeLanding() {
 
       {/* Modal: DIRECT SIGN IN / SIGN UP (TABBED SYSTEM) */}
       {loginModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
@@ -877,21 +863,21 @@ export function AppHomeLanding() {
               </h3>
               <button
                 onClick={() => setLoginModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer"
+                className="text-kk-muted hover:text-kk-ink font-bold text-lg cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex border-b border-stone-200 dark:border-slate-800 mb-5 font-bold text-xs">
+            <div className="flex border-b border-kk-border mb-5 font-bold text-xs">
               <button
                 type="button"
                 onClick={() => { setAuthMode('login'); setErrorMessage(''); }}
                 className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
                   authMode === 'login'
-                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'border-kk-danger/40 text-kk-danger'
+                    : 'border-transparent text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 🔑 Sign In
@@ -901,8 +887,8 @@ export function AppHomeLanding() {
                 onClick={() => { setAuthMode('register'); setErrorMessage(''); }}
                 className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
                   authMode === 'register'
-                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'border-kk-danger/40 text-kk-danger'
+                    : 'border-transparent text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 {isAlpha ? '🎟️ Alpha Activation' : '✨ Sign Up'}
@@ -919,7 +905,7 @@ export function AppHomeLanding() {
             {authMode === 'login' && (
               <form onSubmit={handleDirectLogin} className="space-y-4 text-xs font-semibold">
                 <div>
-                  <label className="block text-slate-500 mb-1">Email Address *</label>
+                  <label className="block text-kk-muted mb-1">Email Address *</label>
                   <input
                     type="email"
                     required
@@ -931,7 +917,7 @@ export function AppHomeLanding() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1">Password *</label>
+                  <label className="block text-kk-muted mb-1">Password *</label>
                   <input
                     type="password"
                     required
@@ -960,8 +946,8 @@ export function AppHomeLanding() {
                 </div>
 
                 {isAlpha && (
-                  <div className="pt-2 text-center border-t border-stone-200 dark:border-slate-800 mt-4">
-                    <p className="text-[11px] text-slate-500">
+                  <div className="pt-2 text-center border-t border-kk-border mt-4">
+                    <p className="text-[11px] text-kk-muted">
                       Have an exchange invite code?{' '}
                       <button
                         type="button"
@@ -969,7 +955,7 @@ export function AppHomeLanding() {
                           setLoginModalOpen(false);
                           setJoinModalOpen(true);
                         }}
-                        className="font-bold text-red-600 dark:text-sky-400 hover:underline cursor-pointer"
+                        className="font-bold text-kk-danger hover:underline cursor-pointer"
                       >
                         Join an Exchange Here →
                       </button>
@@ -983,12 +969,12 @@ export function AppHomeLanding() {
             {authMode === 'register' && (
               <form onSubmit={handleDirectRegister} className="space-y-4 text-xs font-semibold">
                 {isAlpha && (
-                  <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-[11px] text-amber-900 dark:text-amber-200">
+                  <div className="p-3 rounded-2xl bg-kk-warning border border-kk-border-strong text-[11px] text-kk-on-warning">
                     <div className="font-bold mb-1 flex items-center gap-1.5">
                       <span>🎟️</span>
                       <span>Early Alpha Access Gate</span>
                     </div>
-                    <p className="text-amber-800 dark:text-amber-300 text-[11px] leading-relaxed">
+                    <p className="text-kk-gold-ink text-[11px] leading-relaxed">
                       Public registration is restricted. Enter your single-use Pre-Launch Activation Cipher from your clearance email.
                     </p>
                   </div>
@@ -997,8 +983,8 @@ export function AppHomeLanding() {
                 {isAlpha && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-slate-500">Pre-Launch Activation Cipher *</label>
-                      <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                      <label className="block text-kk-muted">Pre-Launch Activation Cipher *</label>
+                      <span className="text-[10px] font-mono text-kk-brand font-bold">
                         ALPHA-XXXXXXXXXXXXXXXX
                       </span>
                     </div>
@@ -1014,7 +1000,7 @@ export function AppHomeLanding() {
                 )}
 
                 <div>
-                  <label className="block text-slate-500 mb-1">Full Name *</label>
+                  <label className="block text-kk-muted mb-1">Full Name *</label>
                   <input
                     type="text"
                     required
@@ -1026,7 +1012,7 @@ export function AppHomeLanding() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1">Email Address *</label>
+                  <label className="block text-kk-muted mb-1">Email Address *</label>
                   <input
                     type="email"
                     required
@@ -1039,11 +1025,11 @@ export function AppHomeLanding() {
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-slate-500">Elf Agent Nickname / Codename</label>
+                    <label className="block text-kk-muted">Elf Agent Nickname / Codename</label>
                     <button
                       type="button"
                       onClick={() => setCodename(generateRandomCodename())}
-                      className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
+                      className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
                     >
                       🎲 Randomize Call Sign
                     </button>
@@ -1063,7 +1049,7 @@ export function AppHomeLanding() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1">Create Strong Password *</label>
+                  <label className="block text-kk-muted mb-1">Create Strong Password *</label>
                   <input
                     type="password"
                     required
@@ -1076,21 +1062,21 @@ export function AppHomeLanding() {
                 </div>
 
                 {password.length > 0 && (
-                  <div className="p-3.5 rounded-2xl bg-stone-100 dark:bg-slate-900 border border-stone-200 dark:border-slate-800 text-[11px] space-y-1.5 font-mono">
-                    <div className="font-bold mb-1 text-slate-700 dark:text-slate-300">Password Security Requirements:</div>
-                    <div className={password.length >= 10 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                  <div className="p-3.5 rounded-2xl bg-kk-inset border border-kk-border text-[11px] space-y-1.5 font-mono">
+                    <div className="font-bold mb-1 text-kk-muted">Password Security Requirements:</div>
+                    <div className={password.length >= 10 ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
                       {password.length >= 10 ? '✓' : '○'} Minimum 10 characters long
                     </div>
-                    <div className={/[A-Z]/.test(password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                    <div className={/[A-Z]/.test(password) ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
                       {/[A-Z]/.test(password) ? '✓' : '○'} At least 1 uppercase letter (A-Z)
                     </div>
-                    <div className={/[a-z]/.test(password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                    <div className={/[a-z]/.test(password) ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
                       {/[a-z]/.test(password) ? '✓' : '○'} At least 1 lowercase letter (a-z)
                     </div>
-                    <div className={/[0-9]/.test(password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                    <div className={/[0-9]/.test(password) ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
                       {/[0-9]/.test(password) ? '✓' : '○'} At least 1 number (0-9)
                     </div>
-                    <div className={/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}>
+                    <div className={/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
                       {/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? '✓' : '○'} At least 1 special character (!@#$%^&*)
                     </div>
                   </div>
@@ -1122,13 +1108,13 @@ export function AppHomeLanding() {
 
       {/* Modal: ORGANIZE A GIFT EXCHANGE */}
       {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`p-6 sm:p-8 rounded-3xl max-w-lg w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>🎅 Create Your Gift Exchange</span>
               </h3>
-              <button onClick={() => setCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+              <button onClick={() => setCreateModalOpen(false)} className="text-kk-muted hover:text-kk-ink font-bold text-lg">✕</button>
             </div>
 
             {errorMessage && (
@@ -1149,16 +1135,16 @@ export function AppHomeLanding() {
                       <span className="text-xs font-bold block">
                         👋 Authenticated as {currentUser.name}
                       </span>
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-kk-muted">
                         Operational Leader Clearance Active
                       </span>
                     </div>
-                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="text-xs font-mono font-bold text-kk-brand">
                       ✓ Active
                     </span>
                   </div>
                 ) : isAlpha ? (
-                  <div className="p-4 rounded-xl border bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300 space-y-2">
+                  <div className="p-4 rounded-xl border bg-kk-warning border-kk-border-strong text-kk-on-warning space-y-2">
                     <p className="text-xs font-bold flex items-center gap-1.5">
                       <span>🔒</span> OpsLeader Sign In Required
                     </p>
@@ -1180,7 +1166,7 @@ export function AppHomeLanding() {
                 ) : (
                   <>
                     <div>
-                      <label className="block text-slate-500 mb-1">Your Full Name *</label>
+                      <label className="block text-kk-muted mb-1">Your Full Name *</label>
                       <input
                         type="text"
                         required
@@ -1191,7 +1177,7 @@ export function AppHomeLanding() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Your Email Address *</label>
+                      <label className="block text-kk-muted mb-1">Your Email Address *</label>
                       <input
                         type="email"
                         required
@@ -1203,11 +1189,11 @@ export function AppHomeLanding() {
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-slate-500">Secret Codename / Call Sign</label>
+                        <label className="block text-kk-muted">Secret Codename / Call Sign</label>
                         <button
                           type="button"
                           onClick={() => setCodename(generateRandomCodename())}
-                          className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
+                          className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
                         >
                           🎲 Randomize Call Sign
                         </button>
@@ -1226,7 +1212,7 @@ export function AppHomeLanding() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Password *</label>
+                      <label className="block text-kk-muted mb-1">Password *</label>
                       <input
                         type="password"
                         required
@@ -1246,7 +1232,7 @@ export function AppHomeLanding() {
                   Step 2: Exchange Settings & Automated Timeline
                 </span>
                 <div>
-                  <label className="block text-slate-500 mb-1">Exchange Title *</label>
+                  <label className="block text-kk-muted mb-1">Exchange Title *</label>
                   <input
                     type="text"
                     required
@@ -1259,7 +1245,7 @@ export function AppHomeLanding() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-500 mb-1">Min Budget ($)</label>
+                    <label className="block text-kk-muted mb-1">Min Budget ($)</label>
                     <input
                       type="number"
                       required
@@ -1270,7 +1256,7 @@ export function AppHomeLanding() {
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-500 mb-1">Max Budget ($) *</label>
+                    <label className="block text-kk-muted mb-1">Max Budget ($) *</label>
                     <input
                       type="number"
                       required
@@ -1283,7 +1269,7 @@ export function AppHomeLanding() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1">Execution / Event Date *</label>
+                  <label className="block text-kk-muted mb-1">Execution / Event Date *</label>
                   <input
                     type="date"
                     required
@@ -1291,7 +1277,7 @@ export function AppHomeLanding() {
                     onChange={(e) => setExecutionDate(e.target.value)}
                     className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                   />
-                  <p className="text-[11px] text-slate-500 mt-1.5 font-normal">
+                  <p className="text-[11px] text-kk-muted mt-1.5 font-normal">
                     ⚡ <strong>Automated Timeline:</strong> Go/No-Go (25%), Target Assignment (50%), Shipping Deadline (75%) are automatically set.
                   </p>
                 </div>
@@ -1320,13 +1306,13 @@ export function AppHomeLanding() {
 
       {/* Modal: JOIN AN EXCHANGE */}
       {joinModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>🔑 Join a Gift Exchange</span>
               </h3>
-              <button onClick={() => setJoinModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+              <button onClick={() => setJoinModalOpen(false)} className="text-kk-muted hover:text-kk-ink font-bold text-lg">✕</button>
             </div>
 
             {errorMessage && (
@@ -1337,7 +1323,7 @@ export function AppHomeLanding() {
 
             <form onSubmit={handleJoinExchange} className="space-y-4 text-xs font-semibold">
               <div>
-                <label className="block text-slate-500 mb-1">Exchange Code *</label>
+                <label className="block text-kk-muted mb-1">Exchange Code *</label>
                 <input
                   type="text"
                   required
@@ -1360,18 +1346,18 @@ export function AppHomeLanding() {
                       <span className="text-xs font-bold block">
                         👋 Authenticated as {currentUser.name}
                       </span>
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-kk-muted">
                         Field Agent Clearance Active
                       </span>
                     </div>
-                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="text-xs font-mono font-bold text-kk-brand">
                       ✓ Active
                     </span>
                   </div>
                 ) : (
                   <>
                     <div>
-                      <label className="block text-slate-500 mb-1">Your Full Name *</label>
+                      <label className="block text-kk-muted mb-1">Your Full Name *</label>
                       <input
                         type="text"
                         required
@@ -1382,7 +1368,7 @@ export function AppHomeLanding() {
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Your Email Address *</label>
+                      <label className="block text-kk-muted mb-1">Your Email Address *</label>
                       <input
                         type="email"
                         required
@@ -1394,11 +1380,11 @@ export function AppHomeLanding() {
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-slate-500">Secret Codename / Call Sign</label>
+                        <label className="block text-kk-muted">Secret Codename / Call Sign</label>
                         <button
                           type="button"
                           onClick={() => setCodename(generateRandomCodename())}
-                          className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
+                          className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
                         >
                           🎲 Randomize Call Sign
                         </button>
@@ -1417,7 +1403,7 @@ export function AppHomeLanding() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-slate-500 mb-1">Password *</label>
+                      <label className="block text-kk-muted mb-1">Password *</label>
                       <input
                         type="password"
                         required
@@ -1457,16 +1443,14 @@ export function AppHomeLanding() {
       <footer className={`border-t py-8 text-xs font-medium transition-colors ${theme.footerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="pl-12 sm:pl-0 flex items-center gap-2">
-            <span>© 2026 KovertKlaus by <span className="font-semibold text-amber-300/90 dark:text-slate-300">Joshua Simpson</span>.</span>
-            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-              isDarkMode ? 'bg-slate-900 text-sky-400 border-slate-700' : 'bg-emerald-50 text-emerald-800 border-emerald-300'
-            }`}>
+            <span>© 2026 KovertKlaus by <span className="font-semibold text-kk-header-nav">Joshua Simpson</span>.</span>
+            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border bg-kk-success text-kk-on-success border-kk-on-success/30`}>
               {APP_VERSION_LABEL}
             </span>
           </div>
           <div className="flex gap-6 font-semibold items-center">
-            <Link href="/features" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>Features &amp; Specs</Link>
-            <WhatsNewLink className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`} />            <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className={`transition-colors ${isDarkMode ? 'hover:text-sky-400' : 'hover:text-red-600'}`}>GitHub</a>
+            <Link href="/features" className="inline-flex items-center min-h-11 transition-colors hover:underline">Features &amp; Specs</Link>
+            <WhatsNewLink className="inline-flex items-center min-h-11 transition-colors hover:underline" />            <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className="inline-flex items-center min-h-11 transition-colors hover:underline">GitHub</a>
           </div>
         </div>
       </footer>

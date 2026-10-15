@@ -17,7 +17,7 @@ import { ADMIN_TOKEN_KEY, ADMIN_USER_KEY } from '@/lib/constants/auth';
 import { DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_USERNAME } from '@/lib/constants/adminDefaults';
 
 const inputClass =
-  'w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white focus:outline-none transition-colors';
+  'w-full bg-kk-inset border border-kk-border focus:border-kk-focus rounded-xl px-3.5 py-2.5 text-kk-ink focus:outline-none transition-colors';
 
 export default function NorthPoleSetupPage() {
   const [checking, setChecking] = useState(true);
@@ -83,87 +83,87 @@ export default function NorthPoleSetupPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 font-mono text-xs">
+      <div className="min-h-screen bg-kk-inset flex items-center justify-center text-kk-muted font-mono text-xs">
         Checking North Pole installation state...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center px-4 py-12">
-      <div className="max-w-md w-full space-y-6 bg-slate-900 border-2 border-amber-500/40 p-8 rounded-3xl shadow-2xl shadow-amber-950/30">
+    <div className="min-h-screen bg-kk-inset text-kk-ink flex flex-col justify-center items-center px-4 py-12">
+      <div className="max-w-md w-full space-y-6 bg-kk-surface border-2 border-kk-border-strong p-8 rounded-3xl shadow-2xl shadow-black/20">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-red-600 to-emerald-800 text-3xl shadow-lg mb-4">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-kk-primary text-kk-on-primary border border-kk-border-strong text-3xl shadow-lg mb-4">
             🎅
           </div>
           <div className="flex items-center justify-center gap-2 mb-1">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-500 animate-ping"></span>
-            <span className="text-[11px] font-mono uppercase tracking-widest text-amber-400 font-bold">
+            <span className="h-2.5 w-2.5 rounded-full bg-kk-gold animate-ping"></span>
+            <span className="text-[11px] font-mono uppercase tracking-widest text-kk-gold-ink font-bold">
               FIRST-RUN SETUP // NIST SP 800-63B
             </span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white">Initialize North Pole Command</h1>
-          <p className="text-xs text-gray-400 mt-1 font-mono">
+          <h1 className="text-2xl font-black tracking-tight text-kk-heading">Initialize North Pole Command</h1>
+          <p className="text-xs text-kk-muted mt-1 font-mono">
             Create the first administrator. The setup token is printed in the server console
-            (e.g. <code className="text-amber-300">docker logs kovertklaus-app</code>).
+            (e.g. <code className="text-kk-gold-ink">docker logs kovertklaus-app</code>).
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-950/80 border border-red-800 text-red-200 p-3.5 rounded-xl text-xs font-mono">⚠️ {error}</div>
+          <div className="bg-kk-danger-soft border border-kk-danger/40 text-kk-on-danger-soft p-3.5 rounded-xl text-xs font-mono">⚠️ {error}</div>
         )}
         {success && (
-          <div className="bg-emerald-950/80 border border-emerald-500 text-emerald-300 p-3.5 rounded-xl text-xs font-mono font-bold">{success}</div>
+          <div className="bg-kk-success border border-kk-on-success/30 text-kk-on-success p-3.5 rounded-xl text-xs font-mono font-bold">{success}</div>
         )}
 
         <form onSubmit={handleSetup} className="space-y-4 text-xs font-mono">
           <div>
-            <label className="block text-gray-300 font-bold mb-1">ONE-TIME SETUP TOKEN</label>
+            <label className="block text-kk-ink font-bold mb-1">ONE-TIME SETUP TOKEN</label>
             <input type="text" required autoComplete="off" spellCheck={false} placeholder="Paste the token from the server console..."
               value={setupToken} onChange={(e) => setSetupToken(e.target.value)} className={inputClass} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-gray-300 font-bold mb-1">USERNAME</label>
+              <label className="block text-kk-ink font-bold mb-1">USERNAME</label>
               <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-gray-300 font-bold mb-1">DISPLAY NAME</label>
+              <label className="block text-kk-ink font-bold mb-1">DISPLAY NAME</label>
               <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
             </div>
           </div>
           <div>
-            <label className="block text-gray-300 font-bold mb-1">EMAIL</label>
+            <label className="block text-kk-ink font-bold mb-1">EMAIL</label>
             <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
           </div>
 
-          <div className="p-3 bg-slate-950 border border-amber-500/40 rounded-xl text-[11px] text-amber-300">
+          <div className="p-3 bg-kk-inset border border-kk-border-strong rounded-xl text-[11px] text-kk-gold-ink">
             <div className="font-bold">🛡️ NIST SP 800-63B Guidelines:</div>
-            <ul className="list-disc pl-4 space-y-0.5 text-gray-400">
+            <ul className="list-disc pl-4 space-y-0.5 text-kk-muted">
               <li>Minimum length: 12 characters</li>
               <li>Cannot contain your username</li>
               <li>Passphrases, spaces, and special symbols are encouraged</li>
             </ul>
           </div>
           <div>
-            <label className="block text-gray-300 font-bold mb-1">ADMIN PASSPHRASE</label>
+            <label className="block text-kk-ink font-bold mb-1">ADMIN PASSPHRASE</label>
             <input type="password" required autoComplete="new-password" placeholder="Enter at least 12 characters..."
               value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className="block text-gray-300 font-bold mb-1">CONFIRM PASSPHRASE</label>
+            <label className="block text-kk-ink font-bold mb-1">CONFIRM PASSPHRASE</label>
             <input type="password" required autoComplete="new-password" placeholder="Re-enter your passphrase..."
               value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} />
           </div>
 
           <button type="submit" disabled={loading || password.length < 12}
-            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 text-slate-950 font-black py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-950/40 text-sm cursor-pointer">
+            className="w-full bg-kk-primary hover:bg-kk-primary-hover disabled:opacity-50 text-kk-on-primary font-black py-3 px-4 rounded-xl transition-all shadow-lg shadow-black/20 text-sm cursor-pointer">
             {loading ? 'Initializing...' : '🔒 Create Administrator & Activate'}
           </button>
         </form>
 
-        <div className="pt-4 border-t border-slate-800 text-center font-mono">
-          <Link href="/" className="text-xs text-emerald-400 hover:underline">← Return to Main Application</Link>
+        <div className="pt-4 border-t border-kk-border text-center font-mono">
+          <Link href="/" className="text-xs text-kk-brand hover:underline">← Return to Main Application</Link>
         </div>
       </div>
     </div>

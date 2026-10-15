@@ -150,9 +150,9 @@ export default function NorthPoleLogsPage() {
         <div>
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">📜</span>
-            <h1 className="text-2xl font-black tracking-tight text-white">System Diagnostics &amp; Telemetry Logs</h1>
+            <h1 className="text-2xl font-black tracking-tight text-kk-heading">System Diagnostics &amp; Telemetry Logs</h1>
           </div>
-          <p className="text-xs text-slate-400 font-mono mt-1">
+          <p className="text-xs text-kk-muted font-mono mt-1">
             Real-time event stream, exception telemetry, and transactional email audit trail
           </p>
         </div>
@@ -161,20 +161,20 @@ export default function NorthPoleLogsPage() {
           <button
             onClick={fetchLogs}
             disabled={loading}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-mono flex items-center gap-2 transition"
+            className="px-3.5 py-2 rounded-xl bg-kk-surface hover:border-kk-border-strong text-kk-ink border border-kk-border text-xs font-mono flex items-center gap-2 transition"
           >
             <span>🔄</span> {loading ? 'Streaming...' : 'Refresh Stream'}
           </button>
           <button
             onClick={handleExportJson}
             disabled={logs.length === 0}
-            className="px-3.5 py-2 rounded-xl bg-sky-950 hover:bg-sky-900 text-sky-300 border border-sky-600/40 text-xs font-mono flex items-center gap-2 transition"
+            className="px-3.5 py-2 rounded-xl bg-kk-inset hover:border-kk-border-strong text-kk-accent border border-kk-border-strong text-xs font-mono flex items-center gap-2 transition"
           >
             <span>📥</span> Export JSON
           </button>
           <button
             onClick={() => setShowPurgeModal(true)}
-            className="px-3.5 py-2 rounded-xl bg-red-950 hover:bg-red-900 text-red-300 border border-red-500/40 text-xs font-mono flex items-center gap-2 transition"
+            className="px-3.5 py-2 rounded-xl bg-kk-danger-soft hover:brightness-95 text-kk-on-danger-soft border border-kk-danger/40 text-xs font-mono flex items-center gap-2 transition"
           >
             <span>🧹</span> Purge Logs
           </button>
@@ -184,39 +184,39 @@ export default function NorthPoleLogsPage() {
       {/* KPI Metrics HUD */}
       {metrics && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="bg-slate-900/80 border border-red-900/40 rounded-2xl p-4">
-            <div className="text-[11px] font-mono text-red-400 uppercase tracking-wider">Errors (24h)</div>
-            <div className="text-2xl font-black text-red-300 mt-1">{metrics.error24hCount}</div>
-            <div className="text-[10px] text-slate-500 font-mono mt-1">Actionable Exceptions</div>
+          <div className="bg-kk-surface/80 border border-kk-danger/40 rounded-2xl p-4">
+            <div className="text-[11px] font-mono text-kk-danger uppercase tracking-wider">Errors (24h)</div>
+            <div className="text-2xl font-black text-kk-danger mt-1">{metrics.error24hCount}</div>
+            <div className="text-[10px] text-kk-muted font-mono mt-1">Actionable Exceptions</div>
           </div>
 
-          <div className="bg-slate-900/80 border border-amber-900/40 rounded-2xl p-4">
-            <div className="text-[11px] font-mono text-amber-400 uppercase tracking-wider">Warnings (24h)</div>
-            <div className="text-2xl font-black text-amber-300 mt-1">{metrics.warn24hCount}</div>
-            <div className="text-[10px] text-slate-500 font-mono mt-1">Retries &amp; Guardrails</div>
+          <div className="bg-kk-surface/80 border border-kk-border-strong rounded-2xl p-4">
+            <div className="text-[11px] font-mono text-kk-gold-ink uppercase tracking-wider">Warnings (24h)</div>
+            <div className="text-2xl font-black text-kk-gold-ink mt-1">{metrics.warn24hCount}</div>
+            <div className="text-[10px] text-kk-muted font-mono mt-1">Retries &amp; Guardrails</div>
           </div>
 
-          <div className="bg-slate-900/80 border border-sky-900/40 rounded-2xl p-4">
-            <div className="text-[11px] font-mono text-sky-400 uppercase tracking-wider">Email Errors (24h)</div>
-            <div className="text-2xl font-black text-sky-300 mt-1">{metrics.emailFailures24hCount}</div>
-            <div className="text-[10px] text-slate-500 font-mono mt-1">Brevo / SMTP Failures</div>
+          <div className="bg-kk-surface/80 border border-kk-border-strong rounded-2xl p-4">
+            <div className="text-[11px] font-mono text-kk-accent uppercase tracking-wider">Email Errors (24h)</div>
+            <div className="text-2xl font-black text-kk-accent mt-1">{metrics.emailFailures24hCount}</div>
+            <div className="text-[10px] text-kk-muted font-mono mt-1">Brevo / SMTP Failures</div>
           </div>
 
-          <div className="bg-slate-900/80 border border-emerald-900/40 rounded-2xl p-4">
-            <div className="text-[11px] font-mono text-emerald-400 uppercase tracking-wider">Storage Footprint</div>
-            <div className="text-xl font-black text-emerald-300 mt-1">
-              {formatBytes(metrics.estimatedSizeBytes)} <span className="text-xs font-normal text-slate-400">/ 2.5 MB</span>
+          <div className="bg-kk-surface/80 border border-kk-on-success/30 rounded-2xl p-4">
+            <div className="text-[11px] font-mono text-kk-brand uppercase tracking-wider">Storage Footprint</div>
+            <div className="text-xl font-black text-kk-brand mt-1">
+              {formatBytes(metrics.estimatedSizeBytes)} <span className="text-xs font-normal text-kk-muted">/ 2.5 MB</span>
             </div>
-            <div className="text-[10px] text-slate-500 font-mono mt-1">{metrics.totalTableCount} Total Records</div>
+            <div className="text-[10px] text-kk-muted font-mono mt-1">{metrics.totalTableCount} Total Records</div>
           </div>
         </div>
       )}
 
       {/* Filter HUD */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-kk-surface/90 border border-kk-border rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Search Bar */}
         <div className="w-full md:w-96 relative">
-          <span className="absolute left-3.5 top-2.5 text-slate-500 text-sm">🔍</span>
+          <span className="absolute left-3.5 top-2.5 text-kk-muted text-sm">🔍</span>
           <input
             type="text"
             placeholder="Search message, endpoint path, or category..."
@@ -225,14 +225,14 @@ export default function NorthPoleLogsPage() {
               setSearchQuery(e.target.value);
               setPage(0);
             }}
-            className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-red-500 transition"
+            className="w-full bg-kk-inset border border-kk-border rounded-xl pl-9 pr-4 py-2 text-xs font-mono text-kk-ink placeholder:text-kk-muted focus:outline-none focus:border-kk-focus transition"
           />
         </div>
 
         {/* Level Tabs & Category Dropdown */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* Level Filter */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-mono">
+          <div className="flex items-center bg-kk-inset p-1 rounded-xl border border-kk-border text-[11px] font-mono">
             {['ALL', 'ERROR', 'WARN', 'INFO'].map((lvl) => (
               <button
                 key={lvl}
@@ -243,13 +243,13 @@ export default function NorthPoleLogsPage() {
                 className={`px-3 py-1 rounded-lg transition ${
                   selectedLevel === lvl
                     ? lvl === 'ERROR'
-                      ? 'bg-red-950 text-red-300 font-bold border border-red-500/40'
+                      ? 'bg-kk-danger-soft text-kk-on-danger-soft font-bold border border-kk-danger/40'
                       : lvl === 'WARN'
-                      ? 'bg-amber-950 text-amber-300 font-bold border border-amber-500/40'
+                      ? 'bg-kk-warning text-kk-on-warning font-bold border border-kk-border-strong'
                       : lvl === 'INFO'
-                      ? 'bg-sky-950 text-sky-300 font-bold border border-sky-500/40'
-                      : 'bg-slate-800 text-white font-bold'
-                    : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-kk-inset text-kk-accent font-bold border border-kk-border-strong'
+                      : 'bg-kk-surface text-kk-ink font-bold'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 {lvl}
@@ -264,7 +264,7 @@ export default function NorthPoleLogsPage() {
               setSelectedCategory(e.target.value);
               setPage(0);
             }}
-            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[11px] font-mono text-slate-200 focus:outline-none focus:border-red-500"
+            className="bg-kk-inset border border-kk-border rounded-xl px-3 py-1.5 text-[11px] font-mono text-kk-ink focus:outline-none focus:border-kk-focus"
           >
             <option value="ALL">All Categories</option>
             <option value="EMAIL">EMAIL</option>
@@ -279,30 +279,30 @@ export default function NorthPoleLogsPage() {
       </div>
 
       {/* Log Feed Table */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
+      <div className="bg-kk-surface/80 border border-kk-border rounded-2xl overflow-hidden">
         {loading ? (
-          <div className="py-20 text-center font-mono text-xs text-slate-500 flex flex-col items-center gap-3">
-            <div className="h-6 w-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+          <div className="py-20 text-center font-mono text-xs text-kk-muted flex flex-col items-center gap-3">
+            <div className="h-6 w-6 border-2 border-kk-danger/40 border-t-transparent rounded-full animate-spin" />
             <span>Streaming log records...</span>
           </div>
         ) : error ? (
-          <div className="py-12 text-center text-red-400 font-mono text-xs p-4">
+          <div className="py-12 text-center text-kk-danger font-mono text-xs p-4">
             <span className="text-xl block mb-2">⚠️</span>
             {error}
           </div>
         ) : logs.length === 0 ? (
-          <div className="py-16 text-center text-slate-500 font-mono text-xs">
+          <div className="py-16 text-center text-kk-muted font-mono text-xs">
             <span className="text-2xl block mb-2">✨</span>
             No log events found matching the active filter criteria.
           </div>
         ) : (
-          <div className="divide-y divide-slate-800/80">
+          <div className="divide-y divide-kk-border">
             {logs.map((log) => {
               const isExpanded = expandedLogId === log.id;
               const hasMetadata = log.metadata && Object.keys(log.metadata).length > 0;
 
               return (
-                <div key={log.id} className="hover:bg-slate-800/30 transition">
+                <div key={log.id} className="hover:bg-kk-inset transition">
                   <div
                     onClick={() => hasMetadata && setExpandedLogId(isExpanded ? null : log.id)}
                     className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
@@ -315,32 +315,32 @@ export default function NorthPoleLogsPage() {
                       <span
                         className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase border shrink-0 ${
                           log.level === 'ERROR'
-                            ? 'bg-red-950/80 text-red-300 border-red-500/40'
+                            ? 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40'
                             : log.level === 'WARN'
-                            ? 'bg-amber-950/80 text-amber-300 border-amber-500/40'
+                            ? 'bg-kk-warning text-kk-on-warning border-kk-border-strong'
                             : log.level === 'DEBUG'
-                            ? 'bg-purple-950/80 text-purple-300 border-purple-500/40'
-                            : 'bg-sky-950/80 text-sky-300 border-sky-500/40'
+                            ? 'bg-kk-warning text-kk-on-warning border-kk-border-strong'
+                            : 'bg-kk-inset/80 text-kk-accent border-kk-border-strong'
                         }`}
                       >
                         {log.level}
                       </span>
 
                       {/* Category Badge */}
-                      <span className="text-[10px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 shrink-0">
+                      <span className="text-[10px] font-mono text-kk-muted bg-kk-inset px-2 py-0.5 rounded border border-kk-border shrink-0">
                         {log.category}
                       </span>
 
                       {/* Message */}
-                      <span className="text-xs text-slate-200 font-mono truncate flex-1">
+                      <span className="text-xs text-kk-ink font-mono truncate flex-1">
                         {log.message}
                       </span>
                     </div>
 
                     {/* Right: Path, Status, Time, Chevron */}
-                    <div className="flex items-center gap-3 shrink-0 text-[11px] font-mono text-slate-400">
+                    <div className="flex items-center gap-3 shrink-0 text-[11px] font-mono text-kk-muted">
                       {log.path && (
-                        <span className="text-slate-500 truncate max-w-[150px]">
+                        <span className="text-kk-muted truncate max-w-[150px]">
                           {log.path}
                         </span>
                       )}
@@ -349,22 +349,22 @@ export default function NorthPoleLogsPage() {
                         <span
                           className={`font-bold ${
                             log.statusCode >= 500
-                              ? 'text-red-400'
+                              ? 'text-kk-danger'
                               : log.statusCode >= 400
-                              ? 'text-amber-400'
-                              : 'text-emerald-400'
+                              ? 'text-kk-gold-ink'
+                              : 'text-kk-brand'
                           }`}
                         >
                           {log.statusCode}
                         </span>
                       )}
 
-                      <span className="text-slate-500 text-[10px]">
+                      <span className="text-kk-muted text-[10px]">
                         {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </span>
 
                       {hasMetadata && (
-                        <span className="text-slate-600 text-xs transition-transform duration-200">
+                        <span className="text-kk-muted text-xs transition-transform duration-200">
                           {isExpanded ? '▼' : '▶'}
                         </span>
                       )}
@@ -373,12 +373,12 @@ export default function NorthPoleLogsPage() {
 
                   {/* Expandable JSON Inspector */}
                   {isExpanded && log.metadata && (
-                    <div className="px-4 pb-4 pt-1 bg-slate-950/90 border-t border-slate-800/60 font-mono text-[11px]">
-                      <div className="text-slate-500 text-[10px] mb-1.5 flex items-center justify-between">
+                    <div className="px-4 pb-4 pt-1 bg-kk-inset/90 border-t border-kk-border font-mono text-[11px]">
+                      <div className="text-kk-muted text-[10px] mb-1.5 flex items-center justify-between">
                         <span>Structured Telemetry Metadata (Sanitized)</span>
                         <span>ID: {log.id}</span>
                       </div>
-                      <pre className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 text-sky-300 overflow-x-auto text-[11px] leading-relaxed">
+                      <pre className="p-3 bg-kk-surface/90 rounded-xl border border-kk-border text-kk-accent overflow-x-auto text-[11px] leading-relaxed">
                         {JSON.stringify(log.metadata, null, 2)}
                       </pre>
                     </div>
@@ -390,7 +390,7 @@ export default function NorthPoleLogsPage() {
         )}
 
         {/* Pagination Footer */}
-        <div className="p-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+        <div className="p-4 bg-kk-inset/60 border-t border-kk-border flex items-center justify-between text-xs font-mono text-kk-muted">
           <div>
             Showing {logs.length > 0 ? page * pageSize + 1 : 0} – {Math.min((page + 1) * pageSize, totalCount)} of {totalCount} records
           </div>
@@ -399,7 +399,7 @@ export default function NorthPoleLogsPage() {
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0 || loading}
-              className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-3 py-1 rounded-lg bg-kk-surface hover:border-kk-border-strong text-kk-ink disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               Previous
             </button>
@@ -407,7 +407,7 @@ export default function NorthPoleLogsPage() {
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={(page + 1) * pageSize >= totalCount || loading}
-              className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-3 py-1 rounded-lg bg-kk-surface hover:border-kk-border-strong text-kk-ink disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               Next
             </button>
@@ -417,22 +417,22 @@ export default function NorthPoleLogsPage() {
 
       {/* Purge Modal */}
       {showPurgeModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-red-500/40 rounded-2xl max-w-md w-full p-6 text-slate-100 shadow-2xl">
-            <div className="flex items-center gap-3 text-red-400 mb-3">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-kk-surface border border-kk-danger/40 rounded-2xl max-w-md w-full p-6 text-kk-ink shadow-2xl">
+            <div className="flex items-center gap-3 text-kk-danger mb-3">
               <span className="text-2xl">🧹</span>
-              <h2 className="text-lg font-black tracking-tight text-white">Purge Telemetry Logs</h2>
+              <h2 className="text-lg font-black tracking-tight text-kk-heading">Purge Telemetry Logs</h2>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed mb-4 font-mono">
+            <p className="text-xs text-kk-ink leading-relaxed mb-4 font-mono">
               Free up database storage by pruning historical log records. This operation is permanent and cannot be undone.
             </p>
 
             <div className="space-y-3 mb-6">
-              <label className="block text-xs font-mono text-slate-400">Retention Horizon</label>
+              <label className="block text-xs font-mono text-kk-muted">Retention Horizon</label>
               <select
                 value={purgeDays}
                 onChange={(e) => setPurgeDays(Number(e.target.value))}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-red-500"
+                className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-xs font-mono text-kk-ink focus:outline-none focus:border-kk-focus"
               >
                 <option value={7}>Purge logs older than 7 days</option>
                 <option value={14}>Purge logs older than 14 days</option>
@@ -441,7 +441,7 @@ export default function NorthPoleLogsPage() {
             </div>
 
             {purgeMessage && (
-              <div className="mb-4 p-3 bg-emerald-950/80 border border-emerald-500/40 rounded-xl text-emerald-300 font-mono text-xs">
+              <div className="mb-4 p-3 bg-kk-success border border-kk-on-success/30 rounded-xl text-kk-on-success font-mono text-xs">
                 {purgeMessage}
               </div>
             )}
@@ -450,7 +450,7 @@ export default function NorthPoleLogsPage() {
               <button
                 onClick={() => handlePurgeLogs('clear_all')}
                 disabled={purging}
-                className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-950 text-red-400 border border-red-800/40 text-xs font-mono transition"
+                className="px-3.5 py-2 rounded-xl bg-kk-danger-soft hover:brightness-95 text-kk-on-danger-soft border border-kk-danger/40 text-xs font-mono transition"
               >
                 Clear All Logs
               </button>
@@ -459,14 +459,14 @@ export default function NorthPoleLogsPage() {
                 <button
                   onClick={() => setShowPurgeModal(false)}
                   disabled={purging}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition"
+                  className="px-3.5 py-2 rounded-xl bg-kk-surface hover:border-kk-border-strong text-kk-ink text-xs font-mono transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handlePurgeLogs('purge_by_days')}
                   disabled={purging}
-                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold font-mono transition"
+                  className="px-4 py-2 rounded-xl bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary text-xs font-bold font-mono transition"
                 >
                   {purging ? 'Purging...' : 'Purge Selected'}
                 </button>

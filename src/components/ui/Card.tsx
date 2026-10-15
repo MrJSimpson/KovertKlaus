@@ -41,5 +41,5 @@ export function CardBody({ children, className = '' }: { children: React.ReactNo
 }
 
 export function CardFooter({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`mt-6 pt-3 border-t border-stone-200 dark:border-slate-800 flex items-center justify-between ${className}`}>{children}</div>;
+  return <div className={`mt-6 pt-3 border-t border-kk-border flex items-center justify-between ${className}`}>{children}</div>;
 }

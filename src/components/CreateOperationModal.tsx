@@ -120,11 +120,11 @@ export function CreateOperationModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
       <div className={`w-full sm:max-w-lg max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
         
         {/* Modal Header */}
-        <div className="p-4 sm:p-6 pb-4 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-6 pb-4 border-b border-kk-border flex items-center justify-between shrink-0">
           <div>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
               ⭐ Head Elf Console
@@ -133,7 +133,7 @@ export function CreateOperationModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 transition-colors"
+            className="text-kk-muted hover:text-kk-ink font-bold text-xl cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 transition-colors"
           >
             ✕
           </button>
@@ -149,7 +149,7 @@ export function CreateOperationModal({
           
             {/* Operation Title */}
             <div>
-              <label className="block text-slate-500 mb-1">Operation Title *</label>
+              <label className="block text-kk-muted mb-1">Operation Title *</label>
               <input
                 type="text"
                 required
@@ -162,7 +162,7 @@ export function CreateOperationModal({
 
             {/* Description */}
             <div>
-              <label className="block text-slate-500 mb-1">Mission Brief / Description (Optional)</label>
+              <label className="block text-kk-muted mb-1">Mission Brief / Description (Optional)</label>
               <textarea
                 rows={2}
                 placeholder="e.g. Annual holiday gift exchange rules, funny guidelines, or party info..."
@@ -181,15 +181,13 @@ export function CreateOperationModal({
                 }}
                 className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
                   !isWhiteElephant
-                    ? isDarkMode
-                      ? 'border-sky-500 bg-sky-950/40 text-sky-200'
-                      : 'border-emerald-600 bg-emerald-50 text-emerald-950 font-extrabold'
+                    ? 'border-kk-on-success/30 bg-kk-success text-kk-on-success font-extrabold'
                     : theme.cardInnerBg
                 }`}
               >
                 <div className="text-xl mb-1">🎁</div>
                 <div className="font-extrabold text-xs">Secret Santa</div>
-                <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                <div className="text-[10px] text-kk-muted font-normal mt-0.5">
                   Target assignment wishlist gifting
                 </div>
               </button>
@@ -202,15 +200,13 @@ export function CreateOperationModal({
                 }}
                 className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
                   isWhiteElephant
-                    ? isDarkMode
-                      ? 'border-amber-500 bg-amber-950/40 text-amber-200'
-                      : 'border-amber-600 bg-amber-50 text-amber-950 font-extrabold'
+                    ? 'border-kk-border-strong bg-kk-warning text-kk-on-warning font-extrabold'
                     : theme.cardInnerBg
                 }`}
               >
                 <div className="text-xl mb-1">🐘</div>
                 <div className="font-extrabold text-xs">White Elephant</div>
-                <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                <div className="text-[10px] text-kk-muted font-normal mt-0.5">
                   Live gift stealing pool (Local only, 1 gift/agent)
                 </div>
               </button>
@@ -218,7 +214,7 @@ export function CreateOperationModal({
 
             {/* Event Delivery Type */}
             <div>
-              <label className="block text-slate-500 mb-1">Event Delivery Mode</label>
+              <label className="block text-kk-muted mb-1">Event Delivery Mode</label>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center pt-1">
                 <label className="flex items-center gap-2 cursor-pointer min-h-[36px]">
                   <input
@@ -251,7 +247,7 @@ export function CreateOperationModal({
             {/* Location Address (if local) */}
             {isLocalOnly && (
               <div>
-                <label className="block text-slate-500 mb-1">In-Person Event Location Address *</label>
+                <label className="block text-kk-muted mb-1">In-Person Event Location Address *</label>
                 <input
                   type="text"
                   required={isLocalOnly}
@@ -266,7 +262,7 @@ export function CreateOperationModal({
             {/* Budget Range & Execution Date */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-slate-500 mb-1">Min Budget ($)</label>
+                <label className="block text-kk-muted mb-1">Min Budget ($)</label>
                 <input
                   type="number"
                   min={0}
@@ -277,7 +273,7 @@ export function CreateOperationModal({
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Max Budget ($) *</label>
+                <label className="block text-kk-muted mb-1">Max Budget ($) *</label>
                 <input
                   type="number"
                   required
@@ -289,7 +285,7 @@ export function CreateOperationModal({
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Execution Day *</label>
+                <label className="block text-kk-muted mb-1">Execution Day *</label>
                 <input
                   type="date"
                   required
@@ -302,7 +298,7 @@ export function CreateOperationModal({
 
             {/* Max Participants */}
             <div>
-              <label className="block text-slate-500 mb-1">Max Operatives * (Min 4, Max 25 — Ideal for squads &amp; families of 4+)</label>
+              <label className="block text-kk-muted mb-1">Max Operatives * (Min 4, Max 25 — Ideal for squads &amp; families of 4+)</label>
               <input
                 type="number"
                 required
@@ -315,7 +311,7 @@ export function CreateOperationModal({
             </div>
 
             {/* Penalty Enforcement Toggle & Trust Notice */}
-            <div className={`p-4 rounded-2xl border transition-all ${enforcePenalties ? theme.cardInnerBg : 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700/60'}`}>
+            <div className={`p-4 rounded-2xl border transition-all ${enforcePenalties ? theme.cardInnerBg : 'bg-kk-warning border-kk-border-strong'}`}>
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -327,15 +323,15 @@ export function CreateOperationModal({
                   <span className="font-bold block text-xs">
                     {isDarkMode ? 'Enable Agent Performance Log & Coal Tracking' : "Enable Santa's Naughty List & Coal Tracking"}
                   </span>
-                  <span className="text-[11px] text-slate-500 font-normal block mt-0.5">
+                  <span className="text-[11px] text-kk-muted font-normal block mt-0.5">
                     On by default. Keeps gift delivery deadlines accountable with coal citations.
                   </span>
                 </div>
               </label>
 
               {!enforcePenalties && (
-                <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-200 font-medium space-y-1">
-                  <div className="font-extrabold flex items-center gap-1 text-amber-950 dark:text-amber-100">
+                <div className="mt-3 pt-3 border-t border-kk-border-strong text-[11px] text-kk-gold-ink font-medium space-y-1">
+                  <div className="font-extrabold flex items-center gap-1 text-kk-gold-ink">
                     <span>⚠️</span>
                     <span>Head Elf Trust &amp; Responsibility Notice:</span>
                   </div>
@@ -348,7 +344,7 @@ export function CreateOperationModal({
           </div>
 
           {/* Actions */}
-          <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
+          <div className="p-4 sm:p-6 border-t border-kk-border shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
             <button
               type="button"
               onClick={onClose}

@@ -97,26 +97,26 @@ export default function CovertDeliveryStudioPage() {
     <div className="space-y-8 max-w-6xl mx-auto pb-16">
       
       {/* Header Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="p-6 sm:p-8 rounded-3xl bg-kk-surface border border-kk-border space-y-4 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-kk-warning rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold">
+              <span className="px-3 py-1 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong text-xs font-mono font-bold">
                 KOVERT_DELIVERY
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-mono">
+              <span className="px-2.5 py-1 rounded-full bg-kk-surface text-kk-ink text-xs font-mono">
                 LOCAL STEALTH PORCH DROP
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-red-950 text-red-300 border border-red-500/30 text-xs font-mono">
+              <span className="px-2.5 py-1 rounded-full bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40 text-xs font-mono">
                 RING CAM GAME
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-kk-heading tracking-tight">
               Kovert Delivery Operation Studio 🎅🕵️
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
-              Test single-use 12-character <code className="text-amber-400 font-mono">KDM-XXXX-XXXX-XXXX</code> invitation keys, mandatory Property Access & Non-Liability Accords, Giver Drop Site Proofing, and the target&apos;s <strong>1-Guess Real Name Identity Challenge</strong>.
+            <p className="text-xs sm:text-sm text-kk-muted max-w-2xl leading-relaxed">
+              Test single-use 12-character <code className="text-kk-gold-ink font-mono">KDM-XXXX-XXXX-XXXX</code> invitation keys, mandatory Property Access & Non-Liability Accords, Giver Drop Site Proofing, and the target&apos;s <strong>1-Guess Real Name Identity Challenge</strong>.
             </p>
           </div>
 
@@ -129,7 +129,7 @@ export default function CovertDeliveryStudioPage() {
                 setBustedPhoto(null);
                 setBustedReason(null);
               }}
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer"
+              className="px-3.5 py-2 bg-kk-surface hover:border-kk-border-strong text-kk-ink rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer"
             >
               <span>🔄</span> Reset Game State
             </button>
@@ -141,31 +141,31 @@ export default function CovertDeliveryStudioPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Studio 1: KDM Token Generator & Validator */}
-        <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-5 shadow-xl">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <div className="p-6 rounded-3xl bg-kk-surface border border-kk-border space-y-5 shadow-xl">
+          <div className="flex items-center justify-between border-b border-kk-border pb-3">
             <div className="flex items-center gap-2.5">
               <span className="text-xl">🔑</span>
-              <h2 className="text-sm font-bold text-white font-mono uppercase tracking-wider">
+              <h2 className="text-sm font-bold text-kk-ink font-mono uppercase tracking-wider">
                 1. KDM Cryptographic Token Bench
               </h2>
             </div>
             <button
               onClick={handleGenerateNewToken}
-              className="px-3 py-1.5 rounded-xl bg-amber-950 text-amber-300 hover:bg-amber-900 border border-amber-500/40 text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-kk-warning text-kk-on-warning hover:brightness-95 border border-kk-border-strong text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer"
             >
               <span>✨</span> Generate Key
             </button>
           </div>
 
           <div className="space-y-3">
-            <label className="block text-xs font-mono text-slate-400 font-bold">
+            <label className="block text-xs font-mono text-kk-muted font-bold">
               ACTIVE TEST KEYS (12-HEX HIGH ENTROPY):
             </label>
             <div className="grid grid-cols-1 gap-2 font-mono text-xs">
               {tokens.map((t, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 text-amber-300 font-bold"
+                  className="flex items-center justify-between p-3 rounded-xl bg-kk-inset border border-kk-border text-kk-gold-ink font-bold"
                 >
                   <span>{t}</span>
                   <button
@@ -173,7 +173,7 @@ export default function CovertDeliveryStudioPage() {
                       setTokenInput(t);
                       setTokenValid(true);
                     }}
-                    className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer"
+                    className="text-[10px] text-kk-muted hover:text-kk-ink underline cursor-pointer"
                   >
                     Test Input →
                   </button>
@@ -183,8 +183,8 @@ export default function CovertDeliveryStudioPage() {
           </div>
 
           {/* Token Regex Validator Sandbox */}
-          <div className="pt-2 space-y-2 border-t border-slate-800/80">
-            <label className="block text-xs font-mono text-slate-400 font-bold">
+          <div className="pt-2 space-y-2 border-t border-kk-border">
+            <label className="block text-xs font-mono text-kk-muted font-bold">
               VALIDATE TOKEN FORMAT (REGEX TEST):
             </label>
             <div className="flex gap-2">
@@ -196,11 +196,11 @@ export default function CovertDeliveryStudioPage() {
                   setTokenInput(e.target.value);
                   setTokenValid(null);
                 }}
-                className="flex-1 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-4 py-2 text-xs text-white font-mono focus:outline-none"
+                className="flex-1 bg-kk-inset border border-kk-border focus:border-kk-focus rounded-xl px-4 py-2 text-xs text-kk-ink font-mono focus:outline-none"
               />
               <button
                 onClick={handleCheckToken}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-mono font-bold transition cursor-pointer"
+                className="px-4 py-2 bg-kk-surface hover:border-kk-border-strong text-kk-ink rounded-xl text-xs font-mono font-bold transition cursor-pointer"
               >
                 Validate
               </button>
@@ -210,8 +210,8 @@ export default function CovertDeliveryStudioPage() {
               <div
                 className={`p-3 rounded-xl text-xs font-mono flex items-center gap-2 ${
                   tokenValid
-                    ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300'
-                    : 'bg-rose-950/60 border border-rose-500/50 text-rose-300'
+                    ? 'bg-kk-success border border-kk-on-success/30 text-kk-on-success'
+                    : 'bg-kk-danger-soft border border-kk-danger/40 text-kk-on-danger-soft'
                 }`}
               >
                 <span>{tokenValid ? '✓' : '✗'}</span>
@@ -224,33 +224,33 @@ export default function CovertDeliveryStudioPage() {
         </div>
 
         {/* Studio 2: Property Access Waiver Tester */}
-        <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-5 shadow-xl flex flex-col justify-between">
+        <div className="p-6 rounded-3xl bg-kk-surface border border-kk-border space-y-5 shadow-xl flex flex-col justify-between">
           <div className="space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-slate-800/80 pb-3">
+            <div className="flex items-center gap-2.5 border-b border-kk-border pb-3">
               <span className="text-xl">🏡</span>
-              <h2 className="text-sm font-bold text-white font-mono uppercase tracking-wider">
+              <h2 className="text-sm font-bold text-kk-ink font-mono uppercase tracking-wider">
                 2. Property Access Accord Gate
               </h2>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed font-sans">
+            <p className="text-xs text-kk-ink leading-relaxed font-sans">
               All operatives joining a Kovert Delivery Operation must review and sign the 3-point legal accord granting front perimeter access, acknowledging zero trespass rules, and accepting total platform non-liability.
             </p>
 
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <div className="p-4 rounded-2xl bg-kk-inset border border-kk-border space-y-2">
               <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-slate-400">ACCORD STATUS:</span>
+                <span className="text-kk-muted">ACCORD STATUS:</span>
                 <span
                   className={`font-bold px-2 py-0.5 rounded-full ${
                     waiverAccepted
-                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-amber-950 text-amber-300 border border-amber-500/40'
+                      ? 'bg-kk-success text-kk-on-success border border-kk-on-success/30'
+                      : 'bg-kk-warning text-kk-on-warning border border-kk-border-strong'
                   }`}
                 >
                   {waiverAccepted ? '✓ SIGNED & AUTHORIZED' : 'PENDING SIGNATURE'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-mono">
+              <p className="text-[11px] text-kk-muted font-mono">
                 {waiverAccepted
                   ? 'Operative has authorized front porch access and agreed to safe conduct invariants.'
                   : 'Operative cannot participate until waiver is accepted.'}
@@ -261,7 +261,7 @@ export default function CovertDeliveryStudioPage() {
           <div className="pt-4">
             <button
               onClick={() => setIsWaiverOpen(true)}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white font-mono text-xs font-bold shadow-lg shadow-amber-600/20 flex items-center justify-center gap-2 transition cursor-pointer"
+              className="w-full py-3 rounded-xl bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary font-mono text-xs font-bold shadow-lg shadow-black/20 flex items-center justify-center gap-2 transition cursor-pointer"
             >
               <span>🛡️</span>
               Open Property Access Accord Modal
@@ -272,17 +272,17 @@ export default function CovertDeliveryStudioPage() {
       </div>
 
       {/* Studio 3: Infiltration & 1-Guess Challenge Simulation */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-6 shadow-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+      <div className="p-6 sm:p-8 rounded-3xl bg-kk-surface border border-kk-border space-y-6 shadow-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-kk-border pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-red-950/80 border border-red-500/50 flex items-center justify-center text-xl">
+            <div className="w-10 h-10 rounded-2xl bg-kk-danger-soft border border-kk-danger/40 flex items-center justify-center text-xl">
               📸
             </div>
             <div>
-              <div className="text-[10px] font-mono text-red-400 uppercase tracking-widest font-bold">
+              <div className="text-[10px] font-mono text-kk-danger uppercase tracking-widest font-bold">
                 SIMULATION SQUAD (SIMPSON-2026)
               </div>
-              <h2 className="text-base font-bold text-white">
+              <h2 className="text-base font-bold text-kk-heading">
                 3. Giver Drop Site Proof & Target Ring Cam Review
               </h2>
             </div>
@@ -291,17 +291,17 @@ export default function CovertDeliveryStudioPage() {
           {/* Outcome Status Pill */}
           <div className="flex items-center gap-2 font-mono text-xs">
             {detectionStatus === 'PENDING' && (
-              <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 font-bold">
+              <span className="px-3 py-1 rounded-full bg-kk-surface text-kk-ink font-bold">
                 ⏳ PENDING VERDICT
               </span>
             )}
             {detectionStatus === 'UNDETECTED' && (
-              <span className="px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-1.5">
+              <span className="px-3 py-1 rounded-full bg-kk-success text-kk-on-success border border-kk-on-success/30 font-bold flex items-center gap-1.5">
                 🎅 100% GHOST DROP (Santa: Zach Simpson Won)
               </span>
             )}
             {detectionStatus === 'BUSTED' && (
-              <span className="px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 font-bold flex items-center gap-1.5">
+              <span className="px-3 py-1 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong font-bold flex items-center gap-1.5">
                 🕵️ BUSTED ON CAMERA (Target: Joshua Simpson Won)
               </span>
             )}
@@ -314,8 +314,8 @@ export default function CovertDeliveryStudioPage() {
           {/* Left: Giver Cockpit (Agent: Shadow / Zach Simpson) */}
           <div className="space-y-4">
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 font-bold">GIVER OPERATIVE:</span>
-              <span className="text-amber-400 font-bold">Agent: Shadow (Zach Simpson)</span>
+              <span className="text-kk-muted font-bold">GIVER OPERATIVE:</span>
+              <span className="text-kk-gold-ink font-bold">Agent: Shadow (Zach Simpson)</span>
             </div>
 
             <StealthDropConsole
@@ -333,23 +333,23 @@ export default function CovertDeliveryStudioPage() {
           </div>
 
           {/* Right: Target Ring Cam Review (Agent: Prime / Joshua Simpson) */}
-          <div className="bg-slate-950/80 border border-slate-800 rounded-3xl p-6 space-y-5 flex flex-col justify-between">
+          <div className="bg-kk-inset/80 border border-kk-border rounded-3xl p-6 space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-slate-400 font-bold">TARGET OPERATIVE:</span>
-                <span className="text-emerald-400 font-bold">Agent: Prime (Joshua Simpson)</span>
+                <span className="text-kk-muted font-bold">TARGET OPERATIVE:</span>
+                <span className="text-kk-brand font-bold">Agent: Prime (Joshua Simpson)</span>
               </div>
 
               {/* Infiltration Alert Box */}
-              <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-500/40 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-mono text-amber-300 font-bold">
+              <div className="p-4 rounded-2xl bg-kk-warning border border-kk-border-strong space-y-2">
+                <div className="flex items-center gap-2 text-xs font-mono text-kk-gold-ink font-bold">
                   <span>⚠️</span> PACKAGE STASHED ON YOUR PERIMETER!
                 </div>
-                <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                <p className="text-xs text-kk-ink font-sans leading-relaxed">
                   Your secret Santa has placed a package on your porch. Review your Ring doorbell camera footage to see if you can identify who delivered it!
                 </p>
                 {dropNote && (
-                  <div className="text-[11px] font-mono text-amber-200/90 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                  <div className="text-[11px] font-mono text-kk-gold-ink bg-kk-inset p-2.5 rounded-xl border border-kk-border">
                     <strong>Stash Clue:</strong> &quot;{dropNote}&quot;
                   </div>
                 )}
@@ -357,13 +357,13 @@ export default function CovertDeliveryStudioPage() {
 
               {/* Busted Evidence Display if Busted */}
               {detectionStatus === 'BUSTED' && bustedPhoto && (
-                <div className="p-3 bg-amber-950/20 border border-amber-500/40 rounded-2xl space-y-2">
-                  <div className="text-xs font-mono text-amber-300 font-bold flex items-center gap-1.5">
+                <div className="p-3 bg-kk-warning border border-kk-border-strong rounded-2xl space-y-2">
+                  <div className="text-xs font-mono text-kk-gold-ink font-bold flex items-center gap-1.5">
                     📸 RING CAMERA CAPTURE (PROVEN IDENTIFICATION):
                   </div>
-                  <img src={bustedPhoto} alt="Busted Cam" className="w-full max-h-40 object-cover rounded-xl border border-amber-500/30" />
+                  <img src={bustedPhoto} alt="Busted Cam" className="w-full max-h-40 object-cover rounded-xl border border-kk-border-strong" />
                   {bustedReason && (
-                    <p className="text-[11px] font-mono text-slate-300 italic">
+                    <p className="text-[11px] font-mono text-kk-ink italic">
                       &quot;{bustedReason}&quot;
                     </p>
                   )}
@@ -377,7 +377,7 @@ export default function CovertDeliveryStudioPage() {
                 type="button"
                 disabled={guessAttempted || detectionStatus !== 'PENDING'}
                 onClick={() => setIsChallengeOpen(true)}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 disabled:opacity-40 disabled:pointer-events-none text-white font-mono text-xs font-bold shadow-lg shadow-red-600/20 flex items-center justify-center gap-2 transition cursor-pointer"
+                className="w-full py-3 rounded-xl bg-kk-primary hover:bg-kk-primary-hover disabled:opacity-40 disabled:pointer-events-none text-kk-on-primary font-mono text-xs font-bold shadow-lg shadow-black/20 flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <span>📸</span>
                 Review Ring Cam & Identify Santa (1 Guess)
@@ -390,9 +390,9 @@ export default function CovertDeliveryStudioPage() {
                   setDetectionStatus('UNDETECTED');
                   setBadgeAwarded(BADGE_KOVERT_KLAUS);
                 }}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-300 font-mono text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-kk-surface hover:border-kk-border-strong disabled:opacity-40 disabled:pointer-events-none text-kk-ink font-mono text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span className="text-emerald-400 font-bold">✓</span>
+                <span className="text-kk-brand font-bold">✓</span>
                 Confirm Clean Ghost Drop (Undetected)
               </button>
             </div>
@@ -401,12 +401,12 @@ export default function CovertDeliveryStudioPage() {
         </div>
 
         {/* Live AAR Feed with Kovert Delivery Badges */}
-        <div className="pt-6 border-t border-slate-800/80">
+        <div className="pt-6 border-t border-kk-border">
           <div className="mb-4">
-            <h3 className="text-xs font-mono text-amber-400 uppercase tracking-widest font-bold">
+            <h3 className="text-xs font-mono text-kk-gold-ink uppercase tracking-widest font-bold">
               LIVE AFTER-ACTION REPORT DEBRIEF FEED
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-kk-muted">
               Debrief cards automatically display <strong>🎅 Kovert Klaus</strong> (Undetected) and <strong>🕵️ Vigilant Elf</strong> (Busted) badges!
             </p>
           </div>

@@ -154,7 +154,7 @@ export function validateItemBudget(
       hardLimit,
       budgetMin,
       message: `🚫 Item price ($${itemPrice.toFixed(2)}) exceeds the event's $${hardLimit.toFixed(2)} anti-overwishing limit.`,
-      badgeStyle: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+      badgeStyle: 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40',
     };
   }
 
@@ -168,7 +168,7 @@ export function validateItemBudget(
       hardLimit,
       budgetMin,
       message: `💡 Add-On / Stocking Stuffer ($${itemPrice.toFixed(2)} is below the $${budgetMin.toFixed(2)} min target).`,
-      badgeStyle: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      badgeStyle: 'bg-kk-warning text-kk-on-warning border-kk-border-strong',
     };
   }
 
@@ -182,7 +182,7 @@ export function validateItemBudget(
       hardLimit,
       budgetMin,
       message: `🟡 Slightly exceeds $${softLimit.toFixed(2)} target budget.`,
-      badgeStyle: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      badgeStyle: 'bg-kk-warning text-kk-on-warning border-kk-border-strong',
     };
   }
 
@@ -195,7 +195,7 @@ export function validateItemBudget(
     hardLimit,
     budgetMin,
     message: `🟢 Within $${softLimit.toFixed(2)} target budget.`,
-    badgeStyle: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    badgeStyle: 'bg-kk-success text-kk-on-success border-kk-on-success/30',
   };
 }
 
@@ -219,7 +219,7 @@ export function evaluateDrawEligibility(
         validItemsCount: 0,
         breachingItemsCount: 0,
         statusLabel: 'INELIGIBLE (0 Items in Pool)',
-        statusColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+        statusColor: 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40',
         bannerMessage: '⚠️ DRAW INELIGIBILITY: You must register 1 gift in the Yankee Swap pool to participate in the exchange.',
       };
     }
@@ -230,7 +230,7 @@ export function evaluateDrawEligibility(
         validItemsCount: 1,
         breachingItemsCount: totalItems - 1,
         statusLabel: 'LIMIT EXCEEDED (Max 1 Gift)',
-        statusColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+        statusColor: 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40',
         bannerMessage: '🚫 POOL OVERFLOW: White Elephant is strictly limited to 1 brought gift item per operative.',
       };
     }
@@ -240,7 +240,7 @@ export function evaluateDrawEligibility(
       validItemsCount: 1,
       breachingItemsCount: 0,
       statusLabel: 'MISSION READY (1 Gift in Pool)',
-      statusColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      statusColor: 'bg-kk-success text-kk-on-success border-kk-on-success/30',
       bannerMessage: '✓ MISSION READY: Your gift is registered in the Yankee Swap pool. You are cleared for the event!',
     };
   }
@@ -265,7 +265,7 @@ export function evaluateDrawEligibility(
       validItemsCount: 0,
       breachingItemsCount: 0,
       statusLabel: 'INELIGIBLE (0 Items on List)',
-      statusColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+      statusColor: 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40',
       bannerMessage: '⚠️ DRAW INELIGIBILITY WARNING: Your wishlist is empty. You must add at least 1 item before the Target Draw or you will be excluded!',
     };
   }
@@ -277,7 +277,7 @@ export function evaluateDrawEligibility(
       validItemsCount: 0,
       breachingItemsCount,
       statusLabel: 'INELIGIBLE (All Items Exceed Cap)',
-      statusColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+      statusColor: 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40',
       bannerMessage: `🚫 OVERWISHING ALERT: All items exceed the $${budgetHardLimit?.toFixed(2)} hard cap. Add at least 1 compliant item to qualify for the draw.`,
     };
   }
@@ -288,7 +288,7 @@ export function evaluateDrawEligibility(
     validItemsCount,
     breachingItemsCount,
     statusLabel: `MISSION READY (${validItemsCount} Valid Items)`,
-    statusColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    statusColor: 'bg-kk-success text-kk-on-success border-kk-on-success/30',
     bannerMessage: `✓ MISSION READY: Your wishlist is valid. You are registered and will be included in the Target Draw!`,
   };
 }

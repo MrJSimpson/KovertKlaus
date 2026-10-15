@@ -15,14 +15,14 @@ export const SeasonalLightsStrand: React.FC<SeasonalLightsProps> = ({ type = 'ch
   // 1. Classic Christmas Bulbs (Winter)
   if (type === 'christmas_bulbs') {
     const bulbColors = isDarkMode
-      ? ['#38bdf8', '#818cf8', '#34d399', '#f472b6', '#fbbf24', '#38bdf8']
-      : ['#ef4444', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#ef4444'];
+      ? ['#fde7be', '#cab48b', '#dbe2ea', '#a28b61', '#8c9985', '#fde7be'] // Blue & gold: Wheat, Ecru, Alice blue, Lion, Cambridge blue
+      : ['#a70006', '#058e27', '#f0d890', '#c50537', '#34502b', '#a70006']; // Classic Christmas: holly, evergreen, candle gold, berry, pine
 
     return (
       <div className="flex items-center justify-around w-full py-1 overflow-hidden opacity-90 select-none">
         {bulbColors.map((color, i) => (
           <div key={i} className="flex flex-col items-center">
-            <div className="w-1 h-1.5 bg-zinc-600 rounded-t-sm" />
+            <div className="w-1 h-1.5 bg-kk-border-strong rounded-t-sm" />
             <div
               className="w-2.5 h-3.5 rounded-full shadow-sm animate-pulse"
               style={{

@@ -131,18 +131,18 @@ export default function WhiteElephantPartyBench() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-kk-border">
         <div>
           <div className="flex items-center gap-3">
-            <span className="h-3 w-3 rounded-full bg-purple-500 animate-pulse inline-block"></span>
-            <span className="text-xs px-2 py-0.5 rounded font-mono uppercase bg-purple-950/80 text-purple-300 border border-purple-500/30">
+            <span className="h-3 w-3 rounded-full bg-kk-gold animate-pulse inline-block"></span>
+            <span className="text-xs px-2 py-0.5 rounded font-mono uppercase bg-kk-warning text-kk-on-warning border border-kk-border-strong">
               WORKSHOP LAB // IN-PERSON WHITE ELEPHANT BOARD
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 text-white flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 text-kk-heading flex items-center gap-2">
             <span>🏷️ Labeled Blind Mystery Swap & Scoreboard</span>
           </h1>
-          <p className="text-gray-400 text-xs font-mono mt-1">
+          <p className="text-kk-muted text-xs font-mono mt-1">
             Gifts remain 100% wrapped & labeled "FROM: AGENT &lt;NAME&gt;". Track turn order, 3-swap freeze rules, and grand unboxing!
           </p>
         </div>
@@ -150,19 +150,19 @@ export default function WhiteElephantPartyBench() {
         <div className="flex items-center gap-2">
           <Link
             href="/workshop/draw"
-            className="bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
+            className="bg-kk-success hover:brightness-95 text-kk-on-success border border-kk-on-success/30 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
           >
             🎯 Draw
           </Link>
           <Link
             href="/workshop/lifecycle"
-            className="bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
+            className="bg-kk-warning hover:brightness-95 text-kk-on-warning border border-kk-border-strong px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
           >
             ⏱️ Lifecycle
           </Link>
           <Link
             href="/workshop"
-            className="bg-slate-800 hover:bg-slate-700 text-gray-300 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
+            className="bg-kk-surface hover:border-kk-border-strong text-kk-ink px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
           >
             ← Workshop Hub
           </Link>
@@ -170,17 +170,17 @@ export default function WhiteElephantPartyBench() {
       </div>
 
       {/* Preset Controls & Game Configuration Bar */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+      <div className="p-4 rounded-2xl bg-kk-surface border border-kk-border flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-mono text-gray-400">Roster Presets:</span>
+          <span className="text-xs font-mono text-kk-muted">Roster Presets:</span>
           {Object.keys(PRESETS).map((key) => (
             <button
               key={key}
               onClick={() => resetGame(key)}
               className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer border ${
                 selectedPreset === key
-                  ? 'bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-950/60'
-                  : 'bg-slate-800 text-gray-300 border-slate-700 hover:bg-slate-700'
+                  ? 'bg-kk-gold text-kk-on-gold border-kk-border-strong shadow-md shadow-black/20'
+                  : 'bg-kk-surface text-kk-ink border-kk-border hover:border-kk-border-strong'
               }`}
             >
               {key === 'simpsons' ? '🍩 Simpsons (5)' : key === 'squad' ? '🚀 Squad (6)' : '🎄 Griswolds (8)'}
@@ -189,7 +189,7 @@ export default function WhiteElephantPartyBench() {
         </div>
 
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-xs font-mono text-gray-300 cursor-pointer select-none">
+          <label className="flex items-center gap-2 text-xs font-mono text-kk-ink cursor-pointer select-none">
             <input
               type="checkbox"
               checked={allowPlayer1Swap}
@@ -201,7 +201,7 @@ export default function WhiteElephantPartyBench() {
 
           <button
             onClick={() => resetGame()}
-            className="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer"
+            className="bg-kk-surface hover:border-kk-border-strong text-kk-gold-ink border border-kk-border-strong px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer"
           >
             🔄 Reset Board
           </button>
@@ -210,21 +210,21 @@ export default function WhiteElephantPartyBench() {
 
       {/* Error Alert */}
       {errorMessage && (
-        <div className="p-4 rounded-2xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs font-mono">
+        <div className="p-4 rounded-2xl bg-kk-danger-soft border border-kk-danger/40 text-kk-on-danger-soft text-xs font-mono">
           ⚠️ {errorMessage}
         </div>
       )}
 
       {/* Grand Unboxing Countdown Overlay Banner */}
       {unboxingCountdown !== null && (
-        <div className="p-8 rounded-3xl bg-gradient-to-r from-purple-950 via-indigo-950 to-purple-950 border border-purple-500 text-center shadow-2xl animate-pulse space-y-3">
-          <div className="text-sm font-mono font-bold text-purple-300 uppercase tracking-widest">
+        <div className="p-8 rounded-3xl bg-kk-surface border-2 border-kk-border-strong text-center shadow-2xl motion-safe:animate-pulse space-y-3">
+          <div className="text-sm font-mono font-bold text-kk-gold-ink uppercase tracking-widest">
             🎉 ALL SWAP ROUNDS COMPLETE!
           </div>
-          <div className="text-4xl sm:text-6xl font-black text-white">
+          <div className="text-4xl sm:text-6xl font-black text-kk-heading">
             GRAND UNBOXING IN: {unboxingCountdown}
           </div>
-          <p className="text-xs text-purple-200 font-mono">
+          <p className="text-xs text-kk-gold-ink font-mono">
             Get ready to unwrap your physical mystery gifts together! 🎁
           </p>
         </div>
@@ -238,20 +238,20 @@ export default function WhiteElephantPartyBench() {
 
           {/* Active Turn HUD Panel */}
           {gameState.phase === 'TURNS' && (
-            <div className="p-6 rounded-3xl bg-slate-900 border border-purple-500/40 shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="p-6 rounded-3xl bg-kk-surface border border-kk-border-strong shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-kk-border">
                 <div>
-                  <div className="text-[11px] font-mono text-purple-400 font-bold uppercase tracking-wider">
+                  <div className="text-[11px] font-mono text-kk-gold-ink font-bold uppercase tracking-wider">
                     {gameState.cascadeVictimUserId ? '🔄 SWAP CASCADE IN PROGRESS' : `ROUND ${gameState.currentTurnIndex + 1} OF ${gameState.turnOrder.length}`}
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-white mt-0.5 flex items-center gap-2">
+                  <h2 className="text-xl sm:text-2xl font-black text-kk-heading mt-0.5 flex items-center gap-2">
                     <span>👉 Active Turn:</span>
-                    <span className="text-amber-400">Agent {activeOperative?.codename || activeOperative?.name}</span>
+                    <span className="text-kk-gold-ink">Agent {activeOperative?.codename || activeOperative?.name}</span>
                   </h2>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold px-3 py-1.5 rounded-full bg-purple-950 text-purple-300 border border-purple-500/40">
+                  <span className="font-mono text-xs font-bold px-3 py-1.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong">
                     Turn {gameState.currentTurnIndex + 1}/{gameState.turnOrder.length}
                   </span>
                 </div>
@@ -259,22 +259,22 @@ export default function WhiteElephantPartyBench() {
 
               {/* Action Decision: Pick from Pile vs. Swap */}
               <div className="space-y-4 pt-1">
-                <div className="text-xs font-mono text-gray-300">
+                <div className="text-xs font-mono text-kk-ink">
                   {activeHeldGift ? (
-                    <span>Currently holding: <strong className="text-amber-300">[{activeHeldGift.displayLabel}]</strong></span>
+                    <span>Currently holding: <strong className="text-kk-gold-ink">[{activeHeldGift.displayLabel}]</strong></span>
                   ) : (
-                    <span>Currently has: <strong className="text-gray-400">Empty Hands (Must Pick or Steal)</strong></span>
+                    <span>Currently has: <strong className="text-kk-muted">Empty Hands (Must Pick or Steal)</strong></span>
                   )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Action A: Pick from Pile */}
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="p-4 rounded-2xl bg-kk-inset border border-kk-border space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-emerald-400">
+                      <span className="font-mono text-xs font-bold text-kk-brand">
                         🎁 1. PICK UNCLAIMED GIFT
                       </span>
-                      <span className="text-[10px] font-mono text-gray-400">{unclaimed.length} Available</span>
+                      <span className="text-[10px] font-mono text-kk-muted">{unclaimed.length} Available</span>
                     </div>
 
                     {unclaimed.length > 0 ? (
@@ -283,27 +283,27 @@ export default function WhiteElephantPartyBench() {
                           <button
                             key={gift.id}
                             onClick={() => handlePickFromPile(gift.id)}
-                            className="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-emerald-950 text-emerald-300 border border-slate-700 hover:border-emerald-500 text-xs font-mono font-bold text-left transition-all cursor-pointer flex items-center justify-between"
+                            className="w-full p-2.5 rounded-xl bg-kk-surface hover:bg-kk-success text-kk-brand border border-kk-border hover:border-kk-on-success/30 text-xs font-mono font-bold text-left transition-all cursor-pointer flex items-center justify-between"
                           >
                             <span>🎁 {gift.displayLabel}</span>
-                            <span className="text-[10px] text-emerald-400 font-normal">Pick ▶</span>
+                            <span className="text-[10px] text-kk-brand font-normal">Pick ▶</span>
                           </button>
                         ))}
                       </div>
                     ) : (
-                      <div className="p-4 text-center text-xs font-mono text-gray-500 border border-dashed border-slate-800 rounded-xl">
+                      <div className="p-4 text-center text-xs font-mono text-kk-muted border border-dashed border-kk-border rounded-xl">
                         All gifts claimed from pile! (Swaps only)
                       </div>
                     )}
                   </div>
 
                   {/* Action B: Swap with Operative */}
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="p-4 rounded-2xl bg-kk-inset border border-kk-border space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-purple-400">
+                      <span className="font-mono text-xs font-bold text-kk-gold-ink">
                         🔀 2. SWAP WITH OPERATIVE
                       </span>
-                      <span className="text-[10px] font-mono text-gray-400">{swappable.length} Eligible</span>
+                      <span className="text-[10px] font-mono text-kk-muted">{swappable.length} Eligible</span>
                     </div>
 
                     {swappable.length > 0 ? (
@@ -314,21 +314,21 @@ export default function WhiteElephantPartyBench() {
                             <button
                               key={gift.id}
                               onClick={() => handleSwapGift(gift.id)}
-                              className="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-purple-950 text-purple-200 border border-slate-700 hover:border-purple-500 text-xs font-mono font-bold text-left transition-all cursor-pointer flex items-center justify-between"
+                              className="w-full p-2.5 rounded-xl bg-kk-surface hover:bg-kk-warning text-kk-gold-ink border border-kk-border hover:border-kk-border-strong text-xs font-mono font-bold text-left transition-all cursor-pointer flex items-center justify-between"
                             >
                               <div>
                                 <div>🔀 {gift.displayLabel}</div>
-                                <div className="text-[10px] text-gray-400 font-normal">
+                                <div className="text-[10px] text-kk-muted font-normal">
                                   Held by: Agent {holderOp?.codename || holderOp?.name} ({gift.swapCount}/3)
                                 </div>
                               </div>
-                              <span className="text-[10px] text-purple-300">Swap ▶</span>
+                              <span className="text-[10px] text-kk-gold-ink">Swap ▶</span>
                             </button>
                           );
                         })}
                       </div>
                     ) : (
-                      <div className="p-4 text-center text-xs font-mono text-gray-500 border border-dashed border-slate-800 rounded-xl">
+                      <div className="p-4 text-center text-xs font-mono text-kk-muted border border-dashed border-kk-border rounded-xl">
                         No eligible gifts available to swap yet.
                       </div>
                     )}
@@ -340,16 +340,16 @@ export default function WhiteElephantPartyBench() {
 
           {/* Player 1 Final Swap Privilege Panel */}
           {gameState.phase === 'PLAYER_1_FINAL' && (
-            <div className="p-6 rounded-3xl bg-amber-950/60 border border-amber-500 text-amber-100 shadow-2xl space-y-4">
+            <div className="p-6 rounded-3xl bg-kk-warning border border-kk-border-strong text-kk-on-warning shadow-2xl space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase bg-amber-500 text-slate-950 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono font-bold uppercase bg-kk-gold text-kk-on-gold px-2 py-0.5 rounded">
                     👑 PLAYER 1 FINAL PRIVILEGE
                   </span>
-                  <h3 className="text-xl font-black text-white mt-1">
+                  <h3 className="text-xl font-black text-kk-heading mt-1">
                     Agent {gameState.operatives.find((o) => o.userId === gameState.turnOrder[0])?.codename}, Final Choice!
                   </h3>
-                  <p className="text-xs text-amber-200/90 font-mono mt-0.5">
+                  <p className="text-xs text-kk-gold-ink font-mono mt-0.5">
                     As Player 1, you picked first with zero swap options. You may now keep your gift or make one final swap!
                   </p>
                 </div>
@@ -358,7 +358,7 @@ export default function WhiteElephantPartyBench() {
               <div className="flex flex-wrap gap-3 pt-2">
                 <button
                   onClick={() => handlePlayer1Choice('KEEP')}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold px-4 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-lg"
+                  className="bg-kk-secondary hover:bg-kk-secondary-hover text-kk-on-secondary font-mono font-bold px-4 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-lg"
                 >
                   ✓ Keep My Mystery Gift (Unwrap Now)
                 </button>
@@ -369,7 +369,7 @@ export default function WhiteElephantPartyBench() {
                     <button
                       key={gift.id}
                       onClick={() => handlePlayer1Choice('SWAP', gift.id)}
-                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-bold px-4 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-lg flex items-center gap-1.5"
+                      className="bg-kk-gold hover:brightness-95 text-kk-on-gold font-mono font-bold px-4 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-lg flex items-center gap-1.5"
                     >
                       <span>🔀 Final Swap for [{gift.displayLabel}]</span>
                       <span className="text-[10px] opacity-75">({holderOp?.codename})</span>
@@ -382,25 +382,25 @@ export default function WhiteElephantPartyBench() {
 
           {/* Grand Unboxing Completed Celebration Summary */}
           {gameState.phase === 'COMPLETED' && (
-            <div className="p-6 rounded-3xl bg-emerald-950/70 border border-emerald-500/60 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-emerald-500/30">
+            <div className="p-6 rounded-3xl bg-kk-success border border-kk-on-success/30 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-kk-on-success/30">
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase bg-emerald-500 text-slate-950 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono font-bold uppercase bg-kk-secondary text-kk-on-secondary px-2 py-0.5 rounded">
                     🎉 GRAND UNBOXING COMPLETE
                   </span>
-                  <h3 className="text-2xl font-black text-white mt-1">
+                  <h3 className="text-2xl font-black text-kk-heading mt-1">
                     All Physical Gifts Unwrapped!
                   </h3>
                 </div>
                 <button
                   onClick={() => resetGame()}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer"
+                  className="bg-kk-secondary hover:bg-kk-secondary-hover text-kk-on-secondary font-mono font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer"
                 >
                   Play Again 🔄
                 </button>
               </div>
 
-              <p className="text-xs font-mono text-emerald-200">
+              <p className="text-xs font-mono text-kk-brand">
                 Final Giver ➔ Winner Pairings. Thank your giving agent in person!
               </p>
 
@@ -408,11 +408,11 @@ export default function WhiteElephantPartyBench() {
                 {gameState.gifts.map((gift) => {
                   const winnerOp = gameState.operatives.find((o) => o.userId === gift.currentHolderUserId);
                   return (
-                    <div key={gift.id} className="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-1">
-                      <div className="text-[10px] text-gray-400 uppercase">GIFT WRAPPED BY:</div>
-                      <div className="font-bold text-amber-300">Agent {gift.giverCodename} ({gift.giverName})</div>
-                      <div className="text-[10px] text-gray-400 uppercase pt-1">TAKEN HOME BY:</div>
-                      <div className="font-black text-emerald-300">Agent {winnerOp?.codename || winnerOp?.name} 🎁</div>
+                    <div key={gift.id} className="p-3 rounded-xl bg-kk-inset border border-kk-on-success/30 space-y-1">
+                      <div className="text-[10px] text-kk-muted uppercase">GIFT WRAPPED BY:</div>
+                      <div className="font-bold text-kk-gold-ink">Agent {gift.giverCodename} ({gift.giverName})</div>
+                      <div className="text-[10px] text-kk-muted uppercase pt-1">TAKEN HOME BY:</div>
+                      <div className="font-black text-kk-brand">Agent {winnerOp?.codename || winnerOp?.name} 🎁</div>
                     </div>
                   );
                 })}
@@ -421,12 +421,12 @@ export default function WhiteElephantPartyBench() {
           )}
 
           {/* The Operative Circle Board */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-xs font-mono font-bold text-gray-300 uppercase tracking-wider">
+          <div className="p-6 rounded-3xl bg-kk-surface border border-kk-border space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-kk-border">
+              <h3 className="text-xs font-mono font-bold text-kk-ink uppercase tracking-wider">
                 👥 OPERATIVE ROSTER & HELD GIFTS
               </h3>
-              <span className="text-[11px] font-mono text-gray-400">
+              <span className="text-[11px] font-mono text-kk-muted">
                 Frozen: {gameState.gifts.filter((g) => g.isFrozen).length}/{gameState.gifts.length} ❄️
               </span>
             </div>
@@ -442,40 +442,40 @@ export default function WhiteElephantPartyBench() {
                     key={userId}
                     className={`p-4 rounded-2xl border transition-all ${
                       isCurrentlyActive
-                        ? 'bg-amber-950/40 border-amber-500 shadow-lg shadow-amber-950/40 scale-[1.02]'
-                        : 'bg-slate-950 border-slate-800'
+                        ? 'bg-kk-warning border-kk-border-strong shadow-lg shadow-black/20 scale-[1.02]'
+                        : 'bg-kk-inset border-kk-border'
                     }`}
                   >
                     <div className="flex items-center justify-between font-mono">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-gray-300 font-bold">
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-kk-surface text-kk-ink font-bold">
                           #{idx + 1}
                         </span>
-                        <span className="font-bold text-xs text-white">Agent {op?.codename}</span>
+                        <span className="font-bold text-xs text-kk-ink">Agent {op?.codename}</span>
                       </div>
                       {isCurrentlyActive && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 animate-pulse">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-kk-gold text-kk-on-gold animate-pulse">
                           ACTIVE TURN
                         </span>
                       )}
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-slate-900 font-mono text-xs">
+                    <div className="mt-2.5 pt-2 border-t border-kk-border font-mono text-xs">
                       {heldGift ? (
                         <div className="flex items-center justify-between">
-                          <span className="text-amber-300 font-bold">🎁 {heldGift.displayLabel}</span>
+                          <span className="text-kk-gold-ink font-bold">🎁 {heldGift.displayLabel}</span>
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                               heldGift.isFrozen
-                                ? 'bg-cyan-950 text-cyan-300 border-cyan-500/50'
-                                : 'bg-slate-800 text-gray-400 border-slate-700'
+                                ? 'bg-kk-inset text-kk-accent border-kk-border-strong'
+                                : 'bg-kk-surface text-kk-muted border-kk-border'
                             }`}
                           >
                             {heldGift.isFrozen ? '❄️ FROZEN' : `${heldGift.swapCount}/3 Swaps`}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-gray-500 text-[11px] italic">Empty Hands (Unclaimed)</span>
+                        <span className="text-kk-muted text-[11px] italic">Empty Hands (Unclaimed)</span>
                       )}
                     </div>
                   </div>
@@ -489,15 +489,15 @@ export default function WhiteElephantPartyBench() {
         <div className="lg:col-span-1 space-y-6">
 
           {/* Physical Gifts Pile Under the Tree */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
+          <div className="p-6 rounded-3xl bg-kk-surface border border-kk-border space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-kk-border">
+              <h3 className="text-xs font-mono font-bold text-kk-brand uppercase tracking-wider">
                 🎄 UNDER THE TREE (PILE)
               </h3>
-              <span className="text-[11px] font-mono text-gray-400">{unclaimed.length} Left</span>
+              <span className="text-[11px] font-mono text-kk-muted">{unclaimed.length} Left</span>
             </div>
 
-            <p className="text-xs text-gray-400 font-mono leading-relaxed">
+            <p className="text-xs text-kk-muted font-mono leading-relaxed">
               Physical wrapped boxes labeled with giving agent's name:
             </p>
 
@@ -511,8 +511,8 @@ export default function WhiteElephantPartyBench() {
                     key={gift.id}
                     className={`p-3 rounded-xl border font-mono text-xs flex items-center justify-between transition-all ${
                       isClaimed
-                        ? 'bg-slate-950/60 border-slate-900 text-gray-500'
-                        : 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                        ? 'bg-kk-inset/60 border-kk-border text-kk-muted'
+                        : 'bg-kk-success border-kk-on-success/30 text-kk-on-success'
                     }`}
                   >
                     <div>
@@ -532,19 +532,19 @@ export default function WhiteElephantPartyBench() {
           </div>
 
           {/* Event Audit Log */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
-            <h3 className="text-xs font-mono font-bold text-gray-300 uppercase tracking-wider pb-2 border-b border-slate-800">
+          <div className="p-6 rounded-3xl bg-kk-surface border border-kk-border space-y-4">
+            <h3 className="text-xs font-mono font-bold text-kk-ink uppercase tracking-wider pb-2 border-b border-kk-border">
               📜 MISSION SWAP AUDIT LOG
             </h3>
 
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1 font-mono text-xs">
               {gameState.history.map((log) => (
-                <div key={log.id} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-0.5">
-                  <div className="flex items-center justify-between text-[10px] text-gray-500">
+                <div key={log.id} className="p-2.5 rounded-xl bg-kk-inset border border-kk-border space-y-0.5">
+                  <div className="flex items-center justify-between text-[10px] text-kk-muted">
                     <span>Turn {log.turnNumber}</span>
-                    <span className="uppercase font-bold text-purple-400">{log.action}</span>
+                    <span className="uppercase font-bold text-kk-gold-ink">{log.action}</span>
                   </div>
-                  <p className="text-gray-300 leading-snug">{log.description}</p>
+                  <p className="text-kk-ink leading-snug">{log.description}</p>
                 </div>
               ))}
             </div>

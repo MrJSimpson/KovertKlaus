@@ -5,6 +5,7 @@ import { USER_ID_KEY } from '@/lib/constants/auth';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
+import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
@@ -41,6 +42,13 @@ interface OperationItem {
   exchange?: ExchangeData;
   mission?: ExchangeData;
 }
+
+/** Which ExchangeStatus values each Mission Center status filter shows. */
+const STATUS_FILTER_GROUPS: Record<'RECRUITING' | 'ASSIGNED' | 'COMPLETED', string[]> = {
+  RECRUITING: ['RECRUITING', 'SETUP'],
+  ASSIGNED: ['MATCHED', 'SHIPPED', 'EXECUTED'],
+  COMPLETED: ['COMPLETED'],
+};
 
 export default function OperationCenterPage() {
   const { isDarkMode, toggleTheme, theme } = useTheme();
@@ -122,7 +130,8 @@ export default function OperationCenterPage() {
       item.role === roleFilter ||
       (roleFilter === 'ORGANIZER' && item.role === 'OPS_LEADER') ||
       (roleFilter === 'MEMBER' && item.role === 'FIELD_AGENT');
-    const statusMatch = statusFilter === 'ALL' || ex.status === statusFilter;
+    // Filters group the real ExchangeStatus values: Recruiting covers setup, Assigned covers drawn missions.
+    const statusMatch = statusFilter === 'ALL' || STATUS_FILTER_GROUPS[statusFilter].includes(ex.status);
     return (titleMatch || codeMatch) && roleMatch && statusMatch;
   });
 
@@ -143,41 +152,44 @@ export default function OperationCenterPage() {
       
       {/* Navigation Header */}
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md ${
-              isDarkMode ? 'bg-gradient-to-br from-sky-400 to-slate-700' : 'bg-gradient-to-br from-red-600 to-emerald-800'
-            }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-xl flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-xs font-bold ${theme.textBrand}`}>
+              <span className="text-lg sm:text-xl font-black tracking-tight block">KovertKlaus</span>
+              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textGoldOnDark}`}>
                 Exchange Workspace
               </span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${theme.btnToggle}`}
+              className={`p-2 min-h-[44px] min-w-[44px] rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center ${theme.btnToggle}`}
+              title={isDarkMode ? 'Switch to Klaus Mode' : 'Switch to Kovert Mode'}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}
+              <span className="sm:hidden text-base">{isDarkMode ? '🎅' : '🕶️'}</span>
+              <span className="hidden sm:inline">{isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}</span>
             </button>
 
             <Link
               href="/dashboard"
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
+              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center whitespace-nowrap rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
             >
-              ← Back to Dashboard
+              <span className="sm:hidden">← Back</span>
+              <span className="hidden sm:inline">← Back to Dashboard</span>
             </Link>
 
             <button
               onClick={handleSignOut}
-              className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
+              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
             >
-              Sign Out
+              <span className="sm:hidden">Exit</span>
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>
@@ -230,19 +242,15 @@ export default function OperationCenterPage() {
             />
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto text-xs font-semibold">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto text-xs font-semibold">
             {/* Role Filter */}
-            <div className={`flex items-center gap-1 p-1 rounded-xl border ${
-              isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-[#F0F0F0] border-stone-300'
-            }`}>
+            <div className={`flex flex-wrap items-center gap-1 p-1 rounded-xl border bg-kk-inset border-kk-border`}>
               <button
                 onClick={() => setRoleFilter('ALL')}
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   roleFilter === 'ALL'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 All Roles
@@ -252,9 +260,7 @@ export default function OperationCenterPage() {
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   roleFilter === 'ORGANIZER' || roleFilter === 'OPS_LEADER'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 Head Elf
@@ -264,9 +270,7 @@ export default function OperationCenterPage() {
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   roleFilter === 'MEMBER' || roleFilter === 'AGENT'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 Elf Agent
@@ -274,17 +278,13 @@ export default function OperationCenterPage() {
             </div>
 
             {/* Status Filter */}
-            <div className={`flex items-center gap-1 p-1 rounded-xl border ${
-              isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-[#F0F0F0] border-stone-300'
-            }`}>
+            <div className={`flex flex-wrap items-center gap-1 p-1 rounded-xl border bg-kk-inset border-kk-border`}>
               <button
                 onClick={() => setStatusFilter('ALL')}
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   statusFilter === 'ALL'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 All Statuses
@@ -294,9 +294,7 @@ export default function OperationCenterPage() {
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   statusFilter === 'RECRUITING'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 Recruiting
@@ -306,9 +304,7 @@ export default function OperationCenterPage() {
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   statusFilter === 'ASSIGNED'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 Assigned
@@ -362,9 +358,7 @@ export default function OperationCenterPage() {
                       <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg ${theme.badgeCode}`}>
                         CODE: {ex.code}
                       </span>
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
-                        ex.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
-                      }`}>
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${statusBadgeClass(countdown)}`}>
                         ● {countdown.phaseStatusLabel}
                       </span>
                     </div>
@@ -391,25 +385,17 @@ export default function OperationCenterPage() {
                         <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
                           p.role === 'ORGANIZER' || p.role === 'OPS_LEADER'
                             ? theme.badgeAmber
-                            : isDarkMode
-                            ? 'bg-slate-800 text-slate-200 border border-slate-700'
-                            : 'bg-stone-200 text-slate-800 border border-stone-300'
+                            : 'bg-kk-inset text-kk-ink border border-kk-border'
                         }`}>
                           {p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? 'Head Elf' : 'Elf Agent'}
                         </span>
                       </div>
 
-                      <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 dark:border-slate-800/80">
+                      <div className="flex justify-between items-center pt-2 border-t border-kk-border">
                         <span className={`flex items-center gap-1 ${theme.textLabel}`}>
                           ⏳ {countdown.milestoneLabel}:
                         </span>
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${
-                          countdown.isToday
-                            ? theme.badgeCountdownToday
-                            : countdown.daysLeft <= 7 && !countdown.isPast
-                            ? theme.badgeCountdownUrgent
-                            : theme.badgeCountdown
-                        }`}>
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${countdownBadgeClass(countdown)}`}>
                           {countdown.formattedText}
                         </span>
                       </div>
@@ -430,7 +416,7 @@ export default function OperationCenterPage() {
                     )}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-stone-200 dark:border-slate-800">
+                  <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-kk-border">
                     <span className={`text-xs truncate shrink-0 ${theme.textSubLabel}`}>
                       Head Elf: <strong className={theme.textLabel}>{organizerData?.name || 'Organizer'}</strong>
                     </span>

@@ -176,18 +176,18 @@ export default function AARWorkshopBenchPage() {
   return (
     <div className="space-y-8 pb-16">
       {/* Header Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border-2 border-emerald-500/40 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="p-6 sm:p-8 rounded-3xl bg-kk-surface border-2 border-kk-on-success/30 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950 px-2.5 py-0.5 rounded border border-emerald-500/30">
+            <span className="h-2.5 w-2.5 rounded-full bg-kk-secondary animate-pulse"></span>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-kk-on-success bg-kk-success px-2.5 py-0.5 rounded border border-kk-on-success/30">
               LAB BENCH // AAR & IMAGE OPTIMIZATION
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">
+          <h1 className="text-2xl sm:text-3xl font-black text-kk-heading">
             After-Action Report & WebP Compressor Studio
           </h1>
-          <p className="text-xs text-gray-400 mt-1 font-mono">
+          <p className="text-xs text-kk-muted mt-1 font-mono">
             Test client-side canvas WebP downscaling, compression ratios, delivery tags, and interactive debrief feeds.
           </p>
         </div>
@@ -196,19 +196,19 @@ export default function AARWorkshopBenchPage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => handleLoadPreset('phone_portrait')}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-emerald-600 text-white font-mono text-xs font-bold transition-all border border-slate-700 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-kk-surface hover:bg-kk-secondary-hover text-kk-ink font-mono text-xs font-bold transition-all border border-kk-border cursor-pointer"
           >
             📱 Phone (1440×3120)
           </button>
           <button
             onClick={() => handleLoadPreset('dslr')}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-emerald-600 text-white font-mono text-xs font-bold transition-all border border-slate-700 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-kk-surface hover:bg-kk-secondary-hover text-kk-ink font-mono text-xs font-bold transition-all border border-kk-border cursor-pointer"
           >
             📸 4K (3840×2160)
           </button>
           <button
             onClick={() => handleLoadPreset('huge')}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-emerald-600 text-white font-mono text-xs font-bold transition-all border border-slate-700 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-kk-surface hover:bg-kk-secondary-hover text-kk-ink font-mono text-xs font-bold transition-all border border-kk-border cursor-pointer"
           >
             🐘 17MP Raw File
           </button>
@@ -220,29 +220,29 @@ export default function AARWorkshopBenchPage() {
         
         {/* Left Column: Tunable Parameters */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-5 shadow-lg">
-            <h2 className="text-sm font-black uppercase text-amber-300 font-mono tracking-wider flex items-center gap-2">
+          <div className="p-6 rounded-3xl bg-kk-surface border border-kk-border space-y-5 shadow-lg">
+            <h2 className="text-sm font-black uppercase text-kk-gold-ink font-mono tracking-wider flex items-center gap-2">
               <span>⚙️ Compression Parameters</span>
             </h2>
 
             {/* Max Dimensions */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1 font-mono">Max Width (px)</label>
+                <label className="block text-xs font-bold text-kk-ink mb-1 font-mono">Max Width (px)</label>
                 <input
                   type="number"
                   value={maxWidth}
                   onChange={(e) => setMaxWidth(Math.max(200, Number(e.target.value)))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                  className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-xs text-kk-ink font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1 font-mono">Max Height (px)</label>
+                <label className="block text-xs font-bold text-kk-ink mb-1 font-mono">Max Height (px)</label>
                 <input
                   type="number"
                   value={maxHeight}
                   onChange={(e) => setMaxHeight(Math.max(200, Number(e.target.value)))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                  className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-xs text-kk-ink font-mono"
                 />
               </div>
             </div>
@@ -250,8 +250,8 @@ export default function AARWorkshopBenchPage() {
             {/* Quality Slider */}
             <div>
               <div className="flex justify-between text-xs font-mono mb-1">
-                <span className="font-bold text-gray-300">WebP Quality</span>
-                <span className="text-emerald-400 font-bold">{Math.round(quality * 100)}%</span>
+                <span className="font-bold text-kk-ink">WebP Quality</span>
+                <span className="text-kk-brand font-bold">{Math.round(quality * 100)}%</span>
               </div>
               <input
                 type="range"
@@ -262,7 +262,7 @@ export default function AARWorkshopBenchPage() {
                 onChange={(e) => setQuality(Number(e.target.value))}
                 className="w-full accent-emerald-500 cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-gray-500 font-mono mt-1">
+              <div className="flex justify-between text-[10px] text-kk-muted font-mono mt-1">
                 <span>Smaller Size (20%)</span>
                 <span>Balanced (82%)</span>
                 <span>Max Quality (100%)</span>
@@ -271,7 +271,7 @@ export default function AARWorkshopBenchPage() {
 
             {/* Target MIME Format */}
             <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1 font-mono">Output MIME Format</label>
+              <label className="block text-xs font-bold text-kk-ink mb-1 font-mono">Output MIME Format</label>
               <div className="grid grid-cols-3 gap-2 font-mono text-xs font-bold">
                 {(['image/webp', 'image/jpeg', 'image/png'] as const).map((mime) => (
                   <button
@@ -280,8 +280,8 @@ export default function AARWorkshopBenchPage() {
                     onClick={() => setTargetMime(mime)}
                     className={`py-2 rounded-xl border transition-all cursor-pointer ${
                       targetMime === mime
-                        ? 'bg-emerald-600 border-emerald-400 text-white shadow-md'
-                        : 'bg-slate-950 border-slate-800 text-gray-400 hover:bg-slate-800'
+                        ? 'bg-kk-secondary border-kk-on-success/30 text-kk-on-secondary shadow-md'
+                        : 'bg-kk-inset border-kk-border text-kk-muted hover:bg-kk-surface'
                     }`}
                   >
                     {mime.replace('image/', '').toUpperCase()}
@@ -304,7 +304,7 @@ export default function AARWorkshopBenchPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={compressing}
-                className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl bg-kk-secondary hover:bg-kk-secondary-hover text-kk-on-secondary font-mono text-xs font-bold transition-all shadow-lg shadow-black/20 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>📁 Upload Custom Photo to Test</span>
               </button>
@@ -314,29 +314,29 @@ export default function AARWorkshopBenchPage() {
 
         {/* Right Column: Real-Time Metrics & Visual Comparison */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-6 shadow-lg">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h2 className="text-sm font-black uppercase text-emerald-400 font-mono tracking-wider flex items-center gap-2">
+          <div className="p-6 rounded-3xl bg-kk-surface border border-kk-border space-y-6 shadow-lg">
+            <div className="flex items-center justify-between pb-3 border-b border-kk-border">
+              <h2 className="text-sm font-black uppercase text-kk-brand font-mono tracking-wider flex items-center gap-2">
                 <span>📊 Optimization Benchmark Telemetry</span>
               </h2>
               {compressionTimeMs !== null && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 text-amber-300">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-kk-inset border border-kk-border text-kk-gold-ink">
                   ⚡ Processed in {compressionTimeMs}ms
                 </span>
               )}
             </div>
 
             {error && (
-              <div className="p-4 rounded-2xl bg-red-950/80 border border-red-800 text-red-200 text-xs font-mono">
+              <div className="p-4 rounded-2xl bg-kk-danger-soft border border-kk-danger/40 text-kk-on-danger-soft text-xs font-mono">
                 ⚠️ {error}
               </div>
             )}
 
             {!result && !error && (
-              <div className="p-10 rounded-2xl bg-slate-950/60 border border-dashed border-slate-800 text-center space-y-2">
+              <div className="p-10 rounded-2xl bg-kk-inset/60 border border-dashed border-kk-border text-center space-y-2">
                 <div className="text-4xl">📸</div>
-                <p className="text-xs font-bold text-gray-300 font-mono">No image loaded yet.</p>
-                <p className="text-[10px] text-gray-500 font-mono">
+                <p className="text-xs font-bold text-kk-ink font-mono">No image loaded yet.</p>
+                <p className="text-[10px] text-kk-muted font-mono">
                   Upload a photo or click one of the preset synthetic buttons above to benchmark downscaling.
                 </p>
               </div>
@@ -346,44 +346,44 @@ export default function AARWorkshopBenchPage() {
               <div className="space-y-6">
                 {/* 4 Stat Telemetry Tiles */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
-                  <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-                    <span className="text-[10px] text-gray-500 uppercase">Original Size</span>
-                    <p className="text-sm font-bold text-white">{formatFileSize(originalFile.size)}</p>
-                    <span className="text-[9px] text-gray-500 block truncate">{originalFile.type}</span>
+                  <div className="p-3.5 rounded-2xl bg-kk-inset border border-kk-border space-y-1">
+                    <span className="text-[10px] text-kk-muted uppercase">Original Size</span>
+                    <p className="text-sm font-bold text-kk-ink">{formatFileSize(originalFile.size)}</p>
+                    <span className="text-[9px] text-kk-muted block truncate">{originalFile.type}</span>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-                    <span className="text-[10px] text-emerald-400 uppercase">WebP Output</span>
-                    <p className="text-sm font-bold text-emerald-300">{formatFileSize(result.compressedSize)}</p>
-                    <span className="text-[9px] text-emerald-500 block truncate">{result.mimeType}</span>
+                  <div className="p-3.5 rounded-2xl bg-kk-inset border border-kk-border space-y-1">
+                    <span className="text-[10px] text-kk-brand uppercase">WebP Output</span>
+                    <p className="text-sm font-bold text-kk-brand">{formatFileSize(result.compressedSize)}</p>
+                    <span className="text-[9px] text-kk-brand block truncate">{result.mimeType}</span>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-                    <span className="text-[10px] text-amber-400 uppercase">Space Saved</span>
-                    <p className="text-sm font-bold text-amber-300">{result.compressionRatioPercent}%</p>
-                    <span className="text-[9px] text-gray-400 block truncate">
+                  <div className="p-3.5 rounded-2xl bg-kk-inset border border-kk-border space-y-1">
+                    <span className="text-[10px] text-kk-gold-ink uppercase">Space Saved</span>
+                    <p className="text-sm font-bold text-kk-gold-ink">{result.compressionRatioPercent}%</p>
+                    <span className="text-[9px] text-kk-muted block truncate">
                       -{formatFileSize(originalFile.size - result.compressedSize)}
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-                    <span className="text-[10px] text-sky-400 uppercase">Dimensions</span>
-                    <p className="text-sm font-bold text-sky-300">{result.width}×{result.height}</p>
-                    <span className="text-[9px] text-gray-500 block truncate">Fit Box: {maxWidth}×{maxHeight}</span>
+                  <div className="p-3.5 rounded-2xl bg-kk-inset border border-kk-border space-y-1">
+                    <span className="text-[10px] text-kk-accent uppercase">Dimensions</span>
+                    <p className="text-sm font-bold text-kk-accent">{result.width}×{result.height}</p>
+                    <span className="text-[9px] text-kk-muted block truncate">Fit Box: {maxWidth}×{maxHeight}</span>
                   </div>
                 </div>
 
                 {/* Side-by-Side Comparison */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <span className="text-[11px] font-mono font-bold text-gray-400">Original Source Image</span>
-                    <div className="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 max-h-52 flex items-center justify-center">
+                    <span className="text-[11px] font-mono font-bold text-kk-muted">Original Source Image</span>
+                    <div className="rounded-2xl overflow-hidden border border-kk-border bg-kk-inset max-h-52 flex items-center justify-center">
                       <img src={originalFile.url} alt="Original" className="max-h-52 object-contain" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <span className="text-[11px] font-mono font-bold text-emerald-400">Compressed WebP Canvas</span>
-                    <div className="rounded-2xl overflow-hidden border border-emerald-500/40 bg-slate-950 max-h-52 flex items-center justify-center">
+                    <span className="text-[11px] font-mono font-bold text-kk-brand">Compressed WebP Canvas</span>
+                    <div className="rounded-2xl overflow-hidden border border-kk-on-success/30 bg-kk-inset max-h-52 flex items-center justify-center">
                       <img src={result.dataUrl} alt="Compressed WebP" className="max-h-52 object-contain" />
                     </div>
                   </div>
@@ -395,23 +395,23 @@ export default function AARWorkshopBenchPage() {
       </div>
 
       {/* SECTION 2: Live Embedded AAR Component Sandbox */}
-      <div className="space-y-4 pt-6 border-t border-slate-800">
-        <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+      <div className="space-y-4 pt-6 border-t border-kk-border">
+        <div className="flex items-center justify-between pb-2 border-b border-kk-border">
           <div>
-            <h2 className="text-base font-black text-amber-300 font-mono flex items-center gap-2">
+            <h2 className="text-base font-black text-kk-gold-ink font-mono flex items-center gap-2">
               <span>📸 LIVE AFTER-ACTION REPORT COMPONENT TESTBED</span>
             </h2>
-            <p className="text-xs text-gray-400 font-mono">
+            <p className="text-xs text-kk-muted font-mono">
               Live component rendered with simulated session credentials and real-time state injection.
             </p>
           </div>
-          <span className="text-xs text-gray-500 font-mono">
+          <span className="text-xs text-kk-muted font-mono">
             {mockReports.length} Debrief Entries Loaded
           </span>
         </div>
 
         {/* Render Actual Component */}
-        <div className="bg-slate-950 rounded-3xl p-2 border border-slate-800 shadow-2xl">
+        <div className="bg-kk-inset rounded-3xl p-2 border border-kk-border shadow-2xl">
           <AfterActionReportSection
             operationId="mock-operation-simpson-2026"
             currentUserId="user-joshua"

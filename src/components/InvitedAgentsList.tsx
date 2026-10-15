@@ -29,11 +29,11 @@ interface MissionInvitationRow {
 }
 
 const STATUS_STYLE: Record<MissionInvitationRow['status'], string> = {
-  PENDING: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
-  ACCEPTED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-  DECLINED: 'bg-slate-500/10 text-slate-500 border-slate-500/30',
-  REVOKED: 'bg-slate-500/10 text-slate-500 border-slate-500/30',
-  EXPIRED: 'bg-slate-500/10 text-slate-500 border-slate-500/30',
+  PENDING: 'bg-kk-warning text-kk-on-warning border-kk-border-strong',
+  ACCEPTED: 'bg-kk-success text-kk-on-success border-kk-on-success/30',
+  DECLINED: 'bg-kk-inset text-kk-muted border-kk-border',
+  REVOKED: 'bg-kk-inset text-kk-muted border-kk-border',
+  EXPIRED: 'bg-kk-inset text-kk-muted border-kk-border',
 };
 
 const STATUS_LABEL: Record<MissionInvitationRow['status'], string> = {
@@ -120,12 +120,12 @@ export function InvitedAgentsList({ operationId, refreshKey, onPendingCountChang
   if (invitations.length === 0) return null;
 
   return (
-    <div className="mt-5 pt-4 border-t border-stone-200 dark:border-slate-800">
-      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">✉️ Invited</span>
+    <div className="mt-5 pt-4 border-t border-kk-border">
+      <span className="text-[10px] font-bold text-kk-muted uppercase tracking-wider">✉️ Invited</span>
 
       {notice && (
         <div className={`mt-2 p-2.5 rounded-xl text-[11px] font-semibold ${notice.ok
-          ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800'
+          ? 'bg-kk-success text-kk-on-success border border-kk-on-success/30'
           : theme.alertWarning}`}
         >
           {notice.ok ? '✅' : '⚠️'} {notice.text}
@@ -136,11 +136,12 @@ export function InvitedAgentsList({ operationId, refreshKey, onPendingCountChang
         {invitations.map((inv) => {
           const canResend = inv.status === 'PENDING' || inv.status === 'EXPIRED' || inv.status === 'REVOKED';
           return (
-            <li key={inv.id} className={`p-3 rounded-2xl border text-xs ${theme.cardInnerBg}`}>
+            <li key={inv.id} className="rounded-2xl border-2 border-kk-border overflow-hidden text-xs bg-kk-surface shadow-sm">
+              <div className={`p-3 ${theme.infoPanel}`}>
               <div className="flex items-center justify-between gap-2">
                 <span className={`truncate font-mono font-bold ${theme.textLabel}`} title={inv.email}>{inv.email}</span>
                 <span className="flex items-center gap-1.5 shrink-0">
-                  {inv.isLatePass && <span className="text-[9px] font-bold text-red-500">LATE PASS</span>}
+                  {inv.isLatePass && <span className="text-[9px] font-bold text-kk-danger">LATE PASS</span>}
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${STATUS_STYLE[inv.status]}`}>{STATUS_LABEL[inv.status]}</span>
                 </span>
               </div>
@@ -149,15 +150,16 @@ export function InvitedAgentsList({ operationId, refreshKey, onPendingCountChang
                   Last sent {new Date(inv.lastSentAt).toLocaleString()}
                 </span>
               )}
+              </div>
               {canResend && (
-                <div className="mt-2 pt-2 border-t border-stone-200/80 dark:border-slate-800/80 flex items-center gap-1.5 flex-wrap">
+                <div className="px-3 py-2.5 border-t-2 border-kk-border bg-kk-surface flex items-center gap-2 flex-wrap">
                   {canResend && (
                     <button
                       type="button"
                       onClick={() => act(inv, 'resend')}
                       disabled={busyId === inv.id}
                       title="Email this invitation again"
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 hover:bg-sky-200 transition-all cursor-pointer disabled:opacity-50"
+                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary shadow-sm transition-all cursor-pointer disabled:opacity-50"
                     >
                       {busyId === inv.id ? '⏳ Sending...' : '🔁 Resend'}
                     </button>
@@ -168,7 +170,7 @@ export function InvitedAgentsList({ operationId, refreshKey, onPendingCountChang
                       onClick={() => act(inv, 'revoke')}
                       disabled={busyId === inv.id}
                       title="Withdraw this invitation"
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-800 hover:bg-red-200 transition-all cursor-pointer disabled:opacity-50"
+                      className="ml-auto text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-surface text-kk-danger border-2 border-kk-danger/60 hover:bg-kk-danger-soft transition-all cursor-pointer disabled:opacity-50"
                     >
                       ❌ Revoke
                     </button>
