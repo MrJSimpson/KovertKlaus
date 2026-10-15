@@ -47,6 +47,7 @@ export async function GET() {
                 shippingDate: true,
                 executionDate: true,
                 status: true,
+                organizerId: true,
                 organizer: {
                   select: { name: true, codename: true },
                 },

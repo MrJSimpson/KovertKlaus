@@ -50,6 +50,8 @@ interface UserData {
       budgetMax: number;
       currency: string;
       executionDate: string;
+      /** The mission's Head Elf. */
+      organizerId?: string;
     };
     mission?: {
       id: string;
@@ -63,6 +65,8 @@ interface UserData {
       budgetMax: number;
       currency: string;
       executionDate: string;
+      /** The mission's Head Elf. */
+      organizerId?: string;
     };
   }>;
   notifications?: Array<{
@@ -510,8 +514,8 @@ export default function DashboardPage() {
                         <div className="mt-6 flex items-center justify-between gap-2 pt-3 border-t border-stone-200 dark:border-slate-800">
                           <div className="flex items-center gap-1.5 shrink-0">
                             <span className={`text-xs ${theme.textLabel}`}>Role:</span>
-                            <Badge variant={p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? 'opsleader' : 'code'}>
-                              {p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? '⭐ Head Elf' : '🕵️ Elf Agent'}
+                            <Badge variant={ex?.organizerId === user.id ? 'opsleader' : 'code'}>
+                              {ex?.organizerId === user.id ? '⭐ Head Elf' : '🕵️ Elf Agent'}
                             </Badge>
                           </div>
 

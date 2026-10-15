@@ -95,7 +95,8 @@ export default function OperationCenterPage() {
           const organizerIdVal = op.organizerId || op.opsLeaderId;
           return {
             id: op.id,
-            role: userMember?.role || (organizerIdVal === activeUserId ? 'ORGANIZER' : 'MEMBER'),
+            // One Head Elf per mission: the organizer. The stored member role is not trusted.
+            role: organizerIdVal === activeUserId ? 'ORGANIZER' : 'MEMBER',
             exchange: op,
             mission: op,
           };

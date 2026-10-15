@@ -60,7 +60,7 @@ export async function GET(request: Request) {
       // Only the exchange organizer or the specific assigned giver may view a member's target details and shipping address.
       const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
 
-      const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer }));
+      const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId }));
 
       const sanitizedData = {
         ...exchange,
@@ -891,12 +891,11 @@ export async function PATCH(request: Request) {
       dates,
       settings,
       agentId: memberId,
-      newRole,
       targetUserId,
       demeritPoints,
     } = body as {
       operationId: string;
-      action?: 'update_dates' | 'update_settings' | 'update_agent_role' | 'remove_agent' | 'issue_demerit' | 'nudge_agent';
+      action?: 'update_dates' | 'update_settings' | 'remove_agent' | 'issue_demerit' | 'nudge_agent';
       dates?: {
         inviteCutoffDate: string;
         assignmentDate: string;
@@ -915,7 +914,6 @@ export async function PATCH(request: Request) {
         enforcePenalties?: boolean;
       };
       agentId?: string;
-      newRole?: string;
       targetUserId?: string;
       demeritPoints?: number;
     };
@@ -940,21 +938,7 @@ export async function PATCH(request: Request) {
     const findScopedMember = (id: string) =>
       db.exchangeMember.findFirst({ where: { id, exchangeId: operationId } });
 
-    // Member Action 1: Update Member Role (Promote / Demote Organizer)
-    if (action === 'update_agent_role' && memberId && newRole) {
-      const member = await findScopedMember(memberId);
-      if (!member) return NextResponse.json({ error: 'Member not found in this operation' }, { status: 404 });
-      if (member.userId === ex.organizerId) {
-        return NextResponse.json({ error: 'Cannot change the primary Head Elf role' }, { status: 400 });
-      }
-      const updatedMember = await db.exchangeMember.update({
-        where: { id: member.id },
-        data: { role: newRole === 'ORGANIZER' || newRole === 'OPS_LEADER' ? 'ORGANIZER' : 'MEMBER' },
-      });
-      return NextResponse.json({ success: true, message: 'Agent role updated', data: updatedMember });
-    }
-
-    // Member Action 2: Remove Member from Exchange
+    // Member Action: Remove Member from Exchange
     if (action === 'remove_agent' && memberId) {
       const memberToDelete = await findScopedMember(memberId);
       if (!memberToDelete) {

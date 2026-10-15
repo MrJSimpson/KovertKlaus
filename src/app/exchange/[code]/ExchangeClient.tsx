@@ -108,11 +108,6 @@ interface OperationData {
   afterActionReports?: AARReportEntry[];
 }
 
-/** True for a member role with Head Elf clearance. The database stores `ORGANIZER`; `OPS_LEADER` is the legacy alias. */
-function isLeaderRole(role?: string): boolean {
-  return role === 'ORGANIZER' || role === 'OPS_LEADER';
-}
-
 export default function OperationCommandCenterPage() {
   const params = useParams();
   const router = useRouter();
@@ -688,9 +683,8 @@ export default function OperationCommandCenterPage() {
 
   // Handle OpsLeader Agent Management Actions
   async function handleAgentAction(
-    actionType: 'update_agent_role' | 'remove_agent' | 'issue_demerit' | 'nudge_agent',
-    agent: any,
-    extra?: any
+    actionType: 'remove_agent' | 'issue_demerit' | 'nudge_agent',
+    agent: any
   ) {
     if (!operation || !userId) return;
 
@@ -714,7 +708,6 @@ export default function OperationCommandCenterPage() {
           action: actionType,
           agentId: agent.id,
           targetUserId: agent.userId,
-          newRole: extra?.newRole,
           demeritPoints: 1,
         }),
       });
@@ -733,8 +726,7 @@ export default function OperationCommandCenterPage() {
   const organizerData = operation?.organizer || operation?.opsLeader;
   const organizerIdVal = operation?.organizerId || operation?.opsLeaderId;
   const currentAgent = membersList.find((a) => a.userId === userId);
-  // Head Elf controls follow the server: only the primary organizer may run them. Promoted agents
-  // (role ORGANIZER) carry the co-lead badge but the API rejects their admin actions.
+  // A mission has exactly one Head Elf: the organizer. Leader promotion is not a feature yet.
   const isOpsLeader = Boolean(userId && organizerIdVal === userId);
   const assignedTarget = currentAgent?.targetUser;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -1689,9 +1681,9 @@ export default function OperationCommandCenterPage() {
                               </span>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                                  agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? theme.badgeAmber : theme.badgeSecretSanta
+                                  agent.userId === organizerIdVal ? theme.badgeAmber : theme.badgeSecretSanta
                                 }`}>
-                                  {agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? 'Head Elf' : 'Elf Agent'}
+                                  {agent.userId === organizerIdVal ? 'Head Elf' : 'Elf Agent'}
                                 </span>
                                 {agent.shippingStatus === 'SHIPPED' ? (
                                   <div className="flex items-center gap-1.5">
@@ -1739,18 +1731,6 @@ export default function OperationCommandCenterPage() {
                                 className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
                               >
                                 🪨 Issue Coal Citation
-                              </button>
-                            )}
-
-                            {operation.status !== 'RECRUITING' && agent.userId !== organizerIdVal && (
-                              <button
-                                onClick={() => handleAgentAction('update_agent_role', agent, {
-                                  newRole: isLeaderRole(agent.role) ? 'FIELD_AGENT' : 'OPS_LEADER'
-                                })}
-                                title="Toggle OpsLeader Clearance"
-                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-stone-300 dark:border-slate-700 hover:bg-stone-200 transition-all cursor-pointer"
-                              >
-                                {isLeaderRole(agent.role) ? '🔻 Demote' : '⭐ Promote'}
                               </button>
                             )}
 

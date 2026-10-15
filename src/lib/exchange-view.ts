@@ -9,7 +9,7 @@
  * response separately. The worker's copy dropped the target's Wishlist Manifest, dossier and
  * Covert Delivery fields, so SaaS givers saw an empty target card. One builder keeps both
  * editions identical and keeps the privacy rules in one reviewed place.
- * Tier 3 (how): Addresses, tracking and target details are visible only to the Head Elf and to
+ * Tier 3 (how): `role` comes from `Exchange.organizerId` (one Head Elf per mission). Addresses, tracking and target details are visible only to the Head Elf and to
  * the member themselves (the giver viewing their own assignment). Dossier fields are further
  * gated by the target's `allowOrganizerView*` toggles unless the viewer is that target's giver.
  */
@@ -55,8 +55,10 @@ export const EXCHANGE_MEMBERS_INCLUDE = {
 export interface ExchangeViewer {
   /** Signed-in user ID, or null for an anonymous visitor holding the invite code. */
   activeUserId: string | null;
-  /** True when the viewer is the mission's primary Head Elf. */
+  /** True when the viewer is the mission's Head Elf. */
   isOrganizer: boolean;
+  /** The mission's Head Elf (`Exchange.organizerId`). */
+  organizerId: string;
 }
 
 /**
@@ -75,7 +77,9 @@ export function sanitizeExchangeMember(m: any, viewer: ExchangeViewer) {
     id: m.id,
     userId: m.userId,
     codename: m.codename || m.user.codename,
-    role: m.role,
+    // A mission has exactly one Head Elf. Older rows may carry ORGANIZER from the retired
+    // promote action, so the role is derived from the mission rather than read from the row.
+    role: m.userId === viewer.organizerId ? 'ORGANIZER' : 'MEMBER',
     // Only whether a manifest is attached matters to other viewers; the ID grants nothing (writes check ownership).
     wishlistId: m.wishlistId ?? null,
     shippingStatus: m.shippingStatus,

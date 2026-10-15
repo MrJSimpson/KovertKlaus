@@ -30,7 +30,7 @@ const member = {
 };
 
 test('Exchange View - the giver sees their target dossier and Wishlist Manifest', () => {
-  const view = sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false });
+  const view = sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer' });
   assert.strictEqual(view.targetUser?.topHalfSize, 'L');
   assert.strictEqual(view.targetUser?.favoriteColors, 'Green');
   assert.deepStrictEqual(view.targetUser?.wishlistItems.map((i: { title: string }) => i.title), ['Scarf']);
@@ -38,7 +38,7 @@ test('Exchange View - the giver sees their target dossier and Wishlist Manifest'
 });
 
 test('Exchange View - another agent sees no address, tracking or target', () => {
-  const view = sanitizeExchangeMember(member, { activeUserId: 'someone', isOrganizer: false });
+  const view = sanitizeExchangeMember(member, { activeUserId: 'someone', isOrganizer: false, organizerId: 'organizer' });
   assert.strictEqual(view.targetUser, null);
   assert.strictEqual(view.targetUserId, null);
   assert.strictEqual(view.user.streetAddress, null);
@@ -46,8 +46,16 @@ test('Exchange View - another agent sees no address, tracking or target', () => 
 });
 
 test('Exchange View - the Head Elf sees only dossier fields the target allowed', () => {
-  const view = sanitizeExchangeMember(member, { activeUserId: 'organizer', isOrganizer: true });
+  const view = sanitizeExchangeMember(member, { activeUserId: 'organizer', isOrganizer: true, organizerId: 'organizer' });
   assert.strictEqual(view.targetUser?.topHalfSize, undefined);
   assert.strictEqual(view.targetUser?.favoriteColors, undefined);
   assert.strictEqual(view.targetUser?.allergiesDiet, 'Peanuts');
+});
+
+test('Exchange View - only the mission organizer is shown as Head Elf', () => {
+  const promoted = { ...member, role: 'ORGANIZER' };
+  const viewer = { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer' };
+  assert.strictEqual(sanitizeExchangeMember(promoted, viewer).role, 'MEMBER');
+  const headElf = { ...member, userId: 'organizer', role: 'MEMBER' };
+  assert.strictEqual(sanitizeExchangeMember(headElf, viewer).role, 'ORGANIZER');
 });

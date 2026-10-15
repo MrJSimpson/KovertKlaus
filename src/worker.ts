@@ -1190,7 +1190,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                     select: {
                       id: true, title: true, code: true, isLocalOnly: true, isWhiteElephant: true, budgetMin: true,
                       budgetMax: true, currency: true, inviteCutoffDate: true, assignmentDate: true, shippingDate: true,
-                      executionDate: true, status: true, organizer: { select: { name: true, codename: true } },
+                      executionDate: true, status: true, organizerId: true, organizer: { select: { name: true, codename: true } },
                     },
                   },
                 },
@@ -1474,7 +1474,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
             // Sanitize targetUser and physical addresses server-side
             const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
-            const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer }));
+            const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId }));
 
             return Response.json({
               success: true,
@@ -2000,7 +2000,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
           const body = (await request.json().catch(() => ({}))) as any;
-          const { operationId, action, dates, settings, agentId: memberId, newRole, targetUserId } = body;
+          const { operationId, action, dates, settings, agentId: memberId, targetUserId } = body;
 
           if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
 
@@ -2011,17 +2011,6 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           // Member-scoped actions must target a member of THIS exchange, never an arbitrary row.
           const findScopedMember = (id: string) =>
             db.exchangeMember.findFirst({ where: { id, exchangeId: operationId } });
-
-          if (action === 'update_agent_role' && memberId && newRole) {
-            const member = await findScopedMember(memberId);
-            if (!member) return Response.json({ error: 'Member not found in this operation' }, { status: 404 });
-            if (member.userId === ex.organizerId) return Response.json({ error: 'Cannot change the primary Head Elf role' }, { status: 400 });
-            const updatedMember = await db.exchangeMember.update({
-              where: { id: member.id },
-              data: { role: newRole === 'ORGANIZER' || newRole === 'OPS_LEADER' ? 'ORGANIZER' : 'MEMBER' },
-            });
-            return Response.json({ success: true, message: 'Agent role updated', data: updatedMember });
-          }
 
           if (action === 'remove_agent' && memberId) {
             const memberToDelete = await findScopedMember(memberId);
