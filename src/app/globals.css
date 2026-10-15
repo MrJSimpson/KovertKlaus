@@ -164,22 +164,23 @@
     --kk-focus: #fde7be;
     --kk-festive-red: #cab48b;
     --kk-festive-green: #8c9985;
-    --kk-stage1: #a28b61;          /* 1 RSVP: Lion */
+    /* Jewel tones on indigo: same meaning as light mode (gold RSVP, red Match, green Sleigh). */
+    --kk-stage1: #e2c275;          /* 1 RSVP: gold */
     --kk-on-stage1: #062038;
-    --kk-stage1-soft: #3d3524;
-    --kk-stage1-accent: #a28b61;
-    --kk-stage2: #cab48b;          /* 2 Match: Ecru */
+    --kk-stage1-soft: #082c4d;
+    --kk-stage1-accent: #e2c275;
+    --kk-stage2: #e58a9a;          /* 2 Match: rose cranberry */
     --kk-on-stage2: #062038;
-    --kk-stage2-soft: #45402f;
-    --kk-stage2-accent: #cab48b;
-    --kk-stage3: #8c9985;          /* 3 Sleigh: Cambridge blue */
+    --kk-stage2-soft: #082c4d;
+    --kk-stage2-accent: #e58a9a;
+    --kk-stage3: #7fd1a1;          /* 3 Sleigh: mint evergreen */
     --kk-on-stage3: #062038;
-    --kk-stage3-soft: #1e3b36;
-    --kk-stage3-accent: #8c9985;
-    --kk-stage4: #dbe2ea;          /* 4 Party: Alice blue */
+    --kk-stage3-soft: #082c4d;
+    --kk-stage3-accent: #7fd1a1;
+    --kk-stage4: #bfd7ea;          /* 4 Party: ice blue */
     --kk-on-stage4: #062038;
-    --kk-stage4-soft: #24496b;
-    --kk-stage4-accent: #dbe2ea;
+    --kk-stage4-soft: #082c4d;
+    --kk-stage4-accent: #bfd7ea;
     --kk-info: #082c4d;
   }
 

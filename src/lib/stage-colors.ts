@@ -7,8 +7,10 @@
  * Tier 2 (why): A stage keeps one hue everywhere (timeline card, mission status badge, list cards),
  * so "gold means RSVP" reads the same on every page and in both modes. The hue says which stage;
  * the fill strength says where the mission is.
- * Tier 3 (how): Light mode uses gold, holly red, evergreen and pine; dark mode uses Lion, Ecru,
- * Cambridge blue and Alice blue. Class strings are written out in full so Tailwind can find them.
+ * Tier 3 (how): Light mode uses gold, holly red, evergreen and pine with tinted cards; dark mode uses
+ * jewel tones on indigo (gold, rose cranberry, mint evergreen, ice blue) with a colored top stripe on
+ * plain cards, because tints turn muddy on dark surfaces. Only the current stage is filled in both.
+ * Class strings are written out in full so Tailwind can find them.
  */
 
 /** Timeline stage: 1 RSVP cutoff, 2 Secret Santa match, 3 sleigh departure (shipping), 4 exchange party. */
@@ -33,29 +35,29 @@ interface StageClassSet {
 const STAGE_CLASSES: Record<MissionStage, StageClassSet> = {
   1: {
     current: 'bg-kk-stage1 text-kk-on-stage1 border-2 border-kk-stage1-accent ring-2 ring-kk-stage1-accent/40 shadow-md',
-    done: 'bg-kk-stage1-soft text-kk-ink border-2 border-kk-stage1-accent/60',
-    upcoming: 'bg-kk-surface text-kk-ink border-2 border-dashed border-kk-stage1-accent',
+    done: 'bg-kk-stage1-soft text-kk-ink border-2 border-kk-stage1-accent/60 dark:bg-kk-surface dark:border-kk-border dark:border-t-[6px] dark:border-t-kk-stage1',
+    upcoming: 'bg-kk-surface text-kk-ink border-2 border-dashed border-kk-stage1-accent dark:border-kk-border dark:border-t-[6px] dark:border-t-kk-stage1',
     pill: 'bg-kk-stage1 text-kk-on-stage1 border border-kk-stage1-accent',
     pillSoft: 'bg-kk-stage1-soft text-kk-ink border border-kk-stage1-accent',
   },
   2: {
     current: 'bg-kk-stage2 text-kk-on-stage2 border-2 border-kk-stage2-accent ring-2 ring-kk-stage2-accent/40 shadow-md',
-    done: 'bg-kk-stage2-soft text-kk-ink border-2 border-kk-stage2-accent/60',
-    upcoming: 'bg-kk-surface text-kk-ink border-2 border-dashed border-kk-stage2-accent',
+    done: 'bg-kk-stage2-soft text-kk-ink border-2 border-kk-stage2-accent/60 dark:bg-kk-surface dark:border-kk-border dark:border-t-[6px] dark:border-t-kk-stage2',
+    upcoming: 'bg-kk-surface text-kk-ink border-2 border-dashed border-kk-stage2-accent dark:border-kk-border dark:border-t-[6px] dark:border-t-kk-stage2',
     pill: 'bg-kk-stage2 text-kk-on-stage2 border border-kk-stage2-accent',
     pillSoft: 'bg-kk-stage2-soft text-kk-ink border border-kk-stage2-accent',
   },
   3: {
     current: 'bg-kk-stage3 text-kk-on-stage3 border-2 border-kk-stage3-accent ring-2 ring-kk-stage3-accent/40 shadow-md',
-    done: 'bg-kk-stage3-soft text-kk-ink border-2 border-kk-stage3-accent/60',
-    upcoming: 'bg-kk-surface text-kk-ink border-2 border-dashed border-kk-stage3-accent',
+    done: 'bg-kk-stage3-soft text-kk-ink border-2 border-kk-stage3-accent/60 dark:bg-kk-surface dark:border-kk-border dark:border-t-[6px] dark:border-t-kk-stage3',
+    upcoming: 'bg-kk-surface text-kk-ink border-2 border-dashed border-kk-stage3-accent dark:border-kk-border dark:border-t-[6px] dark:border-t-kk-stage3',
     pill: 'bg-kk-stage3 text-kk-on-stage3 border border-kk-stage3-accent',
     pillSoft: 'bg-kk-stage3-soft text-kk-ink border border-kk-stage3-accent',
   },
   4: {
     current: 'bg-kk-stage4 text-kk-on-stage4 border-2 border-kk-stage4-accent ring-2 ring-kk-stage4-accent/40 shadow-md',
-    done: 'bg-kk-stage4-soft text-kk-ink border-2 border-kk-stage4-accent/60',
-    upcoming: 'bg-kk-surface text-kk-ink border-2 border-dashed border-kk-stage4-accent',
+    done: 'bg-kk-stage4-soft text-kk-ink border-2 border-kk-stage4-accent/60 dark:bg-kk-surface dark:border-kk-border dark:border-t-[6px] dark:border-t-kk-stage4',
+    upcoming: 'bg-kk-surface text-kk-ink border-2 border-dashed border-kk-stage4-accent dark:border-kk-border dark:border-t-[6px] dark:border-t-kk-stage4',
     pill: 'bg-kk-stage4 text-kk-on-stage4 border border-kk-stage4-accent',
     pillSoft: 'bg-kk-stage4-soft text-kk-ink border border-kk-stage4-accent',
   },
