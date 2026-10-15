@@ -152,7 +152,9 @@ export async function getResolvedEmailConfig(
       }
     }
   } catch (error) {
-    // Database query failed (or offline during static build), fallback to env
+    // Database query failed (or offline during static build): fall back to env, but say so. A silent
+    // fallback once hid that the app role cannot read admin.SystemConfig, so no mail was sent.
+    console.warn('[EMAIL:CONFIG] SystemConfig read failed; using environment email settings.', error instanceof Error ? error.message : error);
   }
   return getEmailConfig(undefined, env);
 }
