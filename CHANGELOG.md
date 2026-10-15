@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Demo database** (self-hosted only): `npm run demo:load` fills a local database with six demo Elf Agents and three missions at different stages; `npm run demo:remove` deletes them. Accounts use the reserved `@demo.invalid` domain, the password is generated per load (never stored), and the script refuses SaaS mode and non-local hosts. See `docs/DEMO_DATABASE.md`.
+
+### Changed
+- `export-db` / `restore-db` back up to the gitignored `backups/` folder instead of a tracked file.
+
+### Removed
+- The stale schema-only dump `prisma/kovertklaus_test_db.sql` and `scripts/generate-modern-sql-dump.ts`.
+
 ---
 
 ## [0.3.0-alpha] - 2026-10-15
