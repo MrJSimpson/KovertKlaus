@@ -2,7 +2,7 @@
  * @file route.ts
  * @description `/api/invitations`: emailed mission invitations (self-hosted edition).
  *
- * Tier 1 (what): POST sends an invitation (Head Elf only). GET lists the caller's open
+ * Tier 1 (what): POST sends an invitation, or resends one given `{ invitationId }` (Head Elf only). GET lists the caller's open
  * invitations, or with `?operationId=` every invitation of a mission for its Head Elf. PATCH
  * declines (invitee) or revokes (Head Elf) one: `{ invitationId, action: 'decline' | 'revoke' }`.
  * Tier 2 (why): The edge worker serves the same path in SaaS; both delegate to
@@ -15,7 +15,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { sendInvitationEmail } from '@/lib/email';
-import { listMissionInvitations, listMyInvitations, sendMissionInvitation, updateInvitation } from '@/lib/invitations';
+import { listMissionInvitations, listMyInvitations, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from '@/lib/invitations';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,20 +33,19 @@ export async function GET(request: Request) {
   }
 }
 
-/** Sends an invitation: `{ operationId, recipientEmail, isLatePass? }`. */
+/** Sends an invitation (`{ operationId, recipientEmail, isLatePass? }`) or resends one (`{ invitationId }`). */
 export async function POST(request: Request) {
   try {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    const body = (await request.json().catch(() => ({}))) as { operationId?: unknown; recipientEmail?: unknown; isLatePass?: unknown };
-    const result = await sendMissionInvitation(
-      db,
-      {
-        baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com',
-        sendEmail: (email) => sendInvitationEmail(email),
-      },
-      { exchangeId: body.operationId, inviterId: userId, email: body.recipientEmail, isLatePass: body.isLatePass }
-    );
+    const body = (await request.json().catch(() => ({}))) as { invitationId?: unknown; operationId?: unknown; recipientEmail?: unknown; isLatePass?: unknown };
+    const inviteDeps = {
+      baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com',
+      sendEmail: (email: InvitationEmail) => sendInvitationEmail(email),
+    };
+    const result = body.invitationId !== undefined
+      ? await resendMissionInvitation(db, inviteDeps, { invitationId: body.invitationId, userId })
+      : await sendMissionInvitation(db, inviteDeps, { exchangeId: body.operationId, inviterId: userId, email: body.recipientEmail, isLatePass: body.isLatePass });
     return NextResponse.json(result.body, { status: result.status });
   } catch (error) {
     console.error('[Invitations] send failed:', error);

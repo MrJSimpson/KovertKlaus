@@ -9,6 +9,7 @@ import { formatCodename, formatDateString } from '@/lib/security';
 import { useTheme } from '@/context/ThemeContext';
 import { evaluateDrawFeasibility, FieldAgent, ExclusionRuleInput } from '@/lib/draw';
 import { InviteAgentModal } from '@/components/InviteAgentModal';
+import { InvitedAgentsList } from '@/components/InvitedAgentsList';
 import { PreventativeMatchModal, OperationExclusionRule } from '@/components/PreventativeMatchModal';
 import { ManageAssignmentsModal } from '@/components/ManageAssignmentsModal';
 import { OpTeamBroadcastModal } from '@/components/OpTeamBroadcastModal';
@@ -128,6 +129,9 @@ export default function OperationCommandCenterPage() {
 
   // Invite Agent Modal State
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  // Elf Agents roster: invited (not yet enrolled) agents, reloaded after the modal sends one
+  const [invitesRefreshKey, setInvitesRefreshKey] = useState(0);
+  const [pendingInviteCount, setPendingInviteCount] = useState(0);
   const [preventativeModalOpen, setPreventativeModalOpen] = useState(false);
   const [manageAssignmentsModalOpen, setManageAssignmentsModalOpen] = useState(false);
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
@@ -1893,7 +1897,10 @@ export default function OperationCommandCenterPage() {
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                   <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                     <h2 className="text-xl font-bold flex items-center gap-2">
-                      👥 Enrolled Elf Agents ({membersList.length})
+                      👥 Elf Agents ({membersList.length})
+                      {isOpsLeader && pendingInviteCount > 0 && (
+                        <span className={`text-xs font-semibold ${theme.textSubLabel}`}>· {pendingInviteCount} invited</span>
+                      )}
                     </h2>
                     <div className="flex items-center gap-2">
                       {isOpsLeader && (
@@ -1989,6 +1996,14 @@ export default function OperationCommandCenterPage() {
                       </div>
                     ))}
                   </div>
+
+                  {isOpsLeader && (
+                    <InvitedAgentsList
+                      operationId={operation.id}
+                      refreshKey={invitesRefreshKey}
+                      onPendingCountChange={setPendingInviteCount}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -2255,7 +2270,10 @@ export default function OperationCommandCenterPage() {
         operationTitle={operation?.title || ''}
         operationCode={operation?.code || code}
         opsLeaderUserId={userId || ''}
-        onSuccess={() => fetchExchangeDetails()}
+        onSuccess={() => {
+          fetchExchangeDetails();
+          setInvitesRefreshKey((k) => k + 1);
+        }}
       />
 
       {/* MODAL: PREVENTATIVE MATCH RULES */}

@@ -1,9 +1,9 @@
 /**
  * @file invitations.ts
- * @description Emailed mission invitations: send, list, decline/revoke, and mark accepted.
+ * @description Emailed mission invitations: send, resend, list, decline/revoke, and mark accepted.
  *
- * Tier 1 (what): `sendMissionInvitation`, `listMyInvitations`, `listMissionInvitations`,
- * `updateInvitation` and `markInvitationAccepted` implement `/api/invitations` for both the edge
+ * Tier 1 (what): `sendMissionInvitation`, `resendMissionInvitation`, `listMyInvitations`,
+ * `listMissionInvitations`, `updateInvitation` and `markInvitationAccepted` implement `/api/invitations` for both the edge
  * worker (SaaS) and the Next.js routes (self-hosted).
  * Tier 2 (why): Invites used to be fire-and-forget emails with nothing recorded, so an existing
  * user had nothing to accept or decline, and the Head Elf could not see who was still pending.
@@ -208,6 +208,54 @@ export async function sendMissionInvitation(
   };
 }
 
+/** Minimum wait between two emails for the same pending invitation. */
+export const RESEND_COOLDOWN_MS = 10 * 60 * 1000;
+
+/**
+ * Re-sends an existing invitation from the Head Elf's Elf Agents roster.
+ *
+ * Pending, expired and revoked invites can be resent; a resend reopens the invite through
+ * `sendMissionInvitation`, so the cutoff and Late Pass rules still apply (a resend after the cutoff
+ * is a Late Pass, which needs a registered recipient). Accepted invites are already enrolled, and a
+ * declined invite stays declined unless the Head Elf re-invites the address on purpose. A pending
+ * invite cannot be resent within `RESEND_COOLDOWN_MS` of its last email (`updatedAt`, which every
+ * send bumps), so a double click cannot spam an inbox.
+ *
+ * @param db - App-schema Prisma client.
+ * @param deps - Site URL and email sender for this runtime.
+ * @param input - The invitation and the caller.
+ * @param nowMs - Current time, injectable for tests.
+ */
+export async function resendMissionInvitation(
+  db: PrismaClient,
+  deps: InvitationDeps,
+  input: { invitationId: unknown; userId: string },
+  nowMs = Date.now()
+): Promise<InvitationResult> {
+  if (typeof input.invitationId !== 'string' || !input.invitationId) return { status: 400, body: { error: 'invitationId is required' } };
+
+  const invitation = await db.missionInvitation.findUnique({
+    where: { id: input.invitationId },
+    include: { exchange: { select: { organizerId: true } } },
+  });
+  if (!invitation) return { status: 404, body: { error: 'Invitation not found' } };
+  if (invitation.exchange.organizerId !== input.userId) return { status: 403, body: { error: 'Only the Head Elf can resend invitations.' } };
+  if (invitation.status === 'ACCEPTED') return { status: 409, body: { error: 'This agent already accepted and is enrolled.' } };
+  if (invitation.status === 'DECLINED') return { status: 409, body: { error: 'This agent declined the invitation.' } };
+
+  const waitMs = new Date(invitation.updatedAt).getTime() + RESEND_COOLDOWN_MS - nowMs;
+  if (invitation.status === 'PENDING' && waitMs > 0) {
+    return { status: 429, body: { error: `This invitation was just sent. Try again in ${Math.ceil(waitMs / 60000)} min.` } };
+  }
+
+  return sendMissionInvitation(
+    db,
+    deps,
+    { exchangeId: invitation.exchangeId, inviterId: input.userId, email: invitation.email, isLatePass: true },
+    nowMs
+  );
+}
+
 /**
  * The signed-in user's open invitations, for Active Operations and the mission page.
  */
@@ -272,6 +320,7 @@ export async function listMissionInvitations(db: PrismaClient, exchangeId: strin
         status: r.status === 'PENDING' && !isInvitationOpen(r, exchange, nowMs) ? 'EXPIRED' : r.status,
         isLatePass: r.isLatePass,
         createdAt: r.createdAt.toISOString(),
+        lastSentAt: r.updatedAt.toISOString(),
         respondedAt: r.respondedAt?.toISOString() ?? null,
       })),
     },

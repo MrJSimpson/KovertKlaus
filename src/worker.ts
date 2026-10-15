@@ -39,7 +39,7 @@ import { validateOperationConfig, validateOperationSettings } from './lib/valida
 import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
 import { rewriteExchangeShellPath } from './lib/exchange-route';
-import { listMissionInvitations, listMyInvitations, markInvitationAccepted, sendMissionInvitation, updateInvitation } from './lib/invitations';
+import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { resolveUniqueCodename } from './lib/codename';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
@@ -2146,13 +2146,16 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           return Response.json(result.body, { status: result.status });
         }
         if (request.method === 'POST') {
-          const body = (await request.json().catch(() => ({}))) as { operationId?: unknown; recipientEmail?: unknown; isLatePass?: unknown };
+          const body = (await request.json().catch(() => ({}))) as { invitationId?: unknown; operationId?: unknown; recipientEmail?: unknown; isLatePass?: unknown };
           const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
-          const result = await sendMissionInvitation(
-            db,
-            { baseUrl: url.origin || 'https://kovertklaus.com', sendEmail: (email) => sendInvitationEmail({ ...email, overrideConfig: emailConfig }) },
-            { exchangeId: body.operationId, inviterId: activeUserId, email: body.recipientEmail, isLatePass: body.isLatePass }
-          );
+          const inviteDeps = {
+            baseUrl: url.origin || 'https://kovertklaus.com',
+            sendEmail: (email: InvitationEmail) => sendInvitationEmail({ ...email, overrideConfig: emailConfig }),
+          };
+          // `{ invitationId }` resends an existing invitation; otherwise a new one is sent.
+          const result = body.invitationId !== undefined
+            ? await resendMissionInvitation(db, inviteDeps, { invitationId: body.invitationId, userId: activeUserId })
+            : await sendMissionInvitation(db, inviteDeps, { exchangeId: body.operationId, inviterId: activeUserId, email: body.recipientEmail, isLatePass: body.isLatePass });
           return Response.json(result.body, { status: result.status });
         }
         if (request.method === 'PATCH') {
