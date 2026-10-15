@@ -5,6 +5,8 @@ import {
   invitationLink,
   isInvitationOpen,
   sendMissionInvitation,
+  resendMissionInvitation,
+  RESEND_COOLDOWN_MS,
   listMyInvitations,
   updateInvitation,
   markInvitationAccepted,
@@ -50,7 +52,7 @@ function fakeDb(opts: { users?: Array<{ id: string; email: string; name: string 
       upsert: async ({ where, create, update }: any) => {
         const found = invitations.find((i) => i.exchangeId === where.exchangeId_email.exchangeId && i.email === where.exchangeId_email.email);
         if (found) return Object.assign(found, update);
-        const row = { id: `inv${invitations.length + 1}`, status: 'PENDING', createdAt: new Date(NOW), respondedAt: null, ...create };
+        const row = { id: `inv${invitations.length + 1}`, status: 'PENDING', createdAt: new Date(NOW), updatedAt: new Date(NOW), respondedAt: null, ...create };
         invitations.push(row);
         return row;
       },
@@ -169,4 +171,46 @@ test('Invitations - the invitee sees, declines; the Head Elf revokes; enrollment
   await markInvitationAccepted(fake.db, 'ex1', 'PAL@x.com', 'u2', NOW);
   assert.strictEqual(fake.invitations[0].status, 'ACCEPTED');
   assert.strictEqual(fake.invitations[0].userId, 'u2');
+});
+
+test('Invitations - the Head Elf resends pending, expired and revoked invites; declined and accepted stay put', async () => {
+  const fake = fakeDb();
+  const sent: InvitationEmail[] = [];
+  await invite(fake.db, sent, 'a@x.com');
+  const resend = (userId: string, nowMs: number) => resendMissionInvitation(fake.db, deps(sent), { invitationId: 'inv1', userId }, nowMs);
+
+  assert.strictEqual((await resend('stranger', NOW + RESEND_COOLDOWN_MS)).status, 403);
+  const tooSoon = await resend('boss', NOW + 60_000);
+  assert.strictEqual(tooSoon.status, 429);
+  assert.match(String(tooSoon.body.error), /9 min/);
+  assert.strictEqual(sent.length, 1);
+
+  assert.strictEqual((await resend('boss', NOW + RESEND_COOLDOWN_MS)).status, 200);
+  assert.strictEqual(sent.length, 2);
+  assert.strictEqual(fake.invitations.length, 1);
+
+  fake.invitations[0].status = 'REVOKED';
+  assert.strictEqual((await resend('boss', NOW + 60_000)).status, 200);
+  assert.strictEqual(fake.invitations[0].status, 'PENDING');
+
+  fake.invitations[0].status = 'DECLINED';
+  assert.strictEqual((await resend('boss', NOW + RESEND_COOLDOWN_MS)).status, 409);
+  fake.invitations[0].status = 'ACCEPTED';
+  assert.strictEqual((await resend('boss', NOW + RESEND_COOLDOWN_MS)).status, 409);
+  assert.strictEqual(sent.length, 3);
+  assert.strictEqual((await resendMissionInvitation(fake.db, deps(sent), { invitationId: 'nope', userId: 'boss' }, NOW)).status, 404);
+});
+
+test('Invitations - a resend after the cutoff becomes a Late Pass, which needs a registered recipient', async () => {
+  const late = Date.parse('2026-11-12T00:00:00Z');
+  const users = [{ id: 'boss', email: 'boss@x.com', name: 'Holly' }, { id: 'u2', email: 'pal@x.com', name: 'Pal' }];
+  const fake = fakeDb({ users });
+  const sent: InvitationEmail[] = [];
+  await invite(fake.db, sent, 'pal@x.com');
+  await invite(fake.db, sent, 'new@x.com');
+
+  const pal = await resendMissionInvitation(fake.db, deps(sent), { invitationId: 'inv1', userId: 'boss' }, late);
+  assert.strictEqual(pal.status, 200);
+  assert.strictEqual(fake.invitations[0].isLatePass, true);
+  assert.strictEqual((await resendMissionInvitation(fake.db, deps(sent), { invitationId: 'inv2', userId: 'boss' }, late)).status, 400);
 });
