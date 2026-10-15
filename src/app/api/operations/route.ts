@@ -402,6 +402,7 @@ export async function POST(request: Request) {
           data: {
             executionDate: new Date(),
             status: 'COMPLETED',
+            completedAt: ex.completedAt ?? new Date(),
           },
         });
       }

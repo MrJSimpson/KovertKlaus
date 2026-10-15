@@ -19,7 +19,7 @@ import { WishlistItemModal } from '@/components/WishlistItemModal';
 import { detectCarrier } from '@/lib/carrier-tracking';
 import { UserDossierPreferences } from '@/lib/product-intelligence';
 import { generateRandomCodename } from '@/lib/codenameGenerator';
-import { INTEL_MESSAGE_MAX_CHARS, type IntelChannel, type IntelMessageView } from '@/lib/intel-messages';
+import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
 
 interface OperationAgent {
@@ -209,13 +209,23 @@ export default function OperationCommandCenterPage() {
     return evaluateDrawFeasibility(fieldAgents, exclusionInputs);
   }, [operation]);
 
-  // Anonymous Intel Messaging: two private conversations per agent (with their target, and with
-  // their Secret Santa), served by /api/messages. The Santa's identity never reaches the client.
+  // Mission messaging (/api/messages): Command (Head Elf <-> agent), Intel (Santa <-> target, Santa
+  // anonymous) and Debrief (whole mission, after completion). The server decides what is readable.
   const [intelMessageText, setIntelMessageText] = useState('');
   const [sendingIntel, setSendingIntel] = useState(false);
-  const [intelChannel, setIntelChannel] = useState<IntelChannel>('target');
-  const [intelLogs, setIntelLogs] = useState<IntelMessageView[]>([]);
-  const [intelStatus, setIntelStatus] = useState({ hasTarget: false, hasSanta: false, canSend: false });
+  const [msgTab, setMsgTab] = useState<MessageChannelName>('command');
+  const [intelSide, setIntelSide] = useState<IntelSide>('target');
+  const [commandWith, setCommandWith] = useState('');
+  const [msgData, setMsgData] = useState({
+    messages: [] as MessageView[],
+    hasTarget: false,
+    hasSanta: false,
+    canSendCommand: false,
+    canSendIntel: false,
+    canSendDebrief: false,
+    debriefOpenUntil: null as string | null,
+    commandRecipients: [] as Array<{ userId: string; codename: string }>,
+  });
   const [intelError, setIntelError] = useState('');
 
   useEffect(() => {
@@ -666,7 +676,7 @@ export default function OperationCommandCenterPage() {
     });
   }
 
-  // Refresh Intel when the mission loads, then every minute while the page is open
+  // Refresh messages when the mission loads, then every minute while the page is open
   const intelExchangeId = operation?.id;
   const intelEnrolled = Boolean(userId && (operation?.members || operation?.agents || []).some((m) => m.userId === userId));
   useEffect(() => {
@@ -677,8 +687,16 @@ export default function OperationCommandCenterPage() {
         .then((res) => (res.ok ? res.json() : null))
         .then((json) => {
           if (cancelled || !json) return;
-          setIntelLogs(json.messages || []);
-          setIntelStatus({ hasTarget: Boolean(json.hasTarget), hasSanta: Boolean(json.hasSanta), canSend: Boolean(json.canSend) });
+          setMsgData({
+            messages: json.messages || [],
+            hasTarget: Boolean(json.hasTarget),
+            hasSanta: Boolean(json.hasSanta),
+            canSendCommand: Boolean(json.canSendCommand),
+            canSendIntel: Boolean(json.canSendIntel),
+            canSendDebrief: Boolean(json.canSendDebrief),
+            debriefOpenUntil: json.debriefOpenUntil ?? null,
+            commandRecipients: json.commandRecipients || [],
+          });
         })
         .catch(() => {
           // Network blip: keep the last loaded conversations
@@ -691,7 +709,17 @@ export default function OperationCommandCenterPage() {
     };
   }, [intelExchangeId, intelEnrolled]);
 
-  // Handle Intel Message Dispatch
+  // The open conversation. An agent's Command peer is always the Head Elf; the Head Elf picks an agent.
+  const commandPeer = commandWith || msgData.commandRecipients[0]?.userId || '';
+  const activeThread = msgTab === 'intel' ? `intel:${intelSide}` : msgTab === 'command' ? `command:${commandPeer}` : 'debrief';
+  const activeCanSend =
+    msgTab === 'command'
+      ? msgData.canSendCommand && Boolean(commandPeer)
+      : msgTab === 'intel'
+      ? msgData.canSendIntel && (intelSide === 'target' ? msgData.hasTarget : msgData.hasSanta)
+      : msgData.canSendDebrief;
+
+  // Handle message dispatch on the open conversation
   async function handleSendIntel(e: React.FormEvent) {
     e.preventDefault();
     const text = intelMessageText.trim();
@@ -703,14 +731,19 @@ export default function OperationCommandCenterPage() {
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exchangeId: operation.id, channel: intelChannel, text }),
+        body: JSON.stringify({
+          exchangeId: operation.id,
+          channel: msgTab,
+          to: msgTab === 'intel' ? intelSide : msgTab === 'command' ? commandPeer : undefined,
+          text,
+        }),
       });
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Intel message failed to send');
-      setIntelLogs((prev) => [...prev, json.message]);
+      if (!res.ok || !json.success) throw new Error(json.error || 'Message failed to send');
+      setMsgData((prev) => ({ ...prev, messages: [...prev.messages, json.message] }));
       setIntelMessageText('');
     } catch (err) {
-      setIntelError(err instanceof Error ? err.message : 'Intel message failed to send');
+      setIntelError(err instanceof Error ? err.message : 'Message failed to send');
     } finally {
       setSendingIntel(false);
     }
@@ -1651,21 +1684,21 @@ export default function OperationCommandCenterPage() {
 
                 </div>
 
-                {/* Anonymous Intel Messaging: one conversation with your target, one with your Secret Santa */}
+                {/* Mission Messaging: Command, Intel and Debrief */}
                 {intelEnrolled && (
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                   <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                     <h2 className="text-xl font-bold flex items-center gap-2">
-                      💬 Anonymous Intel Messaging
+                      💬 Mission Comms
                     </h2>
                     <div className="flex gap-1.5">
-                      {([['target', '🎯 My Target'], ['santa', '🎅 My Secret Santa']] as const).map(([channel, label]) => (
+                      {([['command', '📡 Command'], ['intel', '🎯 Intel'], ['debrief', '🎉 Debrief']] as const).map(([tab, label]) => (
                         <button
-                          key={channel}
+                          key={tab}
                           type="button"
-                          onClick={() => setIntelChannel(channel)}
+                          onClick={() => { setMsgTab(tab); setIntelError(''); }}
                           className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
-                            intelChannel === channel ? theme.badgeAmber : theme.cardInnerBg
+                            msgTab === tab ? theme.badgeAmber : theme.cardInnerBg
                           }`}
                         >
                           {label}
@@ -1674,27 +1707,76 @@ export default function OperationCommandCenterPage() {
                     </div>
                   </div>
 
+                  {/* Conversation picker */}
+                  {msgTab === 'intel' && (
+                    <div className="flex gap-1.5 mb-3">
+                      {([['target', '🎯 My Target'], ['santa', '🎅 My Secret Santa']] as const).map(([side, label]) => (
+                        <button
+                          key={side}
+                          type="button"
+                          onClick={() => setIntelSide(side)}
+                          className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                            intelSide === side ? theme.badgeSecretSanta : theme.cardInnerBg
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {msgTab === 'command' && isOpsLeader && msgData.commandRecipients.length > 0 && (
+                    <select
+                      value={commandPeer}
+                      onChange={(e) => setCommandWith(e.target.value)}
+                      className={`w-full mb-3 border rounded-xl px-3 py-2 text-xs font-bold focus:outline-none ${theme.inputBg}`}
+                    >
+                      {msgData.commandRecipients.map((r) => (
+                        <option key={r.userId} value={r.userId}>
+                          {formatCodename(r.codename)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
                   {(() => {
-                    const open = intelChannel === 'target' ? intelStatus.hasTarget : intelStatus.hasSanta;
-                    const thread = intelLogs.filter((m) => m.channel === intelChannel);
-                    const otherLabel = intelChannel === 'target' ? 'Your Target' : 'Your Secret Santa';
+                    const thread = msgData.messages.filter((m) => m.thread === activeThread);
+                    const otherLabel = (m: MessageView) => {
+                      if (m.fromMe) return 'You';
+                      if (m.channel === 'intel') return intelSide === 'target' ? 'Your Target' : 'Your Secret Santa';
+                      return `${formatCodename(m.sender?.codename)}${m.sender?.isHeadElf ? ' · Head Elf' : ''}`;
+                    };
+                    const missionDone = operation.status === 'COMPLETED';
+                    const emptyText =
+                      msgTab === 'command'
+                        ? isOpsLeader
+                          ? 'Send operational questions or nudges to one agent. Only you and that agent can read the thread.'
+                          : 'Questions for your Head Elf go here. Only you and the Head Elf can read this thread.'
+                        : msgTab === 'intel'
+                        ? !(intelSide === 'target' ? msgData.hasTarget : msgData.hasSanta)
+                          ? 'Intel opens once targets are assigned.'
+                          : intelSide === 'target'
+                          ? 'Ask your target about sizes or preferences. They will not know it is you.'
+                          : 'Messages from your Secret Santa appear here. You can reply without learning who they are.'
+                        : !missionDone
+                        ? 'Debrief opens when the mission is complete: share thank-yous and reveals with every agent.'
+                        : msgData.canSendDebrief
+                        ? 'Share thank-yous and reveals with the whole mission.'
+                        : 'Debrief closed 14 days after the mission completed.';
+                    const closedNote =
+                      !activeCanSend && missionDone && msgTab !== 'debrief'
+                        ? 'This channel closed when the mission completed. The thread stays readable.'
+                        : '';
                     return (
                       <>
-                        <div className={`p-4 rounded-2xl border max-h-48 overflow-y-auto space-y-3 mb-4 ${theme.cardInnerBg}`}>
-                          {!open ? (
-                            <p className="text-xs text-slate-500">Intel channels open once targets are assigned.</p>
-                          ) : thread.length === 0 ? (
-                            <p className="text-xs text-slate-500">
-                              {intelChannel === 'target'
-                                ? 'Ask your target about sizes or preferences. They will not know it is you.'
-                                : 'Messages from your Secret Santa appear here. Your replies stay anonymous to them too.'}
-                            </p>
+                        <div className={`p-4 rounded-2xl border max-h-64 overflow-y-auto space-y-3 mb-4 ${theme.cardInnerBg}`}>
+                          {thread.length === 0 ? (
+                            <p className="text-xs text-slate-500">{emptyText}</p>
                           ) : (
                             thread.map((log) => (
                               <div key={log.id} className="text-xs">
-                                <div className="flex items-center justify-between">
-                                  <strong className={theme.textAccent}>{log.fromMe ? 'You' : otherLabel}</strong>
-                                  <span className="text-[10px] text-slate-500">
+                                <div className="flex items-center justify-between gap-2">
+                                  <strong className={theme.textAccent}>{otherLabel(log)}</strong>
+                                  <span className="text-[10px] text-slate-500 shrink-0">
                                     {new Date(log.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </span>
                                 </div>
@@ -1704,12 +1786,25 @@ export default function OperationCommandCenterPage() {
                           )}
                         </div>
 
-                        {open && intelStatus.canSend && (
+                        {msgTab === 'debrief' && msgData.canSendDebrief && msgData.debriefOpenUntil && (
+                          <p className="text-[10px] text-slate-500 mb-2">
+                            Debrief is readable until {formatDateString(msgData.debriefOpenUntil)}.
+                          </p>
+                        )}
+                        {closedNote && <p className="text-[10px] text-slate-500">{closedNote}</p>}
+
+                        {activeCanSend && (
                           <form onSubmit={handleSendIntel} className="space-y-1.5">
                             <div className="flex gap-2">
                               <input
                                 type="text"
-                                placeholder={intelChannel === 'target' ? 'Message your target anonymously...' : 'Reply to your Secret Santa...'}
+                                placeholder={
+                                  msgTab === 'intel'
+                                    ? intelSide === 'target' ? 'Message your target anonymously...' : 'Reply to your Secret Santa...'
+                                    : msgTab === 'command'
+                                    ? isOpsLeader ? 'Message this agent...' : 'Message your Head Elf...'
+                                    : 'Message the whole mission...'
+                                }
                                 value={intelMessageText}
                                 maxLength={INTEL_MESSAGE_MAX_CHARS}
                                 onChange={(e) => setIntelMessageText(e.target.value)}
@@ -1721,7 +1816,7 @@ export default function OperationCommandCenterPage() {
                                 disabled={sendingIntel}
                                 className={`px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-sm ${theme.btnPrimary}`}
                               >
-                                {sendingIntel ? 'Sending...' : 'Send Intel'}
+                                {sendingIntel ? 'Sending...' : 'Send'}
                               </button>
                             </div>
                             <div className="flex items-center justify-between text-[10px]">

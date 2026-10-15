@@ -1695,7 +1695,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             } else {
               await db.exchange.update({
                 where: { id: operationId },
-                data: { executionDate: new Date(), status: 'COMPLETED' },
+                data: { executionDate: new Date(), status: 'COMPLETED', completedAt: ex.completedAt ?? new Date() },
               });
             }
 
@@ -2236,7 +2236,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         });
       }
 
-      // /api/messages (GET / POST): anonymous Intel messaging, shared with the Next route.
+      // /api/messages (GET / POST): Command, Intel and Debrief messaging, shared with the Next route.
       if (pathname === '/api/messages' && (request.method === 'GET' || request.method === 'POST')) {
         const userId = getUserIdFromRequest(request);
         if (!userId) return Response.json({ error: 'Authentication required' }, { status: 401 });
@@ -2246,11 +2246,11 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const result = await listIntelMessages(db, exchangeId, userId);
           return Response.json(result.body, { status: result.status });
         }
-        const body = (await request.json().catch(() => ({}))) as { exchangeId?: unknown; channel?: unknown; text?: unknown };
+        const body = (await request.json().catch(() => ({}))) as { exchangeId?: unknown; channel?: unknown; to?: unknown; text?: unknown };
         if (typeof body.exchangeId !== 'string' || !body.exchangeId) {
           return Response.json({ error: 'exchangeId is required' }, { status: 400 });
         }
-        const result = await sendIntelMessage(db, { exchangeId: body.exchangeId, userId, channel: body.channel, text: body.text });
+        const result = await sendIntelMessage(db, { exchangeId: body.exchangeId, userId, channel: body.channel, to: body.to, text: body.text });
         return Response.json(result.body, { status: result.status });
       }
 

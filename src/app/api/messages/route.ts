@@ -1,12 +1,12 @@
 /**
  * @file route.ts
- * @description `/api/messages`: anonymous Intel messaging (self-hosted edition).
+ * @description `/api/messages`: Command, Intel and Debrief mission messaging (self-hosted edition).
  *
  * Tier 1 (what): GET lists the signed-in agent's conversations in a mission; POST sends one
  * message to their target or Secret Santa.
  * Tier 2 (why): The edge worker serves the same path in SaaS; both delegate to
  * `@/lib/intel-messages` so the anonymity rules live in one place.
- * Tier 3 (how): GET takes `?exchangeId=`; POST takes `{ exchangeId, channel, text }`.
+ * Tier 3 (how): GET takes `?exchangeId=`; POST takes `{ exchangeId, channel, to?, text }`.
  */
 
 import { NextResponse } from 'next/server';
@@ -31,16 +31,16 @@ export async function GET(request: Request) {
   }
 }
 
-/** Sends one Intel message: `{ exchangeId, channel: 'target' | 'santa', text }`. */
+/** Sends one message: `{ exchangeId, channel: 'command' | 'intel' | 'debrief', to?, text }`. */
 export async function POST(request: Request) {
   try {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    const body = (await request.json().catch(() => ({}))) as { exchangeId?: unknown; channel?: unknown; text?: unknown };
+    const body = (await request.json().catch(() => ({}))) as { exchangeId?: unknown; channel?: unknown; to?: unknown; text?: unknown };
     if (typeof body.exchangeId !== 'string' || !body.exchangeId) {
       return NextResponse.json({ error: 'exchangeId is required' }, { status: 400 });
     }
-    const result = await sendIntelMessage(db, { exchangeId: body.exchangeId, userId, channel: body.channel, text: body.text });
+    const result = await sendIntelMessage(db, { exchangeId: body.exchangeId, userId, channel: body.channel, to: body.to, text: body.text });
     return NextResponse.json(result.body, { status: result.status });
   } catch (error) {
     console.error('[Intel Messages] send failed:', error);

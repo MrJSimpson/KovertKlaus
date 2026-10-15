@@ -146,6 +146,8 @@ model Exchange {
   shippingDate          DateTime?
   executionDate         DateTime
   status                ExchangeStatus @default(RECRUITING)
+  /// When the mission was marked COMPLETED. Mission-wide Intel stays readable for 14 days after.
+  completedAt           DateTime?
   isFreeAnnualExchange  Boolean        @default(false)
   enforcePenalties      Boolean        @default(true)
   isCovertDelivery      Boolean        @default(false)
@@ -302,20 +304,36 @@ model ExclusionRule {
   @@schema("app")
 }
 
+/// Which conversation a mission message belongs to.
+enum MessageChannel {
+  /// Head Elf <-> one agent: operational questions and nudges. Sending closes at completion.
+  COMMAND
+  /// Secret Santa <-> target, Santa anonymous. From the draw until completion.
+  INTEL
+  /// One agent -> the whole mission, after completion. Readable for 14 days.
+  DEBRIEF
+
+  @@schema("app")
+}
+
 model ExchangeMessage {
-  id          String   @id @default(uuid())
+  id          String         @id @default(uuid())
   exchangeId  String
+  channel     MessageChannel @default(INTEL)
   senderId    String
-  recipientId String
+  /// Null for a DEBRIEF message to the whole mission.
+  recipientId String?
   messageText String
-  isFromSanta Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  /// INTEL only: true when the Santa wrote it (giver to target).
+  isFromSanta Boolean        @default(true)
+  createdAt   DateTime       @default(now())
 
   exchange  Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
   sender    User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient User     @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipient User?    @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
 
   @@index([exchangeId])
+  @@index([exchangeId, channel, createdAt])
   @@schema("app")
 }
 
