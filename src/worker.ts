@@ -13,12 +13,11 @@ import {
   isValidEmail,
   validatePassword,
   generateInviteCode,
-  signToken,
-  verifyToken,
   isSafePublicUrl,
   normalizeProductUrl,
 } from './lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from './lib/draw';
+import { issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionKind } from './lib/session-token';
 import { sendEmail } from './lib/email/dispatcher';
 import {
   sendWelcomeEmail,
@@ -120,12 +119,12 @@ function parseCookie(cookieHeader: string | null, name: string): string | null {
 function getAdminIdFromRequest(request: Request): string | null {
   const cookieHeader = request.headers.get('cookie') || request.headers.get('Cookie');
   const fromCookie = parseCookie(cookieHeader, ADMIN_COOKIE_NAME);
-  const verifiedCookie = verifyToken(fromCookie);
+  const verifiedCookie = verifySessionToken(fromCookie, 'admin');
   if (verifiedCookie) return verifiedCookie;
 
   const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    return verifyToken(authHeader.substring(7).trim());
+    return verifySessionToken(authHeader.substring(7).trim(), 'admin');
   }
 
   return null;
@@ -170,15 +169,26 @@ function methodNotAllowed(pathname: string, method: string): Response {
   return Response.json({ error: `Method ${method} not allowed on ${pathname}` }, { status: 405 });
 }
 
+/**
+ * Builds the `Set-Cookie` value for a session cookie.
+ *
+ * The cookie's Max-Age matches the token's signed expiry (`SESSION_TTL_SECONDS`), so the
+ * browser drops it at the same moment the server would start rejecting it.
+ */
+function sessionCookie(kind: SessionKind, token: string): string {
+  const name = kind === 'admin' ? ADMIN_COOKIE_NAME : USER_COOKIE_NAME;
+  return `${name}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL_SECONDS[kind]}; Secure`;
+}
+
 function getUserIdFromRequest(request: Request): string | null {
   const cookieHeader = request.headers.get('cookie') || request.headers.get('Cookie');
   const fromCookie = parseCookie(cookieHeader, USER_COOKIE_NAME);
-  const verifiedCookie = verifyToken(fromCookie);
+  const verifiedCookie = verifySessionToken(fromCookie, 'user');
   if (verifiedCookie) return verifiedCookie;
 
   const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    return verifyToken(authHeader.substring(7).trim());
+    return verifySessionToken(authHeader.substring(7).trim(), 'user');
   }
 
   return null;
@@ -309,9 +319,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           data: adminUpdateData,
         });
 
-        const signedAdminId = signToken(admin.id);
+        const signedAdminId = issueSessionToken('admin', admin.id);
         const headers = new Headers({ 'Content-Type': 'application/json' });
-        headers.append('Set-Cookie', `${ADMIN_COOKIE_NAME}=${signedAdminId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200; Secure`);
+        headers.append('Set-Cookie', sessionCookie('admin', signedAdminId));
 
         return new Response(JSON.stringify({
           success: true,
@@ -381,9 +391,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           data: { passwordHash: newHash, requiresPasswordReset: false, lastLoginAt: new Date() },
         });
 
-        const signedAdminId = signToken(admin.id);
+        const signedAdminId = issueSessionToken('admin', admin.id);
         const headers = new Headers({ 'Content-Type': 'application/json' });
-        headers.append('Set-Cookie', `${ADMIN_COOKIE_NAME}=${signedAdminId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200; Secure`);
+        headers.append('Set-Cookie', sessionCookie('admin', signedAdminId));
 
         return new Response(JSON.stringify({
           success: true,
@@ -1143,9 +1153,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           }
         }
 
-        const signedUserId = signToken(user.id);
+        const signedUserId = issueSessionToken('user', user.id);
         const headers = new Headers({ 'Content-Type': 'application/json' });
-        headers.append('Set-Cookie', `${USER_COOKIE_NAME}=${signedUserId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure`);
+        headers.append('Set-Cookie', sessionCookie('user', signedUserId));
 
         return new Response(JSON.stringify({
           success: true,
@@ -1220,11 +1230,18 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             };
           });
 
+          // Sliding expiry: re-issue the cookie once half its lifetime is used.
+          const meHeaders = new Headers();
+          const claims = readSessionToken(parseCookie(request.headers.get('cookie'), USER_COOKIE_NAME), 'user');
+          if (claims && shouldRenewSession(claims, 'user')) {
+            meHeaders.append('Set-Cookie', sessionCookie('user', issueSessionToken('user', claims.subjectId)));
+          }
+
           return Response.json({
             success: true,
             authenticated: true,
             user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints, wishlists: formattedWishlists },
-          });
+          }, { headers: meHeaders });
         }
 
         // The preferences modal sends PUT; PATCH stays for existing callers.
@@ -1419,9 +1436,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             console.warn('[Welcome Email Error]', welcomeErr);
           }
 
-          const signedUserId = signToken(user.id);
+          const signedUserId = issueSessionToken('user', user.id);
           const headers = new Headers({ 'Content-Type': 'application/json' });
-          headers.append('Set-Cookie', `${USER_COOKIE_NAME}=${signedUserId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure`);
+          headers.append('Set-Cookie', sessionCookie('user', signedUserId));
 
           return new Response(JSON.stringify({ success: true, token: signedUserId, data: user }), { status: 200, headers });
         } catch (err: any) {

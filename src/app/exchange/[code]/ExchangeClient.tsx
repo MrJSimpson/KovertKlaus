@@ -251,10 +251,10 @@ export default function OperationCommandCenterPage() {
             }
           }
         } else {
-          const savedUserId = localStorage.getItem(USER_ID_KEY);
-          const savedUserName = localStorage.getItem('kovertklaus_user_name');
-          if (savedUserId) setUserId(savedUserId);
-          if (savedUserName) setUserName(savedUserName);
+          // The server says the session is gone (expired or signed out): forget the cached
+          // identity so the page offers sign-in instead of acting on a dead session.
+          localStorage.removeItem(USER_ID_KEY);
+          localStorage.removeItem('kovertklaus_user_name');
         }
       } catch {
         const savedUserId = localStorage.getItem(USER_ID_KEY);

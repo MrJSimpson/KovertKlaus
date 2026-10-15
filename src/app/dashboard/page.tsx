@@ -131,6 +131,9 @@ export default function DashboardPage() {
       if (json.authenticated && json.user) {
         setUser(json.user);
         localStorage.setItem(USER_ID_KEY, json.user.id);
+      } else {
+        // Session expired or signed out: drop the cached identity.
+        localStorage.removeItem(USER_ID_KEY);
       }
     } catch {
       console.error('Failed to load user profile');

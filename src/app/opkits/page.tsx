@@ -78,6 +78,12 @@ export default function OpKitsPage() {
 
     try {
       const res = await fetch(`/api/opkits?userId=${userId}`);
+      if (res.status === 401) {
+        // Session expired or signed out: drop the cached identity.
+        localStorage.removeItem(USER_ID_KEY);
+        localStorage.removeItem('kovertklaus_user_name');
+        return;
+      }
       const json = await res.json();
       const rawList = json.manifests || json.opKits;
       if (json.success && rawList) {

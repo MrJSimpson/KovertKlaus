@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { hashPassword } from '@/lib/password';
 import { adminDb } from '@/lib/adminDb';
 import { IS_SAAS } from '@/lib/config/mode';
-import { signToken, verifyToken } from '@/lib/security';
+import { issueSessionToken, readSessionToken, SESSION_TTL_SECONDS } from '@/lib/session-token';
 import { DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_USERNAME } from '@/lib/constants/adminDefaults';
 
 export const ADMIN_SESSION_COOKIE_NAME = IS_SAAS ? 'kovert_saas_admin_session' : 'kovertklaus_admin_session';
@@ -81,11 +81,11 @@ export function validateNistPassword(
 
 /**
  * Sets a short-lived, HTTP-only, cryptographically signed admin session cookie.
- * Expiration: 12 hours (43,200 seconds).
+ * Expiration: `SESSION_TTL_SECONDS.admin` (8 hours), never renewed.
  */
 export async function setAdminSessionCookie(adminId: string) {
   const cookieStore = await cookies();
-  const signedToken = signToken(adminId);
+  const signedToken = issueSessionToken('admin', adminId);
   const isSecure =
     process.env.COOKIE_SECURE === 'true' ||
     (process.env.NODE_ENV === 'production' &&
@@ -97,7 +97,7 @@ export async function setAdminSessionCookie(adminId: string) {
     secure: isSecure,
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 12, // 12 hours
+    maxAge: SESSION_TTL_SECONDS.admin,
   });
 }
 
@@ -109,8 +109,8 @@ export async function getAdminSessionId(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
     const session = cookieStore.get(ADMIN_SESSION_COOKIE_NAME);
-    const cookieVerified = verifyToken(session?.value);
-    if (cookieVerified) return cookieVerified;
+    const cookieClaims = readSessionToken(session?.value, 'admin');
+    if (cookieClaims) return cookieClaims.subjectId;
   } catch {
     // Ignore cookie resolution errors during static prerendering
   }
@@ -122,7 +122,7 @@ export async function getAdminSessionId(): Promise<string | null> {
       headerStore.get('x-admin-token') ||
       headerStore.get('authorization')?.replace(/^Bearer\s+/i, '');
     if (headerToken) {
-      return verifyToken(headerToken);
+      return readSessionToken(headerToken, 'admin')?.subjectId ?? null;
     }
   } catch {
     // Ignore header resolution errors

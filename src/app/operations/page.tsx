@@ -71,6 +71,11 @@ export default function OperationCenterPage() {
         activeUserId = meJson.user.id;
         localStorage.setItem(USER_ID_KEY, meJson.user.id);
         localStorage.setItem('kovertklaus_user_name', meJson.user.name);
+      } else if (meRes.status === 401) {
+        // Session expired or signed out: drop the cached identity.
+        activeUserId = null;
+        localStorage.removeItem(USER_ID_KEY);
+        localStorage.removeItem('kovertklaus_user_name');
       }
     } catch {
       // Fall back to localStorage if /api/users/me network check fails
