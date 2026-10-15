@@ -161,3 +161,13 @@ test('Edge Worker Route Parity: every Next.js API route has a worker handler', (
     assert.ok(workerSource.includes(`pathname === '${p}'`), `WORKER_API_PATHS lists ${p} but no handler matches it`);
   }
 });
+
+test('Edge Worker Email Config - every email path reads SystemConfig through the admin client', () => {
+  // SystemConfig and SystemLog are in the admin schema. Resolving email settings through the app
+  // client silently fell back to env vars, so invites, welcome mail and nudges were never sent.
+  const source = fs.readFileSync(path.join(process.cwd(), 'src', 'worker.ts'), 'utf-8');
+  const calls = source.match(/resolveWorkerEmailConfig\(env, \w+/g) ?? [];
+  assert.ok(calls.length > 0, 'expected resolveWorkerEmailConfig call sites');
+  assert.deepStrictEqual(calls.filter((c) => !c.endsWith('adminDb')), []);
+  assert.match(source, /const configDbClient = adminConnStr \? getAdminDb\(adminConnStr\) : dbClient;/);
+});

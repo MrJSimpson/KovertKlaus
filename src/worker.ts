@@ -202,6 +202,11 @@ function getUserIdFromRequest(request: Request): string | null {
 /**
  * Resolves transactional email configuration for the Cloudflare Worker runtime
  * by loading database overrides via Neon and falling back to Worker environment variables.
+ *
+ * SystemConfig (provider keys) and SystemLog (dispatch logs) live in the admin schema, which the
+ * app role cannot read. Given the app client, the config read failed and fell back to env vars, so
+ * user-facing mail (invites, welcome, nudges, assignments) went out with no provider configured.
+ * The admin client is therefore always preferred; `dbClient` is only a fallback.
  */
 async function resolveWorkerEmailConfig(
   env: Env,
@@ -226,7 +231,7 @@ async function resolveWorkerEmailConfig(
 
   // Prioritize admin connection pool for resolving SystemConfig secrets
   const adminConnStr = env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL;
-  const configDbClient = dbClient || (adminConnStr ? getAdminDb(adminConnStr) : undefined);
+  const configDbClient = adminConnStr ? getAdminDb(adminConnStr) : dbClient;
 
   const resolved = await getResolvedEmailConfig(configDbClient, envMap);
   return { ...resolved, dbClient: configDbClient || dbClient, env, ...explicitOverride };
@@ -1431,7 +1436,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           }
 
           try {
-            const emailConfig = await resolveWorkerEmailConfig(env, db);
+            const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
             await sendWelcomeEmail({
               to: user.email,
               name: user.name,
@@ -1540,7 +1545,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
             // Dispatch assignment emails
             try {
-              const emailConfig = await resolveWorkerEmailConfig(env, db);
+              const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
               const enrolledUsers = await db.user.findMany({
                 where: { id: { in: ex.members.map((m) => m.userId) } },
               });
@@ -1737,7 +1742,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             await db.$transaction(notificationInserts);
 
             try {
-              const emailConfig = await resolveWorkerEmailConfig(env, db);
+              const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
               const broadcastPromises = ex.members.map(async (member) => {
                 if (member.user.email && member.user.emailNotifications !== false) {
                   return sendNudgeEmail({
@@ -2072,7 +2077,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
             if (memberToNudge.user.email && memberToNudge.user.emailNotifications !== false) {
               try {
-                const emailConfig = await resolveWorkerEmailConfig(env, db);
+                const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
                 await sendNudgeEmail({
                   recipientEmail: memberToNudge.user.email,
                   recipientName: memberToNudge.user.name || memberToNudge.user.codename || 'Operative',
@@ -2142,7 +2147,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
         if (request.method === 'POST') {
           const body = (await request.json().catch(() => ({}))) as { operationId?: unknown; recipientEmail?: unknown; isLatePass?: unknown };
-          const emailConfig = await resolveWorkerEmailConfig(env, db);
+          const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
           const result = await sendMissionInvitation(
             db,
             { baseUrl: url.origin || 'https://kovertklaus.com', sendEmail: (email) => sendInvitationEmail({ ...email, overrideConfig: emailConfig }) },
