@@ -12,7 +12,8 @@
  *
  * Light, Klaus Mode: the classic Christmas palette (holly reds, pine greens, gold, linen and snow).
  * Dark, Kovert Mode: the blue and gold palette (Indigo dye, Lion, Ecru, Wheat, Alice blue,
- * French gray, Cambridge blue). Page and inset shades are darker steps of Indigo dye.
+ * French gray, Cambridge blue). Page and inset shades are darker steps of Indigo dye; status
+ * surfaces (success, warning, danger) are dark tints, so any text token stays readable on them.
  *
  * Components use the `kk-*` color utilities (`bg-kk-surface`, `text-kk-muted`, ...). Each one
  * resolves to the variable below, so one class works in both modes. Every text pairing meets
@@ -116,10 +117,10 @@
     --kk-gold: #a28b61;
     --kk-on-gold: #062038;
     --kk-gold-ink: #cab48b;        /* Ecru */
-    --kk-success: #8c9985;         /* Cambridge blue */
-    --kk-on-success: #062038;
-    --kk-warning: #cab48b;
-    --kk-on-warning: #062038;
+    --kk-success: #1e3b36;         /* Cambridge blue, night step */
+    --kk-on-success: #c9d4c4;      /* Cambridge blue, light step */
+    --kk-warning: #3d3524;         /* Lion, night step */
+    --kk-on-warning: #fde7be;
     --kk-danger: #f2a1a1;
     --kk-danger-soft: #4a1830;
     --kk-on-danger-soft: #ffd9d9;

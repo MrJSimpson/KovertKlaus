@@ -100,11 +100,11 @@ export function InviteAgentModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto transition-all shadow-2xl ${theme.modalBg}`}>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-200 dark:border-slate-800">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-kk-border">
           <div>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
               ✉️ Field Recruitment
@@ -113,7 +113,7 @@ export function InviteAgentModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer p-1"
+            className="text-kk-muted hover:text-kk-ink font-bold text-xl cursor-pointer p-1"
           >
             ✕
           </button>
@@ -124,13 +124,13 @@ export function InviteAgentModal({
         </p>
 
         {/* 1-Click Shareable Mission Link & Code */}
-        <div className="mb-4 p-3.5 rounded-2xl border bg-stone-50 dark:bg-slate-900/60 border-stone-200 dark:border-slate-800 space-y-2">
+        <div className="mb-4 p-3.5 rounded-2xl border bg-kk-surface border-kk-border space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-kk-muted uppercase tracking-wider">
               Shareable Mission Link & Code
             </span>
             {operationCode && (
-              <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+              <span className="text-[10px] font-mono font-bold text-kk-on-warning bg-kk-warning px-2 py-0.5 rounded border border-kk-border-strong">
                 Code: {operationCode}
               </span>
             )}
@@ -140,12 +140,12 @@ export function InviteAgentModal({
               type="text"
               readOnly
               value={joinUrl}
-              className="flex-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-[11px] font-mono select-all focus:outline-none"
+              className="flex-1 bg-kk-surface border border-kk-border rounded-xl px-2.5 py-1.5 text-[11px] font-mono select-all focus:outline-none"
             />
             <button
               type="button"
               onClick={handleCopyLink}
-              className="px-3 py-1.5 rounded-xl font-bold text-[11px] bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all cursor-pointer shadow-sm shrink-0"
+              className="px-3 py-1.5 rounded-xl font-bold text-[11px] bg-kk-gold hover:brightness-95 text-kk-on-gold transition-all cursor-pointer shadow-sm shrink-0"
             >
               {copied ? '✓ Copied!' : '📋 Copy'}
             </button>
@@ -169,14 +169,14 @@ export function InviteAgentModal({
         )}
 
         {successMessage && (
-          <div className="p-4 mb-4 rounded-xl text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
+          <div className="p-4 mb-4 rounded-xl text-xs font-bold bg-kk-success text-kk-on-success border border-kk-on-success/30">
             ✅ {successMessage}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
           <div>
-            <label className="block text-slate-500 mb-1">Recipient Email Address *</label>
+            <label className="block text-kk-muted mb-1">Recipient Email Address *</label>
             <input
               type="email"
               required
@@ -185,12 +185,12 @@ export function InviteAgentModal({
               onChange={(e) => setEmail(e.target.value)}
               className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
             />
-            <p className="text-[10px] text-slate-500 mt-1">
+            <p className="text-[10px] text-kk-muted mt-1">
               New operatives get a Join Exchange link that creates their profile (clearing them for the alpha) and enrolls them. Existing operatives can accept or decline from this mission page or their dashboard. Track, resend or revoke invitations under Elf Agents on the mission page.
             </p>
           </div>
 
-          <div className="flex gap-3 pt-3 border-t border-stone-200 dark:border-slate-800">
+          <div className="flex gap-3 pt-3 border-t border-kk-border">
             <button
               type="button"
               onClick={onClose}

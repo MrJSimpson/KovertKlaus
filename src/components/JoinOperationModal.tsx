@@ -87,11 +87,11 @@ export function JoinOperationModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
       <div className={`w-full sm:max-w-md max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
         
         {/* Modal Header */}
-        <div className="p-4 sm:p-6 pb-3 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-6 pb-3 border-b border-kk-border flex items-center justify-between shrink-0">
           <div>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
               🕵️ Field Agent Recruitment
@@ -100,7 +100,7 @@ export function JoinOperationModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 transition-colors"
+            className="text-kk-muted hover:text-kk-ink font-bold text-xl cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 transition-colors"
           >
             ✕
           </button>
@@ -115,7 +115,7 @@ export function JoinOperationModal({
             )}
 
             <div>
-              <label className="block text-slate-500 mb-1">Operation Invite Code *</label>
+              <label className="block text-kk-muted mb-1">Operation Invite Code *</label>
               <input
                 type="text"
                 required
@@ -124,13 +124,13 @@ export function JoinOperationModal({
                 onChange={(e) => handleCodeChange(e.target.value)}
                 className={`w-full border rounded-xl px-3 py-3 text-base font-mono font-bold tracking-wider text-center focus:outline-none uppercase ${theme.inputModalBg}`}
               />
-              <p className="text-[10px] text-slate-500 mt-1 text-center">
+              <p className="text-[10px] text-kk-muted mt-1 text-center">
                 Enter the 8-character Base32 invite code (e.g. K9X2-R7M4) provided by your Head Elf.
               </p>
             </div>
           </div>
 
-          <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
+          <div className="p-4 sm:p-6 border-t border-kk-border shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
             <button
               type="button"
               onClick={onClose}

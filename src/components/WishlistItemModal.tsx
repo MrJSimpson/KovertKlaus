@@ -46,7 +46,7 @@ export function WishlistItemModal({
   initialData,
   userDossier,
 }: WishlistItemModalProps) {
-  const { theme, isDarkMode } = useTheme();
+  const { theme } = useTheme();
 
   // Form State
   const [title, setTitle] = useState('');
@@ -246,11 +246,11 @@ export function WishlistItemModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
       <div className={`w-full sm:max-w-xl max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
         
         {/* Header */}
-        <div className="p-4 sm:p-6 pb-4 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-6 pb-4 border-b border-kk-border flex items-center justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xl">{isPersonalizedMode ? '✨' : mode === 'add' ? '🎁' : '✏️'}</span>
@@ -264,7 +264,7 @@ export function WishlistItemModal({
                   : 'Edit Wishlist Item Details'}
               </h3>
             </div>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-kk-muted">
               {isPersonalizedMode
                 ? '✨ Personalized / Text-Only Gift (Custom, handmade, or experiential request for your Santa)'
                 : categoryLabels[category] || 'Custom Gift Item'}
@@ -272,7 +272,7 @@ export function WishlistItemModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
+            className="text-kk-muted hover:text-kk-ink font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
             title="Close"
           >
             ✕
@@ -295,18 +295,18 @@ export function WishlistItemModal({
                   <img
                     src={thumbnail}
                     alt={title}
-                    className="h-16 w-16 object-cover rounded-xl border border-stone-200 dark:border-slate-800 shadow-sm"
+                    className="h-16 w-16 object-cover rounded-xl border border-kk-border shadow-sm"
                   />
                 </div>
               ) : (
-                <div className="h-16 w-16 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-2xl shrink-0">
+                <div className="h-16 w-16 rounded-xl bg-kk-inset flex items-center justify-center text-2xl shrink-0">
                   {isPersonalizedMode ? '✨' : '🛍️'}
                 </div>
               )}
 
               <div className="flex-1 space-y-2">
                 <div>
-                  <label className="block text-[11px] text-slate-500 mb-0.5">
+                  <label className="block text-[11px] text-kk-muted mb-0.5">
                     {isPersonalizedMode ? 'Personalized Gift Request Title *' : 'Product Title *'}
                   </label>
                   <input
@@ -325,7 +325,7 @@ export function WishlistItemModal({
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] text-slate-500 mb-0.5">
+                    <label className="block text-[11px] text-kk-muted mb-0.5">
                       {isPersonalizedMode ? 'Target Budget (USD $)' : 'Price (USD $)'}
                     </label>
                     <input
@@ -340,7 +340,7 @@ export function WishlistItemModal({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-500 mb-0.5">Image URL (Optional)</label>
+                    <label className="block text-[11px] text-kk-muted mb-0.5">Image URL (Optional)</label>
                     <input
                       type="url"
                       value={thumbnail}
@@ -355,7 +355,7 @@ export function WishlistItemModal({
 
             {/* Description / Instructions for Santa */}
             <div>
-              <label className="block text-[11px] text-slate-500 mb-0.5">
+              <label className="block text-[11px] text-kk-muted mb-0.5">
                 {isPersonalizedMode ? 'Instructions or Notes for Santa (Optional)' : 'Special Instructions / Notes (Optional)'}
               </label>
               <textarea
@@ -370,26 +370,26 @@ export function WishlistItemModal({
                 }
                 className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs resize-none focus:outline-none ${theme.inputModalBg}`}
               />
-              <div className="flex justify-end text-[10px] text-slate-400 mt-0.5 font-mono">
+              <div className="flex justify-end text-[10px] text-kk-muted mt-0.5 font-mono">
                 {description.length}/500
               </div>
             </div>
 
             {url ? (
-              <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-stone-200 dark:border-slate-800">
+              <div className="text-[11px] text-kk-muted flex items-center justify-between pt-1 border-t border-kk-border">
                 <span className="truncate max-w-sm">🔗 {url}</span>
                 <a
                   href={url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sky-500 hover:underline shrink-0 font-bold ml-2 min-h-[36px] flex items-center"
+                  className="text-kk-accent hover:underline shrink-0 font-bold ml-2 min-h-[36px] flex items-center"
                 >
                   View Store ↗
                 </a>
               </div>
             ) : isPersonalizedMode ? (
-              <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
-                <label className="block text-[11px] text-slate-500 mb-0.5">Reference Link / Recipe / Pattern (Optional)</label>
+              <div className="pt-2 border-t border-kk-border">
+                <label className="block text-[11px] text-kk-muted mb-0.5">Reference Link / Recipe / Pattern (Optional)</label>
                 <input
                   type="url"
                   value={url}
@@ -408,7 +408,7 @@ export function WishlistItemModal({
                 <span className="text-xs font-bold block">
                   ⚙️ Specific Details for Your Secret Santa
                 </span>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-kk-muted">
                   Size, color, style, or specific preferences (Up to {MAX_ITEM_DETAILS} details)
                 </span>
               </div>
@@ -417,7 +417,7 @@ export function WishlistItemModal({
                 <button
                   type="button"
                   onClick={handleAddDetailRow}
-                  className="text-[11px] font-bold text-sky-500 hover:underline cursor-pointer"
+                  className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer"
                 >
                   + Add Detail
                 </button>
@@ -456,7 +456,7 @@ export function WishlistItemModal({
                         <button
                           type="button"
                           onClick={() => handleRemoveDetailRow(idx)}
-                          className="text-slate-400 hover:text-red-500 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 text-sm cursor-pointer transition-colors"
+                          className="text-kk-muted hover:text-kk-danger min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 text-sm cursor-pointer transition-colors"
                           title="Remove row"
                         >
                           ✕
@@ -473,7 +473,7 @@ export function WishlistItemModal({
                             key={`dossier-${val}`}
                             type="button"
                             onClick={() => handleApplyOption(idx, val)}
-                            className="bg-sky-50 dark:bg-sky-950/60 border border-sky-400/60 text-sky-600 dark:text-sky-300 px-2 py-0.5 rounded-full hover:bg-sky-100 dark:hover:bg-sky-900 transition flex items-center gap-1 cursor-pointer font-bold"
+                            className="bg-kk-inset border border-kk-border-strong text-kk-accent px-2 py-0.5 rounded-full hover:border-kk-border-strong transition flex items-center gap-1 cursor-pointer font-bold"
                             title="Click to apply size/color from your saved account dossier"
                           >
                             <span>✨ Dossier:</span>
@@ -487,11 +487,11 @@ export function WishlistItemModal({
                             key={`opt-${opt.val}`}
                             type="button"
                             onClick={() => handleApplyOption(idx, opt.val)}
-                            className="bg-stone-100 dark:bg-slate-800 border border-stone-300 dark:border-slate-700 px-2 py-0.5 rounded-full text-slate-700 dark:text-slate-300 hover:border-slate-400 transition cursor-pointer flex items-center gap-1"
+                            className="bg-kk-inset border border-kk-border px-2 py-0.5 rounded-full text-kk-muted hover:border-kk-border-strong transition cursor-pointer flex items-center gap-1"
                             title={`Chosen by ${opt.count} other operative${opt.count === 1 ? '' : 's'}`}
                           >
                             <span>{opt.val}</span>
-                            <span className="text-[9px] text-slate-400 font-mono">({opt.count})</span>
+                            <span className="text-[9px] text-kk-muted font-mono">({opt.count})</span>
                           </button>
                         ))}
                       </div>
@@ -505,7 +505,7 @@ export function WishlistItemModal({
           </div>
 
           {/* Action Buttons */}
-          <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
+          <div className="p-4 sm:p-6 border-t border-kk-border shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
             <button
               type="button"
               onClick={onClose}

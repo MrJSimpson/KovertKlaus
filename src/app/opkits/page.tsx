@@ -348,14 +348,12 @@ export default function OpKitsPage() {
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-lg sm:text-xl shadow-md shrink-0 ${
-              isDarkMode ? 'bg-gradient-to-br from-sky-400 to-slate-700' : 'bg-gradient-to-br from-red-600 to-emerald-800'
-            }`}>
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md shrink-0 bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
             <div>
               <span className="text-lg sm:text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textBrand}`}>
+              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textGoldOnDark}`}>
                 Wishlist Manifests &amp; Manifest Items Workspace
               </span>
             </div>
@@ -444,7 +442,7 @@ export default function OpKitsPage() {
                   Loading Wishlist Manifests...
                 </div>
               ) : filteredOpKits.length === 0 ? (
-                <div className={`text-center py-8 text-xs border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl ${theme.textSubLabel}`}>
+                <div className={`text-center py-8 text-xs border-2 border-dashed border-kk-border rounded-2xl ${theme.textSubLabel}`}>
                   No Wishlist Manifests found matching "{searchQuery}"
                 </div>
               ) : (
@@ -459,8 +457,8 @@ export default function OpKitsPage() {
                         className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                           isSelected
                             ? isDarkMode
-                              ? 'bg-sky-500/20 border-sky-500 text-white shadow-md'
-                              : 'bg-red-50 border-red-500 text-red-900 shadow-sm'
+                              ? 'bg-kk-inset border-kk-border-strong text-kk-ink shadow-md'
+                              : 'bg-kk-danger-soft border-kk-danger/40 text-kk-on-danger-soft shadow-sm'
                             : theme.cardInnerBg
                         }`}
                       >
@@ -484,7 +482,7 @@ export default function OpKitsPage() {
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-sm">{kit.name}</span>
                                 {kit.isMaster && (
-                                  <span className="text-[10px] bg-amber-200 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 font-bold px-2 py-0.5 rounded-full">
+                                  <span className="text-[10px] bg-kk-warning text-kk-on-warning font-bold px-2 py-0.5 rounded-full">
                                     Master
                                   </span>
                                 )}
@@ -492,13 +490,13 @@ export default function OpKitsPage() {
 
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase inline-block mt-1 ${
                                 kit.type === 'WHITE_ELEPHANT'
-                                  ? 'bg-purple-100 text-purple-900 dark:bg-purple-500/20 dark:text-purple-300'
-                                  : 'bg-emerald-100 text-emerald-900 dark:bg-sky-500/20 dark:text-sky-300'
+                                  ? 'bg-kk-warning text-kk-on-warning'
+                                  : 'bg-kk-success text-kk-on-success'
                               }`}>
                                 {kit.type === 'WHITE_ELEPHANT' ? '🐘 White Elephant' : '🎁 Secret Santa'}
                               </span>
 
-                              <span className="text-[11px] text-slate-500 block mt-0.5">
+                              <span className="text-[11px] text-kk-muted block mt-0.5">
                                 {itemCount} Manifest Item{itemCount === 1 ? '' : 's'}
                               </span>
                             </div>
@@ -513,7 +511,7 @@ export default function OpKitsPage() {
                               setEditingName(kit.name);
                             }}
                             title="Rename Wishlist Manifest"
-                            className="p-1.5 hover:bg-stone-200 dark:hover:bg-slate-800 rounded-lg text-xs"
+                            className="p-1.5 hover:bg-kk-inset rounded-lg text-xs"
                           >
                             ✏️
                           </button>
@@ -524,7 +522,7 @@ export default function OpKitsPage() {
                                 handleDeleteOpKit(kit.id);
                               }}
                               title="Delete Wishlist Manifest"
-                              className="p-1.5 hover:bg-red-100 dark:hover:bg-red-950/40 text-red-500 rounded-lg text-xs"
+                              className="p-1.5 hover:bg-kk-danger-soft text-kk-danger rounded-lg text-xs"
                             >
                               🗑️
                             </button>
@@ -544,21 +542,21 @@ export default function OpKitsPage() {
               <div className={`p-6 sm:p-8 rounded-3xl border shadow-md space-y-6 ${theme.cardBg}`}>
                 
                 {/* Wishlist Manifest Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-stone-200 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-kk-border">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-2xl">{selectedOpKit.isMaster ? '⭐' : selectedOpKit.type === 'WHITE_ELEPHANT' ? '🐘' : '🎁'}</span>
                       <h2 className="text-2xl font-black">{selectedOpKit.name}</h2>
                     </div>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-kk-muted">
                       Created: {new Date(selectedOpKit.createdAt).toLocaleDateString()}
                     </span>
                   </div>
 
                   <span className={`text-xs px-3.5 py-1.5 rounded-full font-bold uppercase ${
                     selectedOpKit.type === 'WHITE_ELEPHANT'
-                      ? 'bg-purple-100 text-purple-900 dark:bg-purple-500/20 dark:text-purple-300'
-                      : 'bg-emerald-100 text-emerald-900 dark:bg-sky-500/20 dark:text-sky-300'
+                      ? 'bg-kk-warning text-kk-on-warning'
+                      : 'bg-kk-success text-kk-on-success'
                   }`}>
                     {selectedOpKit.type === 'WHITE_ELEPHANT' ? '🐘 White Elephant Brought Gift' : '🎁 Secret Santa Wishlist'}
                   </span>
@@ -566,11 +564,7 @@ export default function OpKitsPage() {
 
                 {/* Info Note based on Dual Wishlist Manifest Type */}
                 {selectedOpKit.type === 'WHITE_ELEPHANT' ? (
-                  <div className={`p-4 rounded-2xl text-xs border ${
-                    isDarkMode
-                      ? 'bg-purple-950/50 border-purple-800 text-purple-200'
-                      : 'bg-purple-50 border-purple-200 text-purple-950'
-                  }`}>
+                  <div className={`p-4 rounded-2xl text-xs border bg-kk-warning border-kk-border-strong text-kk-on-warning`}>
                     <span className="font-bold block text-sm mb-0.5">🐘 White Elephant Brought Gift Manifest</span>
                     <span className="text-xs opacity-90">This Wishlist Manifest holds the single physical/digital gift item you are bringing to the live stealing pool. <strong>Strictly limited to 1 Manifest Item.</strong></span>
                   </div>
@@ -608,7 +602,7 @@ export default function OpKitsPage() {
                       disabled={scraping || (selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1)}
                       className={`px-5 py-3 min-h-[44px] rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer shrink-0 flex items-center justify-center ${
                         selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1
-                          ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
+                          ? 'bg-kk-inset text-kk-ink cursor-not-allowed'
                           : theme.btnPrimary
                       }`}
                     >
@@ -623,7 +617,7 @@ export default function OpKitsPage() {
                     className={`px-4 py-3 min-h-[44px] rounded-2xl font-bold text-xs transition-all border shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
                       selectedOpKit.type === 'WHITE_ELEPHANT' && (selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) >= 1
                         ? 'opacity-50 cursor-not-allowed'
-                        : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                        : 'bg-kk-warning hover:brightness-95 text-kk-on-warning border-kk-border-strong'
                     }`}
                     title="Add a custom, handmade, experiential, or text-only gift without an external URL"
                   >
@@ -635,14 +629,14 @@ export default function OpKitsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-bold">Attached Manifest Items ({selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0})</h3>
-                    <span className="text-xs text-slate-500 font-mono">Gift Items</span>
+                    <span className="text-xs text-kk-muted font-mono">Gift Items</span>
                   </div>
 
                   {(selectedOpKit.manifestItems?.length ?? selectedOpKit.opTools?.length ?? 0) === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed border-stone-200 dark:border-slate-800 rounded-3xl">
+                    <div className="text-center py-12 border-2 border-dashed border-kk-border rounded-3xl">
                       <div className="text-3xl mb-2">🛍️</div>
                       <p className="text-xs font-bold mb-1">No Manifest Items Attached Yet</p>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[11px] text-kk-muted">
                         Paste a store link above to auto-scrape, or click <strong>✨ Add Personalized Gift</strong> for handmade or text-only requests!
                       </p>
                     </div>
@@ -661,10 +655,10 @@ export default function OpKitsPage() {
                                 <img
                                   src={tool.thumbnail}
                                   alt={tool.title}
-                                  className="h-14 w-14 object-cover rounded-xl border border-stone-200 dark:border-slate-800 shrink-0"
+                                  className="h-14 w-14 object-cover rounded-xl border border-kk-border shrink-0"
                                 />
                               ) : (
-                                <div className="h-14 w-14 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-xl shrink-0">
+                                <div className="h-14 w-14 rounded-xl bg-kk-inset flex items-center justify-center text-xl shrink-0">
                                   {isPersonalized ? '✨' : '🛍️'}
                                 </div>
                               )}
@@ -687,7 +681,7 @@ export default function OpKitsPage() {
                                   )}
 
                                   {isPersonalized && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 shrink-0">
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong flex items-center gap-1 shrink-0">
                                       ✨ Personalized Gift
                                     </span>
                                   )}
@@ -700,7 +694,7 @@ export default function OpKitsPage() {
                                 )}
 
                                 {tool.description && (
-                                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-md italic line-clamp-2">
+                                  <p className="text-xs text-kk-muted mt-1 max-w-md italic line-clamp-2">
                                     "{tool.description}"
                                   </p>
                                 )}
@@ -710,7 +704,7 @@ export default function OpKitsPage() {
                                     href={tool.url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-[10px] text-slate-400 hover:underline block max-w-xs truncate mt-0.5"
+                                    className="text-[10px] text-kk-muted hover:underline block max-w-xs truncate mt-0.5"
                                   >
                                     {tool.url}
                                   </a>
@@ -721,7 +715,7 @@ export default function OpKitsPage() {
                                     {tool.properties.details.map((d, dIdx) => (
                                       <span
                                         key={dIdx}
-                                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-kk-inset border-kk-border text-kk-muted flex items-center gap-1"
                                       >
                                         <span className="opacity-75">{d.label}:</span>
                                         <span>{d.value}</span>
@@ -740,13 +734,13 @@ export default function OpKitsPage() {
                                   setItemModalData(tool);
                                   setItemModalOpen(true);
                                 }}
-                                className="text-xs text-sky-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors cursor-pointer"
+                                className="text-xs text-kk-accent font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-kk-inset transition-colors cursor-pointer"
                               >
                                 ✏️ Edit Details
                               </button>
                               <button
                                 onClick={() => handleRemoveManifestItem(tool.id)}
-                                className="text-xs text-red-500 font-bold hover:underline px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                                className="text-xs text-kk-danger font-bold hover:underline px-3 py-1.5 rounded-lg hover:bg-kk-danger-soft transition-colors cursor-pointer"
                               >
                                 Remove
                               </button>
@@ -761,7 +755,7 @@ export default function OpKitsPage() {
               </div>
             ) : (
               <div className={`p-12 text-center rounded-3xl border ${theme.cardBg}`}>
-                <p className="text-xs text-slate-500">Select a Wishlist Manifest from the left directory to inspect and add Manifest Items.</p>
+                <p className="text-xs text-kk-muted">Select a Wishlist Manifest from the left directory to inspect and add Manifest Items.</p>
               </div>
             )}
           </div>
@@ -772,15 +766,15 @@ export default function OpKitsPage() {
 
       {/* MODAL: CREATE NEW WISHLIST MANIFEST */}
       {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
           <div className={`w-full sm:max-w-md max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl border transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
-            <div className="p-4 sm:p-6 pb-3 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+            <div className="p-4 sm:p-6 pb-3 border-b border-kk-border flex items-center justify-between shrink-0">
               <h3 className="text-xl sm:text-2xl font-black flex items-center gap-2">
                 <span>🧰 Create New Wishlist Manifest</span>
               </h3>
               <button
                 onClick={() => setCreateModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
+                className="text-kk-muted hover:text-kk-ink font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
               >
                 ✕
               </button>
@@ -789,7 +783,7 @@ export default function OpKitsPage() {
             <form onSubmit={handleCreateOpKit} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
                 <div>
-                  <label className="block text-slate-500 mb-1">Wishlist Manifest Name *</label>
+                  <label className="block text-kk-muted mb-1">Wishlist Manifest Name *</label>
                   <input
                     type="text"
                     required
@@ -801,7 +795,7 @@ export default function OpKitsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-500 mb-1">Wishlist Manifest Category Type *</label>
+                  <label className="block text-kk-muted mb-1">Wishlist Manifest Category Type *</label>
                   <select
                     value={newOpKitType}
                     onChange={(e) => setNewOpKitType(e.target.value as 'WISHLIST' | 'WHITE_ELEPHANT')}
@@ -813,7 +807,7 @@ export default function OpKitsPage() {
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
+              <div className="p-4 sm:p-6 border-t border-kk-border shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}

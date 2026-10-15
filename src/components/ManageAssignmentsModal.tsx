@@ -133,11 +133,11 @@ export function ManageAssignmentsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className={`p-6 sm:p-8 rounded-3xl max-w-xl w-full transition-all shadow-2xl ${theme.modalBg}`}>
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-200 dark:border-slate-800">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-kk-border">
           <div>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
               🎯 Command Center Assignments
@@ -146,7 +146,7 @@ export function ManageAssignmentsModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer p-1"
+            className="text-kk-muted hover:text-kk-ink font-bold text-xl cursor-pointer p-1"
           >
             ✕
           </button>
@@ -163,7 +163,7 @@ export function ManageAssignmentsModal({
         )}
 
         {successMessage && (
-          <div className="p-3 mb-4 rounded-xl text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
+          <div className="p-3 mb-4 rounded-xl text-xs font-bold bg-kk-success text-kk-on-success border border-kk-on-success/30">
             ✅ {successMessage}
           </div>
         )}
@@ -187,18 +187,18 @@ export function ManageAssignmentsModal({
             return (
               <div
                 key={agent.id}
-                className="p-3.5 rounded-2xl bg-stone-50 dark:bg-slate-900/80 border border-stone-200 dark:border-slate-800 text-xs transition-all"
+                className="p-3.5 rounded-2xl bg-kk-surface border border-kk-border text-xs transition-all"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <div className="font-bold text-slate-800 dark:text-slate-100">
+                    <div className="font-bold text-kk-ink">
                       🕵️ {getAgentDisplayName(agent.userId)}
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">
+                    <div className="text-[11px] text-kk-muted mt-0.5">
                       Target: {currentTargetName ? (
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">🎯 {currentTargetName}</span>
+                        <span className="font-bold text-kk-brand">🎯 {currentTargetName}</span>
                       ) : (
-                        <span className="italic text-amber-500">Unassigned</span>
+                        <span className="italic text-kk-gold-ink">Unassigned</span>
                       )}
                     </div>
                   </div>
@@ -225,8 +225,8 @@ export function ManageAssignmentsModal({
 
                 {/* Inline Target Swap Dropdown Menu */}
                 {isOriginatorActive && (
-                  <div className="mt-3 pt-3 border-t border-stone-200 dark:border-slate-800 space-y-2">
-                    <label className="block text-[11px] font-bold text-slate-500">
+                  <div className="mt-3 pt-3 border-t border-kk-border space-y-2">
+                    <label className="block text-[11px] font-bold text-kk-muted">
                       Select New Target for {getAgentDisplayName(agent.userId)}:
                     </label>
                     <div className="flex gap-2">
@@ -253,7 +253,7 @@ export function ManageAssignmentsModal({
                       </button>
                     </div>
                     {validCandidates.length === 0 && (
-                      <p className="text-[10px] text-amber-500 italic">
+                      <p className="text-[10px] text-kk-gold-ink italic">
                         No valid alternative target candidates available due to active preventative match rules.
                       </p>
                     )}
@@ -264,7 +264,7 @@ export function ManageAssignmentsModal({
           })}
         </div>
 
-        <div className="mt-6 pt-3 border-t border-stone-200 dark:border-slate-800 text-right">
+        <div className="mt-6 pt-3 border-t border-kk-border text-right">
           <button
             type="button"
             onClick={onClose}

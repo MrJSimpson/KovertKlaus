@@ -142,11 +142,11 @@ export function PreventativeMatchModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
       <div className={`w-full sm:max-w-lg max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
         
         {/* Header */}
-        <div className="p-4 sm:p-6 pb-3 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-6 pb-3 border-b border-kk-border flex items-center justify-between shrink-0">
           <div>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
               🚫 Tactical Restrictions
@@ -155,7 +155,7 @@ export function PreventativeMatchModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 transition-colors"
+            className="text-kk-muted hover:text-kk-ink font-bold text-xl cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 transition-colors"
           >
             ✕
           </button>
@@ -171,10 +171,10 @@ export function PreventativeMatchModal({
           <div
             className={`p-3.5 rounded-2xl border text-xs font-mono transition-all ${
               feasibility.themeColor === 'emerald'
-                ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-200'
+                ? 'bg-kk-success border-kk-on-success/30 text-kk-on-success'
                 : feasibility.themeColor === 'amber'
-                ? 'bg-amber-950/70 border-amber-500/50 text-amber-200'
-                : 'bg-rose-950/70 border-rose-500/50 text-rose-200'
+                ? 'bg-kk-warning border-kk-border-strong text-kk-on-warning'
+                : 'bg-kk-danger-soft border-kk-danger/40 text-kk-on-danger-soft'
             }`}
           >
             <div className="flex items-center gap-2 font-bold text-xs">
@@ -192,18 +192,18 @@ export function PreventativeMatchModal({
           )}
 
           {successMessage && (
-            <div className="p-3 rounded-xl text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
+            <div className="p-3 rounded-xl text-xs font-bold bg-kk-success text-kk-on-success border border-kk-on-success/30">
               ✅ {successMessage}
             </div>
           )}
 
           {/* Form: Add New Rule */}
-          <form onSubmit={handleAddRule} className="space-y-4 p-4 rounded-2xl bg-stone-50 dark:bg-slate-900/60 border border-stone-200 dark:border-slate-800">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">Create Blocked Pair</h4>
+          <form onSubmit={handleAddRule} className="space-y-4 p-4 rounded-2xl bg-kk-surface border border-kk-border">
+            <h4 className="text-xs font-black uppercase tracking-wider text-kk-muted">Create Blocked Pair</h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-semibold">
               <div>
-                <label className="block text-slate-500 mb-1">Operative A</label>
+                <label className="block text-kk-muted mb-1">Operative A</label>
                 <select
                   value={agentAId}
                   onChange={(e) => {
@@ -222,7 +222,7 @@ export function PreventativeMatchModal({
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Operative B (Blocked Pair)</label>
+                <label className="block text-kk-muted mb-1">Operative B (Blocked Pair)</label>
                 <select
                   value={agentBId}
                   disabled={!agentAId}
@@ -250,10 +250,10 @@ export function PreventativeMatchModal({
 
           {/* List of Active Rules */}
           <div className="space-y-2">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Active Preventative Rules ({exclusionRules.length})</h4>
+            <h4 className="text-xs font-black uppercase tracking-wider text-kk-muted mb-2">Active Preventative Rules ({exclusionRules.length})</h4>
             
             {exclusionRules.length === 0 ? (
-              <p className="text-xs text-slate-400 italic py-2">No preventative match rules active for this operation.</p>
+              <p className="text-xs text-kk-muted italic py-2">No preventative match rules active for this operation.</p>
             ) : (
               exclusionRules.map((rule) => {
                 const labelA = rule.agent ? (rule.agent.codename ? `${rule.agent.name} ("${rule.agent.codename}")` : rule.agent.name) : getAgentLabel(rule.agentId);
@@ -262,19 +262,19 @@ export function PreventativeMatchModal({
                 return (
                   <div
                     key={rule.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-stone-100 dark:bg-slate-900/90 border border-stone-200 dark:border-slate-800 text-xs font-semibold"
+                    className="flex items-center justify-between p-3 rounded-xl bg-kk-inset border border-kk-border text-xs font-semibold"
                   >
-                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
-                      <span className="text-red-500 font-bold">🚫</span>
+                    <div className="flex items-center gap-2 text-kk-muted truncate">
+                      <span className="text-kk-danger font-bold">🚫</span>
                       <span className="font-bold">{labelA}</span>
-                      <span className="text-slate-400 font-mono">⟷</span>
+                      <span className="text-kk-muted font-mono">⟷</span>
                       <span className="font-bold">{labelB}</span>
                     </div>
 
                     <button
                       onClick={() => handleRemoveRule(rule.id)}
                       disabled={loading}
-                      className="text-red-500 hover:text-red-700 dark:hover:text-red-400 font-bold text-xs min-h-[44px] min-w-[44px] px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer ml-2 flex items-center justify-center transition-colors"
+                      className="text-kk-danger hover:underline font-bold text-xs min-h-[44px] min-w-[44px] px-2 py-1 rounded-lg hover:bg-kk-danger-soft cursor-pointer ml-2 flex items-center justify-center transition-colors"
                       title="Remove Rule"
                     >
                       🗑️ Remove
@@ -287,7 +287,7 @@ export function PreventativeMatchModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 text-right shrink-0 pb-safe-sheet bg-inherit">
+        <div className="p-4 sm:p-6 border-t border-kk-border text-right shrink-0 pb-safe-sheet bg-inherit">
           <button
             type="button"
             onClick={onClose}

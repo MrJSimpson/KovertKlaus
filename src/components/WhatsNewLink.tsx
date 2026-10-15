@@ -42,7 +42,7 @@ export function WhatsNewLink({ className = '', compact = false }: WhatsNewLinkPr
       <span aria-hidden>📣</span>
       <span className={compact ? 'hidden sm:inline' : ''}>What&apos;s New</span>
       {unseen && (
-        <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900" aria-label="New update" />
+        <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-kk-primary ring-2 ring-kk-surface" aria-label="New update" />
       )}
     </Link>
   );

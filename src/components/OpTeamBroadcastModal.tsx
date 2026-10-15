@@ -68,11 +68,11 @@ export function OpTeamBroadcastModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full transition-all shadow-2xl ${theme.modalBg}`}>
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-200 dark:border-slate-800">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-kk-border">
           <div>
             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${theme.badgeCode}`}>
               📢 OpTeam Communication
@@ -81,7 +81,7 @@ export function OpTeamBroadcastModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer p-1"
+            className="text-kk-muted hover:text-kk-ink font-bold text-xl cursor-pointer p-1"
           >
             ✕
           </button>
@@ -98,14 +98,14 @@ export function OpTeamBroadcastModal({
         )}
 
         {successMessage && (
-          <div className="p-3 mb-4 rounded-xl text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
+          <div className="p-3 mb-4 rounded-xl text-xs font-bold bg-kk-success text-kk-on-success border border-kk-on-success/30">
             ✅ {successMessage}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
           <div>
-            <label className="block text-slate-500 mb-1">Broadcast Message Text *</label>
+            <label className="block text-kk-muted mb-1">Broadcast Message Text *</label>
             <textarea
               rows={4}
               required
@@ -116,7 +116,7 @@ export function OpTeamBroadcastModal({
             />
           </div>
 
-          <div className="flex gap-3 pt-3 border-t border-stone-200 dark:border-slate-800">
+          <div className="flex gap-3 pt-3 border-t border-kk-border">
             <button
               type="button"
               onClick={onClose}

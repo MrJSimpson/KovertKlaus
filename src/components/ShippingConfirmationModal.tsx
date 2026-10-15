@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '@/context/ThemeContext';
 import { detectCarrier, CarrierDetectionResult } from '@/lib/carrier-tracking';
 
 export interface ShippingConfirmationModalProps {
@@ -23,7 +22,6 @@ export function ShippingConfirmationModal({
   currentTrackingNumber,
   onConfirmed,
 }: ShippingConfirmationModalProps) {
-  const { theme, isDarkMode } = useTheme();
 
   const [deliveryType, setDeliveryType] = useState<'COURIER' | 'LOCAL'>('COURIER');
   const [trackingInput, setTrackingInput] = useState('');
@@ -113,11 +111,9 @@ export function ShippingConfirmationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div
-        className={`w-full max-w-md rounded-3xl border shadow-2xl p-6 relative overflow-hidden ${
-          isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-stone-200 text-stone-900'
-        }`}
+        className={`w-full max-w-md rounded-3xl border shadow-2xl p-6 relative overflow-hidden bg-kk-surface border-kk-border text-kk-ink`}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -126,28 +122,28 @@ export function ShippingConfirmationModal({
               <span>📦 Confirm Gift Shipment</span>
             </h3>
             {targetCodename && (
-              <p className="text-xs text-slate-400 mt-0.5 font-mono">
-                Target Operative: <span className="text-sky-400 font-bold">{targetCodename}</span>
+              <p className="text-xs text-kk-muted mt-0.5 font-mono">
+                Target Operative: <span className="text-kk-accent font-bold">{targetCodename}</span>
               </p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg text-lg"
+            className="text-kk-muted hover:text-kk-ink p-1 rounded-lg text-lg"
           >
             ✕
           </button>
         </div>
 
         {errorMessage && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-mono">
+          <div className="mb-4 p-3 rounded-xl bg-kk-danger-soft border border-kk-danger/40 text-kk-on-danger-soft text-xs font-mono">
             ⚠️ {errorMessage}
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono">
+          <div className="mb-4 p-3 rounded-xl bg-kk-success border border-kk-on-success/30 text-kk-on-success text-xs font-mono">
             ✓ {successMessage}
           </div>
         )}
@@ -155,7 +151,7 @@ export function ShippingConfirmationModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Delivery Method Selector */}
           <div>
-            <label className="block text-xs font-mono font-bold text-slate-400 mb-2 uppercase">
+            <label className="block text-xs font-mono font-bold text-kk-muted mb-2 uppercase">
               Dispatch Vector
             </label>
             <div className="grid grid-cols-2 gap-2 text-xs font-bold">
@@ -164,10 +160,8 @@ export function ShippingConfirmationModal({
                 onClick={() => setDeliveryType('COURIER')}
                 className={`p-3 rounded-xl border transition flex flex-col items-center gap-1 cursor-pointer ${
                   deliveryType === 'COURIER'
-                    ? 'bg-sky-500/20 border-sky-500 text-sky-400 font-black'
-                    : isDarkMode
-                    ? 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    : 'bg-stone-50 border-stone-200 text-stone-600 hover:text-stone-900'
+                    ? 'bg-kk-inset border-kk-border-strong text-kk-accent font-black'
+                    : 'bg-kk-surface border-kk-border text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 <span className="text-base">🚚</span>
@@ -179,10 +173,8 @@ export function ShippingConfirmationModal({
                 onClick={() => setDeliveryType('LOCAL')}
                 className={`p-3 rounded-xl border transition flex flex-col items-center gap-1 cursor-pointer ${
                   deliveryType === 'LOCAL'
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 font-black'
-                    : isDarkMode
-                    ? 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    : 'bg-stone-50 border-stone-200 text-stone-600 hover:text-stone-900'
+                    ? 'bg-kk-success border-kk-on-success/30 text-kk-on-success font-black'
+                    : 'bg-kk-surface border-kk-border text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 <span className="text-base">🤝</span>
@@ -196,7 +188,7 @@ export function ShippingConfirmationModal({
             <div className="space-y-3">
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-mono font-bold text-slate-400 uppercase">
+                  <label className="text-xs font-mono font-bold text-kk-muted uppercase">
                     Package Tracking Number
                   </label>
                   {carrierResult && carrierResult.isValid && (
@@ -213,25 +205,21 @@ export function ShippingConfirmationModal({
                   value={trackingInput}
                   onChange={(e) => handleTrackingChange(e.target.value)}
                   placeholder="e.g. 1Z9999999999999999 or 94001000..."
-                  className={`w-full font-mono text-xs px-3 py-2.5 rounded-xl border focus:outline-none transition ${
-                    isDarkMode
-                      ? 'bg-slate-950 border-slate-800 text-white focus:border-sky-500'
-                      : 'bg-stone-50 border-stone-300 text-stone-900 focus:border-sky-500'
-                  }`}
+                  className={`w-full font-mono text-xs px-3 py-2.5 rounded-xl border focus:outline-none transition bg-kk-surface border-kk-border text-kk-ink focus:border-kk-focus`}
                 />
 
                 {/* Real-time Carrier Helper / Live Link Preview */}
                 {carrierResult && (
                   <div className="mt-2 text-xs font-mono flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">
-                      Carrier: <strong className="text-slate-200">{carrierResult.carrierName}</strong>
+                    <span className="text-[11px] text-kk-muted">
+                      Carrier: <strong className="text-kk-ink">{carrierResult.carrierName}</strong>
                     </span>
                     {carrierResult.trackingUrl && (
                       <a
                         href={carrierResult.trackingUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-sky-400 hover:underline flex items-center gap-1 font-bold"
+                        className="text-[11px] text-kk-accent hover:underline flex items-center gap-1 font-bold"
                       >
                         <span>Test Link</span>
                         <span>↗</span>
@@ -242,11 +230,11 @@ export function ShippingConfirmationModal({
               </div>
 
               {/* Immunity Waiver Banner */}
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 space-y-1">
-                <div className="font-bold text-emerald-400 flex items-center gap-1">
+              <div className="p-3 rounded-xl bg-kk-inset/80 border border-kk-border text-[11px] text-kk-ink space-y-1">
+                <div className="font-bold text-kk-brand flex items-center gap-1">
                   <span>🛡️ Carrier Protection Waiver</span>
                 </div>
-                <p className="text-slate-400 leading-relaxed">
+                <p className="text-kk-muted leading-relaxed">
                   Submitting a valid tracking number grants automatic penalty immunity. Even if carrier delays occur, no demerits can be assessed against your dossier.
                 </p>
               </div>
@@ -255,11 +243,11 @@ export function ShippingConfirmationModal({
 
           {/* Local Hand Delivery Section */}
           {deliveryType === 'LOCAL' && (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 space-y-1">
+            <div className="p-4 rounded-xl bg-kk-success border border-kk-on-success/30 text-xs text-kk-on-success space-y-1">
               <div className="font-bold flex items-center gap-1">
                 <span>🤝 Covert Hand Delivery</span>
               </div>
-              <p className="text-emerald-300/80 leading-relaxed text-[11px]">
+              <p className="text-kk-brand leading-relaxed text-[11px]">
                 You are personally hand-delivering or covertly dropping off your gift. No courier tracking code required. Your shipment will be recorded immediately.
               </p>
             </div>
@@ -271,22 +259,18 @@ export function ShippingConfirmationModal({
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className={`flex-1 py-2.5 rounded-xl font-bold text-xs border transition ${
-                isDarkMode
-                  ? 'border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
-                  : 'border-stone-300 text-stone-600 hover:bg-stone-100'
-              }`}
+              className={`flex-1 py-2.5 rounded-xl font-bold text-xs border transition border-kk-border text-kk-muted hover:bg-kk-inset`}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white transition shadow-lg shadow-sky-900/20 flex items-center justify-center gap-1 cursor-pointer"
+              className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-kk-primary hover:bg-kk-primary-hover disabled:opacity-50 text-kk-on-primary transition shadow-lg shadow-black/20 flex items-center justify-center gap-1 cursor-pointer"
             >
               {submitting ? (
                 <>
-                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                   <span>Confirming...</span>
                 </>
               ) : (

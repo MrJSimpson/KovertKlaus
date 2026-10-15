@@ -145,14 +145,12 @@ export default function OperationCenterPage() {
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-xl shadow-md ${
-              isDarkMode ? 'bg-gradient-to-br from-sky-400 to-slate-700' : 'bg-gradient-to-br from-red-600 to-emerald-800'
-            }`}>
+            <div className="h-10 w-10 shrink-0 rounded-xl flex items-center justify-center font-extrabold text-xl shadow-md bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
             <div>
               <span className="text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-xs font-bold ${theme.textBrand}`}>
+              <span className={`text-xs font-bold ${theme.textGoldOnDark}`}>
                 Exchange Workspace
               </span>
             </div>
@@ -232,17 +230,13 @@ export default function OperationCenterPage() {
 
           <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto text-xs font-semibold">
             {/* Role Filter */}
-            <div className={`flex items-center gap-1 p-1 rounded-xl border ${
-              isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-[#F0F0F0] border-stone-300'
-            }`}>
+            <div className={`flex items-center gap-1 p-1 rounded-xl border bg-kk-inset border-kk-border`}>
               <button
                 onClick={() => setRoleFilter('ALL')}
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   roleFilter === 'ALL'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 All Roles
@@ -252,9 +246,7 @@ export default function OperationCenterPage() {
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   roleFilter === 'ORGANIZER' || roleFilter === 'OPS_LEADER'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 Head Elf
@@ -264,9 +256,7 @@ export default function OperationCenterPage() {
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   roleFilter === 'MEMBER' || roleFilter === 'AGENT'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 Elf Agent
@@ -274,17 +264,13 @@ export default function OperationCenterPage() {
             </div>
 
             {/* Status Filter */}
-            <div className={`flex items-center gap-1 p-1 rounded-xl border ${
-              isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-[#F0F0F0] border-stone-300'
-            }`}>
+            <div className={`flex items-center gap-1 p-1 rounded-xl border bg-kk-inset border-kk-border`}>
               <button
                 onClick={() => setStatusFilter('ALL')}
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   statusFilter === 'ALL'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 All Statuses
@@ -294,9 +280,7 @@ export default function OperationCenterPage() {
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   statusFilter === 'RECRUITING'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 Recruiting
@@ -306,9 +290,7 @@ export default function OperationCenterPage() {
                 className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
                   statusFilter === 'ASSIGNED'
                     ? theme.btnPrimary
-                    : isDarkMode
-                    ? 'text-slate-400 hover:text-slate-200'
-                    : 'text-slate-700 hover:text-slate-950'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 Assigned
@@ -391,15 +373,13 @@ export default function OperationCenterPage() {
                         <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
                           p.role === 'ORGANIZER' || p.role === 'OPS_LEADER'
                             ? theme.badgeAmber
-                            : isDarkMode
-                            ? 'bg-slate-800 text-slate-200 border border-slate-700'
-                            : 'bg-stone-200 text-slate-800 border border-stone-300'
+                            : 'bg-kk-inset text-kk-ink border border-kk-border'
                         }`}>
                           {p.role === 'ORGANIZER' || p.role === 'OPS_LEADER' ? 'Head Elf' : 'Elf Agent'}
                         </span>
                       </div>
 
-                      <div className="flex justify-between items-center pt-2 border-t border-stone-200/80 dark:border-slate-800/80">
+                      <div className="flex justify-between items-center pt-2 border-t border-kk-border">
                         <span className={`flex items-center gap-1 ${theme.textLabel}`}>
                           ⏳ {countdown.milestoneLabel}:
                         </span>
@@ -430,7 +410,7 @@ export default function OperationCenterPage() {
                     )}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-stone-200 dark:border-slate-800">
+                  <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-kk-border">
                     <span className={`text-xs truncate shrink-0 ${theme.textSubLabel}`}>
                       Head Elf: <strong className={theme.textLabel}>{organizerData?.name || 'Organizer'}</strong>
                     </span>

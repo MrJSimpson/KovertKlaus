@@ -875,14 +875,12 @@ export default function OperationCommandCenterPage() {
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
           <Link href="/operations" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-white text-lg sm:text-xl shadow-md shrink-0 ${
-              isDarkMode ? 'bg-gradient-to-br from-sky-400 to-slate-700' : 'bg-gradient-to-br from-red-600 to-emerald-800'
-            }`}>
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md shrink-0 bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
             <div>
               <span className="text-lg sm:text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textBrand}`}>
+              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textGoldOnDark}`}>
                 Operation Command Center
               </span>
             </div>
@@ -948,7 +946,7 @@ export default function OperationCommandCenterPage() {
           <div className="text-center py-20 max-w-md mx-auto">
             <div className="text-4xl mb-3">⚠️</div>
             <h2 className="text-xl font-bold mb-2">Operation Access Denied</h2>
-            <p className="text-xs text-slate-500 mb-6">{error}</p>
+            <p className="text-xs text-kk-muted mb-6">{error}</p>
             <Link href="/operations" className={`px-6 py-3 font-bold text-xs rounded-xl ${theme.btnPrimary}`}>
               Return to Operations Center
             </Link>
@@ -1017,7 +1015,7 @@ export default function OperationCommandCenterPage() {
             {/* Enrollment / Invitation Banner for Non-Enrolled Visitors */}
             {!currentAgent && (
               <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl transition-all ${theme.cardInnerBg} ${
-                operation.status === 'RECRUITING' ? 'border-amber-500/40' : 'border-slate-700/40'
+                operation.status === 'RECRUITING' ? 'border-kk-border-strong' : 'border-kk-border'
               }`}>
                 {enlistError && (
                   <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertError}`}>
@@ -1031,7 +1029,7 @@ export default function OperationCommandCenterPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🎄</span>
-                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-kk-gold-ink">
                             You've Been Invited to Join This Mission!
                           </span>
                         </div>
@@ -1062,7 +1060,7 @@ export default function OperationCommandCenterPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🎁</span>
-                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-kk-brand">
                             {myInvitation ? `📩 Invited by ${formatCodename(myInvitation.organizerName)}` : 'Operative Clearance Verified'}
                           </span>
                         </div>
@@ -1119,7 +1117,7 @@ export default function OperationCommandCenterPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-amber-300' : 'text-amber-800'}`}>
+                  <span className={`text-xs uppercase font-mono font-extrabold block text-kk-gold-ink`}>
                     STAGE 1
                   </span>
                   <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>RSVP Cutoff Date</span>
@@ -1130,7 +1128,7 @@ export default function OperationCommandCenterPage() {
                 </div>
 
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-sky-300' : 'text-sky-800'}`}>
+                  <span className={`text-xs uppercase font-mono font-extrabold block text-kk-accent`}>
                     STAGE 2
                   </span>
                   <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Secret Santa Match</span>
@@ -1141,7 +1139,7 @@ export default function OperationCommandCenterPage() {
                 </div>
 
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-purple-300' : 'text-purple-800'}`}>
+                  <span className={`text-xs uppercase font-mono font-extrabold block text-kk-gold-ink`}>
                     STAGE 3
                   </span>
                   <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Santa's Sleigh Departure</span>
@@ -1152,7 +1150,7 @@ export default function OperationCommandCenterPage() {
                 </div>
 
                 <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
-                  <span className={`text-xs uppercase font-mono font-extrabold block ${isDarkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>
+                  <span className={`text-xs uppercase font-mono font-extrabold block text-kk-brand`}>
                     STAGE 4
                   </span>
                   <span className={`font-bold block text-sm mt-0.5 ${theme.textLabel}`}>Holiday Mission Exchange Party</span>
@@ -1210,10 +1208,10 @@ export default function OperationCommandCenterPage() {
                         <div
                           className={`p-3.5 rounded-2xl border text-xs font-mono transition-all ${
                             feasibility.themeColor === 'emerald'
-                              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200'
+                              ? 'bg-kk-success border-kk-on-success/30 text-kk-on-success'
                               : feasibility.themeColor === 'amber'
-                              ? 'bg-amber-950/80 border-amber-500/50 text-amber-200'
-                              : 'bg-rose-950/80 border-rose-500/50 text-rose-200'
+                              ? 'bg-kk-warning border-kk-border-strong text-kk-on-warning'
+                              : 'bg-kk-danger-soft border-kk-danger/40 text-kk-on-danger-soft'
                           }`}
                         >
                           <div className="flex items-center justify-between font-bold text-xs">
@@ -1352,7 +1350,7 @@ export default function OperationCommandCenterPage() {
                         </div>
 
                         {assignedTarget.streetAddress && (
-                          <div className={`text-xs border-t border-stone-200 dark:border-slate-800 pt-2 ${theme.textSubLabel}`}>
+                          <div className={`text-xs border-t border-kk-border pt-2 ${theme.textSubLabel}`}>
                             <span>Courier Address: </span>
                             <strong className={theme.textLabel}>{assignedTarget.streetAddress}, {assignedTarget.city}, {assignedTarget.state} {assignedTarget.zipCode}</strong>
                           </div>
@@ -1360,45 +1358,45 @@ export default function OperationCommandCenterPage() {
 
                         {/* Target Operative Dossier Intel */}
                         {(assignedTarget.topHalfSize || assignedTarget.bottomHalfSize || assignedTarget.shoeSize || assignedTarget.favoriteColors || assignedTarget.favoriteHobbies || assignedTarget.allergiesDiet) && (
-                          <div className="pt-3 border-t border-stone-200 dark:border-slate-800 space-y-2">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-mono block">
+                          <div className="pt-3 border-t border-kk-border space-y-2">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-kk-muted font-mono block">
                               📋 Target Operative Dossier Intel
                             </span>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                               {assignedTarget.topHalfSize && (
-                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
-                                  <span className="text-[10px] text-slate-500 block">Shirt / Top:</span>
+                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                  <span className="text-[10px] text-kk-muted block">Shirt / Top:</span>
                                   <span className="font-bold">{assignedTarget.topHalfSize}</span>
                                 </div>
                               )}
                               {assignedTarget.bottomHalfSize && (
-                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
-                                  <span className="text-[10px] text-slate-500 block">Pants / Bottom:</span>
+                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                  <span className="text-[10px] text-kk-muted block">Pants / Bottom:</span>
                                   <span className="font-bold">{assignedTarget.bottomHalfSize}</span>
                                 </div>
                               )}
                               {assignedTarget.shoeSize && (
-                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
-                                  <span className="text-[10px] text-slate-500 block">Shoe Size:</span>
+                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                  <span className="text-[10px] text-kk-muted block">Shoe Size:</span>
                                   <span className="font-bold">{assignedTarget.shoeSize}</span>
                                 </div>
                               )}
                               {assignedTarget.favoriteColors && (
-                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
-                                  <span className="text-[10px] text-slate-500 block">Colors:</span>
+                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                  <span className="text-[10px] text-kk-muted block">Colors:</span>
                                   <span className="font-bold">{assignedTarget.favoriteColors}</span>
                                 </div>
                               )}
                               {assignedTarget.favoriteHobbies && (
-                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
-                                  <span className="text-[10px] text-slate-500 block">Hobbies:</span>
+                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                  <span className="text-[10px] text-kk-muted block">Hobbies:</span>
                                   <span className="font-bold">{assignedTarget.favoriteHobbies}</span>
                                 </div>
                               )}
                               {assignedTarget.allergiesDiet && (
-                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
-                                  <span className="text-[10px] text-slate-500 block">Diet / Allergies:</span>
-                                  <span className="font-bold text-amber-500">{assignedTarget.allergiesDiet}</span>
+                                <div className="p-2 rounded-xl bg-kk-inset border border-kk-border text-xs">
+                                  <span className="text-[10px] text-kk-muted block">Diet / Allergies:</span>
+                                  <span className="font-bold text-kk-gold-ink">{assignedTarget.allergiesDiet}</span>
                                 </div>
                               )}
                             </div>
@@ -1406,17 +1404,17 @@ export default function OperationCommandCenterPage() {
                         )}
 
                         {/* Target Operative Wishlist Manifest */}
-                        <div className="pt-3 border-t border-stone-200 dark:border-slate-800 space-y-2">
+                        <div className="pt-3 border-t border-kk-border space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-mono block">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-kk-muted font-mono block">
                               🎁 Target Wishlist Items ({assignedTarget.wishlistItems?.length || 0})
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">Confidential Intel</span>
+                            <span className="text-[10px] text-kk-muted font-mono">Confidential Intel</span>
                           </div>
 
                           {(!assignedTarget.wishlistItems || assignedTarget.wishlistItems.length === 0) ? (
-                            <div className="text-center py-4 border border-dashed border-stone-300 dark:border-slate-800 rounded-xl">
-                              <p className="text-xs text-slate-500">Target operative has not added items to their wishlist manifest yet.</p>
+                            <div className="text-center py-4 border border-dashed border-kk-border rounded-xl">
+                              <p className="text-xs text-kk-muted">Target operative has not added items to their wishlist manifest yet.</p>
                             </div>
                           ) : (
                             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -1426,17 +1424,17 @@ export default function OperationCommandCenterPage() {
                                 return (
                                   <div
                                     key={item.id}
-                                    className="p-3 rounded-xl border border-stone-200 dark:border-slate-800/80 bg-stone-100/50 dark:bg-slate-900/50 flex items-center justify-between gap-3 text-xs"
+                                    className="p-3 rounded-xl border border-kk-border bg-kk-inset/50 flex items-center justify-between gap-3 text-xs"
                                   >
                                     <div className="flex items-center gap-3 min-w-0">
                                       {item.thumbnail ? (
                                         <img
                                           src={item.thumbnail}
                                           alt={item.title}
-                                          className="h-11 w-11 object-cover rounded-lg border border-stone-200 dark:border-slate-800 flex-shrink-0"
+                                          className="h-11 w-11 object-cover rounded-lg border border-kk-border flex-shrink-0"
                                         />
                                       ) : (
-                                        <div className="h-11 w-11 rounded-lg bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-base flex-shrink-0">
+                                        <div className="h-11 w-11 rounded-lg bg-kk-inset flex items-center justify-center text-base flex-shrink-0">
                                           {isPersonalized ? '✨' : '🛍️'}
                                         </div>
                                       )}
@@ -1447,18 +1445,18 @@ export default function OperationCommandCenterPage() {
                                               href={item.url}
                                               target="_blank"
                                               rel="noreferrer"
-                                              className="font-bold hover:underline block truncate text-slate-900 dark:text-slate-100"
+                                              className="font-bold hover:underline block truncate text-kk-ink"
                                             >
                                               {item.title}
                                             </a>
                                           ) : (
-                                            <span className="font-bold block truncate text-slate-900 dark:text-slate-100">
+                                            <span className="font-bold block truncate text-kk-ink">
                                               {item.title}
                                             </span>
                                           )}
 
                                           {isPersonalized && (
-                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 flex-shrink-0">
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong flex items-center gap-1 flex-shrink-0">
                                               ✨ Personalized Gift
                                             </span>
                                           )}
@@ -1471,7 +1469,7 @@ export default function OperationCommandCenterPage() {
                                         )}
 
                                         {item.description && (
-                                          <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic line-clamp-2">
+                                          <p className="text-xs text-kk-muted mt-1 italic line-clamp-2">
                                             "{item.description}"
                                           </p>
                                         )}
@@ -1481,7 +1479,7 @@ export default function OperationCommandCenterPage() {
                                             {item.properties.details.map((d, dIdx) => (
                                               <span
                                                 key={dIdx}
-                                                className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                                className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-kk-inset/70 border-kk-border text-kk-muted flex items-center gap-1"
                                               >
                                                 <span className="opacity-75">{d.label}:</span>
                                                 <span>{d.value}</span>
@@ -1497,12 +1495,12 @@ export default function OperationCommandCenterPage() {
                                         href={item.url}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="px-2.5 py-1.5 rounded-lg font-bold text-xs bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 border border-sky-500/20 flex-shrink-0 transition-colors"
+                                        className="px-2.5 py-1.5 rounded-lg font-bold text-xs bg-kk-inset text-kk-accent hover:bg-kk-inset border border-kk-border-strong flex-shrink-0 transition-colors"
                                       >
                                         View ↗
                                       </a>
                                     ) : (
-                                      <span className="px-2.5 py-1.5 rounded-lg font-bold text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex-shrink-0">
+                                      <span className="px-2.5 py-1.5 rounded-lg font-bold text-[11px] bg-kk-warning text-kk-on-warning border border-kk-border-strong flex-shrink-0">
                                         ✨ Custom
                                       </span>
                                     )}
@@ -1514,19 +1512,19 @@ export default function OperationCommandCenterPage() {
                         </div>
 
                         {/* Shipping Fulfillment Action Bar */}
-                        <div className="pt-3 border-t border-stone-200 dark:border-slate-800 space-y-2">
+                        <div className="pt-3 border-t border-kk-border space-y-2">
                           <div className="flex items-center justify-between text-xs font-mono">
                             <span className={theme.textSubLabel}>Shipment Status:</span>
                             {currentAgent?.shippingStatus === 'SHIPPED' ? (
-                              <span className="text-emerald-400 font-bold flex items-center gap-1">
+                              <span className="text-kk-brand font-bold flex items-center gap-1">
                                 <span>✓ Dispatched</span>
                               </span>
                             ) : currentAgent?.shippingStatus === 'LOCAL_DELIVERY' ? (
-                              <span className="text-emerald-400 font-bold flex items-center gap-1">
+                              <span className="text-kk-brand font-bold flex items-center gap-1">
                                 <span>🤝 Hand Delivery</span>
                               </span>
                             ) : (
-                              <span className="text-amber-400 font-bold flex items-center gap-1">
+                              <span className="text-kk-gold-ink font-bold flex items-center gap-1">
                                 <span>⏳ Pending Shipment</span>
                               </span>
                             )}
@@ -1535,19 +1533,19 @@ export default function OperationCommandCenterPage() {
                           {currentAgent?.shippingStatus === 'SHIPPED' && currentAgent.trackingNumber && (() => {
                             const carrier = detectCarrier(currentAgent.trackingNumber);
                             return (
-                              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs font-mono">
+                              <div className="p-3 rounded-xl bg-kk-inset/60 border border-kk-border flex items-center justify-between text-xs font-mono">
                                 <div className="flex items-center gap-2">
                                   <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${carrier.badgeColor.bg} ${carrier.badgeColor.border} ${carrier.badgeColor.text}`}>
                                     {carrier.badgeLabel}
                                   </span>
-                                  <span className="text-slate-300 font-bold">{carrier.normalizedTracking}</span>
+                                  <span className="text-kk-ink font-bold">{carrier.normalizedTracking}</span>
                                 </div>
                                 {carrier.trackingUrl && (
                                   <a
                                     href={carrier.trackingUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-sky-400 hover:underline flex items-center gap-1 font-bold text-[11px]"
+                                    className="text-kk-accent hover:underline flex items-center gap-1 font-bold text-[11px]"
                                     title="Open carrier tracking portal"
                                   >
                                     <span>Track</span>
@@ -1573,7 +1571,7 @@ export default function OperationCommandCenterPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-6 border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl">
+                      <div className="text-center py-6 border-2 border-dashed border-kk-border rounded-2xl">
                         <p className={`text-xs font-medium ${theme.textSubLabel}`}>
                           Target assignments have not been drawn yet. Stand by for your OpsLeader to initiate the draw!
                         </p>
@@ -1618,7 +1616,7 @@ export default function OperationCommandCenterPage() {
                         disabled={scraping || (operation.isWhiteElephant && userManifest.length >= 1)}
                         className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
                           operation.isWhiteElephant && userManifest.length >= 1
-                            ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
+                            ? 'bg-kk-inset text-kk-ink cursor-not-allowed'
                             : theme.btnPrimary
                         }`}
                       >
@@ -1633,7 +1631,7 @@ export default function OperationCommandCenterPage() {
                       className={`px-4 py-3 rounded-2xl font-bold text-xs transition-all border shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
                         operation.isWhiteElephant && userManifest.length >= 1
                           ? 'opacity-50 cursor-not-allowed'
-                          : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                          : 'bg-kk-warning hover:brightness-95 text-kk-on-warning border-kk-border-strong'
                       }`}
                       title="Add a custom, handmade, experiential, or text-only gift without an external URL"
                     >
@@ -1643,7 +1641,7 @@ export default function OperationCommandCenterPage() {
 
                   {/* Manifest Items List */}
                   {userManifest.length === 0 ? (
-                    <div className="text-center py-8 border-2 border-dashed border-stone-200/80 dark:border-slate-800 rounded-2xl">
+                    <div className="text-center py-8 border-2 border-dashed border-kk-border rounded-2xl">
                       <p className={`text-xs font-medium ${theme.textSubLabel}`}>
                         Your Wishlist Manifest is empty. Add a store link above or click <strong>✨ Add Personalized Gift</strong>!
                       </p>
@@ -1659,7 +1657,7 @@ export default function OperationCommandCenterPage() {
                               {item.thumbnail ? (
                                 <img src={item.thumbnail} alt={item.title} className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
                               ) : (
-                                <div className="h-12 w-12 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-xl flex-shrink-0">
+                                <div className="h-12 w-12 rounded-xl bg-kk-inset flex items-center justify-center text-xl flex-shrink-0">
                                   {isPersonalized ? '✨' : '🛍️'}
                                 </div>
                               )}
@@ -1676,7 +1674,7 @@ export default function OperationCommandCenterPage() {
                                   )}
 
                                   {isPersonalized && (
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 flex-shrink-0">
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong flex items-center gap-1 flex-shrink-0">
                                       ✨ Personalized Gift
                                     </span>
                                   )}
@@ -1685,7 +1683,7 @@ export default function OperationCommandCenterPage() {
                                 {item.price && <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>${item.price}</span>}
 
                                 {item.description && (
-                                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic line-clamp-2 max-w-xs">
+                                  <p className="text-xs text-kk-muted mt-1 italic line-clamp-2 max-w-xs">
                                     "{item.description}"
                                   </p>
                                 )}
@@ -1695,7 +1693,7 @@ export default function OperationCommandCenterPage() {
                                     href={item.url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-[10px] text-slate-400 hover:underline block max-w-xs truncate mt-0.5"
+                                    className="text-[10px] text-kk-muted hover:underline block max-w-xs truncate mt-0.5"
                                   >
                                     {item.url}
                                   </a>
@@ -1706,7 +1704,7 @@ export default function OperationCommandCenterPage() {
                                     {item.properties.details.map((d, dIdx) => (
                                       <span
                                         key={dIdx}
-                                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-kk-inset border-kk-border text-kk-muted flex items-center gap-1"
                                       >
                                         <span className="opacity-75">{d.label}:</span>
                                         <span>{d.value}</span>
@@ -1724,13 +1722,13 @@ export default function OperationCommandCenterPage() {
                                   setItemModalData(item);
                                   setItemModalOpen(true);
                                 }}
-                                className="text-xs text-sky-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors cursor-pointer"
+                                className="text-xs text-kk-accent font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-kk-inset transition-colors cursor-pointer"
                               >
                                 ✏️ Edit Details
                               </button>
                               <button
                                 onClick={() => handleRemoveManifestItem(item.id)}
-                                className="text-xs text-red-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                                className="text-xs text-kk-danger font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-kk-danger-soft transition-colors cursor-pointer"
                               >
                                 Remove
                               </button>
@@ -1829,28 +1827,28 @@ export default function OperationCommandCenterPage() {
                       <>
                         <div className={`p-4 rounded-2xl border max-h-64 overflow-y-auto space-y-3 mb-4 ${theme.cardInnerBg}`}>
                           {thread.length === 0 ? (
-                            <p className="text-xs text-slate-500">{emptyText}</p>
+                            <p className="text-xs text-kk-muted">{emptyText}</p>
                           ) : (
                             thread.map((log) => (
                               <div key={log.id} className="text-xs">
                                 <div className="flex items-center justify-between gap-2">
                                   <strong className={theme.textAccent}>{otherLabel(log)}</strong>
-                                  <span className="text-[10px] text-slate-500 shrink-0">
+                                  <span className="text-[10px] text-kk-muted shrink-0">
                                     {new Date(log.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </span>
                                 </div>
-                                <p className="text-slate-700 dark:text-slate-300 mt-0.5 whitespace-pre-wrap break-words">{log.text}</p>
+                                <p className="text-kk-muted mt-0.5 whitespace-pre-wrap break-words">{log.text}</p>
                               </div>
                             ))
                           )}
                         </div>
 
                         {msgTab === 'debrief' && msgData.canSendDebrief && msgData.debriefOpenUntil && (
-                          <p className="text-[10px] text-slate-500 mb-2">
+                          <p className="text-[10px] text-kk-muted mb-2">
                             Debrief is readable until {formatDateString(msgData.debriefOpenUntil)}.
                           </p>
                         )}
-                        {closedNote && <p className="text-[10px] text-slate-500">{closedNote}</p>}
+                        {closedNote && <p className="text-[10px] text-kk-muted">{closedNote}</p>}
 
                         {activeCanSend && (
                           <form onSubmit={handleSendIntel} className="space-y-1.5">
@@ -1879,8 +1877,8 @@ export default function OperationCommandCenterPage() {
                               </button>
                             </div>
                             <div className="flex items-center justify-between text-[10px]">
-                              <span className="text-red-500">{intelError}</span>
-                              <span className="text-slate-500 font-mono">{intelMessageText.length}/{INTEL_MESSAGE_MAX_CHARS}</span>
+                              <span className="text-kk-danger">{intelError}</span>
+                              <span className="text-kk-muted font-mono">{intelMessageText.length}/{INTEL_MESSAGE_MAX_CHARS}</span>
                             </div>
                           </form>
                         )}
@@ -1935,7 +1933,7 @@ export default function OperationCommandCenterPage() {
                                 </span>
                                 {agent.shippingStatus === 'SHIPPED' ? (
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] font-mono font-bold text-emerald-400">
+                                    <span className="text-[10px] font-mono font-bold text-kk-brand">
                                       ✓ Shipped
                                     </span>
                                     {agent.trackingNumber && (() => {
@@ -1948,7 +1946,7 @@ export default function OperationCommandCenterPage() {
                                     })()}
                                   </div>
                                 ) : agent.shippingStatus === 'LOCAL_DELIVERY' ? (
-                                  <span className="text-[10px] font-mono font-bold text-emerald-400">
+                                  <span className="text-[10px] font-mono font-bold text-kk-brand">
                                     🤝 Hand Delivery
                                   </span>
                                 ) : (
@@ -1963,11 +1961,11 @@ export default function OperationCommandCenterPage() {
 
                         {/* OpsLeader Agent Management Action Bar */}
                         {isOpsLeader && (
-                          <div className="pt-2 border-t border-stone-200/80 dark:border-slate-800/80 flex items-center justify-between gap-1 flex-wrap">
+                          <div className="pt-2 border-t border-kk-border flex items-center justify-between gap-1 flex-wrap">
                             <button
                               onClick={() => handleAgentAction('nudge_agent', agent)}
                               title="Remind this agent about their next deadline (Command message, notification and email)"
-                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 hover:bg-sky-200 transition-all cursor-pointer"
+                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-kk-inset text-kk-accent border border-kk-border-strong hover:border-kk-border-strong transition-all cursor-pointer"
                             >
                               🔔 Nudge
                             </button>
@@ -1976,7 +1974,7 @@ export default function OperationCommandCenterPage() {
                               <button
                                 onClick={() => handleAgentAction('issue_demerit', agent)}
                                 title="Issue Coal Citation for deadline non-compliance"
-                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
+                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-kk-warning text-kk-on-warning border border-kk-border-strong hover:brightness-95 transition-all cursor-pointer"
                               >
                                 🪨 Issue Coal Citation
                               </button>
@@ -1986,7 +1984,7 @@ export default function OperationCommandCenterPage() {
                               <button
                                 onClick={() => handleAgentAction('remove_agent', agent)}
                                 title="Disenroll agent from operation"
-                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-800 hover:bg-red-200 transition-all cursor-pointer"
+                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40 hover:brightness-95 transition-all cursor-pointer"
                               >
                                 ❌ Disenroll
                               </button>
@@ -2028,13 +2026,13 @@ export default function OperationCommandCenterPage() {
 
       {/* MODAL: OPSLEADER EDIT OPERATION OPTIONS & LOCAL EVENT */}
       {editSettingsModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`p-6 sm:p-8 rounded-3xl max-w-lg w-full transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>⚙️ Edit Operation Options</span>
               </h3>
-              <button onClick={() => setEditSettingsModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+              <button onClick={() => setEditSettingsModalOpen(false)} className="text-kk-muted hover:text-kk-ink font-bold text-lg">✕</button>
             </div>
 
             {settingsError && (
@@ -2047,7 +2045,7 @@ export default function OperationCommandCenterPage() {
               
               {/* Read-Only Locked Gifting Type Badge */}
               <div className={`p-3 rounded-2xl border ${theme.cardInnerBg}`}>
-                <span className="text-[11px] text-slate-400 block mb-1 uppercase font-bold">
+                <span className="text-[11px] text-kk-muted block mb-1 uppercase font-bold">
                   🔒 Locked Gifting Type (Immutable)
                 </span>
                 <span className={`text-xs px-3 py-1 rounded-full uppercase inline-block ${
@@ -2055,13 +2053,13 @@ export default function OperationCommandCenterPage() {
                 }`}>
                   {operation?.isWhiteElephant ? '🐘 White Elephant' : '🎁 Secret Santa'}
                 </span>
-                <p className="text-[10px] text-slate-500 mt-1">
+                <p className="text-[10px] text-kk-muted mt-1">
                   Operation gifting type cannot be converted once created.
                 </p>
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Operation Title *</label>
+                <label className="block text-kk-muted mb-1">Operation Title *</label>
                 <input
                   type="text"
                   required
@@ -2072,7 +2070,7 @@ export default function OperationCommandCenterPage() {
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Mission Instructions / Description</label>
+                <label className="block text-kk-muted mb-1">Mission Instructions / Description</label>
                 <textarea
                   rows={2}
                   value={editDescription}
@@ -2084,7 +2082,7 @@ export default function OperationCommandCenterPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-500 mb-1">Min Budget ($)</label>
+                  <label className="block text-kk-muted mb-1">Min Budget ($)</label>
                   <input
                     type="number"
                     min={0}
@@ -2094,7 +2092,7 @@ export default function OperationCommandCenterPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-500 mb-1">Max Budget ($) *</label>
+                  <label className="block text-kk-muted mb-1">Max Budget ($) *</label>
                   <input
                     type="number"
                     required
@@ -2107,7 +2105,7 @@ export default function OperationCommandCenterPage() {
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Max Participant Limit (Optional)</label>
+                <label className="block text-kk-muted mb-1">Max Participant Limit (Optional)</label>
                 <input
                   type="number"
                   min={2}
@@ -2123,7 +2121,7 @@ export default function OperationCommandCenterPage() {
                 <div className="flex items-center justify-between cursor-pointer" onClick={() => setEditIsLocalOnly(!editIsLocalOnly)}>
                   <div>
                     <span className="font-bold text-sm block">📍 Local In-Person Event</span>
-                    <span className="text-[11px] text-slate-500 block">
+                    <span className="text-[11px] text-kk-muted block">
                       Enable if this exchange is taking place at a physical party or location.
                     </span>
                   </div>
@@ -2136,8 +2134,8 @@ export default function OperationCommandCenterPage() {
                 </div>
 
                 {editIsLocalOnly && (
-                  <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
-                    <label className="block text-slate-500 mb-1">Event Location Address *</label>
+                  <div className="pt-2 border-t border-kk-border">
+                    <label className="block text-kk-muted mb-1">Event Location Address *</label>
                     <input
                       type="text"
                       required={editIsLocalOnly}
@@ -2173,16 +2171,16 @@ export default function OperationCommandCenterPage() {
 
       {/* MODAL: OPSLEADER EDIT TIMELINE DATES */}
       {editDatesModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <span>✏️ Adjust Operational Timeline</span>
               </h3>
-              <button onClick={() => setEditDatesModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+              <button onClick={() => setEditDatesModalOpen(false)} className="text-kk-muted hover:text-kk-ink font-bold text-lg">✕</button>
             </div>
 
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-kk-muted mb-4">
               As OpsLeader, customize timeline dates for this operation. All dates MUST fall between current day and Execution Date.
             </p>
 
@@ -2194,7 +2192,7 @@ export default function OperationCommandCenterPage() {
 
             <form onSubmit={handleSaveDates} className="space-y-4 text-xs font-semibold">
               <div>
-                <label className="block text-slate-500 mb-1">Stage 1: Go/No-Go Date (Invite Cutoff) *</label>
+                <label className="block text-kk-muted mb-1">Stage 1: Go/No-Go Date (Invite Cutoff) *</label>
                 <input
                   type="date"
                   required
@@ -2206,7 +2204,7 @@ export default function OperationCommandCenterPage() {
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Stage 2: Target Assignment Date (Sattolo Draw) *</label>
+                <label className="block text-kk-muted mb-1">Stage 2: Target Assignment Date (Sattolo Draw) *</label>
                 <input
                   type="date"
                   required
@@ -2218,7 +2216,7 @@ export default function OperationCommandCenterPage() {
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Stage 3: Gift Shipping Deadline *</label>
+                <label className="block text-kk-muted mb-1">Stage 3: Gift Shipping Deadline *</label>
                 <input
                   type="date"
                   required
@@ -2230,7 +2228,7 @@ export default function OperationCommandCenterPage() {
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Stage 4: Exchange Execution Date (Event Day) *</label>
+                <label className="block text-kk-muted mb-1">Stage 4: Exchange Execution Date (Event Day) *</label>
                 <input
                   type="date"
                   required
@@ -2368,7 +2366,7 @@ export default function OperationCommandCenterPage() {
 
       {/* MODAL: ENLISTMENT AUTHENTICATION (REGISTER / SIGN IN WITH INVITE CODE) */}
       {authModalOpen && operation && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`p-6 sm:p-8 rounded-3xl max-w-md w-full border transition-all max-h-[90vh] overflow-y-auto ${theme.modalBg}`}>
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -2381,21 +2379,21 @@ export default function OperationCommandCenterPage() {
               </div>
               <button
                 onClick={() => setAuthModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg cursor-pointer"
+                className="text-kk-muted hover:text-kk-ink font-bold text-lg cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex border-b border-stone-200 dark:border-slate-800 mb-5 font-bold text-xs">
+            <div className="flex border-b border-kk-border mb-5 font-bold text-xs">
               <button
                 type="button"
                 onClick={() => { setAuthMode('register'); setAuthError(''); }}
                 className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
                   authMode === 'register'
-                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'border-kk-danger/40 text-kk-danger'
+                    : 'border-transparent text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 🎟️ Create Profile &amp; Enlist
@@ -2405,8 +2403,8 @@ export default function OperationCommandCenterPage() {
                 onClick={() => { setAuthMode('login'); setAuthError(''); }}
                 className={`w-1/2 py-2.5 text-center border-b-2 transition-all cursor-pointer ${
                   authMode === 'login'
-                    ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'border-kk-danger/40 text-kk-danger'
+                    : 'border-transparent text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 🔑 Existing Account Sign In
@@ -2423,7 +2421,7 @@ export default function OperationCommandCenterPage() {
               {authMode === 'register' && (
                 <>
                   <div>
-                    <label className="block text-slate-500 mb-1">Your Full Name *</label>
+                    <label className="block text-kk-muted mb-1">Your Full Name *</label>
                     <input
                       type="text"
                       required
@@ -2436,11 +2434,11 @@ export default function OperationCommandCenterPage() {
 
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-slate-500">Secret Codename / Call Sign</label>
+                      <label className="block text-kk-muted">Secret Codename / Call Sign</label>
                       <button
                         type="button"
                         onClick={() => setAuthCodename(generateRandomCodename())}
-                        className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
+                        className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
                       >
                         🎲 Randomize Call Sign
                       </button>
@@ -2462,7 +2460,7 @@ export default function OperationCommandCenterPage() {
               )}
 
               <div>
-                <label className="block text-slate-500 mb-1">Your Email Address *</label>
+                <label className="block text-kk-muted mb-1">Your Email Address *</label>
                 <input
                   type="email"
                   required
@@ -2474,7 +2472,7 @@ export default function OperationCommandCenterPage() {
               </div>
 
               <div>
-                <label className="block text-slate-500 mb-1">Password *</label>
+                <label className="block text-kk-muted mb-1">Password *</label>
                 <input
                   type="password"
                   required

@@ -179,7 +179,7 @@ export function AfterActionReportSection({
   return (
     <div className={`p-6 sm:p-8 rounded-3xl border shadow-md ${theme.cardBg}`}>
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-stone-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-kk-border">
         <div>
           <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono tracking-wider ${theme.badgeCode}`}>
             🏆 Mission Debriefing
@@ -188,8 +188,8 @@ export function AfterActionReportSection({
             <span>📸 Operation After-Action Report (AAR)</span>
           </h2>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="flex items-center gap-2 text-xs text-kk-muted font-mono">
+          <span className="w-2 h-2 rounded-full bg-kk-secondary animate-pulse" />
           <span>Completed Mission Log</span>
         </div>
       </div>
@@ -199,12 +199,12 @@ export function AfterActionReportSection({
       </p>
 
       {/* Submit Entry Card */}
-      <form onSubmit={handleSubmit} className="mb-8 p-5 sm:p-6 rounded-2xl bg-stone-50 dark:bg-slate-900/80 border border-stone-200 dark:border-slate-800 space-y-4">
+      <form onSubmit={handleSubmit} className="mb-8 p-5 sm:p-6 rounded-2xl bg-kk-surface border border-kk-border space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
+          <h3 className="text-xs font-black uppercase tracking-wider text-kk-muted">
             ✍️ Post Thank You & Gift Photo
           </h3>
-          <span className="text-[10px] text-slate-400 font-mono">Client-Side WebP Optimized</span>
+          <span className="text-[10px] text-kk-muted font-mono">Client-Side WebP Optimized</span>
         </div>
 
         {error && (
@@ -214,14 +214,14 @@ export function AfterActionReportSection({
         )}
 
         {successMessage && (
-          <div className="p-3 rounded-xl text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
+          <div className="p-3 rounded-xl text-xs font-bold bg-kk-success text-kk-on-success border border-kk-on-success/30">
             {successMessage}
           </div>
         )}
 
         {/* Delivery Tag Selector */}
         <div>
-          <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">
+          <label className="block text-xs font-bold text-kk-muted mb-1.5">
             Mission Fulfillment Type
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -232,8 +232,8 @@ export function AfterActionReportSection({
                 onClick={() => setSelectedTag(tag.id)}
                 className={`py-2 px-3 text-xs rounded-xl font-bold border transition-all text-left truncate cursor-pointer ${
                   selectedTag === tag.id
-                    ? 'bg-amber-100 dark:bg-amber-950/80 border-amber-400 dark:border-amber-600 text-amber-900 dark:text-amber-200 shadow-xs'
-                    : 'bg-white dark:bg-slate-800/80 border-stone-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-stone-100 dark:hover:bg-slate-700'
+                    ? 'bg-kk-warning border-kk-border-strong text-kk-on-warning shadow-xs'
+                    : 'bg-kk-surface border-kk-border text-kk-muted hover:bg-kk-inset'
                 }`}
               >
                 {tag.label}
@@ -245,10 +245,10 @@ export function AfterActionReportSection({
         {/* Thank You Message Area */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400">
+            <label className="block text-xs font-bold text-kk-muted">
               Thank-You Message to your Secret Operator
             </label>
-            <span className="text-[10px] text-slate-400">{thankYouText.length}/500</span>
+            <span className="text-[10px] text-kk-muted">{thankYouText.length}/500</span>
           </div>
           <textarea
             rows={3}
@@ -266,7 +266,7 @@ export function AfterActionReportSection({
                 key={idx}
                 type="button"
                 onClick={() => setThankYouText(chip)}
-                className="text-[10px] px-2.5 py-1 rounded-lg bg-stone-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                className="text-[10px] px-2.5 py-1 rounded-lg bg-kk-inset/70 text-kk-muted hover:bg-kk-inset transition-all cursor-pointer"
               >
                 {chip}
               </button>
@@ -277,17 +277,17 @@ export function AfterActionReportSection({
         {/* Photo Input (Upload or URL Toggle) */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400">
+            <label className="block text-xs font-bold text-kk-muted">
               Gift Photo Attachment (Optional)
             </label>
-            <div className="flex items-center gap-1 bg-stone-200 dark:bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold">
+            <div className="flex items-center gap-1 bg-kk-inset p-0.5 rounded-lg text-[10px] font-bold">
               <button
                 type="button"
                 onClick={() => { setPhotoMode('upload'); handleClearPhoto(); }}
                 className={`px-2.5 py-0.5 rounded-md transition-all cursor-pointer ${
                   photoMode === 'upload'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-kk-surface text-kk-ink shadow-xs'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 📁 Upload Photo
@@ -297,8 +297,8 @@ export function AfterActionReportSection({
                 onClick={() => { setPhotoMode('url'); handleClearPhoto(); }}
                 className={`px-2.5 py-0.5 rounded-md transition-all cursor-pointer ${
                   photoMode === 'url'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-kk-surface text-kk-ink shadow-xs'
+                    : 'text-kk-muted hover:text-kk-ink'
                 }`}
               >
                 🔗 Web URL
@@ -326,35 +326,35 @@ export function AfterActionReportSection({
                   onClick={() => fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
                     isDragging
-                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 scale-[0.99]'
-                      : 'border-stone-300 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-600 bg-white/50 dark:bg-slate-800/40'
+                      ? 'border-kk-on-success/30 bg-kk-success scale-[0.99]'
+                      : 'border-kk-border hover:border-kk-on-success/30 bg-kk-surface/50'
                   }`}
                 >
                   <div className="text-3xl mb-2">📸</div>
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <p className="text-xs font-bold text-kk-muted">
                     {compressing ? 'Compressing photo to WebP...' : 'Click to snap a photo or drag & drop'}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] text-kk-muted mt-1">
                     Auto-compressed to lightweight WebP (max 1200px, 82% quality)
                   </p>
                 </div>
               ) : (
-                <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 flex flex-col sm:flex-row items-center gap-3">
+                <div className="p-3 rounded-2xl bg-kk-surface border border-kk-border flex flex-col sm:flex-row items-center gap-3">
                   <img
                     src={photoUrl}
                     alt="Preview"
-                    className="w-24 h-24 sm:w-20 sm:h-20 object-cover rounded-xl border border-stone-200 dark:border-slate-700"
+                    className="w-24 h-24 sm:w-20 sm:h-20 object-cover rounded-xl border border-kk-border"
                   />
                   <div className="flex-1 text-xs space-y-1 text-center sm:text-left">
-                    <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center justify-center sm:justify-start gap-2">
+                    <div className="font-bold text-kk-ink flex items-center justify-center sm:justify-start gap-2">
                       <span>✅ Photo Ready</span>
                       {compressedResult && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-kk-success text-kk-on-success border border-kk-on-success/30 font-bold">
                           {compressedResult.compressionRatioPercent}% compressed ({formatFileSize(compressedResult.compressedSize)})
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-kk-muted">
                       {compressedResult
                         ? `Optimized to ${compressedResult.width}×${compressedResult.height} ${compressedResult.mimeType}`
                         : 'Web image ready for publication'}
@@ -363,7 +363,7 @@ export function AfterActionReportSection({
                   <button
                     type="button"
                     onClick={handleClearPhoto}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 hover:bg-red-100 transition-all cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-kk-on-danger-soft bg-kk-danger-soft border border-kk-danger/40 hover:brightness-95 transition-all cursor-pointer"
                   >
                     ✕ Remove
                   </button>
@@ -384,10 +384,10 @@ export function AfterActionReportSection({
                   <img
                     src={photoUrl}
                     alt="Preview"
-                    className="w-12 h-12 rounded-lg object-cover border border-stone-300 dark:border-slate-700"
+                    className="w-12 h-12 rounded-lg object-cover border border-kk-border"
                     onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                   />
-                  <span className="text-[10px] text-slate-400 font-mono truncate">Live preview loaded</span>
+                  <span className="text-[10px] text-kk-muted font-mono truncate">Live preview loaded</span>
                 </div>
               )}
             </div>
@@ -406,20 +406,20 @@ export function AfterActionReportSection({
 
       {/* Reports Feed */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-slate-800">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
+        <div className="flex items-center justify-between pb-2 border-b border-kk-border">
+          <h3 className="text-xs font-black uppercase tracking-wider text-kk-muted">
             Agent Debriefings & Thank-Yous ({reports.length})
           </h3>
-          <span className="text-[10px] text-slate-400 font-mono">Real-Time Log</span>
+          <span className="text-[10px] text-kk-muted font-mono">Real-Time Log</span>
         </div>
 
         {reports.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-stone-50 dark:bg-slate-900/60 border border-dashed border-stone-300 dark:border-slate-800 text-center space-y-2">
+          <div className="p-8 rounded-2xl bg-kk-surface border border-dashed border-kk-border text-center space-y-2">
             <div className="text-3xl">🎁</div>
-            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <p className="text-xs font-bold text-kk-muted">
               No After-Action Reports posted yet.
             </p>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-kk-muted">
               Be the first elf to post a thank-you note or photo of your received gift!
             </p>
           </div>
@@ -430,30 +430,30 @@ export function AfterActionReportSection({
               return (
                 <div
                   key={report.id}
-                  className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 shadow-sm space-y-3 flex flex-col justify-between"
+                  className="p-5 rounded-2xl bg-kk-surface border border-kk-border shadow-sm space-y-3 flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     {/* Author & Timestamp Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center text-xs font-bold font-mono">
+                        <span className="w-6 h-6 rounded-full bg-kk-success text-kk-on-success flex items-center justify-center text-xs font-bold font-mono">
                           🧝
                         </span>
-                        <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100">
+                        <span className="font-extrabold text-xs text-kk-ink">
                           {displayName}
                         </span>
                         {report.badgeAwarded === 'KOVERT_KLAUS' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono font-bold">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-kk-success text-kk-on-success border border-kk-on-success/30 text-[9px] font-mono font-bold">
                             🎅 Kovert Klaus
                           </span>
                         )}
                         {report.badgeAwarded === 'VIGILANT_ELF' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong text-[9px] font-mono font-bold">
                             🕵️ Vigilant Elf
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="text-[10px] text-kk-muted font-mono">
                         {new Date(report.createdAt).toLocaleDateString(undefined, {
                           month: 'short',
                           day: 'numeric',
@@ -464,7 +464,7 @@ export function AfterActionReportSection({
 
                     {/* Thank You Message */}
                     {report.thankYouText && (
-                      <p className="text-xs text-slate-700 dark:text-slate-300 italic bg-stone-50 dark:bg-slate-950/80 p-3 rounded-xl border border-stone-150 dark:border-slate-800/80 leading-relaxed">
+                      <p className="text-xs text-kk-muted italic bg-kk-surface p-3 rounded-xl border border-kk-border leading-relaxed">
                         "{report.thankYouText}"
                       </p>
                     )}
@@ -476,7 +476,7 @@ export function AfterActionReportSection({
                       <button
                         type="button"
                         onClick={() => setLightboxPhoto({ url: report.photoUrl!, title: `${displayName}'s Gift Photo` })}
-                        className="w-full text-left group relative overflow-hidden rounded-xl border border-stone-200 dark:border-slate-800 block cursor-zoom-in"
+                        className="w-full text-left group relative overflow-hidden rounded-xl border border-kk-border block cursor-zoom-in"
                       >
                         <img
                           src={report.photoUrl}
@@ -484,8 +484,8 @@ export function AfterActionReportSection({
                           className="w-full max-h-56 object-cover transition-transform duration-300 group-hover:scale-105"
                           onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                         />
-                        <div className="absolute inset-0 bg-slate-950/0 group-hover:bg-slate-950/30 transition-all flex items-center justify-center">
-                          <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-bold bg-slate-900/80 px-3 py-1 rounded-full backdrop-blur-xs transition-opacity flex items-center gap-1">
+                        <div className="absolute inset-0 bg-kk-inset/0 group-hover:bg-kk-inset/30 transition-all flex items-center justify-center">
+                          <span className="opacity-0 group-hover:opacity-100 text-kk-ink text-xs font-bold bg-kk-surface/80 px-3 py-1 rounded-full backdrop-blur-xs transition-opacity flex items-center gap-1">
                             🔍 Zoom Photo
                           </span>
                         </div>
@@ -502,16 +502,16 @@ export function AfterActionReportSection({
       {/* Lightbox Modal */}
       {lightboxPhoto && (
         <div
-          className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
           onClick={() => setLightboxPhoto(null)}
         >
           <div className="max-w-3xl w-full max-h-[90vh] flex flex-col items-center justify-center space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="w-full flex items-center justify-between text-white text-xs font-bold px-2">
+            <div className="w-full flex items-center justify-between text-kk-ink text-xs font-bold px-2">
               <span>{lightboxPhoto.title}</span>
               <button
                 type="button"
                 onClick={() => setLightboxPhoto(null)}
-                className="text-white hover:text-slate-300 font-extrabold text-base px-2 py-1 cursor-pointer"
+                className="text-kk-heading hover:text-kk-ink font-extrabold text-base px-2 py-1 cursor-pointer"
               >
                 ✕ Close
               </button>
@@ -519,7 +519,7 @@ export function AfterActionReportSection({
             <img
               src={lightboxPhoto.url}
               alt="Full Resolution Gift"
-              className="max-h-[80vh] w-auto max-w-full rounded-2xl shadow-2xl object-contain border border-slate-700"
+              className="max-h-[80vh] w-auto max-w-full rounded-2xl shadow-2xl object-contain border border-kk-border"
             />
           </div>
         </div>

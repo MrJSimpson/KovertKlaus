@@ -21,7 +21,7 @@ export function SectionHeader({
   const { theme } = useTheme();
 
   return (
-    <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-stone-200/80 dark:border-slate-800 ${className}`}>
+    <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-kk-border ${className}`}>
       <div>
         <h2 className={`text-2xl font-black flex items-center gap-2 ${theme.textHeading}`}>
           {title}

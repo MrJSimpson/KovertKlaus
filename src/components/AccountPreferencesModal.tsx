@@ -14,7 +14,7 @@ export interface AccountPreferencesModalProps {
 }
 
 export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: AccountPreferencesModalProps) {
-  const { theme, isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'identity' | 'shipping' | 'dossier' | 'security'>('identity');
   
   const [loading, setLoading] = useState(true);
@@ -188,7 +188,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
       <div className={`w-full max-w-3xl max-h-[92dvh] sm:max-h-[88vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl overflow-hidden flex flex-col my-0 sm:my-8 ${theme.cardBg}`}>
         {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-stone-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-6 border-b border-kk-border flex items-center justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl sm:text-2xl">⚙️</span>
@@ -200,7 +200,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
           </div>
           <button
             onClick={onClose}
-            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all text-xl font-bold cursor-pointer"
+            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-kk-muted hover:text-kk-ink transition-all text-xl font-bold cursor-pointer"
           >
             ✕
           </button>
@@ -298,7 +298,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                       <button
                         type="button"
                         onClick={() => setPreferredCodename(generateRandomCodename())}
-                        className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer flex items-center gap-1"
+                        className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
                       >
                         🎲 Randomize Call Sign
                       </button>
@@ -320,13 +320,13 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                     </p>
                   </div>
 
-                  <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
+                  <div className="pt-2 border-t border-kk-border">
                     <label className="flex items-start gap-2.5 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={autoRandomizeCodename}
                         onChange={(e) => setAutoRandomizeCodename(e.target.checked)}
-                        className="mt-0.5 rounded text-sky-500 focus:ring-0"
+                        className="mt-0.5 rounded text-kk-accent focus:ring-0"
                       />
                       <div>
                         <span className={`text-xs font-bold block ${theme.textLabel}`}>
@@ -441,14 +441,14 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
 
                   {/* Section A: Sizing */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-2">
+                    <div className="flex items-center justify-between border-b border-kk-border pb-2">
                       <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>👕 Clothing & Sizing</h4>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={allowOperatorViewSizes}
                           onChange={(e) => setAllowOperatorViewSizes(e.target.checked)}
-                          className="rounded text-sky-500 focus:ring-0"
+                          className="rounded text-kk-accent focus:ring-0"
                         />
                         <span className={`text-[11px] ${theme.textSubLabel}`}>Visible to Buyer</span>
                       </label>
@@ -490,14 +490,14 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
 
                   {/* Section B: Tailored Measurements */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-2">
+                    <div className="flex items-center justify-between border-b border-kk-border pb-2">
                       <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>📐 Tailored Measurements</h4>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={allowOperatorViewMeasurements}
                           onChange={(e) => setAllowOperatorViewMeasurements(e.target.checked)}
-                          className="rounded text-sky-500 focus:ring-0"
+                          className="rounded text-kk-accent focus:ring-0"
                         />
                         <span className={`text-[11px] ${theme.textSubLabel}`}>Visible to Buyer</span>
                       </label>
@@ -539,14 +539,14 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
 
                   {/* Section C: Dietary & Allergies */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-2">
+                    <div className="flex items-center justify-between border-b border-kk-border pb-2">
                       <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>🥜 Allergies & Dietary Restrictions</h4>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={allowOperatorViewAllergies}
                           onChange={(e) => setAllowOperatorViewAllergies(e.target.checked)}
-                          className="rounded text-sky-500 focus:ring-0"
+                          className="rounded text-kk-accent focus:ring-0"
                         />
                         <span className={`text-[11px] ${theme.textSubLabel}`}>Visible to Buyer</span>
                       </label>
@@ -565,14 +565,14 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
 
                   {/* Section D: Hobbies & Favorites */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-2">
+                    <div className="flex items-center justify-between border-b border-kk-border pb-2">
                       <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>🎨 Favorite Colors & Hobbies</h4>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={allowOperatorViewFavorites}
                           onChange={(e) => setAllowOperatorViewFavorites(e.target.checked)}
-                          className="rounded text-sky-500 focus:ring-0"
+                          className="rounded text-kk-accent focus:ring-0"
                         />
                         <span className={`text-[11px] ${theme.textSubLabel}`}>Visible to Buyer</span>
                       </label>
@@ -608,7 +608,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
               {activeTab === 'security' && (
                 <div className="space-y-6">
                   {/* Demerit Citations Gauge */}
-                  <div className="p-4 rounded-2xl bg-stone-100 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 flex items-center justify-between">
+                  <div className="p-4 rounded-2xl bg-kk-inset border border-kk-border flex items-center justify-between">
                     <div>
                       <span className={`text-xs font-bold block ${theme.textLabel}`}>Coal Citations (Demerit Score)</span>
                       <span className={`text-[11px] ${theme.textSubLabel}`}>
@@ -616,7 +616,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                       </span>
                     </div>
                     <span className={`px-3 py-1 rounded-xl text-xs font-mono font-bold ${
-                      demerits === 0 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30'
+                      demerits === 0 ? 'bg-kk-success text-kk-on-success border border-kk-on-success/30' : 'bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40'
                     }`}>
                       {demerits === 0 ? '0 COAL CITATIONS' : `${demerits} COAL CITATIONS`}
                     </span>
@@ -648,13 +648,13 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                   </div>
 
                   {/* Notifications */}
-                  <div className="pt-2 border-t border-stone-200 dark:border-slate-800">
+                  <div className="pt-2 border-t border-kk-border">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={emailNotifications}
                         onChange={(e) => setEmailNotifications(e.target.checked)}
-                        className="rounded text-sky-500 focus:ring-0"
+                        className="rounded text-kk-accent focus:ring-0"
                       />
                       <span className={`text-xs font-bold ${theme.textLabel}`}>
                         Receive transactional email alerts for invitations and target reveals
@@ -669,11 +669,11 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
           </div>
 
           {/* Footer Buttons */}
-          <div className="p-4 sm:p-6 border-t border-stone-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 pb-safe-sheet bg-inherit">
+          <div className="p-4 sm:p-6 border-t border-kk-border flex items-center justify-end gap-3 shrink-0 pb-safe-sheet bg-inherit">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer"
+              className="px-5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-kk-muted hover:text-kk-ink transition-all cursor-pointer"
             >
               Cancel
             </button>
