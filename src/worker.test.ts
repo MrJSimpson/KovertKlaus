@@ -171,3 +171,28 @@ test('Edge Worker Email Config - every email path reads SystemConfig through the
   assert.deepStrictEqual(calls.filter((c) => !c.endsWith('adminDb')), []);
   assert.match(source, /const configDbClient = adminConnStr \? getAdminDb\(adminConnStr\) : dbClient;/);
 });
+
+test('Session Revocation - every password change revokes other sessions, and both runtimes enforce it', () => {
+  // A password change sets User.sessionsRevokedAt; user tokens issued earlier must stop working.
+  const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), 'src', ...p), 'utf-8');
+  const writers = [read('worker.ts'), read('app', 'api', 'users', 'me', 'route.ts'), read('app', 'api', 'users', 'profile', 'route.ts')];
+  for (const source of writers) {
+    const changes = source.match(/updateData\.passwordHash = await hashPassword\(newPassword\);\s*\n(?:\s*\/\/.*\n)?\s*updateData\.sessionsRevokedAt = new Date\(\);/g) ?? [];
+    const writes = source.match(/updateData\.passwordHash = await hashPassword\(newPassword\);/g) ?? [];
+    assert.ok(writes.length > 0);
+    assert.strictEqual(changes.length, writes.length, 'each password change must also set sessionsRevokedAt');
+  }
+
+  const worker = read('worker.ts');
+  assert.match(worker, /const db = getDb\(appConnStr\);\s*\n\s*\/\/.*\n\s*await markRevokedUserSession\(request, db\);/);
+  assert.match(worker, /function getUserIdFromRequest\(request: Request\): string \| null \{\s*\n\s*if \(revokedSessionRequests\.has\(request\)\) return null;/);
+  assert.match(read('lib', 'auth.ts'), /isSessionRevoked\(claims, user\.sessionsRevokedAt\)/);
+});
+
+test('Nudge - both runtimes use the shared deadline nudge', () => {
+  const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), 'src', ...p), 'utf-8');
+  for (const source of [read('worker.ts'), read('app', 'api', 'operations', 'route.ts')]) {
+    assert.match(source, /await dispatchNudge\(db, \{/);
+    assert.doesNotMatch(source, /Please update your Wishlist Manifest and review mission directives/);
+  }
+});

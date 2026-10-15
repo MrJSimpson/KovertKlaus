@@ -17,6 +17,7 @@ import { processExchangeAudit } from '@/lib/audit-runner';
 import { EXCHANGE_MEMBERS_INCLUDE, sanitizeExchangeMember } from '@/lib/exchange-view';
 import { validateReportInput } from '@/lib/validations/report';
 import { resolveTimelineUpdate } from '@/lib/validations/timeline';
+import { dispatchNudge } from '@/lib/nudge';
 
 export const dynamic = 'force-dynamic';
 
@@ -995,31 +996,11 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: 'Member not found' }, { status: 404 });
       }
 
-      const nudgeMsg = 'Reminder: Please update your Wishlist Manifest and review mission directives.';
-
-      // Create in-app notification
-      await db.notification.create({
-        data: {
-          userId: memberToNudge.userId,
-          title: `🔔 Mission Nudge: ${memberToNudge.exchange.title}`,
-          message: nudgeMsg,
-          exchangeId: memberToNudge.exchangeId,
-        },
-      });
-
-      // Dispatch Email Alert if user has email notifications enabled
-      if (memberToNudge.user.email && memberToNudge.user.emailNotifications !== false) {
-        sendNudgeEmail({
-          recipientEmail: memberToNudge.user.email,
-          recipientName: memberToNudge.user.name || memberToNudge.user.codename || 'Operative',
-          organizerName: memberToNudge.exchange.organizer.name,
-          exchangeTitle: memberToNudge.exchange.title,
-          message: nudgeMsg,
-          actionUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/exchange/${memberToNudge.exchange.code}`,
-        }).catch((e) => console.warn('[EMAIL WARNING] Nudge email dispatch error:', e));
-      }
-
-      return NextResponse.json({ success: true, message: 'Nudge alert and email dispatched to member' });
+      const result = await dispatchNudge(db, {
+        baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        sendEmail: (email) => sendNudgeEmail(email),
+      }, memberToNudge);
+      return NextResponse.json(result.body, { status: result.status });
     }
 
     // Branch 1: Update Exchange Settings & Options

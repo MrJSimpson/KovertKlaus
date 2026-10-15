@@ -11,7 +11,8 @@
  * half its lifetime remains, so an active agent stays signed in and an idle one is signed out
  * 24 hours after their last visit (the AGENTS.md session standard). Admin sessions are fixed at
  * 8 hours and never renewed. Tokens from before this format have no kind or expiry and are
- * rejected, forcing one fresh login.
+ * rejected, forcing one fresh login. Changing a password sets `User.sessionsRevokedAt`; user
+ * tokens issued before it are rejected (`isSessionRevoked`), which signs out every other device.
  */
 
 import { signToken, verifyToken } from '@/lib/security';
@@ -85,4 +86,26 @@ export function shouldRenewSession(claims: SessionClaims, kind: SessionKind, now
   if (kind !== 'user') return false;
   const remaining = claims.expiresAt - Math.floor(nowMs / 1000);
   return remaining < SESSION_TTL_SECONDS.user / 2;
+}
+
+/**
+ * When a user token was issued, in Unix seconds.
+ *
+ * User tokens are always issued (and re-issued on renewal) with a full `SESSION_TTL_SECONDS.user`
+ * lifetime, so the issue time is the expiry minus that lifetime. No token format change is needed.
+ */
+export function sessionIssuedAt(claims: SessionClaims, kind: SessionKind): number {
+  return claims.expiresAt - SESSION_TTL_SECONDS[kind];
+}
+
+/**
+ * True when a user's sessions were revoked (`User.sessionsRevokedAt`, set on password change)
+ * after this token was issued.
+ *
+ * Compared at whole-second precision, so the token re-issued in the same request that changed the
+ * password stays valid while every earlier token is rejected.
+ */
+export function isSessionRevoked(claims: SessionClaims, revokedAt: Date | null | undefined): boolean {
+  if (!revokedAt) return false;
+  return sessionIssuedAt(claims, 'user') < Math.floor(revokedAt.getTime() / 1000);
 }
