@@ -38,6 +38,7 @@ import { validateAndSanitizeManifestItem } from './lib/validations/manifest';
 import { validateOperationConfig, validateOperationSettings } from './lib/validations/operation';
 import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
+import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { resolveUniqueCodename } from './lib/codename';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
@@ -67,6 +68,7 @@ export const WORKER_API_PATHS = new Set([
   '/api/invitations',
   '/api/invitations/accept',
   '/api/leads',
+  '/api/messages',
   '/api/northpole/config',
   '/api/northpole/email/test',
   '/api/northpole/leads',
@@ -2232,6 +2234,24 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           message: 'Member successfully enrolled in exchange!',
           data: { ...member, assignedCodename: resolution.codename, wasCollided: resolution.wasCollided, isRandomized: resolution.isRandomized },
         });
+      }
+
+      // /api/messages (GET / POST): anonymous Intel messaging, shared with the Next route.
+      if (pathname === '/api/messages' && (request.method === 'GET' || request.method === 'POST')) {
+        const userId = getUserIdFromRequest(request);
+        if (!userId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+        if (request.method === 'GET') {
+          const exchangeId = url.searchParams.get('exchangeId');
+          if (!exchangeId) return Response.json({ error: 'exchangeId is required' }, { status: 400 });
+          const result = await listIntelMessages(db, exchangeId, userId);
+          return Response.json(result.body, { status: result.status });
+        }
+        const body = (await request.json().catch(() => ({}))) as { exchangeId?: unknown; channel?: unknown; text?: unknown };
+        if (typeof body.exchangeId !== 'string' || !body.exchangeId) {
+          return Response.json({ error: 'exchangeId is required' }, { status: 400 });
+        }
+        const result = await sendIntelMessage(db, { exchangeId: body.exchangeId, userId, channel: body.channel, text: body.text });
+        return Response.json(result.body, { status: result.status });
       }
 
       // 16. /api/shipping (POST)
