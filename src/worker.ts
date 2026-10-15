@@ -37,6 +37,7 @@ import { detectProductCategory, getCategorySuggestedKeys, updateCatalogIntellige
 import { validateAndSanitizeManifestItem } from './lib/validations/manifest';
 import { validateOperationConfig, validateOperationSettings } from './lib/validations/operation';
 import { validateReportInput } from './lib/validations/report';
+import { resolveTimelineUpdate } from './lib/validations/timeline';
 import { resolveUniqueCodename } from './lib/codename';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
@@ -2106,27 +2107,15 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           }
 
           if (dates) {
-            const validation = validateOperationConfig({
-              title: ex.title,
-              giftingType: ex.giftingType as any,
-              isLocalOnly: ex.isLocalOnly,
-              eventLocation: ex.eventLocation ?? undefined,
-              isWhiteElephant: ex.isWhiteElephant,
-              budgetMax: Number(ex.budgetMax),
-              ...dates,
-            });
-            if (!validation.isValid) {
-              return Response.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
+            // Only the dates that change are checked against today (src/lib/validations/timeline.ts).
+            const change = resolveTimelineUpdate(ex, dates, new Date());
+            if (!change.ok) {
+              return Response.json({ error: change.error, details: [change.error] }, { status: change.status });
             }
-            const updatedExchange = await db.exchange.update({
-              where: { id: operationId },
-              data: {
-                inviteCutoffDate: new Date(dates.inviteCutoffDate),
-                assignmentDate: new Date(dates.assignmentDate),
-                shippingDate: new Date(dates.shippingDate),
-                executionDate: new Date(dates.executionDate),
-              },
-            });
+            if (Object.keys(change.data).length === 0) {
+              return Response.json({ success: true, data: ex });
+            }
+            const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: change.data });
             return Response.json({ success: true, data: updatedExchange });
           }
 

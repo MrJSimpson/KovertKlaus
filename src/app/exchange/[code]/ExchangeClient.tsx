@@ -731,6 +731,17 @@ export default function OperationCommandCenterPage() {
   const assignedTarget = currentAgent?.targetUser;
   const todayStr = new Date().toISOString().split('T')[0];
 
+  // Timeline edit rules (server: src/lib/validations/timeline.ts): a date you change must be after
+  // today and after the stage before it; a date you leave alone may already be in the past.
+  const dayOf = (d?: string | null) => (d ? new Date(d).toISOString().split('T')[0] : '');
+  const tomorrowStr = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  function editMin(original: string | null | undefined, current: string, previous?: string): string | undefined {
+    if (current === dayOf(original)) return undefined;
+    if (!previous) return tomorrowStr;
+    const dayAfterPrevious = new Date(new Date(`${previous}T00:00:00Z`).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    return dayAfterPrevious > tomorrowStr ? dayAfterPrevious : tomorrowStr;
+  }
+
   async function handleSignOut() {
     try {
       await fetch('/api/users/me', { method: 'DELETE' });
@@ -1942,8 +1953,7 @@ export default function OperationCommandCenterPage() {
                 <input
                   type="date"
                   required
-                  min={todayStr}
-                  max={editExecDate || undefined}
+                  min={editMin(operation?.inviteCutoffDate, editCutoffDate)}
                   value={editCutoffDate}
                   onChange={(e) => setEditCutoffDate(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
@@ -1955,8 +1965,7 @@ export default function OperationCommandCenterPage() {
                 <input
                   type="date"
                   required
-                  min={editCutoffDate || todayStr}
-                  max={editExecDate || undefined}
+                  min={editMin(operation?.assignmentDate, editAssignDate, editCutoffDate)}
                   value={editAssignDate}
                   onChange={(e) => setEditAssignDate(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
@@ -1968,8 +1977,7 @@ export default function OperationCommandCenterPage() {
                 <input
                   type="date"
                   required
-                  min={editAssignDate || todayStr}
-                  max={editExecDate || undefined}
+                  min={editMin(operation?.shippingDate, editShipDate, editAssignDate)}
                   value={editShipDate}
                   onChange={(e) => setEditShipDate(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
@@ -1981,7 +1989,7 @@ export default function OperationCommandCenterPage() {
                 <input
                   type="date"
                   required
-                  min={editShipDate || todayStr}
+                  min={editMin(operation?.executionDate, editExecDate, editShipDate || editAssignDate)}
                   value={editExecDate}
                   onChange={(e) => setEditExecDate(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}

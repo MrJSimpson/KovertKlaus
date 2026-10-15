@@ -16,6 +16,7 @@ import {
 import { processExchangeAudit } from '@/lib/audit-runner';
 import { EXCHANGE_MEMBERS_INCLUDE, sanitizeExchangeMember } from '@/lib/exchange-view';
 import { validateReportInput } from '@/lib/validations/report';
+import { resolveTimelineUpdate } from '@/lib/validations/timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -1067,29 +1068,15 @@ export async function PATCH(request: Request) {
 
     // Branch 2: Update Timeline Dates
     if (dates) {
-      const validation = validateOperationConfig({
-        title: ex.title,
-        giftingType: ex.giftingType as any,
-        isLocalOnly: ex.isLocalOnly,
-        isWhiteElephant: ex.isWhiteElephant,
-        budgetMax: Number(ex.budgetMax),
-        ...dates,
-      });
-
-      if (!validation.isValid) {
-        return NextResponse.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
+      // Only the dates that change are checked against today (src/lib/validations/timeline.ts).
+      const change = resolveTimelineUpdate(ex, dates, new Date());
+      if (!change.ok) {
+        return NextResponse.json({ error: change.error, details: [change.error] }, { status: change.status });
       }
-
-      const updatedExchange = await db.exchange.update({
-        where: { id: operationId },
-        data: {
-          inviteCutoffDate: new Date(dates.inviteCutoffDate),
-          assignmentDate: new Date(dates.assignmentDate),
-          shippingDate: new Date(dates.shippingDate),
-          executionDate: new Date(dates.executionDate),
-        },
-      });
-
+      if (Object.keys(change.data).length === 0) {
+        return NextResponse.json({ success: true, data: ex });
+      }
+      const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: change.data });
       return NextResponse.json({ success: true, data: updatedExchange });
     }
 
