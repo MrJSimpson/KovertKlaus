@@ -14,7 +14,7 @@
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
     "db:setup": "prisma db push && tsx --env-file=.env prisma/seed.ts",
     "db:migrate-legacy": "tsx --env-file=.env scripts/migrate-legacy-data.ts",
-    "test": "tsx --test src/lib/*.test.ts src/lib/**/*.test.ts src/app/**/*.test.ts",
+    "test": "tsx --test src/worker.test.ts src/lib/*.test.ts src/lib/**/*.test.ts src/app/**/*.test.ts",
     "lint": "eslint"
   },
   "prisma": {

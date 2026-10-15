@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { signToken, verifyToken } from '@/lib/security';
+import { issueSessionToken, readSessionToken, shouldRenewSession, SESSION_TTL_SECONDS } from '@/lib/session-token';
 import { IS_SAAS } from '@/lib/config/mode';
 
 /**
@@ -9,15 +9,10 @@ import { IS_SAAS } from '@/lib/config/mode';
 export const SESSION_COOKIE_NAME = IS_SAAS ? 'kovert_saas_session' : 'kovertklaus_session';
 
 /**
- * Duration in seconds before session token invalidation (24 Hours).
- */
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
-
-/**
  * Issues a cryptographically signed, HTTP-only session cookie for the authenticated operative.
  * 
  * Security Invariants:
- * - HMAC-SHA256 signature attached to prevent cookie tampering and spoofing.
+ * - HMAC-SHA256 signed token carrying the session kind and expiry (`@/lib/session-token`).
  * - `httpOnly: true`: Blocks client-side DOM & XSS script access.
  * - `secure`: Automatically set in production to require TLS encryption.
  * - `sameSite: 'lax'`: Provides CSRF protection for cross-site navigation while preserving seamless direct link joins.
@@ -26,7 +21,7 @@ const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
  */
 export async function setSessionCookie(userId: string): Promise<void> {
   const cookieStore = await cookies();
-  const signedToken = signToken(userId);
+  const signedToken = issueSessionToken('user', userId);
   const isSecure =
     process.env.COOKIE_SECURE === 'true' ||
     (process.env.NODE_ENV === 'production' &&
@@ -38,7 +33,7 @@ export async function setSessionCookie(userId: string): Promise<void> {
     secure: isSecure,
     sameSite: 'lax',
     path: '/',
-    maxAge: SESSION_MAX_AGE_SECONDS,
+    maxAge: SESSION_TTL_SECONDS.user,
   });
 }
 
@@ -52,8 +47,8 @@ export async function getSessionUserId(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
     const session = cookieStore.get(SESSION_COOKIE_NAME);
-    const cookieVerified = verifyToken(session?.value);
-    if (cookieVerified) return cookieVerified;
+    const cookieClaims = readSessionToken(session?.value, 'user');
+    if (cookieClaims) return cookieClaims.subjectId;
   } catch {
     // Ignore cookie resolution errors during static prerendering
   }
@@ -65,13 +60,31 @@ export async function getSessionUserId(): Promise<string | null> {
       headerStore.get('x-session-token') ||
       headerStore.get('authorization')?.replace(/^Bearer\s+/i, '');
     if (headerToken) {
-      return verifyToken(headerToken);
+      return readSessionToken(headerToken, 'user')?.subjectId ?? null;
     }
   } catch {
     // Ignore header resolution errors
   }
 
   return null;
+}
+
+/**
+ * Re-issues the session cookie when the current one has used more than half its lifetime.
+ *
+ * Called from `/api/users/me` (loaded on every page) so an active agent is never signed out
+ * mid-season, while an idle session still lapses 24 hours after the last visit.
+ */
+export async function renewSessionCookieIfStale(): Promise<void> {
+  try {
+    const cookieStore = await cookies();
+    const claims = readSessionToken(cookieStore.get(SESSION_COOKIE_NAME)?.value, 'user');
+    if (claims && shouldRenewSession(claims, 'user')) {
+      await setSessionCookie(claims.subjectId);
+    }
+  } catch {
+    // Cookies are read-only outside route handlers; renewal is best-effort.
+  }
 }
 
 /**

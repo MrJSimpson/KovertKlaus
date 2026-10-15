@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminExists, bootstrapInitialAdmin, createFirstAdmin, setAdminSessionCookie } from '@/lib/adminAuth';
 import { announceSetupToken, revokeSetupToken, verifySetupToken } from '@/lib/adminSetup';
-import { signToken } from '@/lib/security';
+import { issueSessionToken } from '@/lib/session-token';
 
 /**
  * @file route.ts (/api/northpole/setup)
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'North Pole Command initialized. Administrator clearance activated.',
-      token: signToken(result.admin.id),
+      token: issueSessionToken('admin', result.admin.id),
       admin: result.admin,
     });
   } catch (error) {

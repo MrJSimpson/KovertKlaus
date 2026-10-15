@@ -11,7 +11,7 @@ import {
   bootstrapInitialAdmin,
   findAdminByIdentifier,
 } from '@/lib/adminAuth';
-import { signToken } from '@/lib/security';
+import { issueSessionToken } from '@/lib/session-token';
 import { announceSetupToken } from '@/lib/adminSetup';
 
 export async function POST(request: Request) {
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       success: true,
       requiresPasswordReset: false,
       message: 'North Pole Command clearance granted',
-      token: signToken(admin.id),
+      token: issueSessionToken('admin', admin.id),
       admin: {
         id: admin.id,
         name: admin.name,

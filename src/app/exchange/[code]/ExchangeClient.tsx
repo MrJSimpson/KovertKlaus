@@ -246,10 +246,10 @@ export default function OperationCommandCenterPage() {
             }
           }
         } else {
-          const savedUserId = localStorage.getItem(USER_ID_KEY);
-          const savedUserName = localStorage.getItem('kovertklaus_user_name');
-          if (savedUserId) setUserId(savedUserId);
-          if (savedUserName) setUserName(savedUserName);
+          // The server says the session is gone (expired or signed out): forget the cached
+          // identity so the page offers sign-in instead of acting on a dead session.
+          localStorage.removeItem(USER_ID_KEY);
+          localStorage.removeItem('kovertklaus_user_name');
         }
       } catch {
         const savedUserId = localStorage.getItem(USER_ID_KEY);
@@ -639,6 +639,19 @@ export default function OperationCommandCenterPage() {
     setItemModalOpen(true);
   }
 
+  // Remove a Manifest Item from the agent's Wishlist Manifest (server first, then local state)
+  async function handleRemoveManifestItem(itemId: string) {
+    setValidationError('');
+    try {
+      const res = await fetch(`/api/opkits?itemId=${encodeURIComponent(itemId)}`, { method: 'DELETE' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to remove Manifest Item');
+      setUserManifest((prev) => prev.filter((i) => i.id !== itemId));
+    } catch (err: any) {
+      setValidationError(err?.message || 'Failed to remove Manifest Item');
+    }
+  }
+
   function handleItemSaveSuccess(savedItem: any) {
     if (!savedItem) return;
     setUserManifest((prev) => {
@@ -670,9 +683,8 @@ export default function OperationCommandCenterPage() {
 
   // Handle OpsLeader Agent Management Actions
   async function handleAgentAction(
-    actionType: 'update_agent_role' | 'remove_agent' | 'issue_demerit' | 'nudge_agent',
-    agent: any,
-    extra?: any
+    actionType: 'remove_agent' | 'issue_demerit' | 'nudge_agent',
+    agent: any
   ) {
     if (!operation || !userId) return;
 
@@ -696,7 +708,6 @@ export default function OperationCommandCenterPage() {
           action: actionType,
           agentId: agent.id,
           targetUserId: agent.userId,
-          newRole: extra?.newRole,
           demeritPoints: 1,
         }),
       });
@@ -715,9 +726,21 @@ export default function OperationCommandCenterPage() {
   const organizerData = operation?.organizer || operation?.opsLeader;
   const organizerIdVal = operation?.organizerId || operation?.opsLeaderId;
   const currentAgent = membersList.find((a) => a.userId === userId);
-  const isOpsLeader = organizerIdVal === userId || currentAgent?.role === 'ORGANIZER' || currentAgent?.role === 'OPS_LEADER';
+  // A mission has exactly one Head Elf: the organizer. Leader promotion is not a feature yet.
+  const isOpsLeader = Boolean(userId && organizerIdVal === userId);
   const assignedTarget = currentAgent?.targetUser;
   const todayStr = new Date().toISOString().split('T')[0];
+
+  // Timeline edit rules (server: src/lib/validations/timeline.ts): a date you change must be after
+  // today and after the stage before it; a date you leave alone may already be in the past.
+  const dayOf = (d?: string | null) => (d ? new Date(d).toISOString().split('T')[0] : '');
+  const tomorrowStr = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  function editMin(original: string | null | undefined, current: string, previous?: string): string | undefined {
+    if (current === dayOf(original)) return undefined;
+    if (!previous) return tomorrowStr;
+    const dayAfterPrevious = new Date(new Date(`${previous}T00:00:00Z`).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    return dayAfterPrevious > tomorrowStr ? dayAfterPrevious : tomorrowStr;
+  }
 
   async function handleSignOut() {
     try {
@@ -1579,7 +1602,7 @@ export default function OperationCommandCenterPage() {
                                 ✏️ Edit Details
                               </button>
                               <button
-                                onClick={() => { setValidationError(''); setUserManifest((prev) => prev.filter((i) => i.id !== item.id)); }}
+                                onClick={() => handleRemoveManifestItem(item.id)}
                                 className="text-xs text-red-500 font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
                               >
                                 Remove
@@ -1669,9 +1692,9 @@ export default function OperationCommandCenterPage() {
                               </span>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                                  agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? theme.badgeAmber : theme.badgeSecretSanta
+                                  agent.userId === organizerIdVal ? theme.badgeAmber : theme.badgeSecretSanta
                                 }`}>
-                                  {agent.role === 'ORGANIZER' || agent.role === 'OPS_LEADER' ? 'Head Elf' : 'Elf Agent'}
+                                  {agent.userId === organizerIdVal ? 'Head Elf' : 'Elf Agent'}
                                 </span>
                                 {agent.shippingStatus === 'SHIPPED' ? (
                                   <div className="flex items-center gap-1.5">
@@ -1719,18 +1742,6 @@ export default function OperationCommandCenterPage() {
                                 className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-all cursor-pointer"
                               >
                                 🪨 Issue Coal Citation
-                              </button>
-                            )}
-
-                            {operation.status !== 'RECRUITING' && (
-                              <button
-                                onClick={() => handleAgentAction('update_agent_role', agent, {
-                                  newRole: agent.role === 'OPS_LEADER' ? 'FIELD_AGENT' : 'OPS_LEADER'
-                                })}
-                                title="Toggle OpsLeader Clearance"
-                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-stone-300 dark:border-slate-700 hover:bg-stone-200 transition-all cursor-pointer"
-                              >
-                                {agent.role === 'OPS_LEADER' ? '🔻 Demote' : '⭐ Promote'}
                               </button>
                             )}
 
@@ -1942,8 +1953,7 @@ export default function OperationCommandCenterPage() {
                 <input
                   type="date"
                   required
-                  min={todayStr}
-                  max={editExecDate || undefined}
+                  min={editMin(operation?.inviteCutoffDate, editCutoffDate)}
                   value={editCutoffDate}
                   onChange={(e) => setEditCutoffDate(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
@@ -1955,8 +1965,7 @@ export default function OperationCommandCenterPage() {
                 <input
                   type="date"
                   required
-                  min={editCutoffDate || todayStr}
-                  max={editExecDate || undefined}
+                  min={editMin(operation?.assignmentDate, editAssignDate, editCutoffDate)}
                   value={editAssignDate}
                   onChange={(e) => setEditAssignDate(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
@@ -1968,8 +1977,7 @@ export default function OperationCommandCenterPage() {
                 <input
                   type="date"
                   required
-                  min={editAssignDate || todayStr}
-                  max={editExecDate || undefined}
+                  min={editMin(operation?.shippingDate, editShipDate, editAssignDate)}
                   value={editShipDate}
                   onChange={(e) => setEditShipDate(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
@@ -1981,7 +1989,7 @@ export default function OperationCommandCenterPage() {
                 <input
                   type="date"
                   required
-                  min={editShipDate || todayStr}
+                  min={editMin(operation?.executionDate, editExecDate, editShipDate || editAssignDate)}
                   value={editExecDate}
                   onChange={(e) => setEditExecDate(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
@@ -2054,7 +2062,7 @@ export default function OperationCommandCenterPage() {
             },
             targetUserId: a.targetUserId,
             targetUser: a.targetUser,
-            wishlistId: a.id,
+            wishlistId: a.wishlistId,
           }))}
           exclusionRules={operation.exclusionRules || []}
           onAssignmentsUpdated={() => fetchExchangeDetails()}

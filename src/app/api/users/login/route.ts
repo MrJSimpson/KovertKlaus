@@ -6,7 +6,8 @@ import {
   hashPassword,
 } from '@/lib/password';
 import { db } from '@/lib/db';
-import { isValidEmail, signToken } from '@/lib/security';
+import { isValidEmail } from '@/lib/security';
+import { issueSessionToken } from '@/lib/session-token';
 import { setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Authentication successful',
-      token: signToken(user.id),
+      token: issueSessionToken('user', user.id),
       user: {
         id: user.id,
         name: user.name,

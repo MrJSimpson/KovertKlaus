@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { comparePassword, hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
-import { getSessionUserId, clearSessionCookie } from '@/lib/auth';
+import { getSessionUserId, clearSessionCookie, renewSessionCookieIfStale } from '@/lib/auth';
 import { sanitizeText, validatePassword } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
@@ -47,6 +47,7 @@ export async function GET() {
                 shippingDate: true,
                 executionDate: true,
                 status: true,
+                organizerId: true,
                 organizer: {
                   select: { name: true, codename: true },
                 },
@@ -121,6 +122,9 @@ export async function GET() {
         opTools: items,
       };
     });
+
+    // Sliding expiry: an agent who keeps visiting is never signed out mid-season.
+    await renewSessionCookieIfStale();
 
     return NextResponse.json({
       success: true,

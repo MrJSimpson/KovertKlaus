@@ -14,6 +14,9 @@ import {
   BADGE_VIGILANT_ELF,
 } from '@/lib/covertDelivery';
 import { processExchangeAudit } from '@/lib/audit-runner';
+import { EXCHANGE_MEMBERS_INCLUDE, sanitizeExchangeMember } from '@/lib/exchange-view';
+import { validateReportInput } from '@/lib/validations/report';
+import { resolveTimelineUpdate } from '@/lib/validations/timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,47 +36,7 @@ export async function GET(request: Request) {
           organizer: {
             select: { id: true, name: true, codename: true },
           },
-          members: {
-            include: {
-              user: {
-                select: { id: true, name: true, codename: true, streetAddress: true, city: true, state: true, zipCode: true },
-              },
-              targetUser: {
-                select: {
-                  id: true,
-                  name: true,
-                  codename: true,
-                  streetAddress: true,
-                  city: true,
-                  state: true,
-                  zipCode: true,
-                  shirtSize: true,
-                  topHalfSize: true,
-                  bottomHalfSize: true,
-                  shoeSize: true,
-                  chestBustMeasurement: true,
-                  waistMeasurement: true,
-                  inseamMeasurement: true,
-                  favoriteColors: true,
-                  allergiesDiet: true,
-                  dislikes: true,
-                  favoriteHobbies: true,
-                  allowOrganizerViewSizes: true,
-                  allowOrganizerViewMeasurements: true,
-                  allowOrganizerViewAllergies: true,
-                  allowOrganizerViewFavorites: true,
-                  wishlists: {
-                    include: {
-                      wishlistItems: {
-                        include: { item: true },
-                      },
-                    },
-                    orderBy: { createdAt: 'asc' },
-                  },
-                },
-              },
-            },
-          },
+          members: { include: EXCHANGE_MEMBERS_INCLUDE },
           exclusionRules: {
             include: {
               member: { select: { id: true, name: true, codename: true } },
@@ -98,77 +61,7 @@ export async function GET(request: Request) {
       // Only the exchange organizer or the specific assigned giver may view a member's target details and shipping address.
       const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
 
-      const sanitizedMembers = exchange.members.map((m) => {
-        const isSelf = Boolean(activeUserId && m.userId === activeUserId);
-        const canViewDetails = isOrganizer || isSelf;
-
-        return {
-          id: m.id,
-          userId: m.userId,
-          codename: m.codename || m.user.codename,
-          role: m.role,
-          shippingStatus: m.shippingStatus,
-          trackingNumber: canViewDetails ? m.trackingNumber : undefined,
-          shippedAt: m.shippedAt,
-          deliveredConfirmed: m.deliveredConfirmed,
-          joinedAt: m.joinedAt,
-          propertyWaiverAgreedAt: m.propertyWaiverAgreedAt,
-          dropProofPhotoUrl: m.dropProofPhotoUrl,
-          dropProofNote: canViewDetails ? m.dropProofNote : undefined,
-          droppedAt: m.droppedAt,
-          targetGuessName: canViewDetails ? m.targetGuessName : undefined,
-          targetGuessAttempted: m.targetGuessAttempted,
-          targetGuessCorrect: m.targetGuessCorrect,
-          detectionStatus: m.detectionStatus,
-          bustedPhotoUrl: m.bustedPhotoUrl,
-          bustedReason: m.bustedReason,
-          badgeAwarded: m.badgeAwarded,
-          user: {
-            id: m.user.id,
-            name: m.user.name,
-            codename: m.codename || m.user.codename,
-            streetAddress: canViewDetails ? m.user.streetAddress : null,
-            city: canViewDetails ? m.user.city : null,
-            state: canViewDetails ? m.user.state : null,
-            zipCode: canViewDetails ? m.user.zipCode : null,
-          },
-          targetUserId: canViewDetails ? m.targetUserId : null,
-          targetUser: canViewDetails ? (() => {
-            if (!m.targetUser) return null;
-            const t = m.targetUser as any;
-            const wishlist = t.wishlists?.[0];
-            const targetWishlistItems = wishlist?.wishlistItems?.map((wi: any) => ({
-              id: wi.item.id,
-              title: wi.item.name,
-              price: wi.item.price ? Number(wi.item.price) : undefined,
-              url: wi.item.url,
-              thumbnail: wi.item.thumbnailUrl || undefined,
-              description: wi.item.description || undefined,
-              properties: wi.item.properties || undefined,
-            })) || [];
-
-            return {
-              id: t.id,
-              name: t.name,
-              codename: t.codename,
-              streetAddress: t.streetAddress,
-              city: t.city,
-              state: t.state,
-              zipCode: t.zipCode,
-              topHalfSize: t.allowOrganizerViewSizes || isSelf ? (t.topHalfSize || t.shirtSize) : undefined,
-              bottomHalfSize: t.allowOrganizerViewSizes || isSelf ? t.bottomHalfSize : undefined,
-              shoeSize: t.allowOrganizerViewSizes || isSelf ? t.shoeSize : undefined,
-              chestBustMeasurement: t.allowOrganizerViewMeasurements || isSelf ? t.chestBustMeasurement : undefined,
-              waistMeasurement: t.allowOrganizerViewMeasurements || isSelf ? t.waistMeasurement : undefined,
-              inseamMeasurement: t.allowOrganizerViewMeasurements || isSelf ? t.inseamMeasurement : undefined,
-              favoriteColors: t.allowOrganizerViewFavorites || isSelf ? t.favoriteColors : undefined,
-              allergiesDiet: t.allowOrganizerViewAllergies || isSelf ? t.allergiesDiet : undefined,
-              favoriteHobbies: t.allowOrganizerViewFavorites || isSelf ? t.favoriteHobbies : undefined,
-              wishlistItems: targetWishlistItems,
-            };
-          })() : null,
-        };
-      });
+      const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId }));
 
       const sanitizedData = {
         ...exchange,
@@ -411,6 +304,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Only Organizer can manage preventative match rules' }, { status: 403 });
       }
 
+      const enrolledCount = await db.exchangeMember.count({
+        where: { exchangeId: operationId, userId: { in: [memberId, restrictedMemberId] } },
+      });
+      if (enrolledCount !== 2) {
+        return NextResponse.json({ error: 'Both agents must be enrolled in this operation' }, { status: 400 });
+      }
+
       const existing = await db.exclusionRule.findFirst({
         where: {
           exchangeId: operationId,
@@ -454,7 +354,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Only Organizer can manage preventative match rules' }, { status: 403 });
       }
 
-      await db.exclusionRule.delete({ where: { id: exclusionId } });
+      // Scoped to this exchange: an organizer can only remove their own mission's rules.
+      const removed = await db.exclusionRule.deleteMany({ where: { id: exclusionId, exchangeId: operationId } });
+      if (removed.count === 0) return NextResponse.json({ error: 'Preventative match rule not found' }, { status: 404 });
 
       return NextResponse.json({ success: true, message: 'Preventative match rule removed' });
     }
@@ -558,8 +460,17 @@ export async function POST(request: Request) {
     if (action === 'createReport' && operationId) {
       const { thankYouText, photoUrl } = body as { thankYouText?: string; photoUrl?: string };
 
+      const reportError = validateReportInput(thankYouText, photoUrl);
+      if (reportError) return NextResponse.json({ error: reportError }, { status: 400 });
+
       const ex = await db.exchange.findUnique({ where: { id: operationId } });
       if (!ex) return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
+
+      // After-Action Report entries are for enrolled agents only.
+      const member = await db.exchangeMember.findUnique({
+        where: { exchangeId_userId: { exchangeId: operationId, userId: activeUserId } },
+      });
+      if (!member) return NextResponse.json({ error: 'Only enrolled agents can post to this After-Action Report' }, { status: 403 });
 
       const newReport = await db.exchangeReport.create({
         data: {
@@ -981,12 +892,11 @@ export async function PATCH(request: Request) {
       dates,
       settings,
       agentId: memberId,
-      newRole,
       targetUserId,
       demeritPoints,
     } = body as {
       operationId: string;
-      action?: 'update_dates' | 'update_settings' | 'update_agent_role' | 'remove_agent' | 'issue_demerit' | 'nudge_agent';
+      action?: 'update_dates' | 'update_settings' | 'remove_agent' | 'issue_demerit' | 'nudge_agent';
       dates?: {
         inviteCutoffDate: string;
         assignmentDate: string;
@@ -1005,7 +915,6 @@ export async function PATCH(request: Request) {
         enforcePenalties?: boolean;
       };
       agentId?: string;
-      newRole?: string;
       targetUserId?: string;
       demeritPoints?: number;
     };
@@ -1026,29 +935,24 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Only the designated Organizer can perform administrative actions' }, { status: 403 });
     }
 
-    // Member Action 1: Update Member Role (Promote / Demote Organizer)
-    if (action === 'update_agent_role' && memberId && newRole) {
-      const updatedMember = await db.exchangeMember.update({
-        where: { id: memberId },
-        data: { role: newRole === 'ORGANIZER' || newRole === 'OPS_LEADER' ? 'ORGANIZER' : 'MEMBER' },
-      });
-      return NextResponse.json({ success: true, data: updatedMember });
-    }
+    // Member-scoped actions must target a member of THIS exchange, never an arbitrary row.
+    const findScopedMember = (id: string) =>
+      db.exchangeMember.findFirst({ where: { id, exchangeId: operationId } });
 
-    // Member Action 2: Remove Member from Exchange
+    // Member Action: Remove Member from Exchange
     if (action === 'remove_agent' && memberId) {
-      const memberToDelete = await db.exchangeMember.findUnique({ where: { id: memberId } });
+      const memberToDelete = await findScopedMember(memberId);
       if (!memberToDelete) {
-        return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+        return NextResponse.json({ error: 'Member not found in this operation' }, { status: 404 });
       }
       if (memberToDelete.userId === ex.organizerId) {
         return NextResponse.json({ error: 'Cannot remove the primary Organizer from the exchange' }, { status: 400 });
       }
-      await db.exchangeMember.delete({ where: { id: memberId } });
+      await db.exchangeMember.delete({ where: { id: memberToDelete.id } });
       return NextResponse.json({ success: true, message: 'Member removed from exchange' });
     }
 
-    // Member Action 3: Issue Penalty Citation
+    // Member Action 3: Issue Penalty Citation (one per call, enrolled agents only, waivers honored)
     if (action === 'issue_demerit' && targetUserId) {
       if (!ex.enforcePenalties) {
         return NextResponse.json({ error: 'Demerits are disabled for this operation' }, { status: 400 });
@@ -1056,8 +960,18 @@ export async function PATCH(request: Request) {
       if (ex.status !== 'COMPLETED') {
         return NextResponse.json({ error: 'Demerits can only be assigned when the mission is completed' }, { status: 400 });
       }
+      const targetMember = await db.exchangeMember.findUnique({
+        where: { exchangeId_userId: { exchangeId: operationId, userId: targetUserId } },
+      });
+      if (!targetMember) {
+        return NextResponse.json({ error: 'Agent is not enrolled in this operation' }, { status: 404 });
+      }
+      // Carrier Protection Waiver: verified delivery or a carrier tracking number grants immunity.
+      if (targetMember.deliveredConfirmed || targetMember.trackingNumber) {
+        return NextResponse.json({ error: 'Demerit Waiver Active: this agent has verified delivery or carrier tracking.' }, { status: 400 });
+      }
 
-      const pts = demeritPoints || 1;
+      const pts = 1;
       const updatedUser = await db.user.update({
         where: { id: targetUserId },
         data: { penaltyPoints: { increment: pts } },
@@ -1067,8 +981,12 @@ export async function PATCH(request: Request) {
 
     // Member Action 4: Dispatch Nudge Reminder
     if (action === 'nudge_agent' && memberId) {
+      const scoped = await findScopedMember(memberId);
+      if (!scoped) {
+        return NextResponse.json({ error: 'Member not found in this operation' }, { status: 404 });
+      }
       const memberToNudge = await db.exchangeMember.findUnique({
-        where: { id: memberId },
+        where: { id: scoped.id },
         include: { user: true, exchange: { include: { organizer: true } } },
       });
 
@@ -1150,29 +1068,15 @@ export async function PATCH(request: Request) {
 
     // Branch 2: Update Timeline Dates
     if (dates) {
-      const validation = validateOperationConfig({
-        title: ex.title,
-        giftingType: ex.giftingType as any,
-        isLocalOnly: ex.isLocalOnly,
-        isWhiteElephant: ex.isWhiteElephant,
-        budgetMax: Number(ex.budgetMax),
-        ...dates,
-      });
-
-      if (!validation.isValid) {
-        return NextResponse.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
+      // Only the dates that change are checked against today (src/lib/validations/timeline.ts).
+      const change = resolveTimelineUpdate(ex, dates, new Date());
+      if (!change.ok) {
+        return NextResponse.json({ error: change.error, details: [change.error] }, { status: change.status });
       }
-
-      const updatedExchange = await db.exchange.update({
-        where: { id: operationId },
-        data: {
-          inviteCutoffDate: new Date(dates.inviteCutoffDate),
-          assignmentDate: new Date(dates.assignmentDate),
-          shippingDate: new Date(dates.shippingDate),
-          executionDate: new Date(dates.executionDate),
-        },
-      });
-
+      if (Object.keys(change.data).length === 0) {
+        return NextResponse.json({ success: true, data: ex });
+      }
+      const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: change.data });
       return NextResponse.json({ success: true, data: updatedExchange });
     }
 

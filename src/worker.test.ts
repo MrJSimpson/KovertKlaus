@@ -134,3 +134,30 @@ test('Cloudflare Edge Worker API Parity Logic (Finding 3.1)', async (t) => {
   });
 });
 
+
+test('Edge Worker Route Parity: every Next.js API route has a worker handler', () => {
+  const workerSource = fs.readFileSync(path.join(process.cwd(), 'src', 'worker.ts'), 'utf-8');
+  const setBlock = workerSource.match(/export const WORKER_API_PATHS = new Set\(\[([\s\S]*?)\]\);/);
+  assert.ok(setBlock, 'WORKER_API_PATHS must be declared in worker.ts');
+  const workerPaths = new Set([...setBlock[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
+
+  const apiRoot = path.join(process.cwd(), 'src', 'app', 'api');
+  const nextPaths: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name === 'route.ts') {
+        nextPaths.push('/api/' + path.relative(apiRoot, dir).split(path.sep).join('/'));
+      }
+    }
+  };
+  walk(apiRoot);
+
+  for (const p of nextPaths) {
+    assert.ok(workerPaths.has(p), `Next.js route ${p} has no entry in WORKER_API_PATHS`);
+  }
+  for (const p of workerPaths) {
+    assert.ok(workerSource.includes(`pathname === '${p}'`), `WORKER_API_PATHS lists ${p} but no handler matches it`);
+  }
+});
