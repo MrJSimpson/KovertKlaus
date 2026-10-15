@@ -59,6 +59,8 @@ Every change (from maintainers, contributors, or AI agents) must meet:
   - Automated test suite passes 100% (`npm test`).
   - Next.js Turbopack build succeeds with 0 errors (`npm run build`).
   - Contributions follow [`CONTRIBUTING.md`](CONTRIBUTING.md). All issues and pull requests are reviewed by the owner and team before merge.
+  - User- or operator-visible changes add a line under `## [Unreleased]` in `CHANGELOG.md`. Versions, releases and branch pruning follow [`docs/VERSIONING.md`](docs/VERSIONING.md); each release adds a plain-language entry to `src/lib/announcements.ts`.
+  - **Zero credentials** in code, docs, tests, commit messages and pull requests: no passwords (including retired or example ones), keys, tokens or connection strings with secrets. Reference secrets by variable name; ban lists store digests.
 
 ---
 

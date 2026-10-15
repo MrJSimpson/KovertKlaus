@@ -1,12 +1,16 @@
 /**
- * KovertKlaus Versioning & Release Lifecycle Configuration
- * 
- * Defines the application semantic version, active release tier,
- * and milestone trajectory toward Beta Season 1 Launch.
+ * @file version.ts
+ * @description Application version, release stage and the milestone trajectory to Season 1.
+ *
+ * Tier 1 (what): `APP_VERSION` is shown in the UI badges; `RELEASE_STAGE` gates alpha registration.
+ * Tier 2 (why): One place for the running version, so badges, announcements and the changelog agree.
+ * Tier 3 (how): `package.json` `version` is the source of truth; bump both in the release pull request
+ * (docs/VERSIONING.md). `src/lib/version.test.ts` fails the build if they, the newest CHANGELOG
+ * section or the newest announcement drift apart.
  */
 
-export const APP_VERSION = '0.2.0-alpha';
-export const APP_VERSION_LABEL = 'v0.2.0-alpha';
+export const APP_VERSION = '0.3.0-alpha';
+export const APP_VERSION_LABEL = `v${APP_VERSION}`;
 export const RELEASE_STAGE = 'ALPHA' as const;
 
 export const RELEASE_TIMELINE = {
