@@ -30,6 +30,7 @@ All system documentation is maintained in both standard repository Markdown and 
 | ⚖️ **[`docs/DEMERIT_SYSTEM.md`](./docs/DEMERIT_SYSTEM.md)** | Coal Citation State Machine, Waivers & Auto-Rehabilitation | [Draw.io State Machine](./docs/kovertklaus_demerit_state_machine.drawio) |
 | ✉️ **[`docs/EMAIL_SYSTEM.md`](./docs/EMAIL_SYSTEM.md)** | Multi-Provider Engine with 3-Attempt Exponential Retries | [Draw.io Flow](./docs/kovertklaus_universal_email_architecture.drawio) |
 | 🏷️ **[`docs/VERSIONING.md`](./docs/VERSIONING.md)** | When versions change, release checklist, branch pruning, where history is recorded | [`CHANGELOG.md`](./CHANGELOG.md) |
+| 🧪 **[`docs/DEMO_DATABASE.md`](./docs/DEMO_DATABASE.md)** | Try it locally: demo agents and missions in one command (self-hosted only) | `npm run demo:load` |
 | 🗄️ **Prisma Database Schema** | Relational Entities, Foreign Keys & Schema Indexes | [Draw.io ERD](./docs/kovertklaus_database_erd.drawio) |
 
 ---
@@ -76,8 +77,8 @@ cd KovertKlaus
 # 2. Launch PostgreSQL database and App container
 docker compose up -d
 
-# 3. Restore test data (Optional)
-.\restore-db.bat
+# 3. Load demo agents and missions to try it out (optional; see docs/DEMO_DATABASE.md)
+npm run demo:load
 
 # 4. Open browser
 http://localhost:3000
@@ -88,7 +89,7 @@ http://localhost:3000
 - **First-Run Setup**: No default password ships. On first launch the server prints a one-time setup token to its console (`docker logs kovertklaus-app`); open [`/northpole/setup`](http://localhost:3000/northpole/setup) to create your administrator.
 - **NIST SP 800-63B Compliance**: Administrator passphrases require 12+ characters and can never be a known default.
 - **Developer Workshop (`/workshop`)**: This self-hosted repository includes all internal QA test benches (`/workshop/draw`, `/workshop/lifecycle`, `/workshop/scraper`, `/workshop/theme`, `/workshop/manifest`, `/workshop/party`, `/workshop/aar`).
-- **Clean Database**: Production seeds contain zero dummy users or mock exchanges.
+- **Clean Database**: Production seeds contain zero dummy users or mock exchanges. Demo data is strictly opt-in (`npm run demo:load`) and removable.
 
 ---
 
@@ -98,8 +99,9 @@ http://localhost:3000
 | :--- | :--- | :--- |
 | **Launch Server** | [`run-kovertklaus.bat`](./run-kovertklaus.bat) | Checks port 3000 and starts `npm run dev` in a dedicated background window. |
 | **Stop Server** | [`stop-kovertklaus.bat`](./stop-kovertklaus.bat) | Gracefully terminates any process listening on port 3000. |
-| **Export Test DB** | [`export-db.bat`](./export-db.bat) | Dumps PostgreSQL container database to [`prisma/kovertklaus_test_db.sql`](./prisma/kovertklaus_test_db.sql). |
-| **Restore Test DB** | [`restore-db.bat`](./restore-db.bat) | Restores PostgreSQL container database from [`prisma/kovertklaus_test_db.sql`](./prisma/kovertklaus_test_db.sql). |
+| **Back Up DB** | [`export-db.bat`](./export-db.bat) | Dumps the PostgreSQL container database to `backups/kovertklaus-backup.sql` (gitignored: real data). |
+| **Restore DB** | [`restore-db.bat`](./restore-db.bat) | Replaces the container database with `backups/kovertklaus-backup.sql`. |
+| **Try the Demo** | `npm run demo:load` / `npm run demo:remove` | Loads or removes demo agents and missions ([`docs/DEMO_DATABASE.md`](./docs/DEMO_DATABASE.md)). |
 
 ---
 

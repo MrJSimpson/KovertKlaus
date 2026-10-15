@@ -391,7 +391,11 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
 
 // Direct CLI Invocation
 if (require.main === module) {
-  const targetFile = process.argv[2] || path.join(__dirname, '../prisma/kovertklaus_test_db.sql');
+  const targetFile = process.argv[2];
+  if (!targetFile) {
+    console.error('Usage: npx tsx scripts/migrate-legacy-data.ts <legacy-dump.sql>');
+    process.exit(1);
+  }
   migrateLegacySqlDump(targetFile)
     .catch((err) => {
       console.error('❌ Migration failed:', err);
