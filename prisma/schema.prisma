@@ -109,16 +109,17 @@ model User {
   createdAt                      DateTime      @default(now())
   updatedAt                      DateTime      @updatedAt
 
-  createdExchanges       Exchange[]        @relation("OrganizerExchanges")
-  participations         ExchangeMember[]  @relation("MemberUser")
-  targetedBy             ExchangeMember[]  @relation("TargetUser")
+  createdExchanges       Exchange[]          @relation("OrganizerExchanges")
+  participations         ExchangeMember[]    @relation("MemberUser")
+  targetedBy             ExchangeMember[]    @relation("TargetUser")
   items                  Item[]
   wishlists              Wishlist[]
   notifications          Notification[]
-  exclusionRulesAsMember ExclusionRule[]   @relation("ExclusionMember")
-  exclusionRulesAsTarget ExclusionRule[]   @relation("ExclusionRestrictedMember")
-  sentMessages           ExchangeMessage[] @relation("MessageSender")
-  receivedMessages       ExchangeMessage[] @relation("MessageRecipient")
+  exclusionRulesAsMember ExclusionRule[]     @relation("ExclusionMember")
+  exclusionRulesAsTarget ExclusionRule[]     @relation("ExclusionRestrictedMember")
+  sentMessages           ExchangeMessage[]   @relation("MessageSender")
+  invitationsSent        MissionInvitation[] @relation("InvitationsSent")
+  receivedMessages       ExchangeMessage[]   @relation("MessageRecipient")
   exchangeReports        ExchangeReport[]
 
   @@schema("app")
@@ -161,6 +162,7 @@ model Exchange {
   messages           ExchangeMessage[]
   reports            ExchangeReport[]
   covertInviteTokens CovertInviteToken[]
+  invitations        MissionInvitation[]
 
   @@index([organizerId])
   @@index([status])
@@ -287,6 +289,40 @@ model CovertInviteToken {
 
   @@index([exchangeId])
   @@index([token])
+  @@schema("app")
+}
+
+/// Lifecycle of an emailed mission invitation.
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+
+  @@schema("app")
+}
+
+/// An email invitation from the Head Elf to join a mission. Matched to users by email.
+/// Pending invites expire after the invite cutoff unless issued as a Late Pass.
+model MissionInvitation {
+  id          String           @id @default(uuid())
+  exchangeId  String
+  email       String
+  invitedById String
+  /// Set when the invitee enrolls.
+  userId      String?
+  status      InvitationStatus @default(PENDING)
+  /// Issued after the invite cutoff to an already registered user.
+  isLatePass  Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  respondedAt DateTime?
+
+  exchange  Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  invitedBy User     @relation("InvitationsSent", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([exchangeId, email])
+  @@index([email, status])
   @@schema("app")
 }
 

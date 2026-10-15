@@ -6,6 +6,7 @@ import { setSessionCookie } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/email';
 import { RELEASE_STAGE } from '@/lib/version';
 import { logInfo } from '@/lib/logger';
+import { markInvitationAccepted } from '@/lib/invitations';
 
 export async function POST(request: Request) {
   try {
@@ -174,6 +175,7 @@ export async function POST(request: Request) {
             wishlistId: userManifest.id,
           },
         });
+        await markInvitationAccepted(db, targetExchange.id, user.email, user.id);
       } catch (enrollErr) {
         console.warn('[Auto-Enroll Warning]', enrollErr);
       }
