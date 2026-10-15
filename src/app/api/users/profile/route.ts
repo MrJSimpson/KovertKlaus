@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { comparePassword, hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
-import { getSessionUserId } from '@/lib/auth';
+import { getSessionUserId, setSessionCookie } from '@/lib/auth';
 import { validatePassword, sanitizeText } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
@@ -186,6 +186,8 @@ export async function PUT(request: Request) {
       }
 
       updateData.passwordHash = await hashPassword(newPassword);
+      // Sign out every other device; this one gets a fresh cookie after the update.
+      updateData.sessionsRevokedAt = new Date();
     }
 
     const updatedUser = await db.user.update({
@@ -225,6 +227,7 @@ export async function PUT(request: Request) {
         emailNotifications: true,
       },
     });
+    if (updateData.sessionsRevokedAt) await setSessionCookie(userId);
 
     return NextResponse.json({
       success: true,

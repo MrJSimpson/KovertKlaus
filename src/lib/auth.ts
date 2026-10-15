@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
-import { issueSessionToken, readSessionToken, shouldRenewSession, SESSION_TTL_SECONDS } from '@/lib/session-token';
+import { isSessionRevoked, issueSessionToken, readSessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims } from '@/lib/session-token';
+import { db } from '@/lib/db';
 import { IS_SAAS } from '@/lib/config/mode';
 
 /**
@@ -41,14 +42,25 @@ export async function setSessionCookie(userId: string): Promise<void> {
  * Reads and cryptographically verifies the current active user ID from the incoming session cookie
  * or fallback x-session-token authorization header.
  * 
- * @returns The authenticated operative's `userId`, or `null` if unauthenticated, tampered, or expired.
+ * A token issued before the user's last password change (`User.sessionsRevokedAt`) is rejected.
+ *
+ * @returns The authenticated operative's `userId`, or `null` if unauthenticated, tampered, expired, or revoked.
  */
 export async function getSessionUserId(): Promise<string | null> {
+  const claims = await readRequestUserClaims();
+  if (!claims) return null;
+  const user = await db.user.findUnique({ where: { id: claims.subjectId }, select: { sessionsRevokedAt: true } });
+  if (!user || isSessionRevoked(claims, user.sessionsRevokedAt)) return null;
+  return claims.subjectId;
+}
+
+/** Verified user-token claims from the session cookie, or else the x-session-token / Bearer header. */
+async function readRequestUserClaims(): Promise<SessionClaims | null> {
   try {
     const cookieStore = await cookies();
     const session = cookieStore.get(SESSION_COOKIE_NAME);
     const cookieClaims = readSessionToken(session?.value, 'user');
-    if (cookieClaims) return cookieClaims.subjectId;
+    if (cookieClaims) return cookieClaims;
   } catch {
     // Ignore cookie resolution errors during static prerendering
   }
@@ -60,7 +72,7 @@ export async function getSessionUserId(): Promise<string | null> {
       headerStore.get('x-session-token') ||
       headerStore.get('authorization')?.replace(/^Bearer\s+/i, '');
     if (headerToken) {
-      return readSessionToken(headerToken, 'user')?.subjectId ?? null;
+      return readSessionToken(headerToken, 'user');
     }
   } catch {
     // Ignore header resolution errors

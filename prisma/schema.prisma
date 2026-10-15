@@ -80,6 +80,8 @@ model User {
   preferredCodename              String?
   autoRandomizeCodename          Boolean       @default(false)
   passwordHash                   String
+  /// User session tokens issued before this instant are rejected (set on password change).
+  sessionsRevokedAt              DateTime?
   streetAddress                  String?
   addressLine2                   String?
   city                           String?

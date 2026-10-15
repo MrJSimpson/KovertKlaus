@@ -1966,7 +1966,7 @@ export default function OperationCommandCenterPage() {
                           <div className="pt-2 border-t border-stone-200/80 dark:border-slate-800/80 flex items-center justify-between gap-1 flex-wrap">
                             <button
                               onClick={() => handleAgentAction('nudge_agent', agent)}
-                              title="Send encrypted alert reminder"
+                              title="Remind this agent about their next deadline (Command message, notification and email)"
                               className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 hover:bg-sky-200 transition-all cursor-pointer"
                             >
                               🔔 Nudge

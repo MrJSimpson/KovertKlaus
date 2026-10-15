@@ -1,6 +1,6 @@
 import { comparePassword, hashPassword, verifyDummyPassword, isLegacyBcryptHash } from './lib/password';
 import * as cheerio from 'cheerio';
-import { Prisma } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
@@ -17,7 +17,7 @@ import {
   normalizeProductUrl,
 } from './lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from './lib/draw';
-import { issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionKind } from './lib/session-token';
+import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
 import { sendEmail } from './lib/email/dispatcher';
 import {
   sendWelcomeEmail,
@@ -39,6 +39,7 @@ import { validateOperationConfig, validateOperationSettings } from './lib/valida
 import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
 import { rewriteExchangeShellPath } from './lib/exchange-route';
+import { dispatchNudge } from './lib/nudge';
 import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { resolveUniqueCodename } from './lib/codename';
@@ -186,17 +187,43 @@ function sessionCookie(kind: SessionKind, token: string): string {
 }
 
 function getUserIdFromRequest(request: Request): string | null {
+  if (revokedSessionRequests.has(request)) return null;
+  return readUserClaimsFromRequest(request)?.subjectId ?? null;
+}
+
+/** Verified user-token claims from the session cookie, or else the Bearer header. */
+function readUserClaimsFromRequest(request: Request): SessionClaims | null {
   const cookieHeader = request.headers.get('cookie') || request.headers.get('Cookie');
   const fromCookie = parseCookie(cookieHeader, USER_COOKIE_NAME);
-  const verifiedCookie = verifySessionToken(fromCookie, 'user');
-  if (verifiedCookie) return verifiedCookie;
+  const cookieClaims = readSessionToken(fromCookie, 'user');
+  if (cookieClaims) return cookieClaims;
 
   const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    return verifySessionToken(authHeader.substring(7).trim(), 'user');
+    return readSessionToken(authHeader.substring(7).trim(), 'user');
   }
 
   return null;
+}
+
+/**
+ * Requests whose user token was issued before the user's last password change.
+ *
+ * `getUserIdFromRequest` is synchronous and called from many routes, so the one database lookup
+ * (`User.sessionsRevokedAt`) happens once per request in `markRevokedUserSession` and is recorded
+ * here. A WeakSet lets each request be collected normally.
+ */
+const revokedSessionRequests = new WeakSet<Request>();
+
+/**
+ * Looks up whether this request's user token was revoked by a password change, once, before routing.
+ * Requests without a valid user token skip the lookup.
+ */
+async function markRevokedUserSession(request: Request, db: PrismaClient): Promise<void> {
+  const claims = readUserClaimsFromRequest(request);
+  if (!claims) return;
+  const user = await db.user.findUnique({ where: { id: claims.subjectId }, select: { sessionsRevokedAt: true } });
+  if (!user || isSessionRevoked(claims, user.sessionsRevokedAt)) revokedSessionRequests.add(request);
 }
 
 /**
@@ -274,6 +301,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       const adminDb = getAdminDb(adminConnStr);
       const db = getDb(appConnStr);
+
+      // Reject user tokens issued before a password change (one lookup, only when a token is present).
+      await markRevokedUserSession(request, db);
 
       // =======================================================================
       // SECTION 1: NORTH POLE SUPER ADMIN ENDPOINTS (/api/northpole/*)
@@ -1274,6 +1304,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             const passCheck = validatePassword(newPassword);
             if (!passCheck.isValid) return Response.json({ error: passCheck.error }, { status: 400 });
             updateData.passwordHash = await hashPassword(newPassword);
+            // Sign out every other device; this one gets a fresh token below.
+            updateData.sessionsRevokedAt = new Date();
           }
 
           const updatedUser = await db.user.update({
@@ -1284,11 +1316,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             },
           });
 
+          const prefHeaders = new Headers();
+          if (updateData.sessionsRevokedAt) prefHeaders.append('Set-Cookie', sessionCookie('user', issueSessionToken('user', userId)));
           return Response.json({
             success: true,
             message: 'Preferences updated',
             user: { ...updatedUser, ...organizerVisibilityAliases(updatedUser) },
-          });
+          }, { headers: prefHeaders });
         }
       }
 
@@ -2065,34 +2099,12 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             });
             if (!memberToNudge) return Response.json({ error: 'Member not found' }, { status: 404 });
 
-            const nudgeMsg = 'Reminder: Please update your Wishlist Manifest and review mission directives.';
-            await db.notification.create({
-              data: {
-                userId: memberToNudge.userId,
-                title: `🔔 Mission Nudge: ${memberToNudge.exchange.title}`,
-                message: nudgeMsg,
-                exchangeId: memberToNudge.exchangeId,
-              },
-            });
-
-            if (memberToNudge.user.email && memberToNudge.user.emailNotifications !== false) {
-              try {
-                const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
-                await sendNudgeEmail({
-                  recipientEmail: memberToNudge.user.email,
-                  recipientName: memberToNudge.user.name || memberToNudge.user.codename || 'Operative',
-                  organizerName: memberToNudge.exchange.organizer.name,
-                  exchangeTitle: memberToNudge.exchange.title,
-                  message: nudgeMsg,
-                  actionUrl: `https://kovertklaus.com/exchange/${memberToNudge.exchange.code}`,
-                  overrideConfig: emailConfig,
-                });
-              } catch (nudgeErr) {
-                console.warn('[Nudge Email Error]', nudgeErr);
-              }
-            }
-
-            return Response.json({ success: true, message: 'Nudge alert dispatched' });
+            const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+            const result = await dispatchNudge(db, {
+              baseUrl: url.origin || 'https://kovertklaus.com',
+              sendEmail: (email) => sendNudgeEmail({ ...email, overrideConfig: emailConfig }),
+            }, memberToNudge);
+            return Response.json(result.body, { status: result.status });
           }
 
           if (action === 'update_settings' || settings) {
