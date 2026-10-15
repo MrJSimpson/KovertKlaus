@@ -9,8 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.4.0-alpha] - 2026-10-15
+
+Dev #19 and #20.
+
 ### Added
 - **Demo database** (self-hosted only): `npm run demo:load` fills a local database with six demo Elf Agents and three missions at different stages; `npm run demo:remove` deletes them. Accounts use the reserved `@demo.invalid` domain, the password is generated per load (never stored), and the script refuses SaaS mode and non-local hosts. See `docs/DEMO_DATABASE.md`.
+- **Deadline nudges:** the Head Elf's Nudge reminds the agent of their next upcoming deadline (cutoff, draw, ship-by unless already shipped, exchange day), posted to the Command thread plus the in-app notification and email; one nudge per agent per 12 hours (`src/lib/nudge.ts`, shared by both runtimes).
+
+### Security
+- **Changing your password signs out your other devices.** New nullable `User.sessionsRevokedAt` (schema change: run `prisma db push`); user tokens issued before it are rejected, and the device that made the change gets a fresh session.
 
 ### Changed
 - `export-db` / `restore-db` back up to the gitignored `backups/` folder instead of a tracked file.
