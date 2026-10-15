@@ -336,7 +336,7 @@ export default function NorthPoleConfigPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-20 font-mono text-xs text-gray-400">
+      <div className="text-center py-20 font-mono text-xs text-kk-muted">
         Loading North Pole System Parameters...
       </div>
     );
@@ -345,12 +345,12 @@ export default function NorthPoleConfigPage() {
   return (
     <form onSubmit={handleSaveConfig} className="space-y-8 pb-12">
       {/* Top Title Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-kk-border">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+          <h1 className="text-2xl font-black text-kk-heading flex items-center gap-2">
             <span>⚙️ System Configuration Console</span>
           </h1>
-          <p className="text-xs text-gray-400 font-mono mt-1">
+          <p className="text-xs text-kk-muted font-mono mt-1">
             Administer global theme rotation, transactional email gateways, routing & platform quotas without editing .env files.
           </p>
         </div>
@@ -358,7 +358,7 @@ export default function NorthPoleConfigPage() {
         <button
           type="submit"
           disabled={saving}
-          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-mono text-xs font-bold px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-950/40 cursor-pointer flex items-center gap-2"
+          className="bg-kk-secondary hover:bg-kk-secondary-hover disabled:opacity-50 text-kk-on-secondary font-mono text-xs font-bold px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-black/20 cursor-pointer flex items-center gap-2"
         >
           <span>{saving ? '💾 Saving Configuration...' : '💾 Save Global Settings'}</span>
         </button>
@@ -366,30 +366,30 @@ export default function NorthPoleConfigPage() {
 
       {/* Notifications */}
       {saveSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-mono font-bold">
+        <div className="p-4 rounded-xl bg-kk-success border border-kk-on-success/30 text-kk-on-success text-xs font-mono font-bold">
           ✓ System configuration saved and activated across all runtime instances!
         </div>
       )}
 
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-red-950/80 border border-red-500/50 text-red-300 text-xs font-mono">
+        <div className="p-4 rounded-xl bg-kk-danger-soft border border-kk-danger/40 text-kk-on-danger-soft text-xs font-mono">
           ⚠️ {errorMessage}
         </div>
       )}
 
       {/* Section 1: Seasonal Theme & Display Engine */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6">
-        <h2 className="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="p-6 rounded-2xl bg-kk-surface border border-kk-border space-y-6">
+        <h2 className="text-base font-bold text-kk-heading flex items-center gap-2 border-b border-kk-border pb-3">
           <span>🎨 Seasonal Theme & Aesthetics Engine</span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
           <div>
-            <label className="block text-gray-300 font-bold mb-1">ACTIVE THEME PRESET</label>
+            <label className="block text-kk-ink font-bold mb-1">ACTIVE THEME PRESET</label>
             <select
               value={activeThemeId}
               onChange={(e) => setActiveThemeId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-red-500"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none focus:border-kk-focus"
             >
               {themes.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -397,15 +397,15 @@ export default function NorthPoleConfigPage() {
                 </option>
               ))}
             </select>
-            <p className="text-[10px] text-gray-500 mt-1">Controls lights strand, colors & seasonal assets.</p>
+            <p className="text-[10px] text-kk-muted mt-1">Controls lights strand, colors & seasonal assets.</p>
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">SEASONAL OVERRIDE</label>
+            <label className="block text-kk-ink font-bold mb-1">SEASONAL OVERRIDE</label>
             <select
               value={activeSeason}
               onChange={(e) => setActiveSeason(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-red-500"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none focus:border-kk-focus"
             >
               <option value="auto">Auto (Detect by Theme Preset)</option>
               <option value="winter">Winter (Classic Christmas)</option>
@@ -416,14 +416,14 @@ export default function NorthPoleConfigPage() {
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">ANNOUNCEMENT BANNER</label>
+            <label className="block text-kk-ink font-bold mb-1">ANNOUNCEMENT BANNER</label>
             <div className="flex items-center gap-3 mt-2">
-              <label className="flex items-center gap-2 cursor-pointer text-gray-300">
+              <label className="flex items-center gap-2 cursor-pointer text-kk-ink">
                 <input
                   type="checkbox"
                   checked={announcementBannerActive}
                   onChange={(e) => setAnnouncementBannerActive(e.target.checked)}
-                  className="rounded text-emerald-500 focus:ring-0"
+                  className="rounded text-kk-brand focus:ring-0"
                 />
                 <span>Active on Public Pages</span>
               </label>
@@ -433,31 +433,31 @@ export default function NorthPoleConfigPage() {
       </div>
 
       {/* Section 2: Routing, Mode & Maintenance */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6">
-        <h2 className="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="p-6 rounded-2xl bg-kk-surface border border-kk-border space-y-6">
+        <h2 className="text-base font-bold text-kk-heading flex items-center gap-2 border-b border-kk-border pb-3">
           <span>🌐 Routing, App Mode & Maintenance Controls</span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
           <div>
-            <label className="block text-gray-300 font-bold mb-1">SYSTEM ENVIRONMENT MODE</label>
-            <div className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono font-bold flex items-center justify-between">
-              <span className={appMode === 'saas' ? 'text-sky-300' : 'text-emerald-400'}>
+            <label className="block text-kk-ink font-bold mb-1">SYSTEM ENVIRONMENT MODE</label>
+            <div className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2.5 text-xs font-mono font-bold flex items-center justify-between">
+              <span className={appMode === 'saas' ? 'text-kk-accent' : 'text-kk-brand'}>
                 {appMode === 'saas' ? 'COMMERCIAL SAAS (Cloud)' : 'SELF-HOSTED (Docker / Home-Lab)'}
               </span>
-              <span className="text-[10px] text-gray-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+              <span className="text-[10px] text-kk-muted bg-kk-surface px-2 py-0.5 rounded border border-kk-border">
                 ENV INVARIANT
               </span>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1">Immutable deployment mode set via environment variables.</p>
+            <p className="text-[10px] text-kk-muted mt-1">Immutable deployment mode set via environment variables.</p>
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">ALTERNATE START PAGE (ALT_HOME)</label>
+            <label className="block text-kk-ink font-bold mb-1">ALTERNATE START PAGE (ALT_HOME)</label>
             <select
               value={altHome}
               onChange={(e) => setAltHome(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-red-500"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none focus:border-kk-focus"
             >
               <option value="">Default App Home (Full Interactive App)</option>
               <option value="coming_soon">Coming Soon / Clearance Waitlist Landing</option>
@@ -465,16 +465,16 @@ export default function NorthPoleConfigPage() {
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">MAINTENANCE LOCKDOWN</label>
+            <label className="block text-kk-ink font-bold mb-1">MAINTENANCE LOCKDOWN</label>
             <div className="flex items-center gap-3 mt-2">
-              <label className="flex items-center gap-2 cursor-pointer text-gray-300">
+              <label className="flex items-center gap-2 cursor-pointer text-kk-ink">
                 <input
                   type="checkbox"
                   checked={maintenanceMode}
                   onChange={(e) => setMaintenanceMode(e.target.checked)}
-                  className="rounded text-red-500 focus:ring-0"
+                  className="rounded text-kk-danger focus:ring-0"
                 />
-                <span className={maintenanceMode ? 'text-red-400 font-bold' : ''}>Enable Maintenance Mode</span>
+                <span className={maintenanceMode ? 'text-kk-danger font-bold' : ''}>Enable Maintenance Mode</span>
               </label>
             </div>
           </div>
@@ -482,36 +482,36 @@ export default function NorthPoleConfigPage() {
 
         {maintenanceMode && (
           <div className="text-xs font-mono">
-            <label className="block text-gray-300 font-bold mb-1">MAINTENANCE MESSAGE</label>
+            <label className="block text-kk-ink font-bold mb-1">MAINTENANCE MESSAGE</label>
             <input
               type="text"
               placeholder="Santa's workshop is undergoing brief scheduled maintenance. We'll be back online in 15 minutes."
               value={maintenanceMessage}
               onChange={(e) => setMaintenanceMessage(e.target.value)}
-              className="w-full bg-slate-950 border border-red-500/40 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-danger/40 rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
         )}
       </div>
 
       {/* Section 3: Universal Transactional Email Engine */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
+      <div className="p-6 rounded-2xl bg-kk-surface border border-kk-border space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-kk-border pb-3">
+          <h2 className="text-base font-bold text-kk-heading flex items-center gap-2">
             <span>📧 Universal Transactional Email Gateway</span>
           </h2>
-          <span className="text-[10px] font-mono bg-sky-950 text-sky-300 border border-sky-500/40 px-2 py-0.5 rounded font-bold">
+          <span className="text-[10px] font-mono bg-kk-inset text-kk-accent border border-kk-border-strong px-2 py-0.5 rounded font-bold">
             BREVO REST / DIRECT SMTP / RESEND / CONSOLE
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
           <div>
-            <label className="block text-gray-300 font-bold mb-1">ACTIVE EMAIL DISPATCHER</label>
+            <label className="block text-kk-ink font-bold mb-1">ACTIVE EMAIL DISPATCHER</label>
             <select
               value={emailProvider}
               onChange={(e) => setEmailProvider(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500 font-bold"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none focus:border-kk-focus font-bold"
             >
               <option value="auto">Auto-Detect (Brevo → SMTP → Resend → Console)</option>
               <option value="brevo">Brevo REST API (Default for Cloud SaaS & Cloudflare)</option>
@@ -522,122 +522,122 @@ export default function NorthPoleConfigPage() {
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">DEFAULT SENDER EMAIL (FROM)</label>
+            <label className="block text-kk-ink font-bold mb-1">DEFAULT SENDER EMAIL (FROM)</label>
             <input
               type="email"
               placeholder="e.g. admin@kovertklaus.com"
               value={emailFrom}
               onChange={(e) => setEmailFrom(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">DEFAULT SENDER NAME</label>
+            <label className="block text-kk-ink font-bold mb-1">DEFAULT SENDER NAME</label>
             <input
               type="text"
               placeholder="e.g. KovertKlaus HQ"
               value={emailFromName}
               onChange={(e) => setEmailFromName(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
         </div>
 
         {/* Option A: Brevo */}
-        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 space-y-3">
-          <div className="text-xs font-mono font-bold text-sky-300 flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-kk-inset border border-kk-border space-y-3">
+          <div className="text-xs font-mono font-bold text-kk-accent flex items-center justify-between">
             <span>⚡ Brevo REST API Credentials (Cloud SaaS)</span>
-            <span className="text-[10px] text-gray-400 font-normal">300 free emails/day</span>
+            <span className="text-[10px] text-kk-muted font-normal">300 free emails/day</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
             <div>
-              <label className="block text-gray-400 mb-1">BREVO API KEY</label>
+              <label className="block text-kk-muted mb-1">BREVO API KEY</label>
               <input
                 type="password"
                 placeholder="e.g. xkeysib-..."
                 value={brevoApiKey}
                 onChange={(e) => setBrevoApiKey(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
+                className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1">SENDER EMAIL</label>
+              <label className="block text-kk-muted mb-1">SENDER EMAIL</label>
               <input
                 type="email"
                 placeholder="e.g. admin@kovertklaus.com"
                 value={brevoSenderEmail}
                 onChange={(e) => setBrevoSenderEmail(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
+                className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1">SENDER NAME</label>
+              <label className="block text-kk-muted mb-1">SENDER NAME</label>
               <input
                 type="text"
                 placeholder="e.g. KovertKlaus HQ"
                 value={brevoSenderName}
                 onChange={(e) => setBrevoSenderName(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
+                className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
               />
             </div>
           </div>
         </div>
 
         {/* Option B: Direct SMTP */}
-        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 space-y-3">
-          <div className="text-xs font-mono font-bold text-emerald-300 flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-kk-inset border border-kk-border space-y-3">
+          <div className="text-xs font-mono font-bold text-kk-brand flex items-center justify-between">
             <span>📫 Direct SMTP Settings (Self-Hosted / Home Labs)</span>
-            <span className="text-[10px] text-gray-400 font-normal">Nodemailer connection</span>
+            <span className="text-[10px] text-kk-muted font-normal">Nodemailer connection</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
             <div>
-              <label className="block text-gray-400 mb-1">SMTP HOST</label>
+              <label className="block text-kk-muted mb-1">SMTP HOST</label>
               <input
                 type="text"
                 placeholder="smtp.example.com"
                 value={smtpHost}
                 onChange={(e) => setSmtpHost(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
+                className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1">SMTP PORT</label>
+              <label className="block text-kk-muted mb-1">SMTP PORT</label>
               <input
                 type="number"
                 value={smtpPort}
                 onChange={(e) => setSmtpPort(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
+                className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1">SMTP USER</label>
+              <label className="block text-kk-muted mb-1">SMTP USER</label>
               <input
                 type="text"
                 placeholder="user@example.com"
                 value={smtpUser}
                 onChange={(e) => setSmtpUser(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
+                className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1">SMTP PASSWORD</label>
+              <label className="block text-kk-muted mb-1">SMTP PASSWORD</label>
               <input
                 type="password"
                 placeholder="••••••••"
                 value={smtpPass}
                 onChange={(e) => setSmtpPass(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
+                className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
               />
             </div>
           </div>
           <div className="flex items-center gap-4 pt-1 text-xs font-mono">
-            <label className="flex items-center gap-2 cursor-pointer text-gray-300">
+            <label className="flex items-center gap-2 cursor-pointer text-kk-ink">
               <input
                 type="checkbox"
                 checked={smtpSecure}
                 onChange={(e) => setSmtpSecure(e.target.checked)}
-                className="rounded text-emerald-500 focus:ring-0"
+                className="rounded text-kk-brand focus:ring-0"
               />
               <span>SSL/TLS Secure Connection (Port 465)</span>
             </label>
@@ -645,8 +645,8 @@ export default function NorthPoleConfigPage() {
         </div>
 
         {/* Live Email Test Dispatcher */}
-        <div className="p-4 rounded-xl bg-slate-950 border border-purple-500/30 space-y-3">
-          <div className="text-xs font-mono font-bold text-purple-300">
+        <div className="p-4 rounded-xl bg-kk-inset border border-kk-border-strong space-y-3">
+          <div className="text-xs font-mono font-bold text-kk-gold-ink">
             🧪 Live Dispatch Verifier
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -655,13 +655,13 @@ export default function NorthPoleConfigPage() {
               placeholder="recipient@example.com for live test dispatch"
               value={testEmailRecipient}
               onChange={(e) => setTestEmailRecipient(e.target.value)}
-              className="flex-1 bg-slate-900 border border-purple-500/40 rounded-xl px-3 py-2 text-xs text-white focus:outline-none font-mono"
+              className="flex-1 bg-kk-surface border border-kk-border-strong rounded-xl px-3 py-2 text-xs text-kk-ink focus:outline-none font-mono"
             />
             <button
               type="button"
               onClick={handleSendTestEmail}
               disabled={testingEmail || !testEmailRecipient.trim()}
-              className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-mono text-xs font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer"
+              className="bg-kk-gold hover:brightness-95 disabled:opacity-50 text-kk-on-gold font-mono text-xs font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer"
             >
               {testingEmail ? 'Sending...' : '📨 Send Test Dispatch'}
             </button>
@@ -669,7 +669,7 @@ export default function NorthPoleConfigPage() {
 
           {testEmailResult && (
             <div className={`p-2.5 rounded-lg text-xs font-mono ${
-              testEmailResult.success ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' : 'bg-red-950/80 text-red-300 border border-red-800'
+              testEmailResult.success ? 'bg-kk-success text-kk-on-success border border-kk-on-success/30' : 'bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40'
             }`}>
               {testEmailResult.success ? '✓' : '⚠️'} {testEmailResult.message}
             </div>
@@ -678,104 +678,104 @@ export default function NorthPoleConfigPage() {
       </div>
 
       {/* Section 4: Public Quotas, Allowances & Pricing */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6">
-        <h2 className="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="p-6 rounded-2xl bg-kk-surface border border-kk-border space-y-6">
+        <h2 className="text-base font-bold text-kk-heading flex items-center gap-2 border-b border-kk-border pb-3">
           <span>📊 Public Limits, Fair-Use Quotas & Defaults</span>
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
           <div>
-            <label className="block text-gray-300 font-bold mb-1">FREE ANNUAL HOST ALLOWANCE</label>
+            <label className="block text-kk-ink font-bold mb-1">FREE ANNUAL HOST ALLOWANCE</label>
             <input
               type="number"
               value={freeAnnualHostAllowance}
               onChange={(e) => setFreeAnnualHostAllowance(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">FREE ANNUAL JOIN ALLOWANCE</label>
+            <label className="block text-kk-ink font-bold mb-1">FREE ANNUAL JOIN ALLOWANCE</label>
             <input
               type="number"
               value={freeAnnualJoinAllowance}
               onChange={(e) => setFreeAnnualJoinAllowance(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">MAX FREE PARTICIPANTS</label>
+            <label className="block text-kk-ink font-bold mb-1">MAX FREE PARTICIPANTS</label>
             <input
               type="number"
               value={maxFreeParticipants}
               onChange={(e) => setMaxFreeParticipants(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">PAID EVENT PRICE (USD)</label>
+            <label className="block text-kk-ink font-bold mb-1">PAID EVENT PRICE (USD)</label>
             <input
               type="number"
               step="0.50"
               value={paidEventPriceUsd}
               onChange={(e) => setPaidEventPriceUsd(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono pt-2">
           <div>
-            <label className="block text-gray-300 font-bold mb-1">DEFAULT BUDGET MIN</label>
+            <label className="block text-kk-ink font-bold mb-1">DEFAULT BUDGET MIN</label>
             <input
               type="number"
               value={defaultBudgetMin}
               onChange={(e) => setDefaultBudgetMin(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">DEFAULT BUDGET MAX</label>
+            <label className="block text-kk-ink font-bold mb-1">DEFAULT BUDGET MAX</label>
             <input
               type="number"
               value={defaultBudgetMax}
               onChange={(e) => setDefaultBudgetMax(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">DEFAULT CURRENCY</label>
+            <label className="block text-kk-ink font-bold mb-1">DEFAULT CURRENCY</label>
             <input
               type="text"
               value={defaultCurrency}
               onChange={(e) => setDefaultCurrency(e.target.value.toUpperCase())}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
             />
           </div>
         </div>
       </div>
 
       {/* 4. Automated Mission Lifecycle Engine */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+      <div className="bg-kk-surface border border-kk-border rounded-2xl p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-sm font-mono font-bold text-sky-400 uppercase tracking-widest flex items-center gap-2">
+            <h2 className="text-sm font-mono font-bold text-kk-accent uppercase tracking-widest flex items-center gap-2">
               <span>⏱️ Mission Lifecycle Automation (Cron Engine)</span>
               <span
                 className={`text-[10px] px-2 py-0.5 rounded-full border ${
                   lifecycleCronEnabled
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                    : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                    ? 'bg-kk-success border-kk-on-success/30 text-kk-on-success'
+                    : 'bg-kk-warning border-kk-border-strong text-kk-on-warning'
                 }`}
               >
                 {lifecycleCronEnabled ? 'ACTIVE' : 'PAUSED'}
               </span>
             </h2>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-kk-muted mt-1">
               Automatically advances missions across milestone dates (Invite Cutoff → Setup → Target Draw → Shipping → Execution).
             </p>
           </div>
@@ -784,11 +784,11 @@ export default function NorthPoleConfigPage() {
             type="button"
             onClick={handleTriggerLifecycleSweep}
             disabled={triggeringLifecycle}
-            className="px-4 py-2 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-mono text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20"
+            className="px-4 py-2 bg-kk-primary hover:bg-kk-primary-hover disabled:opacity-50 text-kk-on-primary font-mono text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-black/20"
           >
             {triggeringLifecycle ? (
               <>
-                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                 <span>Sweeping...</span>
               </>
             ) : (
@@ -803,15 +803,15 @@ export default function NorthPoleConfigPage() {
           <div
             className={`p-3 rounded-xl border text-xs font-mono flex items-center justify-between ${
               lifecycleTriggerResult.success
-                ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
-                : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+                ? 'bg-kk-success border-kk-on-success/30 text-kk-on-success'
+                : 'bg-kk-danger-soft border-kk-danger/40 text-kk-on-danger-soft'
             }`}
           >
             <span>{lifecycleTriggerResult.message}</span>
             <button
               type="button"
               onClick={() => setLifecycleTriggerResult(null)}
-              className="text-gray-400 hover:text-white ml-2"
+              className="text-kk-muted hover:text-kk-ink ml-2"
             >
               ✕
             </button>
@@ -819,27 +819,27 @@ export default function NorthPoleConfigPage() {
         )}
 
         {/* Telemetry HUD */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-slate-950 border border-slate-800/80 text-xs font-mono">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-kk-inset border border-kk-border text-xs font-mono">
           <div>
-            <div className="text-gray-400 text-[10px]">CURRENT STATUS</div>
-            <div className="font-bold mt-1 text-white flex items-center gap-1.5">
+            <div className="text-kk-muted text-[10px]">CURRENT STATUS</div>
+            <div className="font-bold mt-1 text-kk-ink flex items-center gap-1.5">
               <span
                 className={`w-2 h-2 rounded-full ${
-                  lifecycleCronEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                  lifecycleCronEnabled ? 'bg-kk-secondary animate-pulse' : 'bg-kk-gold'
                 }`}
               />
               {lifecycleCronEnabled ? 'Enabled & Scheduled' : 'Disabled (Paused)'}
             </div>
           </div>
           <div>
-            <div className="text-gray-400 text-[10px]">LAST SWEEP TIMESTAMP</div>
-            <div className="font-bold mt-1 text-white">
+            <div className="text-kk-muted text-[10px]">LAST SWEEP TIMESTAMP</div>
+            <div className="font-bold mt-1 text-kk-ink">
               {lastLifecycleRunAt ? new Date(lastLifecycleRunAt).toLocaleString() : 'Never Executed'}
             </div>
           </div>
           <div>
-            <div className="text-gray-400 text-[10px]">LAST TRANSITIONS COUNT</div>
-            <div className="font-bold mt-1 text-sky-300">
+            <div className="text-kk-muted text-[10px]">LAST TRANSITIONS COUNT</div>
+            <div className="font-bold mt-1 text-kk-accent">
               {lastLifecycleTransitions ?? 0} operation(s) moved
             </div>
           </div>
@@ -848,22 +848,22 @@ export default function NorthPoleConfigPage() {
         {/* Configuration Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
           <div>
-            <label className="flex items-center gap-2 cursor-pointer text-gray-300 font-bold mb-2">
+            <label className="flex items-center gap-2 cursor-pointer text-kk-ink font-bold mb-2">
               <input
                 type="checkbox"
                 checked={lifecycleCronEnabled}
                 onChange={(e) => setLifecycleCronEnabled(e.target.checked)}
-                className="rounded text-sky-500 focus:ring-0"
+                className="rounded text-kk-accent focus:ring-0"
               />
               <span>ENABLE AUTOMATED MILESTONE PROGRESSION</span>
             </label>
-            <p className="text-[11px] text-gray-400">
+            <p className="text-[11px] text-kk-muted">
               When disabled, missions will not automatically advance stages on milestone dates unless manually triggered. Demerit assessment is never affected by this toggle.
             </p>
           </div>
 
           <div>
-            <label className="block text-gray-300 font-bold mb-1">
+            <label className="block text-kk-ink font-bold mb-1">
               SWEEP INTERVAL (MINUTES)
             </label>
             <div className="flex gap-2">
@@ -872,7 +872,7 @@ export default function NorthPoleConfigPage() {
                 min="1"
                 value={lifecycleCronIntervalMinutes}
                 onChange={(e) => setLifecycleCronIntervalMinutes(Math.max(1, Number(e.target.value)))}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
               />
               <div className="flex gap-1">
                 {[15, 30, 60, 1440].map((mins) => (
@@ -882,8 +882,8 @@ export default function NorthPoleConfigPage() {
                     onClick={() => setLifecycleCronIntervalMinutes(mins)}
                     className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${
                       lifecycleCronIntervalMinutes === mins
-                        ? 'bg-sky-500/20 border-sky-500/50 text-sky-300'
-                        : 'bg-slate-950 border-slate-800 text-gray-400 hover:text-white'
+                        ? 'bg-kk-inset border-kk-border-strong text-kk-accent'
+                        : 'bg-kk-inset border-kk-border text-kk-muted hover:text-kk-ink'
                     }`}
                   >
                     {mins === 1440 ? '24h' : mins === 60 ? '1h' : `${mins}m`}
@@ -891,7 +891,7 @@ export default function NorthPoleConfigPage() {
                 ))}
               </div>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">
+            <p className="text-[11px] text-kk-muted mt-1">
               Evaluated dynamically every 60s in self-hosted Node.js runtime and on hourly edge cron in SaaS mode.
             </p>
           </div>

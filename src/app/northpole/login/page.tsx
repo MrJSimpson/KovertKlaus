@@ -154,31 +154,31 @@ export default function NorthPoleLoginPage() {
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 font-mono text-xs">
+      <div className="min-h-screen bg-kk-inset flex items-center justify-center text-kk-muted font-mono text-xs">
         Checking North Pole Clearance...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center px-4 py-12">
-      <div className="max-w-md w-full space-y-6 bg-slate-900 border-2 border-red-500/40 p-8 rounded-3xl shadow-2xl shadow-red-950/30">
+    <div className="min-h-screen bg-kk-inset text-kk-ink flex flex-col justify-center items-center px-4 py-12">
+      <div className="max-w-md w-full space-y-6 bg-kk-surface border-2 border-kk-danger/40 p-8 rounded-3xl shadow-2xl shadow-black/20">
         
         {/* Header */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-red-600 to-emerald-800 text-3xl shadow-lg mb-4">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-kk-primary text-kk-on-primary border border-kk-border-strong text-3xl shadow-lg mb-4">
             🎅
           </div>
           <div className="flex items-center justify-center gap-2 mb-1">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-ping"></span>
-            <span className="text-[11px] font-mono uppercase tracking-widest text-red-400 font-bold">
+            <span className="h-2.5 w-2.5 rounded-full bg-kk-primary animate-ping"></span>
+            <span className="text-[11px] font-mono uppercase tracking-widest text-kk-danger font-bold">
               {isResetRequired ? 'MANDATORY PASSWORD RESET // NIST SP 800-63B' : 'RESTRICTED ACCESS // LEVEL 5'}
             </span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white">
+          <h1 className="text-2xl font-black tracking-tight text-kk-heading">
             {isResetRequired ? 'Create New Admin Passphrase' : 'North Pole Command Center'}
           </h1>
-          <p className="text-xs text-gray-400 mt-1 font-mono">
+          <p className="text-xs text-kk-muted mt-1 font-mono">
             {isResetRequired
               ? 'Initial credentials detected. Choose your own passphrase before access is unlocked.'
               : 'Site Administration, Database Governance & System Controls'}
@@ -187,14 +187,14 @@ export default function NorthPoleLoginPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="bg-red-950/80 border border-red-800 text-red-200 p-3.5 rounded-xl text-xs font-mono">
+          <div className="bg-kk-danger-soft border border-kk-danger/40 text-kk-on-danger-soft p-3.5 rounded-xl text-xs font-mono">
             ⚠️ {error}
           </div>
         )}
 
         {/* Success Alert */}
         {resetSuccessMsg && (
-          <div className="bg-emerald-950/80 border border-emerald-500 text-emerald-300 p-3.5 rounded-xl text-xs font-mono font-bold">
+          <div className="bg-kk-success border border-kk-on-success/30 text-kk-on-success p-3.5 rounded-xl text-xs font-mono font-bold">
             {resetSuccessMsg}
           </div>
         )}
@@ -203,33 +203,33 @@ export default function NorthPoleLoginPage() {
         {!isResetRequired ? (
           <form onSubmit={handleLogin} className="space-y-4 text-xs font-mono">
             <div>
-              <label className="block text-gray-300 font-bold mb-1">ADMINISTRATOR USERNAME OR EMAIL</label>
+              <label className="block text-kk-ink font-bold mb-1">ADMINISTRATOR USERNAME OR EMAIL</label>
               <input
                 type="text"
                 required
                 placeholder="Enter username or email..."
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-red-500 rounded-xl px-3.5 py-2.5 text-white focus:outline-none transition-colors"
+                className="w-full bg-kk-inset border border-kk-border focus:border-kk-focus rounded-xl px-3.5 py-2.5 text-kk-ink focus:outline-none transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-gray-300 font-bold mb-1">CLEARANCE PASSWORD</label>
+              <label className="block text-kk-ink font-bold mb-1">CLEARANCE PASSWORD</label>
               <input
                 type="password"
                 required
                 placeholder="Enter clearance password..."
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-red-500 rounded-xl px-3.5 py-2.5 text-white focus:outline-none transition-colors"
+                className="w-full bg-kk-inset border border-kk-border focus:border-kk-focus rounded-xl px-3.5 py-2.5 text-kk-ink focus:outline-none transition-colors"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-red-950/40 text-sm cursor-pointer"
+              className="w-full bg-kk-primary hover:bg-kk-primary-hover disabled:opacity-50 text-kk-on-primary font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-black/20 text-sm cursor-pointer"
             >
               {loading ? 'Authenticating Clearance...' : '⚡ Unlock North Pole Command'}
             </button>
@@ -237,11 +237,11 @@ export default function NorthPoleLoginPage() {
         ) : (
           /* VIEW 2: Mandatory NIST Password Reset Form */
           <form onSubmit={handlePasswordReset} className="space-y-4 text-xs font-mono">
-            <div className="p-3 bg-slate-950 border border-amber-500/40 rounded-xl text-[11px] text-amber-300 space-y-1">
+            <div className="p-3 bg-kk-inset border border-kk-border-strong rounded-xl text-[11px] text-kk-gold-ink space-y-1">
               <div className="font-bold flex items-center gap-1">
                 <span>🛡️ NIST SP 800-63B Guidelines:</span>
               </div>
-              <ul className="list-disc pl-4 space-y-0.5 text-gray-400">
+              <ul className="list-disc pl-4 space-y-0.5 text-kk-muted">
                 <li>Minimum length: 12 characters</li>
                 <li>Cannot be the initial password or a known default</li>
                 <li>Cannot contain your username</li>
@@ -250,48 +250,48 @@ export default function NorthPoleLoginPage() {
             </div>
 
             <div>
-              <label className="block text-gray-300 font-bold mb-1">NEW ADMIN PASSPHRASE</label>
+              <label className="block text-kk-ink font-bold mb-1">NEW ADMIN PASSPHRASE</label>
               <input
                 type="password"
                 required
                 placeholder="Enter at least 12 characters..."
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white focus:outline-none transition-colors"
+                className="w-full bg-kk-inset border border-kk-border focus:border-kk-focus rounded-xl px-3.5 py-2.5 text-kk-ink focus:outline-none transition-colors"
               />
-              <div className="flex justify-between items-center mt-1 text-[10px] text-gray-500">
+              <div className="flex justify-between items-center mt-1 text-[10px] text-kk-muted">
                 <span>Length: {newPassword.length}/12 min</span>
-                <span className={newPassword.length >= 12 ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                <span className={newPassword.length >= 12 ? 'text-kk-brand font-bold' : 'text-kk-gold-ink'}>
                   {newPassword.length >= 12 ? '✓ Length Requirement Satisfied' : 'Requires 12+ characters'}
                 </span>
               </div>
             </div>
 
             <div>
-              <label className="block text-gray-300 font-bold mb-1">CONFIRM NEW PASSPHRASE</label>
+              <label className="block text-kk-ink font-bold mb-1">CONFIRM NEW PASSPHRASE</label>
               <input
                 type="password"
                 required
                 placeholder="Re-enter your new passphrase..."
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white focus:outline-none transition-colors"
+                className="w-full bg-kk-inset border border-kk-border focus:border-kk-focus rounded-xl px-3.5 py-2.5 text-kk-ink focus:outline-none transition-colors"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading || newPassword.length < 12}
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 text-slate-950 font-black py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-950/40 text-sm cursor-pointer"
+              className="w-full bg-kk-primary hover:bg-kk-primary-hover disabled:opacity-50 text-kk-on-primary font-black py-3 px-4 rounded-xl transition-all shadow-lg shadow-black/20 text-sm cursor-pointer"
             >
               {loading ? 'Verifying & Updating...' : '🔒 Set Passphrase & Activate Clearance'}
             </button>
           </form>
         )}
 
-        <div className="pt-4 border-t border-slate-800 text-center space-y-2 font-mono">
+        <div className="pt-4 border-t border-kk-border text-center space-y-2 font-mono">
           <div>
-            <Link href="/" className="text-xs text-emerald-400 hover:underline font-mono">
+            <Link href="/" className="text-xs text-kk-brand hover:underline font-mono">
               ← Return to Main Application
             </Link>
           </div>

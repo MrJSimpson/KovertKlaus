@@ -55,7 +55,9 @@
 }
 
 @layer base {
-  :root {
+  /* `.light` lets a section show the light palette inside a dark page (Workshop theme gallery). */
+  :root,
+  .light {
     color-scheme: light;
     /* Classic Christmas */
     --kk-page: #f0f0f0;            /* Snow gray */

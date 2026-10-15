@@ -88,19 +88,19 @@ export default function NorthPoleThemesPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-kk-border">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+          <h1 className="text-2xl font-black text-kk-heading flex items-center gap-2">
             <span>🎨 Seasonal Theme & Aesthetics Engine</span>
           </h1>
-          <p className="text-xs text-gray-400 font-mono mt-1">
+          <p className="text-xs text-kk-muted font-mono mt-1">
             Browse and activate 4-Season quarterly rotation packages with custom color tokens, banners, and lights strands.
           </p>
         </div>
       </div>
 
       {successMsg && (
-        <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold">
+        <div className="p-3.5 rounded-xl bg-kk-success border border-kk-on-success/30 text-kk-on-success text-xs font-mono font-bold">
           ✓ {successMsg}
         </div>
       )}
@@ -108,7 +108,7 @@ export default function NorthPoleThemesPage() {
       {/* Themes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {loading ? (
-          <div className="col-span-2 text-center py-16 text-gray-500 font-mono text-xs">
+          <div className="col-span-2 text-center py-16 text-kk-muted font-mono text-xs">
             Loading theme packages...
           </div>
         ) : (
@@ -119,50 +119,50 @@ export default function NorthPoleThemesPage() {
                 key={theme.id}
                 className={`p-6 rounded-2xl border-2 transition-all flex flex-col justify-between ${
                   isActive
-                    ? 'bg-slate-900 border-emerald-500 shadow-xl shadow-emerald-950/30'
-                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                    ? 'bg-kk-surface border-kk-on-success/30 shadow-xl shadow-black/20'
+                    : 'bg-kk-surface/60 border-kk-border hover:border-kk-border-strong'
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full uppercase bg-slate-950 text-gray-300 border border-slate-800">
+                    <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full uppercase bg-kk-inset text-kk-ink border border-kk-border">
                       Season: {theme.season}
                     </span>
                     {isActive && (
-                      <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full uppercase bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                      <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full uppercase bg-kk-success text-kk-on-success border border-kk-on-success/30">
                         ● ACTIVE SYSTEM THEME
                       </span>
                     )}
                   </div>
 
-                  <h3 className="text-lg font-bold text-white mb-2">{theme.name}</h3>
+                  <h3 className="text-lg font-bold text-kk-heading mb-2">{theme.name}</h3>
 
-                  <div className="space-y-2.5 font-mono text-xs text-gray-300 mt-4">
-                    <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                      <span className="text-gray-500 block text-[10px]">LIGHTS STRAND:</span>
-                      <span className="text-amber-400 font-bold">{theme.lightsStrandType}</span>
+                  <div className="space-y-2.5 font-mono text-xs text-kk-ink mt-4">
+                    <div className="p-2.5 rounded-lg bg-kk-inset border border-kk-border">
+                      <span className="text-kk-muted block text-[10px]">LIGHTS STRAND:</span>
+                      <span className="text-kk-gold-ink font-bold">{theme.lightsStrandType}</span>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                      <span className="text-gray-500 block text-[10px]">LIGHT BANNER COPY:</span>
-                      <span className="text-gray-200">{theme.bannerTextLight || '—'}</span>
+                    <div className="p-2.5 rounded-lg bg-kk-inset border border-kk-border">
+                      <span className="text-kk-muted block text-[10px]">LIGHT BANNER COPY:</span>
+                      <span className="text-kk-ink">{theme.bannerTextLight || '—'}</span>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                      <span className="text-gray-500 block text-[10px]">DARK BANNER COPY:</span>
-                      <span className="text-gray-200">{theme.bannerTextDark || '—'}</span>
+                    <div className="p-2.5 rounded-lg bg-kk-inset border border-kk-border">
+                      <span className="text-kk-muted block text-[10px]">DARK BANNER COPY:</span>
+                      <span className="text-kk-ink">{theme.bannerTextDark || '—'}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-800">
+                <div className="mt-6 pt-4 border-t border-kk-border">
                   <button
                     onClick={() => handleActivateTheme(theme.id)}
                     disabled={isActive || activating === theme.id}
                     className={`w-full py-2.5 px-4 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40 cursor-default'
-                        : 'bg-slate-800 hover:bg-emerald-600 text-white'
+                        ? 'bg-kk-success text-kk-on-success border border-kk-on-success/30 cursor-default'
+                        : 'bg-kk-surface hover:bg-kk-secondary-hover text-kk-ink'
                     }`}
                   >
                     {isActive

@@ -52,7 +52,7 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'simpson-family',
     name: 'Simpson Family Holiday Stealth Ops',
     badge: 'STANDARD 5 AGENTS',
-    badgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-500/40',
+    badgeColor: 'bg-kk-success text-kk-on-success border-kk-on-success/30',
     description: '5 operatives with 1 standard spouse constraint (Joshua ⇔ Shannon).',
     agents: [
       { id: '1', name: 'Joshua Simpson', codename: 'Agent Shadow', hasWishlistAttached: true },
@@ -67,7 +67,7 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'three-couples',
     name: 'High-Constraint Cross-Couples',
     badge: '3 COUPLES (6 AGENTS)',
-    badgeColor: 'bg-purple-950 text-purple-300 border-purple-500/40',
+    badgeColor: 'bg-kk-warning text-kk-on-warning border-kk-border-strong',
     description: '6 operatives with 3 bidirectional spouse rules (A⇔B, C⇔D, E⇔F).',
     agents: [
       { id: '10', name: 'Joshua Simpson', codename: 'Agent Shadow', hasWishlistAttached: true },
@@ -87,7 +87,7 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'squadron-twelve',
     name: 'Squadron Alpha Deployment',
     badge: '12 AGENTS (GRAPH MODE)',
-    badgeColor: 'bg-sky-950 text-sky-300 border-sky-500/40',
+    badgeColor: 'bg-kk-inset text-kk-accent border-kk-border-strong',
     description: '12 operatives across 4 departments with multiple cross-department blocks.',
     agents: [
       { id: '20', name: 'Agent Alpha', codename: 'Klaus-1', hasWishlistAttached: true },
@@ -113,7 +113,7 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'mega-squadron-24',
     name: 'Mega Squadron (24 Agents)',
     badge: '24 AGENTS (>20 ROSTER MODE)',
-    badgeColor: 'bg-amber-950 text-amber-300 border-amber-500/40',
+    badgeColor: 'bg-kk-warning text-kk-on-warning border-kk-border-strong',
     description: '24 operatives demonstrating the searchable 20-per-page paginated roster view.',
     agents: Array.from({ length: 24 }, (_, i) => ({
       id: `agent-${i + 1}`,
@@ -131,7 +131,7 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'over-constrained',
     name: 'Over-Constrained Trap (Error Handling)',
     badge: 'IMPOSSIBLE CONSTRAINTS',
-    badgeColor: 'bg-rose-950 text-rose-300 border-rose-500/40',
+    badgeColor: 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40',
     description: '5 operatives with impossible hub blocks to verify graceful error catch.',
     agents: [
       { id: '40', name: 'Operative Alpha', codename: 'Agent: Alpha', hasWishlistAttached: true },
@@ -388,18 +388,18 @@ export default function WorkshopDrawBench() {
 
   return (
     <div className="space-y-8 pb-16">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-kk-border">
         <div>
           <div className="flex items-center gap-3">
-            <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
-            <span className="text-xs px-2.5 py-0.5 rounded font-mono uppercase bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
+            <span className="h-3 w-3 rounded-full bg-kk-secondary animate-pulse inline-block"></span>
+            <span className="text-xs px-2.5 py-0.5 rounded font-mono uppercase bg-kk-success text-kk-on-success border border-kk-on-success/30 font-bold">
               WORKSHOP LAB // ALGORITHM & VISUAL SWAP STUDIO
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight mt-2 text-white flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight mt-2 text-kk-heading flex items-center gap-2">
             <span>Sattolo Derangement & 2-Way Swap Visual Playground</span>
           </h1>
-          <p className="text-gray-400 text-xs font-mono mt-1">
+          <p className="text-kk-muted text-xs font-mono mt-1">
             Simulate CSPRNG cyclic derangements, inspect interactive SVG directed graphs, and test invariant-preserving 2-way cascade target swaps.
           </p>
         </div>
@@ -407,25 +407,25 @@ export default function WorkshopDrawBench() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowTraceModal(true)}
-            className="bg-purple-950/70 hover:bg-purple-900 text-purple-300 border border-purple-500/40 px-3.5 py-2 rounded-xl font-mono text-xs transition-colors flex items-center gap-1.5 font-bold cursor-pointer"
+            className="bg-kk-warning hover:brightness-95 text-kk-on-warning border border-kk-border-strong px-3.5 py-2 rounded-xl font-mono text-xs transition-colors flex items-center gap-1.5 font-bold cursor-pointer"
           >
             📊 Algorithmic Trace
           </button>
           <Link
             href="/workshop"
-            className="bg-slate-800 hover:bg-slate-700 text-gray-300 px-3.5 py-2 rounded-xl font-mono text-xs transition-colors font-bold"
+            className="bg-kk-surface hover:border-kk-border-strong text-kk-ink px-3.5 py-2 rounded-xl font-mono text-xs transition-colors font-bold"
           >
             ← Workshop Hub
           </Link>
         </div>
       </div>
 
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+      <div className="p-4 rounded-2xl bg-kk-surface border border-kk-border space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <span className="text-xs font-mono text-kk-gold-ink font-bold uppercase tracking-wider flex items-center gap-1.5">
             <span>⚡ 1-CLICK INSTANT TEST PRESETS</span>
           </span>
-          <span className="text-[11px] font-mono text-gray-500">
+          <span className="text-[11px] font-mono text-kk-muted">
             Click any scenario to instantly populate roster and constraints
           </span>
         </div>
@@ -438,8 +438,8 @@ export default function WorkshopDrawBench() {
                 onClick={() => handleLoadPreset(preset)}
                 className={`p-3 rounded-xl border text-left font-mono transition-all cursor-pointer flex flex-col justify-between space-y-2 ${
                   isSelected
-                    ? 'bg-slate-950 border-amber-500 shadow-md ring-1 ring-amber-500/50'
-                    : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                    ? 'bg-kk-inset border-kk-border-strong shadow-md ring-1 ring-kk-border-strong'
+                    : 'bg-kk-inset/60 border-kk-border hover:border-kk-border-strong'
                 }`}
               >
                 <div>
@@ -448,10 +448,10 @@ export default function WorkshopDrawBench() {
                       {preset.badge}
                     </span>
                   </div>
-                  <div className="text-xs font-bold text-white truncate">{preset.name}</div>
-                  <p className="text-[10px] text-gray-400 mt-1 leading-snug">{preset.description}</p>
+                  <div className="text-xs font-bold text-kk-ink truncate">{preset.name}</div>
+                  <p className="text-[10px] text-kk-muted mt-1 leading-snug">{preset.description}</p>
                 </div>
-                <div className="text-[10px] text-amber-400/80 font-semibold pt-1 border-t border-slate-900">
+                <div className="text-[10px] text-kk-gold-ink font-semibold pt-1 border-t border-kk-border">
                   Load Scenario →
                 </div>
               </button>
@@ -462,24 +462,24 @@ export default function WorkshopDrawBench() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-5 space-y-6">
-          <div className="p-6 rounded-2xl border-2 bg-slate-900 border-emerald-500/30 shadow-xl space-y-4">
+          <div className="p-6 rounded-2xl border-2 bg-kk-surface border-kk-on-success/30 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold">
+              <span className="text-xs font-mono text-kk-brand uppercase tracking-wider font-bold">
                 SIMULATION CONFIGURATION
               </span>
-              <span className="text-xs font-mono bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+              <span className="text-xs font-mono bg-kk-success text-kk-on-success px-2 py-0.5 rounded border border-kk-on-success/30">
                 {activePresetId.toUpperCase()}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 font-mono text-xs">
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <span className="text-gray-400 block text-[10px]">TOTAL ROSTER</span>
-                <span className="text-white font-black text-base">{agents.length} Operatives</span>
+              <div className="bg-kk-inset p-3 rounded-xl border border-kk-border">
+                <span className="text-kk-muted block text-[10px]">TOTAL ROSTER</span>
+                <span className="text-kk-heading font-black text-base">{agents.length} Operatives</span>
               </div>
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <span className="text-gray-400 block text-[10px]">BLOCKED PAIRS (A ⇔ B)</span>
-                <span className="text-purple-400 font-black text-base">{exclusionRules.length} Pairs</span>
+              <div className="bg-kk-inset p-3 rounded-xl border border-kk-border">
+                <span className="text-kk-muted block text-[10px]">BLOCKED PAIRS (A ⇔ B)</span>
+                <span className="text-kk-gold-ink font-black text-base">{exclusionRules.length} Pairs</span>
               </div>
             </div>
 
@@ -487,10 +487,10 @@ export default function WorkshopDrawBench() {
             <div
               className={`p-3 rounded-xl border text-xs font-mono transition-all ${
                 feasibility.themeColor === 'emerald'
-                  ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
+                  ? 'bg-kk-success border-kk-on-success/30 text-kk-on-success'
                   : feasibility.themeColor === 'amber'
-                  ? 'bg-amber-950/80 border-amber-500/40 text-amber-200'
-                  : 'bg-rose-950/80 border-rose-500/40 text-rose-200'
+                  ? 'bg-kk-warning border-kk-border-strong text-kk-on-warning'
+                  : 'bg-kk-danger-soft border-kk-danger/40 text-kk-on-danger-soft'
               }`}
             >
               <div className="font-bold text-xs flex items-center gap-1.5">
@@ -503,30 +503,30 @@ export default function WorkshopDrawBench() {
 
             <button
               onClick={handleRunDraw}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-emerald-950/50 text-xs font-mono cursor-pointer flex items-center justify-center gap-2"
+              className="w-full bg-kk-secondary hover:bg-kk-secondary-hover text-kk-on-secondary font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-black/20 text-xs font-mono cursor-pointer flex items-center justify-center gap-2"
             >
               <span>⚡ RUN CSPRNG SATTOLO DERANGEMENT</span>
             </button>
           </div>
 
-          <div className="p-6 rounded-2xl border-2 bg-slate-900 border-purple-500/30 space-y-4">
+          <div className="p-6 rounded-2xl border-2 bg-kk-surface border-kk-border-strong space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-mono font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2">
+              <h3 className="text-xs font-mono font-bold text-kk-gold-ink uppercase tracking-wider flex items-center gap-2">
                 <span>🚫 PREVENTATIVE MATCH RULES (A ⇔ B)</span>
               </h3>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-kk-muted">
               Symmetric 2-way exclusions prevent spouses or household members from drawing each other in either direction.
             </p>
 
             <form onSubmit={handleAddExclusionRule} className="space-y-3">
               <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                 <div>
-                  <label className="block text-gray-400 mb-1 text-[10px]">AGENT A:</label>
+                  <label className="block text-kk-muted mb-1 text-[10px]">AGENT A:</label>
                   <select
                     value={ruleAgentA}
                     onChange={(e) => setRuleAgentA(e.target.value)}
-                    className="w-full bg-slate-950 border border-purple-500/40 rounded-lg px-2 py-2 text-white text-xs"
+                    className="w-full bg-kk-inset border border-kk-border-strong rounded-lg px-2 py-2 text-kk-ink text-xs"
                   >
                     <option value="">Select Agent A</option>
                     {agents.map((a) => (
@@ -535,11 +535,11 @@ export default function WorkshopDrawBench() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1 text-[10px]">AGENT B:</label>
+                  <label className="block text-kk-muted mb-1 text-[10px]">AGENT B:</label>
                   <select
                     value={ruleAgentB}
                     onChange={(e) => setRuleAgentB(e.target.value)}
-                    className="w-full bg-slate-950 border border-purple-500/40 rounded-lg px-2 py-2 text-white text-xs"
+                    className="w-full bg-kk-inset border border-kk-border-strong rounded-lg px-2 py-2 text-kk-ink text-xs"
                   >
                     <option value="">Select Agent B</option>
                     {agents.map((a) => (
@@ -551,16 +551,16 @@ export default function WorkshopDrawBench() {
 
               <button
                 type="submit"
-                className="w-full bg-purple-700 hover:bg-purple-600 text-white font-mono text-xs font-bold py-2 rounded-lg transition-colors cursor-pointer"
+                className="w-full bg-kk-gold hover:brightness-95 text-kk-on-gold font-mono text-xs font-bold py-2 rounded-lg transition-colors cursor-pointer"
               >
                 ➕ Block Pair (A ⇔ B)
               </button>
             </form>
 
-            <div className="space-y-2 pt-2 border-t border-gray-800">
-              <div className="text-[11px] font-mono text-gray-400">ACTIVE BLOCKED PAIRS:</div>
+            <div className="space-y-2 pt-2 border-t border-kk-border">
+              <div className="text-[11px] font-mono text-kk-muted">ACTIVE BLOCKED PAIRS:</div>
               {exclusionRules.length === 0 ? (
-                <div className="text-[11px] font-mono text-gray-500 italic">No preventative match rules defined.</div>
+                <div className="text-[11px] font-mono text-kk-muted italic">No preventative match rules defined.</div>
               ) : (
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                   {exclusionRules.map((rule, idx) => {
@@ -569,14 +569,14 @@ export default function WorkshopDrawBench() {
                     return (
                       <div
                         key={idx}
-                        className="bg-purple-950/40 border border-purple-500/30 p-2 rounded-lg text-xs font-mono flex items-center justify-between"
+                        className="bg-kk-warning border border-kk-border-strong p-2 rounded-lg text-xs font-mono flex items-center justify-between"
                       >
-                        <span className="text-purple-300 font-bold">
-                          {agentA?.name || 'Unknown'} <span className="text-amber-400 font-black">⇔</span> {agentB?.name || 'Unknown'}
+                        <span className="text-kk-gold-ink font-bold">
+                          {agentA?.name || 'Unknown'} <span className="text-kk-gold-ink font-black">⇔</span> {agentB?.name || 'Unknown'}
                         </span>
                         <button
                           onClick={() => handleRemoveExclusionRule(rule.agentId, rule.restrictedAgentId)}
-                          className="text-gray-400 hover:text-red-400 text-[10px] px-1.5 py-0.5 rounded border border-gray-700 hover:border-red-500 transition"
+                          className="text-kk-muted hover:text-kk-danger text-[10px] px-1.5 py-0.5 rounded border border-kk-border hover:border-kk-danger/40 transition"
                         >
                           ✕
                         </button>
@@ -588,10 +588,10 @@ export default function WorkshopDrawBench() {
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl border-2 bg-slate-900 border-slate-800 space-y-4">
-            <h2 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center justify-between">
+          <div className="p-6 rounded-2xl border-2 bg-kk-surface border-kk-border space-y-4">
+            <h2 className="text-xs font-mono font-bold text-kk-ink uppercase tracking-wider flex items-center justify-between">
               <span>👥 CUSTOM AGENT ROSTER</span>
-              <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded">
+              <span className="text-[10px] bg-kk-surface text-kk-ink px-2 py-0.5 rounded">
                 {agents.length} Enlisted
               </span>
             </h2>
@@ -602,18 +602,18 @@ export default function WorkshopDrawBench() {
                 placeholder="Full Name"
                 value={newAgentName}
                 onChange={(e) => setNewAgentName(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                className="bg-kk-inset border border-kk-border rounded-lg px-3 py-2 text-xs text-kk-ink focus:outline-none focus:border-kk-focus font-mono"
               />
               <input
                 type="text"
                 placeholder="Codename"
                 value={newAgentCodename}
                 onChange={(e) => setNewAgentCodename(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                className="bg-kk-inset border border-kk-border rounded-lg px-3 py-2 text-xs text-kk-ink focus:outline-none focus:border-kk-focus font-mono"
               />
               <button
                 type="submit"
-                className="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-mono font-bold rounded-lg px-3 py-2 text-xs transition-colors cursor-pointer border border-emerald-500/20"
+                className="bg-kk-surface hover:border-kk-border-strong text-kk-brand font-mono font-bold rounded-lg px-3 py-2 text-xs transition-colors cursor-pointer border border-kk-on-success/30"
               >
                 + Enlist
               </button>
@@ -623,15 +623,15 @@ export default function WorkshopDrawBench() {
               {agents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-lg flex items-center justify-between text-xs font-mono"
+                  className="bg-kk-inset border border-kk-border p-2.5 rounded-lg flex items-center justify-between text-xs font-mono"
                 >
                   <div>
-                    <span className="text-white font-bold">{agent.name}</span>
-                    <span className="text-emerald-400 text-[10px] ml-2 font-semibold">({agent.codename})</span>
+                    <span className="text-kk-ink font-bold">{agent.name}</span>
+                    <span className="text-kk-brand text-[10px] ml-2 font-semibold">({agent.codename})</span>
                   </div>
                   <button
                     onClick={() => removeAgent(agent.id)}
-                    className="text-gray-500 hover:text-red-400 text-[10px] px-1.5 py-0.5 rounded hover:bg-red-950/40 transition"
+                    className="text-kk-muted hover:text-kk-danger text-[10px] px-1.5 py-0.5 rounded hover:bg-kk-danger-soft transition"
                   >
                     Remove
                   </button>
@@ -643,7 +643,7 @@ export default function WorkshopDrawBench() {
 
         <div className="lg:col-span-7 space-y-6">
           {drawError && (
-            <div className="bg-red-950/90 border-2 border-red-800 text-red-200 p-4 rounded-2xl text-xs font-mono shadow-xl flex items-center gap-3">
+            <div className="bg-kk-danger-soft border-2 border-kk-danger/40 text-kk-on-danger-soft p-4 rounded-2xl text-xs font-mono shadow-xl flex items-center gap-3">
               <span className="text-xl">⚠️</span>
               <div>
                 <div className="font-bold uppercase">Algorithmic Error Exception</div>
@@ -653,23 +653,23 @@ export default function WorkshopDrawBench() {
           )}
 
           {swapSuccessMsg && (
-            <div className="bg-emerald-950/90 border-2 border-emerald-800 text-emerald-300 p-4 rounded-2xl text-xs font-mono font-bold shadow-xl flex items-center gap-3">
+            <div className="bg-kk-success border-2 border-kk-on-success/30 text-kk-on-success p-4 rounded-2xl text-xs font-mono font-bold shadow-xl flex items-center gap-3">
               <span className="text-xl">✓</span>
               <div>{swapSuccessMsg}</div>
             </div>
           )}
 
-          <div className="p-6 rounded-3xl border-2 bg-slate-900 border-emerald-500/30 shadow-2xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div className="p-6 rounded-3xl border-2 bg-kk-surface border-kk-on-success/30 shadow-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-kk-border pb-3">
               <div>
-                <h2 className="text-sm font-black text-white font-mono flex items-center gap-2">
+                <h2 className="text-sm font-black text-kk-heading font-mono flex items-center gap-2">
                   <span>
                     {!isLargeRoster
                       ? '🎨 INTERACTIVE CYCLIC GRAPH CANVAS'
                       : `📋 SEARCHABLE MATCH ROSTER (${agents.length} Operatives)`}
                   </span>
                 </h2>
-                <p className="text-[11px] text-gray-400 font-mono mt-0.5">
+                <p className="text-[11px] text-kk-muted font-mono mt-0.5">
                   {!isLargeRoster
                     ? 'Click any node to stage as Originating Operator for 2-way swapping (active for ≤20 agents)'
                     : `Displaying searchable match list (${MATCH_PAGE_SIZE} per page) replacing graph canvas for rosters > 20 participants`}
@@ -678,27 +678,27 @@ export default function WorkshopDrawBench() {
               <div className="flex items-center gap-2 text-[10px] font-mono">
                 {!isLargeRoster ? (
                   <>
-                    <span className="flex items-center gap-1 text-emerald-400">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500"></span> Gift Arrow (A → B)
+                    <span className="flex items-center gap-1 text-kk-brand">
+                      <span className="h-2 w-2 rounded-full bg-kk-secondary"></span> Gift Arrow (A → B)
                     </span>
-                    <span className="flex items-center gap-1 text-purple-400">
-                      <span className="h-2 w-2 rounded-full bg-purple-500"></span> Blocked (A ⇔ B)
+                    <span className="flex items-center gap-1 text-kk-gold-ink">
+                      <span className="h-2 w-2 rounded-full bg-kk-gold"></span> Blocked (A ⇔ B)
                     </span>
                   </>
                 ) : (
-                  <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-500/40">
+                  <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-kk-warning text-kk-on-warning border border-kk-border-strong">
                     ROSTER MODE (&gt;20)
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="relative w-full flex items-center justify-center bg-slate-950 rounded-2xl border border-slate-800/80 p-4 overflow-hidden min-h-[380px]">
+            <div className="relative w-full flex items-center justify-center bg-kk-inset rounded-2xl border border-kk-border p-4 overflow-hidden min-h-[380px]">
               {!assignments ? (
-                <div className="py-24 text-center space-y-3 font-mono text-xs text-gray-500">
+                <div className="py-24 text-center space-y-3 font-mono text-xs text-kk-muted">
                   <div className="text-4xl animate-bounce">🎁</div>
-                  <div className="text-gray-300 font-bold">No Active Assignment Cycle Generated</div>
-                  <p className="max-w-sm mx-auto text-[11px] text-gray-500">
+                  <div className="text-kk-ink font-bold">No Active Assignment Cycle Generated</div>
+                  <p className="max-w-sm mx-auto text-[11px] text-kk-muted">
                     Click &quot;RUN CSPRNG SATTOLO DERANGEMENT&quot; above to compute a single unbroken gift cycle.
                   </p>
                 </div>
@@ -861,7 +861,7 @@ export default function WorkshopDrawBench() {
                 </svg>
               ) : (
                 <div className="w-full space-y-4">
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 p-3 rounded-xl font-mono text-xs">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-kk-surface/90 border border-kk-border p-3 rounded-xl font-mono text-xs">
                     <div className="relative flex-1">
                       <input
                         type="text"
@@ -871,7 +871,7 @@ export default function WorkshopDrawBench() {
                           setMatchCurrentPage(1);
                         }}
                         placeholder="🔍 Search matches by agent name or codename..."
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 font-mono"
+                        className="w-full bg-kk-inset border border-kk-border rounded-lg px-3 py-2 text-xs text-kk-ink placeholder-kk-muted/70 focus:outline-none focus:border-kk-focus font-mono"
                       />
                       {matchSearchQuery && (
                         <button
@@ -879,20 +879,20 @@ export default function WorkshopDrawBench() {
                             setMatchSearchQuery('');
                             setMatchCurrentPage(1);
                           }}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs cursor-pointer"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-kk-muted hover:text-kk-ink text-xs cursor-pointer"
                         >
                           ✕
                         </button>
                       )}
                     </div>
-                    <div className="text-[11px] text-gray-400 font-bold whitespace-nowrap">
+                    <div className="text-[11px] text-kk-muted font-bold whitespace-nowrap">
                       Showing {filteredMatches.length === 0 ? 0 : (matchCurrentPage - 1) * MATCH_PAGE_SIZE + 1} -{' '}
                       {Math.min(matchCurrentPage * MATCH_PAGE_SIZE, filteredMatches.length)} of {filteredMatches.length} Matches
                     </div>
                   </div>
 
                   {filteredMatches.length === 0 ? (
-                    <div className="py-12 text-center text-gray-400 font-mono text-xs">
+                    <div className="py-12 text-center text-kk-muted font-mono text-xs">
                       No matches found for &quot;{matchSearchQuery}&quot;.
                     </div>
                   ) : (
@@ -915,37 +915,37 @@ export default function WorkshopDrawBench() {
                               onMouseLeave={() => setHoveredAgentId(null)}
                               className={`p-3 rounded-xl border text-xs font-mono transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
                                 isSelectedOriginator
-                                  ? 'bg-amber-950/40 border-amber-500 shadow-md ring-1 ring-amber-500/50'
+                                  ? 'bg-kk-warning border-kk-border-strong shadow-md ring-1 ring-kk-border-strong'
                                   : isHovered
-                                  ? 'bg-slate-900 border-sky-500/50'
-                                  : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                                  ? 'bg-kk-surface border-kk-border-strong'
+                                  : 'bg-kk-inset border-kk-border hover:border-kk-border-strong'
                               }`}
                             >
                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="text-[10px] font-bold text-gray-500 w-7 shrink-0">
+                                <span className="text-[10px] font-bold text-kk-muted w-7 shrink-0">
                                   #{(matchCurrentPage - 1) * MATCH_PAGE_SIZE + idx + 1}
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                  <span className="text-white font-bold truncate block">{giver?.name || 'Unknown'}</span>
-                                  <span className="text-[10px] text-emerald-400 font-semibold">{giver?.codename || 'No Codename'}</span>
+                                  <span className="text-kk-ink font-bold truncate block">{giver?.name || 'Unknown'}</span>
+                                  <span className="text-[10px] text-kk-brand font-semibold">{giver?.codename || 'No Codename'}</span>
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-center px-2 text-amber-400 font-black shrink-0">
+                              <div className="flex items-center justify-center px-2 text-kk-gold-ink font-black shrink-0">
                                 <span>➔</span>
                               </div>
 
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <div className="flex-1 min-w-0">
-                                  <span className="text-white font-bold truncate block">{receiver?.name || 'Unknown'}</span>
-                                  <span className="text-[10px] text-sky-400 font-semibold">{receiver?.codename || 'No Codename'}</span>
+                                  <span className="text-kk-ink font-bold truncate block">{receiver?.name || 'Unknown'}</span>
+                                  <span className="text-[10px] text-kk-accent font-semibold">{receiver?.codename || 'No Codename'}</span>
                                 </div>
                                 <button
                                   type="button"
                                   className={`text-[10px] font-bold px-2 py-1 rounded border transition-colors shrink-0 ${
                                     isSelectedOriginator
-                                      ? 'bg-amber-500 text-slate-950 border-amber-400 font-black'
-                                      : 'bg-slate-900 text-gray-300 border-slate-700 hover:border-amber-500/60 hover:text-amber-300'
+                                      ? 'bg-kk-gold text-kk-on-gold border-kk-border-strong font-black'
+                                      : 'bg-kk-surface text-kk-ink border-kk-border hover:border-kk-border-strong hover:text-kk-gold-ink'
                                   }`}
                                 >
                                   {isSelectedOriginator ? 'Staged' : 'Select'}
@@ -957,21 +957,21 @@ export default function WorkshopDrawBench() {
                       </div>
 
                       {totalMatchPages > 1 && (
-                        <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs font-mono">
+                        <div className="flex items-center justify-between pt-3 border-t border-kk-border text-xs font-mono">
                           <button
                             onClick={() => setMatchCurrentPage((p) => Math.max(1, p - 1))}
                             disabled={matchCurrentPage === 1}
-                            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 transition-colors"
+                            className="px-3 py-1.5 rounded-lg bg-kk-surface border border-kk-border hover:border-kk-border-strong disabled:opacity-40 disabled:cursor-not-allowed text-kk-ink transition-colors"
                           >
                             ← Prev (20)
                           </button>
-                          <span className="text-gray-400 font-bold">
+                          <span className="text-kk-muted font-bold">
                             Page {matchCurrentPage} of {totalMatchPages}
                           </span>
                           <button
                             onClick={() => setMatchCurrentPage((p) => Math.min(totalMatchPages, p + 1))}
                             disabled={matchCurrentPage === totalMatchPages}
-                            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 transition-colors"
+                            className="px-3 py-1.5 rounded-lg bg-kk-surface border border-kk-border hover:border-kk-border-strong disabled:opacity-40 disabled:cursor-not-allowed text-kk-ink transition-colors"
                           >
                             Next (20) →
                           </button>
@@ -984,17 +984,17 @@ export default function WorkshopDrawBench() {
             </div>
 
             {assignments && (
-              <div className="p-5 rounded-2xl border border-amber-500/40 bg-slate-950 space-y-4 shadow-lg">
-                <div className="flex items-center justify-between text-amber-300 font-mono text-xs font-bold">
+              <div className="p-5 rounded-2xl border border-kk-border-strong bg-kk-inset space-y-4 shadow-lg">
+                <div className="flex items-center justify-between text-kk-gold-ink font-mono text-xs font-bold">
                   <span>🎯 MOBILE-FIRST 2-WAY CASCADE TARGET SWAP CONSOLE</span>
-                  <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30 text-[10px]">
+                  <span className="bg-kk-warning text-kk-on-warning px-2 py-0.5 rounded border border-kk-border-strong text-[10px]">
                     1-TO-1 INVARIANT SAFE
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
                   <div>
-                    <label className="block text-gray-400 mb-1 text-[10px]">
+                    <label className="block text-kk-muted mb-1 text-[10px]">
                       1. ORIGINATING OPERATOR (Giver A):
                     </label>
                     <select
@@ -1003,7 +1003,7 @@ export default function WorkshopDrawBench() {
                         setOriginatorId(e.target.value);
                         setSelectedNewTargetId('');
                       }}
-                      className="w-full bg-slate-900 border border-amber-500/40 rounded-lg px-3 py-2 text-white font-bold"
+                      className="w-full bg-kk-surface border border-kk-border-strong rounded-lg px-3 py-2 text-kk-ink font-bold"
                     >
                       {assignments.map(({ agentId }) => {
                         const agent = agents.find((a) => a.id === agentId);
@@ -1017,13 +1017,13 @@ export default function WorkshopDrawBench() {
                   </div>
 
                   <div>
-                    <label className="block text-gray-400 mb-1 text-[10px]">
+                    <label className="block text-kk-muted mb-1 text-[10px]">
                       2. REPLACEMENT TARGET (Target New):
                     </label>
                     <select
                       value={selectedNewTargetId}
                       onChange={(e) => setSelectedNewTargetId(e.target.value)}
-                      className="w-full bg-slate-900 border border-amber-500/40 rounded-lg px-3 py-2 text-white font-bold"
+                      className="w-full bg-kk-surface border border-kk-border-strong rounded-lg px-3 py-2 text-kk-ink font-bold"
                     >
                       <option value="">-- Select Replacement Target --</option>
                       {validSwapCandidates.map((candidate) => (
@@ -1038,7 +1038,7 @@ export default function WorkshopDrawBench() {
                 <button
                   onClick={handleExecuteSwap}
                   disabled={!selectedNewTargetId}
-                  className="w-full bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-gray-500 text-slate-950 font-black py-3 px-4 rounded-xl transition-all shadow-md font-mono text-xs cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full bg-kk-gold hover:brightness-95 disabled:bg-kk-surface disabled:text-kk-on-gold text-kk-on-gold font-black py-3 px-4 rounded-xl transition-all shadow-md font-mono text-xs cursor-pointer flex items-center justify-center gap-2"
                 >
                   ⚡ EXECUTE 2-WAY CASCADE TARGET SWAP
                 </button>
@@ -1049,52 +1049,52 @@ export default function WorkshopDrawBench() {
       </div>
 
       {showTraceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border-2 border-purple-500/50 rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl font-mono text-xs">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-black text-sm text-purple-300 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-kk-surface border-2 border-kk-border-strong rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-kk-border pb-3">
+              <h3 className="font-black text-sm text-kk-gold-ink flex items-center gap-2">
                 <span>📊 CSPRNG Sattolo Derangement Execution Trace</span>
               </h3>
               <button
                 onClick={() => setShowTraceModal(false)}
-                className="text-gray-400 hover:text-white font-bold text-sm cursor-pointer"
+                className="text-kk-muted hover:text-kk-ink font-bold text-sm cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 text-slate-300 text-xs leading-relaxed max-h-96 overflow-y-auto pr-1">
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-                <div className="text-emerald-400 font-bold">1. High-Entropy Random Dice (CSPRNG):</div>
-                <p className="text-gray-400 text-[11px]">
-                  All random integer selections use <code className="text-white">crypto.getRandomValues</code> with rejection sampling to eliminate modulo bias.
+            <div className="space-y-3 text-kk-ink text-xs leading-relaxed max-h-96 overflow-y-auto pr-1">
+              <div className="p-3 rounded-xl bg-kk-inset border border-kk-border space-y-1.5">
+                <div className="text-kk-brand font-bold">1. High-Entropy Random Dice (CSPRNG):</div>
+                <p className="text-kk-muted text-[11px]">
+                  All random integer selections use <code className="text-kk-ink">crypto.getRandomValues</code> with rejection sampling to eliminate modulo bias.
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-                <div className="text-purple-400 font-bold">2. O(1) Pre-Indexed Bidirectional Constraints:</div>
-                <p className="text-gray-400 text-[11px]">
-                  Compiled <strong className="text-white">{exclusionRules.length}</strong> blocked pair rules into bidirectional composite keys (<code className="text-amber-300">${'{A}'}:${'{B}'}</code>). Graph verification completes in strictly O(N) time.
+              <div className="p-3 rounded-xl bg-kk-inset border border-kk-border space-y-1.5">
+                <div className="text-kk-gold-ink font-bold">2. O(1) Pre-Indexed Bidirectional Constraints:</div>
+                <p className="text-kk-muted text-[11px]">
+                  Compiled <strong className="text-kk-ink">{exclusionRules.length}</strong> blocked pair rules into bidirectional composite keys (<code className="text-kk-gold-ink">{A}:{B}</code>). Graph verification completes in strictly O(N) time.
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-                <div className="text-sky-400 font-bold">3. 1-to-1 Derangement Cycle Guarantee:</div>
-                <p className="text-gray-400 text-[11px]">
-                  Status: {assignments ? <strong className="text-emerald-400">✓ VERIFIED SINGLE CYCLE ({assignments.length} EDGES)</strong> : <strong className="text-gray-500">PENDING RUN</strong>}
+              <div className="p-3 rounded-xl bg-kk-inset border border-kk-border space-y-1.5">
+                <div className="text-kk-accent font-bold">3. 1-to-1 Derangement Cycle Guarantee:</div>
+                <p className="text-kk-muted text-[11px]">
+                  Status: {assignments ? <strong className="text-kk-brand">✓ VERIFIED SINGLE CYCLE ({assignments.length} EDGES)</strong> : <strong className="text-kk-muted">PENDING RUN</strong>}
                 </p>
                 {drawTimestamp && (
-                  <p className="text-[10px] text-gray-500">
+                  <p className="text-[10px] text-kk-muted">
                     Last Computed: {new Date(drawTimestamp).toLocaleTimeString()}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-slate-800">
+            <div className="flex justify-end pt-2 border-t border-kk-border">
               <button
                 onClick={() => setShowTraceModal(false)}
-                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition cursor-pointer"
+                className="px-5 py-2.5 bg-kk-surface hover:border-kk-border-strong text-kk-ink rounded-xl font-bold transition cursor-pointer"
               >
                 Close Trace
               </button>

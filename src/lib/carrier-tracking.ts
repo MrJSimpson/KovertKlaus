@@ -80,9 +80,9 @@ export function detectCarrier(rawTracking: string | null | undefined): CarrierDe
       isValid: false,
       badgeLabel: 'Invalid Tracking',
       badgeColor: {
-        bg: 'bg-rose-500/10',
-        border: 'border-rose-500/30',
-        text: 'text-rose-400',
+        bg: 'bg-kk-danger-soft',
+        border: 'border-kk-danger/40',
+        text: 'text-kk-danger',
       },
     };
   }
@@ -97,9 +97,9 @@ export function detectCarrier(rawTracking: string | null | undefined): CarrierDe
       isValid: true,
       badgeLabel: 'UPS',
       badgeColor: {
-        bg: 'bg-amber-500/10',
-        border: 'border-amber-500/30',
-        text: 'text-amber-400',
+        bg: 'bg-kk-warning',
+        border: 'border-kk-border-strong',
+        text: 'text-kk-gold-ink',
       },
     };
   }
@@ -121,9 +121,9 @@ export function detectCarrier(rawTracking: string | null | undefined): CarrierDe
       isValid: true,
       badgeLabel: 'USPS',
       badgeColor: {
-        bg: 'bg-sky-500/10',
-        border: 'border-sky-500/30',
-        text: 'text-sky-400',
+        bg: 'bg-kk-inset',
+        border: 'border-kk-border-strong',
+        text: 'text-kk-accent',
       },
     };
   }
@@ -147,9 +147,9 @@ export function detectCarrier(rawTracking: string | null | undefined): CarrierDe
       isValid: true,
       badgeLabel: 'FedEx',
       badgeColor: {
-        bg: 'bg-purple-500/10',
-        border: 'border-purple-500/30',
-        text: 'text-purple-400',
+        bg: 'bg-kk-warning',
+        border: 'border-kk-border-strong',
+        text: 'text-kk-gold-ink',
       },
     };
   }
@@ -169,9 +169,9 @@ export function detectCarrier(rawTracking: string | null | undefined): CarrierDe
       isValid: true,
       badgeLabel: 'DHL',
       badgeColor: {
-        bg: 'bg-yellow-500/10',
-        border: 'border-yellow-500/30',
-        text: 'text-yellow-400',
+        bg: 'bg-kk-warning',
+        border: 'border-kk-border-strong',
+        text: 'text-kk-gold-ink',
       },
     };
   }
@@ -185,9 +185,9 @@ export function detectCarrier(rawTracking: string | null | undefined): CarrierDe
     isValid: true,
     badgeLabel: 'Carrier Parcel',
     badgeColor: {
-      bg: 'bg-slate-500/10',
-      border: 'border-slate-500/30',
-      text: 'text-slate-300',
+      bg: 'bg-kk-inset',
+      border: 'border-kk-border',
+      text: 'text-kk-ink',
     },
   };
 }

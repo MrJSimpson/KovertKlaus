@@ -11,27 +11,27 @@ const STAGE_METADATA: Record<OperationPhase, { title: string; desc: string; colo
   RECRUITING: {
     title: 'Stage 1: Recruiting & Enlistment',
     desc: 'Operatives accept mission invites, join the roster, and build their classified wishlists.',
-    color: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+    color: 'bg-kk-inset text-kk-accent border-kk-border-strong',
   },
   SETUP: {
     title: 'Stage 2: Setup & Matching Rules',
     desc: 'Recruitment is locked. OpsLeader configures bidirectional exclusion rules (A ⇔ B) before the draw.',
-    color: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+    color: 'bg-kk-warning text-kk-on-warning border-kk-border-strong',
   },
   ASSIGNED: {
     title: 'Stage 3: Assigned & Manifest Acquisition',
     desc: 'Sattolo derangement executed! Operatives inspect target wishlists and acquire classified Manifest Items.',
-    color: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+    color: 'bg-kk-warning text-kk-on-warning border-kk-border-strong',
   },
   EXECUTED: {
     title: 'Stage 4: Shipped & Pre-Exchange',
     desc: 'Manifest gifts in transit. Tracking numbers verified. Agents countdown to Exchange Day.',
-    color: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+    color: 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40',
   },
   COMPLETED: {
     title: 'Stage 5: Completed & AAR Debrief',
     desc: 'Mission accomplished! After-Action Reports posted, gifts unwrapped, demerits/rehabilitation resolved.',
-    color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    color: 'bg-kk-success text-kk-on-success border-kk-on-success/30',
   },
 };
 
@@ -122,12 +122,12 @@ export default function WorkshopLifecycleBench() {
   };
 
   const getBadgeStyle = (days: number) => {
-    if (days < 0) return 'bg-slate-800 text-gray-400 border-slate-700';
+    if (days < 0) return 'bg-kk-surface text-kk-muted border-kk-border';
     if (days === 0)
-      return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-lg shadow-emerald-950/40 animate-pulse';
+      return 'bg-kk-success text-kk-on-success border-kk-on-success/30 shadow-lg shadow-black/20 animate-pulse';
     if (days <= 3)
-      return 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-lg shadow-amber-950/40';
-    return 'bg-sky-500/10 text-sky-300 border-sky-500/30';
+      return 'bg-kk-warning text-kk-on-warning border-kk-border-strong shadow-lg shadow-black/20';
+    return 'bg-kk-inset text-kk-accent border-kk-border-strong';
   };
 
   const handleAdvancePhase = (nextPhase: OperationPhase) => {
@@ -151,18 +151,18 @@ export default function WorkshopLifecycleBench() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-kk-border">
         <div>
           <div className="flex items-center gap-3">
-            <span className="h-3 w-3 rounded-full bg-amber-500 animate-pulse inline-block"></span>
-            <span className="text-xs px-2 py-0.5 rounded font-mono uppercase bg-amber-950/80 text-amber-300 border border-amber-500/30">
+            <span className="h-3 w-3 rounded-full bg-kk-gold animate-pulse inline-block"></span>
+            <span className="text-xs px-2 py-0.5 rounded font-mono uppercase bg-kk-warning text-kk-on-warning border border-kk-border-strong">
               WORKSHOP LAB // 5-STAGE MISSION LIFECYCLE
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 text-white flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 text-kk-heading flex items-center gap-2">
             <span>5-Stage Mission Phase & Time-Shift Simulator</span>
           </h1>
-          <p className="text-gray-400 text-xs font-mono mt-1">
+          <p className="text-kk-muted text-xs font-mono mt-1">
             Simulate virtual calendar timelines, inspect milestone countdown badges, and test phase-scoped OpsLeader admin controls.
           </p>
         </div>
@@ -170,19 +170,19 @@ export default function WorkshopLifecycleBench() {
         <div className="flex items-center gap-2">
           <Link
             href="/workshop/draw"
-            className="bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
+            className="bg-kk-success hover:brightness-95 text-kk-on-success border border-kk-on-success/30 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
           >
             🎯 Draw & Swap
           </Link>
           <Link
             href="/workshop/scraper"
-            className="bg-sky-950/60 hover:bg-sky-900/80 text-sky-300 border border-sky-500/40 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
+            className="bg-kk-inset/60 hover:bg-kk-inset text-kk-accent border border-kk-border-strong px-3 py-1.5 rounded-lg font-mono text-xs transition-colors flex items-center gap-1"
           >
             🔎 Scraper
           </Link>
           <Link
             href="/workshop"
-            className="bg-slate-800 hover:bg-slate-700 text-gray-300 px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
+            className="bg-kk-surface hover:border-kk-border-strong text-kk-ink px-3 py-1.5 rounded-lg font-mono text-xs transition-colors"
           >
             ← Workshop Hub
           </Link>
@@ -190,10 +190,10 @@ export default function WorkshopLifecycleBench() {
       </div>
 
       {/* 5-Stage Progression Timeline Step Bar */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
-        <div className="flex items-center justify-between text-xs font-mono text-gray-400 mb-2 px-1">
+      <div className="p-4 rounded-2xl bg-kk-surface border border-kk-border">
+        <div className="flex items-center justify-between text-xs font-mono text-kk-muted mb-2 px-1">
           <span>MISSION STAGE PROGRESSION</span>
-          <span className="text-amber-400 font-bold">{phase}</span>
+          <span className="text-kk-gold-ink font-bold">{phase}</span>
         </div>
         <div className="grid grid-cols-5 gap-2">
           {(['RECRUITING', 'SETUP', 'ASSIGNED', 'EXECUTED', 'COMPLETED'] as OperationPhase[]).map((stage, idx) => {
@@ -206,10 +206,10 @@ export default function WorkshopLifecycleBench() {
                 onClick={() => handleAdvancePhase(stage)}
                 className={`py-2 px-2 rounded-xl text-[11px] font-mono font-bold text-center border transition-all cursor-pointer ${
                   isCurrent
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-950/60 scale-[1.02]'
+                    ? 'bg-kk-gold text-kk-on-gold border-kk-border-strong shadow-md shadow-black/20 scale-[1.02]'
                     : isPassed
-                    ? 'bg-slate-800 text-emerald-300 border-emerald-500/40'
-                    : 'bg-slate-950 text-gray-500 border-slate-800 hover:border-slate-700'
+                    ? 'bg-kk-surface text-kk-brand border-kk-on-success/30'
+                    : 'bg-kk-inset text-kk-muted border-kk-border hover:border-kk-border-strong'
                 }`}
               >
                 <div className="text-[10px] opacity-75">{idx + 1}. STAGE</div>
@@ -227,17 +227,17 @@ export default function WorkshopLifecycleBench() {
         <div className="lg:col-span-1 space-y-6">
           
           {/* Virtual Clock Panel */}
-          <div className="p-6 rounded-2xl border bg-slate-900 border-amber-500/40 shadow-xl">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-2">
+          <div className="p-6 rounded-2xl border bg-kk-surface border-kk-border-strong shadow-xl">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-kk-gold-ink mb-2 flex items-center gap-2">
               <span>📅 VIRTUAL SYSTEM DATE OVERRIDE</span>
             </h2>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-kk-muted mb-4">
               Shift virtual system time to test how date schedules and badges react in real time.
             </p>
 
             <div className="space-y-4 font-mono text-xs">
               <div>
-                <label className="block text-gray-300 mb-1 font-bold">VIRTUAL TODAY (System Time):</label>
+                <label className="block text-kk-ink mb-1 font-bold">VIRTUAL TODAY (System Time):</label>
                 <input
                   type="date"
                   value={virtualDate}
@@ -245,44 +245,44 @@ export default function WorkshopLifecycleBench() {
                     setVirtualDate(e.target.value);
                     addLog(`TIME SHIFT: Virtual system date set to ${e.target.value}`);
                   }}
-                  className="w-full bg-slate-950 border border-amber-500/40 rounded-lg px-3 py-2 text-amber-300 font-bold focus:outline-none focus:border-amber-400"
+                  className="w-full bg-kk-inset border border-kk-border-strong rounded-lg px-3 py-2 text-kk-gold-ink font-bold focus:outline-none focus:border-kk-focus"
                 />
               </div>
 
               {/* Day-by-Day Stepping Controls */}
-              <div className="pt-2 pb-1 space-y-2 border-t border-slate-800">
+              <div className="pt-2 pb-1 space-y-2 border-t border-kk-border">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
+                  <span className="text-[11px] text-kk-gold-ink font-bold flex items-center gap-1">
                     <span>⚡ TIMELINE STEPPER</span>
                   </span>
-                  <span className="text-[10px] text-gray-400 font-normal">Step day-by-day</span>
+                  <span className="text-[10px] text-kk-muted font-normal">Step day-by-day</span>
                 </div>
 
                 <div className="grid grid-cols-4 gap-1.5 font-mono">
                   <button
                     onClick={() => handleStepDays(-7)}
-                    className="bg-slate-800 hover:bg-slate-700 text-gray-300 py-2 px-1 rounded-lg text-xs font-bold border border-slate-700 hover:border-slate-600 transition-all cursor-pointer text-center"
+                    className="bg-kk-surface hover:border-kk-border-strong text-kk-ink py-2 px-1 rounded-lg text-xs font-bold border border-kk-border hover:border-kk-border-strong transition-all cursor-pointer text-center"
                     title="Rewind 7 Days"
                   >
                     -7d ⏪
                   </button>
                   <button
                     onClick={() => handleStepDays(-1)}
-                    className="bg-slate-800 hover:bg-slate-700 text-gray-300 py-2 px-1 rounded-lg text-xs font-bold border border-slate-700 hover:border-slate-600 transition-all cursor-pointer text-center"
+                    className="bg-kk-surface hover:border-kk-border-strong text-kk-ink py-2 px-1 rounded-lg text-xs font-bold border border-kk-border hover:border-kk-border-strong transition-all cursor-pointer text-center"
                     title="Rewind 1 Day"
                   >
                     -1 Day ◀
                   </button>
                   <button
                     onClick={() => handleStepDays(1)}
-                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 py-2 px-1 rounded-lg text-xs font-black border border-amber-400 shadow-md shadow-amber-950/50 transition-all cursor-pointer text-center"
+                    className="bg-kk-gold hover:brightness-95 text-kk-on-gold py-2 px-1 rounded-lg text-xs font-black border border-kk-border-strong shadow-md shadow-black/20 transition-all cursor-pointer text-center"
                     title="Advance 1 Day Forward"
                   >
                     +1 Day ▶
                   </button>
                   <button
                     onClick={() => handleStepDays(7)}
-                    className="bg-slate-800 hover:bg-slate-700 text-amber-300 py-2 px-1 rounded-lg text-xs font-bold border border-slate-700 hover:border-slate-600 transition-all cursor-pointer text-center"
+                    className="bg-kk-surface hover:border-kk-border-strong text-kk-gold-ink py-2 px-1 rounded-lg text-xs font-bold border border-kk-border hover:border-kk-border-strong transition-all cursor-pointer text-center"
                     title="Advance 7 Days Forward"
                   >
                     +7d ⏩
@@ -298,8 +298,8 @@ export default function WorkshopLifecycleBench() {
                     }}
                     className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center gap-2 cursor-pointer border ${
                       isPlaying
-                        ? 'bg-rose-950 text-rose-200 border-rose-500 shadow-lg shadow-rose-950/50 animate-pulse'
-                        : 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border-emerald-500/40 shadow-lg shadow-emerald-950/40'
+                        ? 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40 shadow-lg shadow-black/20 animate-pulse'
+                        : 'bg-kk-success hover:brightness-95 text-kk-on-success border-kk-on-success/30 shadow-lg shadow-black/20'
                     }`}
                   >
                     <span>{isPlaying ? '⏸️ PAUSE SIMULATION TICKER' : '▶️ AUTO-PLAY TICKER (+1 Day / sec)'}</span>
@@ -307,7 +307,7 @@ export default function WorkshopLifecycleBench() {
                 </div>
 
                 {/* Auto-Sync Stage Checkbox */}
-                <label className="flex items-start gap-2 pt-1 cursor-pointer select-none text-[11px] text-gray-400 font-sans leading-tight">
+                <label className="flex items-start gap-2 pt-1 cursor-pointer select-none text-[11px] text-kk-muted font-sans leading-tight">
                   <input
                     type="checkbox"
                     checked={autoSyncStage}
@@ -319,8 +319,8 @@ export default function WorkshopLifecycleBench() {
               </div>
 
               {/* Quick Preset Buttons */}
-              <div className="space-y-2 pt-2 border-t border-slate-800">
-                <span className="text-[11px] text-gray-400 block font-sans">1-Click Milestone Jumps:</span>
+              <div className="space-y-2 pt-2 border-t border-kk-border">
+                <span className="text-[11px] text-kk-muted block font-sans">1-Click Milestone Jumps:</span>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => {
@@ -328,10 +328,10 @@ export default function WorkshopLifecycleBench() {
                       setPhase('RECRUITING');
                       addLog('PRESET: Jumped to RSVP Cutoff Day (Nov 20, 2026)');
                     }}
-                    className="bg-slate-800 hover:bg-slate-700 text-sky-300 p-2 rounded-lg text-[11px] text-left border border-slate-700 cursor-pointer"
+                    className="bg-kk-surface hover:border-kk-border-strong text-kk-accent p-2 rounded-lg text-[11px] text-left border border-kk-border cursor-pointer"
                   >
                     <div className="font-bold">RSVP Cutoff</div>
-                    <div className="text-[10px] text-gray-400">Nov 20, 2026</div>
+                    <div className="text-[10px] text-kk-muted">Nov 20, 2026</div>
                   </button>
 
                   <button
@@ -340,10 +340,10 @@ export default function WorkshopLifecycleBench() {
                       setPhase('SETUP');
                       addLog('PRESET: Jumped to Draw Day (Nov 25, 2026)');
                     }}
-                    className="bg-slate-800 hover:bg-slate-700 text-amber-300 p-2 rounded-lg text-[11px] text-left border border-slate-700 cursor-pointer"
+                    className="bg-kk-surface hover:border-kk-border-strong text-kk-gold-ink p-2 rounded-lg text-[11px] text-left border border-kk-border cursor-pointer"
                   >
                     <div className="font-bold">Draw Day 🎲</div>
-                    <div className="text-[10px] text-gray-400">Nov 25, 2026</div>
+                    <div className="text-[10px] text-kk-muted">Nov 25, 2026</div>
                   </button>
 
                   <button
@@ -352,10 +352,10 @@ export default function WorkshopLifecycleBench() {
                       setPhase('ASSIGNED');
                       addLog('PRESET: Jumped to 2-Day Urgent Ship Window (Dec 8, 2026)');
                     }}
-                    className="bg-slate-800 hover:bg-slate-700 text-rose-300 p-2 rounded-lg text-[11px] text-left border border-slate-700 cursor-pointer"
+                    className="bg-kk-surface hover:border-kk-border-strong text-kk-danger p-2 rounded-lg text-[11px] text-left border border-kk-border cursor-pointer"
                   >
                     <div className="font-bold">Ship Urgent ⏳</div>
-                    <div className="text-[10px] text-gray-400">Dec 8 (2d left)</div>
+                    <div className="text-[10px] text-kk-muted">Dec 8 (2d left)</div>
                   </button>
 
                   <button
@@ -364,10 +364,10 @@ export default function WorkshopLifecycleBench() {
                       setPhase('EXECUTED');
                       addLog('PRESET: Jumped to Exchange Day! (Dec 25, 2026)');
                     }}
-                    className="bg-slate-800 hover:bg-slate-700 text-emerald-300 p-2 rounded-lg text-[11px] text-left border border-slate-700 cursor-pointer"
+                    className="bg-kk-surface hover:border-kk-border-strong text-kk-brand p-2 rounded-lg text-[11px] text-left border border-kk-border cursor-pointer"
                   >
                     <div className="font-bold">Exchange Day! 🎉</div>
-                    <div className="text-[10px] text-gray-400">Dec 25, 2026</div>
+                    <div className="text-[10px] text-kk-muted">Dec 25, 2026</div>
                   </button>
                 </div>
               </div>
@@ -375,46 +375,46 @@ export default function WorkshopLifecycleBench() {
           </div>
 
           {/* Operation Milestone Target Dates */}
-          <div className="p-6 rounded-2xl border bg-slate-900 border-slate-800">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-4">
+          <div className="p-6 rounded-2xl border bg-kk-surface border-kk-border">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-kk-ink mb-4">
               🎯 OPERATION TARGET SCHEDULE
             </h2>
 
             <div className="space-y-4 font-mono text-xs">
               <div>
-                <label className="block text-gray-400 mb-1">1. Invite Cutoff (RSVP):</label>
+                <label className="block text-kk-muted mb-1">1. Invite Cutoff (RSVP):</label>
                 <input
                   type="date"
                   value={inviteCutoffDate}
                   onChange={(e) => setInviteCutoffDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
+                  className="w-full bg-kk-inset border border-kk-border rounded px-2.5 py-1.5 text-kk-ink"
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-1">2. Target Draw Date:</label>
+                <label className="block text-kk-muted mb-1">2. Target Draw Date:</label>
                 <input
                   type="date"
                   value={assignmentDate}
                   onChange={(e) => setAssignmentDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
+                  className="w-full bg-kk-inset border border-kk-border rounded px-2.5 py-1.5 text-kk-ink"
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-1">3. Shipping Deadline:</label>
+                <label className="block text-kk-muted mb-1">3. Shipping Deadline:</label>
                 <input
                   type="date"
                   value={shippingDate}
                   onChange={(e) => setShippingDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
+                  className="w-full bg-kk-inset border border-kk-border rounded px-2.5 py-1.5 text-kk-ink"
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-1">4. Exchange Event Date:</label>
+                <label className="block text-kk-muted mb-1">4. Exchange Event Date:</label>
                 <input
                   type="date"
                   value={executionDate}
                   onChange={(e) => setExecutionDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
+                  className="w-full bg-kk-inset border border-kk-border rounded px-2.5 py-1.5 text-kk-ink"
                 />
               </div>
             </div>
@@ -425,14 +425,14 @@ export default function WorkshopLifecycleBench() {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Operation Header & Stage Description */}
-          <div className="p-6 rounded-2xl border bg-slate-900 border-slate-800">
+          <div className="p-6 rounded-2xl border bg-kk-surface border-kk-border">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <div className="text-[11px] font-mono text-slate-400 uppercase tracking-widest">
+                <div className="text-[11px] font-mono text-kk-muted uppercase tracking-widest">
                   OPERATION SCHEDULE MONITOR
                 </div>
-                <h2 className="text-xl font-black text-white mt-1">{opName}</h2>
-                <p className="text-xs text-gray-400 mt-1">{STAGE_METADATA[phase].desc}</p>
+                <h2 className="text-xl font-black text-kk-heading mt-1">{opName}</h2>
+                <p className="text-xs text-kk-muted mt-1">{STAGE_METADATA[phase].desc}</p>
               </div>
 
               {/* Stage Badge Pill */}
@@ -445,10 +445,10 @@ export default function WorkshopLifecycleBench() {
           </div>
 
           {/* Dynamic Milestone Badges Real-Time Monitor */}
-          <div className="p-6 rounded-2xl border bg-slate-900 border-amber-500/30">
-            <h3 className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider mb-4 flex items-center justify-between">
+          <div className="p-6 rounded-2xl border bg-kk-surface border-kk-border-strong">
+            <h3 className="text-xs font-mono font-bold text-kk-gold-ink uppercase tracking-wider mb-4 flex items-center justify-between">
               <span>⏱️ REAL-TIME MILESTONE COUNTDOWN BADGES</span>
-              <span className="text-[11px] font-normal text-gray-400">Virtual Date: {virtualDate}</span>
+              <span className="text-[11px] font-normal text-kk-muted">Virtual Date: {virtualDate}</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
@@ -513,12 +513,12 @@ export default function WorkshopLifecycleBench() {
           </div>
 
           {/* Phase-Scoped OpsLeader Console Action Suite */}
-          <div className="p-6 rounded-2xl border bg-slate-900 border-slate-800">
-            <h3 className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between">
+          <div className="p-6 rounded-2xl border bg-kk-surface border-kk-border">
+            <h3 className="text-xs font-mono font-bold text-kk-ink uppercase tracking-wider mb-3 flex items-center justify-between">
               <span>🎖️ PHASE-SCOPED OPSLEADER CONSOLE BUTTONS</span>
-              <span className="text-xs text-amber-400">{phase} ACTIONS</span>
+              <span className="text-xs text-kk-gold-ink">{phase} ACTIONS</span>
             </h3>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-kk-muted mb-4">
               Verifies that only authorized OpsLeader action buttons appear for the current stage.
             </p>
 
@@ -530,7 +530,7 @@ export default function WorkshopLifecycleBench() {
                       setActiveModal('INVITE');
                       addLog('ACTION: Triggered [Invite Agent Modal]');
                     }}
-                    className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                    className="bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
                   >
                     ➕ Invite Agent
                   </button>
@@ -539,7 +539,7 @@ export default function WorkshopLifecycleBench() {
                       handleAdvancePhase('SETUP');
                       addLog('ACTION: Closed Recruitment -> Advanced to SETUP stage.');
                     }}
-                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                    className="bg-kk-gold hover:brightness-95 text-kk-on-gold font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
                   >
                     🔒 Close Recruitment
                   </button>
@@ -553,7 +553,7 @@ export default function WorkshopLifecycleBench() {
                       setActiveModal('RULES');
                       addLog('ACTION: Opened [Bidirectional Match Rules Editor (A ⇔ B)]');
                     }}
-                    className="bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                    className="bg-kk-gold hover:brightness-95 text-kk-on-gold font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
                   >
                     🚫 Match Rules (A ⇔ B)
                   </button>
@@ -562,7 +562,7 @@ export default function WorkshopLifecycleBench() {
                       handleAdvancePhase('ASSIGNED');
                       addLog('ACTION: Executed Sattolo Derangement -> Advanced to ASSIGNED stage.');
                     }}
-                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                    className="bg-kk-secondary hover:bg-kk-secondary-hover text-kk-on-secondary font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
                   >
                     🎲 Execute Sattolo Target Draw
                   </button>
@@ -576,7 +576,7 @@ export default function WorkshopLifecycleBench() {
                       setActiveModal('BROADCAST');
                       addLog('ACTION: Opened [OpTeam Broadcast Alert Modal]');
                     }}
-                    className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                    className="bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
                   >
                     📢 OpTeam Broadcast Alert
                   </button>
@@ -585,7 +585,7 @@ export default function WorkshopLifecycleBench() {
                       setActiveModal('SWAP');
                       addLog('ACTION: Opened [2-Way Cascade Target Swap Console]');
                     }}
-                    className="bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                    className="bg-kk-gold hover:brightness-95 text-kk-on-gold font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
                   >
                     🎯 2-Way Target Swap Console
                   </button>
@@ -594,7 +594,7 @@ export default function WorkshopLifecycleBench() {
                       handleAdvancePhase('COMPLETED');
                       addLog('ACTION: Ended Operation -> Advanced to COMPLETED stage.');
                     }}
-                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                    className="bg-kk-secondary hover:bg-kk-secondary-hover text-kk-on-secondary font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
                   >
                     🏁 End Operation Event
                   </button>
@@ -608,7 +608,7 @@ export default function WorkshopLifecycleBench() {
                       setActiveModal('DEMERIT');
                       addLog('ACTION: Opened [Demerit Penalty & Coal Citation Console]');
                     }}
-                    className="bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                    className="bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
                   >
                     ⚠️ Issue Demerit Citation
                   </button>
@@ -617,7 +617,7 @@ export default function WorkshopLifecycleBench() {
                       setActiveModal('AAR');
                       addLog('ACTION: Opened [After-Action Report Debrief Photo Feed]');
                     }}
-                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
+                    className="bg-kk-secondary hover:bg-kk-secondary-hover text-kk-on-secondary font-bold px-4 py-2 rounded-xl shadow-md cursor-pointer transition-all"
                   >
                     📸 View AAR Debrief Feed
                   </button>
@@ -628,13 +628,13 @@ export default function WorkshopLifecycleBench() {
 
           {/* Modal Preview Staging Box (if active) */}
           {activeModal && (
-            <div className="p-4 rounded-xl bg-slate-950 border border-amber-500/50 flex items-center justify-between">
-              <div className="text-xs font-mono text-amber-300">
+            <div className="p-4 rounded-xl bg-kk-inset border border-kk-border-strong flex items-center justify-between">
+              <div className="text-xs font-mono text-kk-gold-ink">
                 <span className="font-bold">MODAL STAGED:</span> [{activeModal}] Dispatch handler confirmed active.
               </div>
               <button
                 onClick={() => setActiveModal(null)}
-                className="text-xs text-gray-400 hover:text-white underline cursor-pointer"
+                className="text-xs text-kk-muted hover:text-kk-ink underline cursor-pointer"
               >
                 Dismiss Preview
               </button>
@@ -642,23 +642,23 @@ export default function WorkshopLifecycleBench() {
           )}
 
           {/* Event Log Output Terminal */}
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs">
-            <div className="flex items-center justify-between text-gray-400 border-b border-slate-800 pb-2 mb-3">
+          <div className="bg-kk-inset border border-kk-border rounded-xl p-4 font-mono text-xs">
+            <div className="flex items-center justify-between text-kk-muted border-b border-kk-border pb-2 mb-3">
               <span>🖥️ SIMULATION EVENT LOG</span>
-              <button onClick={() => setEventLogs([])} className="text-[11px] text-gray-500 hover:text-rose-400 cursor-pointer">
+              <button onClick={() => setEventLogs([])} className="text-[11px] text-kk-muted hover:text-kk-danger cursor-pointer">
                 Clear Terminal
               </button>
             </div>
-            <div className="h-32 overflow-y-auto space-y-1 text-slate-300">
+            <div className="h-32 overflow-y-auto space-y-1 text-kk-ink">
               {eventLogs.map((log, idx) => (
                 <div
                   key={idx}
                   className={
                     log.includes('ACTION')
-                      ? 'text-amber-300'
+                      ? 'text-kk-gold-ink'
                       : log.includes('TIME') || log.includes('PRESET')
-                      ? 'text-sky-300'
-                      : 'text-gray-400'
+                      ? 'text-kk-accent'
+                      : 'text-kk-muted'
                   }
                 >
                   {log}
