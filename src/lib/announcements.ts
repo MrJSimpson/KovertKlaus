@@ -34,6 +34,30 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '0.4.0-alpha',
+    date: '2026-10-15',
+    title: 'Smarter nudges and safer password changes',
+    summary: 'Reminders from your Head Elf now tell you exactly what is due next, and changing your password signs out every other device.',
+    highlights: [
+      {
+        emoji: '🔔',
+        title: 'Nudges that say what is due',
+        text: 'When your Head Elf nudges you, the reminder names your next deadline and the date, like "Ship-by deadline is Thu, Dec 10 (in 3 days)", and tells you what to do. It also appears in your Command channel, so you can reply right there.',
+      },
+      {
+        emoji: '🔐',
+        title: 'Password change signs out other devices',
+        text: 'If you change your password, every other browser or phone signed in to your account is signed out. The device you used stays signed in.',
+      },
+      {
+        emoji: '🧪',
+        title: 'Try it with demo data',
+        text: 'Running your own server? One command loads demo agents and missions so you can explore every stage before inviting real people.',
+        selfHostedOnly: true,
+      },
+    ],
+  },
+  {
     version: '0.3.0-alpha',
     date: '2026-10-15',
     title: 'Mission Comms, email invitations and a team roster',
