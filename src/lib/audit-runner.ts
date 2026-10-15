@@ -18,7 +18,7 @@ export async function processExchangeAudit(db: any, exchange: any): Promise<Audi
   // If the mission has demerits disabled, do not evaluate or assign any penalties
   if (exchange.enforcePenalties === false) {
     const now = new Date();
-    const updateData: any = { status: 'COMPLETED' };
+    const updateData: any = { status: 'COMPLETED', completedAt: exchange.completedAt ?? now };
     if (!exchange.executionDate || new Date(exchange.executionDate) > now) {
       updateData.executionDate = now;
     }
@@ -85,7 +85,7 @@ export async function processExchangeAudit(db: any, exchange: any): Promise<Audi
 
   // Ensure exchange is marked as COMPLETED and executionDate is set
   const now = new Date();
-  const updateData: any = { status: 'COMPLETED' };
+  const updateData: any = { status: 'COMPLETED', completedAt: exchange.completedAt ?? now };
   if (!exchange.executionDate || new Date(exchange.executionDate) > now) {
     updateData.executionDate = now;
   }
