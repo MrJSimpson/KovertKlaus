@@ -99,8 +99,8 @@ http://localhost:3000
 | :--- | :--- | :--- |
 | **Launch Server** | [`run-kovertklaus.bat`](./run-kovertklaus.bat) | Checks port 3000 and starts `npm run dev` in a dedicated background window. |
 | **Stop Server** | [`stop-kovertklaus.bat`](./stop-kovertklaus.bat) | Gracefully terminates any process listening on port 3000. |
-| **Back Up DB** | [`export-db.bat`](./export-db.bat) | Dumps the PostgreSQL container database to `backups/kovertklaus-backup.sql` (gitignored: real data). |
-| **Restore DB** | [`restore-db.bat`](./restore-db.bat) | Replaces the container database with `backups/kovertklaus-backup.sql`. |
+| **Back Up DB** | [`export-db.bat`](./export-db.bat) | Dumps the PostgreSQL container database to `backups/kovertklaus-backup.dump` (gitignored: real data) and keeps the previous backup as `kovertklaus-backup.prev.dump`. |
+| **Restore DB** | [`restore-db.bat`](./restore-db.bat) | Replaces the container database with `backups/kovertklaus-backup.dump` (an older `kovertklaus-backup.sql` also works). |
 | **Try the Demo** | `npm run demo:load` / `npm run demo:remove` | Loads or removes demo agents and missions ([`docs/DEMO_DATABASE.md`](./docs/DEMO_DATABASE.md)). |
 
 ---

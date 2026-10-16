@@ -74,4 +74,4 @@ This deletes every `@demo.invalid` account and every mission they organize. Your
 
 ## Backing up your real data
 
-The demo is not a backup tool. To back up or restore your own container database, use `export-db.bat` / `restore-db.bat` (Windows). They write to `backups/kovertklaus-backup.sql`, which is gitignored because it contains your real data. Never commit it.
+The demo is not a backup tool. To back up or restore your own container database, use `export-db.bat` / `restore-db.bat` (Windows). They write to `backups/kovertklaus-backup.dump`, which is gitignored because it contains your real data. Never commit it.
