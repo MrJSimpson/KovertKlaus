@@ -34,6 +34,44 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '0.5.0-alpha',
+    date: '2026-10-20',
+    title: 'Codenames and wishlists for every mission',
+    summary: 'Thanks to your feedback, every mission now gives you a fresh codename and its own wishlist, adding gifts is simpler, and the mission page shows you just what you need.',
+    highlights: [
+      {
+        emoji: '🕵️',
+        title: 'A new codename for each mission',
+        text: 'When you join a mission you get a random codename like "Agent: Snowy Spider". Not a fan? Tap Draw another as often as you like, then Accept codename to keep it. Codenames are set once sign-ups close.',
+      },
+      {
+        emoji: '🎁',
+        title: 'One wishlist per mission',
+        text: 'Your wishlist now lives on the mission page and belongs to that mission only, so changing it never affects another mission. Lists you already had were kept.',
+      },
+      {
+        emoji: '🛍️',
+        title: 'Easier to add gifts',
+        text: 'Pick Store-bought gift, paste a link and tap Get Data to fill in the name, price and picture for you. Or pick Personalized gift for something handmade or specially crafted, and describe it with an estimated price.',
+      },
+      {
+        emoji: '💵',
+        title: 'Gifts stay within the spending limit',
+        text: 'Every gift needs a price, and no single gift can cost more than the mission\'s spending limit. Head Elves decide whether a whole wishlist may add up to more than the limit; it may unless they turn that off.',
+      },
+      {
+        emoji: '💬',
+        title: 'A tidier mission page',
+        text: 'Mission Comms now sits right under the Elf Agents list. After targets are drawn, that list shows just the people you can message: your Head Elf, your target and your Secret Santa (whose name stays secret).',
+      },
+      {
+        emoji: '❄️',
+        title: 'A fresh winter look',
+        text: 'New Christmas colors in light mode, blue and gold in dark mode, easier-to-tap buttons on phones, and a wider After-Action Report so your thank-you notes and photos have room to shine.',
+      },
+    ],
+  },
+  {
     version: '0.4.0-alpha',
     date: '2026-10-15',
     title: 'Smarter nudges and safer password changes',
