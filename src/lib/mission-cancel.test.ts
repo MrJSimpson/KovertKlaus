@@ -59,7 +59,7 @@ function fakeDb(status = 'RECRUITING', overrides: Record<string, unknown> = {}) 
         return create;
       },
     },
-    $transaction: async (ops: Promise<unknown>[]) => Promise.all(ops),
+    $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn(db),
   };
   return { db: db as any, exchange, notifications, history, deleted, isDeleted: () => !exists };
 }

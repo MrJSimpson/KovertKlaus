@@ -263,8 +263,9 @@ const ERASABLE_SELECT = {
 /** Writes the history row, erases every trace of the mission, then tells the Head Elf. */
 async function eraseMission(db: PrismaClient, ex: ErasableMission, deletedBy: MissionActor): Promise<void> {
   const memberIds = ex.members.map((m) => m.id);
-  await db.$transaction([
-    db.missionHistory.create({
+  // Callback form: the `db` proxy (src/lib/db.ts) runs model calls eagerly, so the array form fails.
+  await db.$transaction(async (tx) => {
+    await tx.missionHistory.create({
       data: {
         missionId: ex.id,
         isWhiteElephant: ex.isWhiteElephant,
@@ -277,12 +278,12 @@ async function eraseMission(db: PrismaClient, ex: ErasableMission, deletedBy: Mi
         reason: ex.cancelCode || 'UNKNOWN',
         deletedBy,
       },
-    }),
+    });
     // Items are owned by the user, not the wishlist; remove the ones on this mission's lists.
-    db.item.deleteMany({ where: { wishlistItems: { some: { wishlist: { memberId: { in: memberIds } } } } } }),
-    db.notification.deleteMany({ where: { exchangeId: ex.id } }),
-    db.exchange.delete({ where: { id: ex.id } }),
-  ]);
+    await tx.item.deleteMany({ where: { wishlistItems: { some: { wishlist: { memberId: { in: memberIds } } } } } });
+    await tx.notification.deleteMany({ where: { exchangeId: ex.id } });
+    await tx.exchange.delete({ where: { id: ex.id } });
+  });
 
   const by = deletedBy === 'SYSTEM' ? 'KovertKlaus automatically' : deletedBy === 'ADMIN' ? 'A KovertKlaus admin' : 'You';
   await notifyOnce(db, {
