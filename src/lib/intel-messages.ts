@@ -21,6 +21,7 @@
 
 import type { PrismaClient } from '@prisma/client';
 import { sanitizeText } from '@/lib/security';
+import { isMissionClosed, MISSION_CLOSED_RESULT } from '@/lib/mission-cancel';
 
 /** Longest message, in characters, after trimming. */
 export const INTEL_MESSAGE_MAX_CHARS = 500;
@@ -262,6 +263,7 @@ export async function sendIntelMessage(
 
   const ctx = await resolveContext(db, input.exchangeId, input.userId);
   if (!ctx) return { status: 403, body: { error: 'You are not enrolled in this mission.' } };
+  if (isMissionClosed(ctx.mission.status)) return MISSION_CLOSED_RESULT;
 
   let recipientId: string | null = null;
   let isFromSanta = false;

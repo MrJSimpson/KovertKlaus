@@ -4,7 +4,8 @@ import { getSessionUserId } from '@/lib/auth';
 import { validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
 import { generateInviteCode } from '@/lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
-import { sendAssignmentEmail, sendNudgeEmail } from '@/lib/email';
+import { sendAssignmentEmail, sendMissionCancelledEmail, sendNudgeEmail } from '@/lib/email';
+import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from '@/lib/mission-cancel';
 import { IS_SAAS } from '@/lib/config/mode';
 import {
   generateKdmToken,
@@ -125,6 +126,36 @@ export async function POST(request: Request) {
 
     if (!activeUserId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    // Cancelled missions are read-only; deleting one is the only action left.
+    if (operationId && action !== 'deleteMission') {
+      const closed = await closedMissionGuard(db, operationId);
+      if (closed) return NextResponse.json(closed.body, { status: closed.status });
+    }
+
+    // Action: Cancel the mission (Head Elf). Every agent is notified and emailed.
+    if (action === 'cancelMission' && operationId) {
+      const result = await cancelMission(
+        db,
+        {
+          baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com',
+          sendEmail: (email) => sendMissionCancelledEmail(email),
+        },
+        { exchangeId: operationId, actor: 'HEAD_ELF', actorUserId: activeUserId, reason: (body as { reason?: unknown }).reason }
+      );
+      return NextResponse.json(result.body, { status: result.status });
+    }
+
+    // Action: Permanently delete a cancelled mission (Head Elf, 48 h after a pre-draw cancellation).
+    if (action === 'deleteMission' && operationId) {
+      const result = await deleteMission(db, {
+        exchangeId: operationId,
+        actor: 'HEAD_ELF',
+        actorUserId: activeUserId,
+        confirm: (body as { confirm?: unknown }).confirm,
+      });
+      return NextResponse.json(result.body, { status: result.status });
     }
 
     // Action: Trigger Target Draw for Secret Santa
@@ -938,6 +969,10 @@ export async function PATCH(request: Request) {
 
     if (ex.organizerId !== activeUserId) {
       return NextResponse.json({ error: 'Only the designated Organizer can perform administrative actions' }, { status: 403 });
+    }
+
+    if (isMissionClosed(ex.status)) {
+      return NextResponse.json(MISSION_CLOSED_RESULT.body, { status: MISSION_CLOSED_RESULT.status });
     }
 
     // Member-scoped actions must target a member of THIS exchange, never an arbitrary row.

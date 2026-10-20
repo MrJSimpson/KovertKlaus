@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/adminDb';
 import { verifyAdminSession } from '@/lib/adminAuth';
+import { sendMissionCancelledEmail } from '@/lib/email';
+import { logInfo } from '@/lib/logger';
+import { cancelMission, deleteMission } from '@/lib/mission-cancel';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +65,9 @@ export async function GET(request: Request) {
                 messagesCount: operation._count.messages,
                 reportsCount: operation._count.reports,
                 createdAt: operation.createdAt,
+                cancelledAt: operation.cancelledAt,
+                cancelledBy: operation.cancelledBy,
+                cancelledFromStatus: operation.cancelledFromStatus,
               },
             ]
           : [],
@@ -130,10 +136,55 @@ export async function GET(request: Request) {
         messagesCount: op._count.messages,
         reportsCount: op._count.reports,
         createdAt: op.createdAt,
+        cancelledAt: op.cancelledAt,
+        cancelledBy: op.cancelledBy,
+        cancelledFromStatus: op.cancelledFromStatus,
       })),
     });
   } catch (error: any) {
     console.error('Failed to list operations:', error);
     return NextResponse.json({ error: error?.message || 'Failed to list operations' }, { status: 500 });
+  }
+}
+
+/**
+ * Cancels (`{ action: 'cancel', operationId, reason? }`) or permanently deletes
+ * (`{ action: 'delete', operationId, confirm: true }`) a mission as a North Pole admin.
+ * The same rules apply as for the Head Elf (`@/lib/mission-cancel`); agents are told an admin acted.
+ */
+export async function POST(request: Request) {
+  try {
+    const admin = await verifyAdminSession();
+    if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = (await request.json().catch(() => ({}))) as { action?: unknown; operationId?: unknown; reason?: unknown; confirm?: unknown };
+    let result;
+    if (body.action === 'cancel') {
+      result = await cancelMission(
+        adminDb,
+        {
+          baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com',
+          sendEmail: (email) => sendMissionCancelledEmail(email),
+        },
+        { exchangeId: body.operationId, actor: 'ADMIN', reason: body.reason }
+      );
+    } else if (body.action === 'delete') {
+      result = await deleteMission(adminDb, { exchangeId: body.operationId, actor: 'ADMIN', confirm: body.confirm });
+    } else {
+      return NextResponse.json({ error: "action must be 'cancel' or 'delete'" }, { status: 400 });
+    }
+
+    if (result.status === 200) {
+      await logInfo('ADMIN', `Admin ${admin.username || admin.email} ${body.action === 'cancel' ? 'cancelled' : 'deleted'} mission ${String(body.operationId)}`, {
+        dbClient: adminDb,
+        metadata: { adminId: admin.id, operationId: body.operationId, action: body.action },
+        path: '/api/northpole/operations',
+        statusCode: 200,
+      }).catch(() => {});
+    }
+    return NextResponse.json(result.body, { status: result.status });
+  } catch (error) {
+    console.error('[NorthPole Operations] cancel/delete failed:', error);
+    return NextResponse.json({ error: 'Failed to update the mission' }, { status: 500 });
   }
 }

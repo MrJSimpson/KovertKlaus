@@ -26,6 +26,7 @@ import {
   sendClearanceApprovalEmail,
   sendAssignmentEmail,
   sendNudgeEmail,
+  sendMissionCancelledEmail,
 } from './lib/email';
 import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
@@ -43,6 +44,7 @@ import { dispatchNudge } from './lib/nudge';
 import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { dismissNotifications, listMyNotifications } from './lib/notifications';
+import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
@@ -687,6 +689,40 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }));
 
         return Response.json({ success: true, operations: formatted, totalCount });
+      }
+
+      // /api/northpole/operations (POST): admin cancel or delete, shared with the Next route.
+      if (pathname === '/api/northpole/operations' && request.method === 'POST') {
+        const admin = await requireAdmin(request, adminDb);
+        if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+        const body = (await request.json().catch(() => ({}))) as { action?: unknown; operationId?: unknown; reason?: unknown; confirm?: unknown };
+        let result;
+        if (body.action === 'cancel') {
+          const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+          result = await cancelMission(
+            adminDb,
+            {
+              baseUrl: url.origin || 'https://kovertklaus.com',
+              sendEmail: (email) => sendMissionCancelledEmail({ ...email, overrideConfig: emailConfig }),
+            },
+            { exchangeId: body.operationId, actor: 'ADMIN', reason: body.reason }
+          );
+        } else if (body.action === 'delete') {
+          result = await deleteMission(adminDb, { exchangeId: body.operationId, actor: 'ADMIN', confirm: body.confirm });
+        } else {
+          return Response.json({ error: "action must be 'cancel' or 'delete'" }, { status: 400 });
+        }
+
+        if (result.status === 200) {
+          await logInfo('ADMIN', `Admin ${admin.username || admin.email} ${body.action === 'cancel' ? 'cancelled' : 'deleted'} mission ${String(body.operationId)}`, {
+            dbClient: adminDb,
+            metadata: { adminId: admin.id, operationId: body.operationId, action: body.action },
+            path: '/api/northpole/operations',
+            statusCode: 200,
+          }).catch(() => {});
+        }
+        return Response.json(result.body, { status: result.status });
       }
 
       // 7. /api/northpole/email/test (POST)
@@ -1500,6 +1536,32 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           if (!userId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
+          // Cancelled missions are read-only; deleting one is the only action left.
+          if (operationId && action !== 'deleteMission') {
+            const closed = await closedMissionGuard(db, operationId);
+            if (closed) return Response.json(closed.body, { status: closed.status });
+          }
+
+          // Cancel the mission (Head Elf). Every agent is notified and emailed.
+          if (action === 'cancelMission' && operationId) {
+            const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+            const result = await cancelMission(
+              db,
+              {
+                baseUrl: url.origin || 'https://kovertklaus.com',
+                sendEmail: (email) => sendMissionCancelledEmail({ ...email, overrideConfig: emailConfig }),
+              },
+              { exchangeId: operationId, actor: 'HEAD_ELF', actorUserId: userId, reason: body.reason }
+            );
+            return Response.json(result.body, { status: result.status });
+          }
+
+          // Permanently delete a cancelled mission (Head Elf, 48 h after a pre-draw cancellation).
+          if (action === 'deleteMission' && operationId) {
+            const result = await deleteMission(db, { exchangeId: operationId, actor: 'HEAD_ELF', actorUserId: userId, confirm: body.confirm });
+            return Response.json(result.body, { status: result.status });
+          }
+
           // Action 1: Draw
           if (action === 'draw' && operationId) {
             const ex = await db.exchange.findUnique({ where: { id: operationId }, include: { members: true, exclusionRules: true, organizer: true } });
@@ -1993,6 +2055,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const ex = await db.exchange.findUnique({ where: { id: operationId } });
           if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
           if (ex.organizerId !== activeUserId) return Response.json({ error: 'Only organizer can perform admin actions' }, { status: 403 });
+          if (isMissionClosed(ex.status)) return Response.json(MISSION_CLOSED_RESULT.body, { status: MISSION_CLOSED_RESULT.status });
 
           // Member-scoped actions must target a member of THIS exchange, never an arbitrary row.
           const findScopedMember = (id: string) =>
@@ -2225,6 +2288,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const { operationId, isLocalDelivery, trackingNumber } = body;
 
         if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
+        const shippingClosed = await closedMissionGuard(db, operationId);
+        if (shippingClosed) return Response.json(shippingClosed.body, { status: shippingClosed.status });
 
         const member = await db.exchangeMember.findUnique({
           where: {

@@ -10,6 +10,7 @@ import {
   getClearanceConfirmationEmailTemplate,
   getClearanceApprovalEmailTemplate,
   getInvitationEmailTemplate,
+  getMissionCancelledEmailTemplate,
   getNudgeEmailTemplate,
   getWelcomeEmailTemplate,
 } from './templates';
@@ -22,6 +23,7 @@ import {
   EmailMessage,
   EmailResult,
   InvitationEmailParams,
+  MissionCancelledEmailParams,
   NudgeEmailParams,
   WelcomeEmailParams,
 } from './types';
@@ -273,3 +275,22 @@ export async function sendClearanceApprovalEmail(params: ClearanceApprovalParams
   );
 }
 
+
+/**
+ * Dispatches the "mission cancelled" email to one agent.
+ */
+export async function sendMissionCancelledEmail(params: MissionCancelledEmailParams): Promise<EmailResult> {
+  const { subject, html, text } = getMissionCancelledEmailTemplate(params);
+  const targetEmail = params.recipientEmail || params.to || '';
+  const recipientName = params.recipientName || 'Operative';
+  return sendEmail(
+    {
+      to: { email: targetEmail, name: recipientName },
+      subject,
+      html,
+      text,
+      tags: ['mission', 'cancelled'],
+    },
+    params.overrideConfig
+  );
+}
