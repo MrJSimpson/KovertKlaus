@@ -30,7 +30,7 @@ export default function AARWorkshopBenchPage() {
     {
       id: 'mock-1',
       userId: 'user-shannon',
-      thankYouText: '[🎁 Received in Person] Thank you so much Secret Santa! The cozy winter throw blanket and gourmet cocoa are perfect for the snowstorm! 🎄☕',
+      thankYouText: 'Thank you so much Secret Santa! The cozy winter throw blanket and gourmet cocoa are perfect for the snowstorm! 🎄☕',
       photoUrl: 'https://images.unsplash.com/photo-1512909006721-3d6018887383?w=800&auto=format&fit=crop&q=80',
       createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
       user: {
@@ -41,7 +41,7 @@ export default function AARWorkshopBenchPage() {
     {
       id: 'mock-2',
       userId: 'user-zach',
-      thankYouText: '[🐘 White Elephant Unboxed] Stole the tactical titanium multitool on turn 3 and held through the 3-swap freeze! Best White Elephant steal ever! 🕶️⚡',
+      thankYouText: 'Stole the tactical titanium multitool on turn 3 and held through the 3-swap freeze! Best White Elephant steal ever! 🕶️⚡',
       photoUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=800&auto=format&fit=crop&q=80',
       createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
       user: {
@@ -52,7 +52,7 @@ export default function AARWorkshopBenchPage() {
     {
       id: 'mock-3',
       userId: 'user-terry',
-      thankYouText: '[📦 Delivered via Carrier] Package arrived on time in pristine condition! Thank you for the aviation mechanics handbook and tools! ✈️',
+      thankYouText: 'Package arrived on time in pristine condition! Thank you for the aviation mechanics handbook and tools! ✈️',
       photoUrl: null,
       createdAt: new Date(Date.now() - 3600000).toISOString(),
       user: {
@@ -418,7 +418,7 @@ export default function AARWorkshopBenchPage() {
               const newEntry: AARReportEntry = {
                 id: `mock-${Date.now()}`,
                 userId: 'user-joshua',
-                thankYouText: '[🎁 Received in Person] Test debrief posted from workshop sandbox! 🌟',
+                thankYouText: 'Test debrief posted from workshop sandbox! 🌟',
                 photoUrl: result?.dataUrl || null,
                 createdAt: new Date().toISOString(),
                 user: {

@@ -29,13 +29,6 @@ interface AfterActionReportSectionProps {
   onReportPosted: () => void;
 }
 
-const DELIVERY_TAGS = [
-  { id: 'in_person', label: '🎁 Received in Person' },
-  { id: 'shipped_mail', label: '📦 Delivered via Carrier' },
-  { id: 'white_elephant', label: '🐘 White Elephant Unboxed' },
-  { id: 'stealth_drop', label: '🕶️ Kovert Delivery' },
-];
-
 const SUGGESTED_NOTES = [
   'Thank you so much Secret Santa! 🎄',
   'The tactical kit is incredible! 🕶️',
@@ -56,7 +49,6 @@ export function AfterActionReportSection({
   const [thankYouText, setThankYouText] = useState('');
   const [photoMode, setPhotoMode] = useState<'upload' | 'url'>('upload');
   const [photoUrl, setPhotoUrl] = useState('');
-  const [selectedTag, setSelectedTag] = useState<string>('in_person');
   
   // Compression & Upload State
   const [compressing, setCompressing] = useState(false);
@@ -138,13 +130,6 @@ export function AfterActionReportSection({
     setSuccessMessage('');
 
     try {
-      // Prepend selected delivery tag if a message is present
-      const tagObj = DELIVERY_TAGS.find((t) => t.id === selectedTag);
-      const formattedNote = thankYouText.trim();
-      const combinedText = tagObj && formattedNote
-        ? `[${tagObj.label}] ${formattedNote}`
-        : formattedNote || (tagObj ? `[${tagObj.label}]` : '');
-
       const res = await fetch('/api/operations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -152,7 +137,7 @@ export function AfterActionReportSection({
           action: 'createReport',
           operationId,
           userId: currentUserId,
-          thankYouText: combinedText,
+          thankYouText: thankYouText.trim(),
           photoUrl: photoUrl.trim() || undefined,
         }),
       });
@@ -216,29 +201,6 @@ export function AfterActionReportSection({
             {successMessage}
           </div>
         )}
-
-        {/* Delivery Tag Selector */}
-        <div>
-          <label className="block text-xs font-bold text-kk-muted mb-1.5">
-            Mission Fulfillment Type
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {DELIVERY_TAGS.map((tag) => (
-              <button
-                key={tag.id}
-                type="button"
-                onClick={() => setSelectedTag(tag.id)}
-                className={`py-2 px-3 text-xs rounded-xl font-bold border transition-all text-left truncate cursor-pointer ${
-                  selectedTag === tag.id
-                    ? 'bg-kk-warning border-kk-border-strong text-kk-on-warning shadow-xs'
-                    : 'bg-kk-surface border-kk-border text-kk-muted hover:bg-kk-inset'
-                }`}
-              >
-                {tag.label}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* Thank You Message Area */}
         <div>
