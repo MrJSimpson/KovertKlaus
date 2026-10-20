@@ -14,7 +14,7 @@ The demo database lets you **try KovertKlaus on your own machine before you set 
 | **Demo: Office Secret Santa** | Targets drawn, shipping open | See your target's Wishlist Manifest, send anonymous Intel, add a tracking number, swap targets as Head Elf |
 | **Demo: White Elephant Night** | Completed, in person | Read the Debrief, see the one-item White Elephant manifests |
 
-Every demo agent has a Secret Santa Wishlist Manifest (including text-only gifts) and a one-item White Elephant manifest. Mission dates are set **relative to when you load the demo**, so the missions always look current.
+Every demo agent has a Wishlist Manifest in each mission they joined (a priced Secret Santa list, including text-only gifts, or a one-item White Elephant list). Every price is within its mission's spending limit. Mission dates are set **relative to when you load the demo**, so the missions always look current.
 
 | Account | Role |
 | :--- | :--- |

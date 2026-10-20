@@ -39,7 +39,6 @@ Authenticates an operative using email and password, establishing an encrypted s
       "id": "usr_99a8b7c6d5",
       "email": "agent.claus@kovertklaus.com",
       "name": "Agent Claus",
-      "codename": "Frosty-Nine",
       "accountStatus": "ACTIVE",
       "demerits": 0
     },
@@ -66,7 +65,6 @@ Performs pre-flight email availability checks or registers a new operative accou
     "name": "James Bond",
     "email": "operative@example.com",
     "password": "SecurePassword10+",
-    "codename": "Agent: 007",
     "inviteCode": "ALPHA-XXXXXXXXXXXXXXXX"
   }
   ```
@@ -89,7 +87,6 @@ Retrieves the authenticated operative's profile, active mission memberships, and
       "id": "usr_12345",
       "email": "operative@example.com",
       "name": "James Bond",
-      "codename": "Agent: 007",
       "accountStatus": "ACTIVE",
       "demerits": 0,
       "address": "10 Downing Street",
@@ -211,37 +208,54 @@ Enrolls an operative into a holiday mission via invite code.
     "exchangeCode": "KOVERT-87WZ"
   }
   ```
+- **Codename**: the new member gets a random codename from the mission pool, unique within the mission (`data.assignedCodename`). Codenames belong to one mission; accounts have none.
 
----
+### `POST /api/codename`
+Rerolls or accepts the caller's codename in one mission.
 
-## 3. Wishlist Manifests & Metadata Scraper
-
-### `GET /api/opkits`
-Lists all Wishlist Manifests owned by the authenticated operative.
-
+- **Request Body**:
+  ```json
+  {
+    "exchangeId": "uuid",
+    "action": "reroll"
+  }
+  ```
+  `action` is `reroll` or `accept`.
 - **Response `200 OK`**:
   ```json
   {
-    "success": true,
-    "manifests": [
-      {
-        "id": "kit_123",
-        "name": "Primary Holiday Manifest",
-        "type": "WISHLIST",
-        "isMaster": true,
-        "items": [
-          {
-            "id": "item_456",
-            "name": "Tactical Coffee Mug",
-            "url": "https://amazon.com/dp/B08...",
-            "price": 24.99,
-            "thumbnailUrl": "https://m.media-amazon.com/..."
-          }
-        ]
-      }
-    ]
+    "codename": "Snowy Spider",
+    "accepted": false
   }
   ```
+- **Rules**: rerolls are unlimited until the agent accepts. `409` once the codename is accepted or the mission has left `RECRUITING`. `accept` is idempotent. `404` when the caller is not enrolled.
+
+---
+
+## 3. Mission Wishlists & Metadata Scraper
+
+### `/api/wishlist`
+The caller's Wishlist Manifest for one Holiday Mission. Each mission membership has its own list, created when the agent joins and deleted with the membership. All methods need a session (`401` without one) and return `404` when the caller is not in the mission or the item is not on their list for it.
+
+- **`GET /api/wishlist?exchangeId=uuid`** returns the list and the mission's price rules:
+  ```json
+  {
+    "success": true,
+    "wishlist": {
+      "id": "uuid",
+      "type": "STANDARD",
+      "items": [
+        { "id": "uuid", "title": "Tactical Coffee Mug", "price": 24.99, "url": "https://shop.example/mug", "thumbnail": "https://shop.example/mug.jpg" }
+      ]
+    },
+    "rules": { "itemMax": 30, "totalMax": null, "isWhiteElephant": false, "currency": "USD" }
+  }
+  ```
+  `totalMax` is `null` when the Head Elf lets lists total more than the limit (`Exchange.allowWishlistOverBudget`, on by default).
+- **`POST /api/wishlist`** adds an item: `{ "exchangeId", "title", "price", "url"?, "description"?, "thumbnail"?, "properties"?: { "isPersonalized", "details" } }`. Returns `{ "success": true, "item": { … } }`.
+- **`PATCH /api/wishlist`** edits one: `{ "exchangeId", "itemId", …fields to change }`. Fields left out are kept.
+- **`DELETE /api/wishlist?exchangeId=uuid&itemId=uuid`** removes one.
+- **Rules** (`400` with a message the agent can act on): every item needs a price above zero; no item may cost more than the mission's `budgetMax`; when `totalMax` is set, the list may not total more than it; a personalized gift (no store link) needs a description; a White Elephant list holds exactly one item. An edit is checked with the item's resulting price, so an item left over a lowered limit must be fixed or removed.
 
 ---
 
@@ -391,7 +405,6 @@ Inspects a single operative record by ID, or searches records on demand with zer
         "id": "usr_123",
         "email": "operative@example.com",
         "name": "James Bond",
-        "codename": "Agent: 007",
         "demerits": 0,
         "accountStatus": "ACTIVE",
         "isWorkshop": false

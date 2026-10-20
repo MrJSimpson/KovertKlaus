@@ -24,7 +24,7 @@ export async function GET(request: Request) {
         where: id ? { id } : { code },
         include: {
           organizer: {
-            select: { id: true, name: true, email: true, codename: true },
+            select: { id: true, name: true, email: true },
           },
           _count: {
             select: {
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         organizer: {
-          select: { id: true, name: true, email: true, codename: true },
+          select: { id: true, name: true, email: true },
         },
         _count: {
           select: {

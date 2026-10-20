@@ -171,7 +171,6 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
     const modernUserData = {
       name: u.name,
       email: u.email,
-      codename: u.codename,
       passwordHash: u.passwordHash,
       streetAddress: u.streetAddress,
       addressLine2: u.addressLine2,
@@ -218,10 +217,10 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
   }
   console.log(`✅ Users Processed: ${usersCreated} created, ${usersUpdated} updated.`);
 
-  // 2. Extract Wishlists
+  // 2. Extract Wishlists. A Wishlist Manifest now belongs to one mission membership, so legacy
+  // lists are held here and attached when their owner is enrolled in step 3; the rest are skipped.
   const wishlistData = parseSqlCopyTable(content, 'Wishlist');
-  let wishlistsCreated = 0;
-  let wishlistsUpdated = 0;
+  const legacyStandardLists = new Map<string, LegacyWishlist>();
   if (wishlistData) {
     const legacyWishlists: LegacyWishlist[] = wishlistData.rows.map((row) => {
       const obj: any = {};
@@ -238,33 +237,10 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
       };
     });
 
-    console.log(`📋 Found ${legacyWishlists.length} legacy wishlists to migrate.`);
     for (const w of legacyWishlists) {
-      const existing = await db.wishlist.findUnique({ where: { id: w.id } });
-      if (existing) {
-        await db.wishlist.update({
-          where: { id: w.id },
-          data: {
-            name: w.name,
-            type: w.type as any,
-          },
-        });
-        wishlistsUpdated++;
-      } else {
-        await db.wishlist.create({
-          data: {
-            id: w.id,
-            userId: w.userId,
-            name: w.name,
-            type: w.type as any,
-            createdAt: w.createdAt,
-            updatedAt: w.updatedAt,
-          },
-        });
-        wishlistsCreated++;
-      }
+      if (w.type === 'STANDARD' && !legacyStandardLists.has(w.userId)) legacyStandardLists.set(w.userId, w);
     }
-    console.log(`✅ Wishlists Processed: ${wishlistsCreated} created, ${wishlistsUpdated} updated.`);
+    console.log(`📋 Found ${legacyWishlists.length} legacy wishlists; ${legacyStandardLists.size} will attach to mission memberships.`);
   }
 
   // 3. Extract Missions -> Modern Exchanges
@@ -355,12 +331,7 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
       if (m.code === 'SIMPSON-2026') {
         console.log(`👥 Enrolling all ${legacyUsers.length} family members into "${m.title}" (${m.code})...`);
         for (const user of legacyUsers) {
-          // Find standard wishlist for user
-          const userWishlist = await db.wishlist.findFirst({
-            where: { userId: user.id, type: 'STANDARD' },
-          });
-
-          await db.exchangeMember.upsert({
+          const member = await db.exchangeMember.upsert({
             where: {
               exchangeId_userId: {
                 exchangeId,
@@ -369,15 +340,28 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
             },
             update: {
               role: user.id === m.opsLeaderId ? 'ORGANIZER' : 'MEMBER',
-              wishlistId: userWishlist?.id || null,
               codename: user.codename,
             },
             create: {
               exchangeId,
               userId: user.id,
               role: user.id === m.opsLeaderId ? 'ORGANIZER' : 'MEMBER',
-              wishlistId: userWishlist?.id || null,
               codename: user.codename,
+            },
+          });
+
+          // Attach the user's legacy list (keeping its ID) as this membership's Wishlist Manifest.
+          const legacyList = legacyStandardLists.get(user.id);
+          await db.wishlist.upsert({
+            where: { memberId: member.id },
+            update: {},
+            create: {
+              id: legacyList?.id,
+              userId: user.id,
+              memberId: member.id,
+              name: legacyList?.name || 'Wishlist',
+              type: 'STANDARD',
+              createdAt: legacyList?.createdAt,
             },
           });
         }

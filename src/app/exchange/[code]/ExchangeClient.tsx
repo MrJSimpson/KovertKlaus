@@ -18,9 +18,12 @@ import { CompleteOperationModal } from '@/components/CompleteOperationModal';
 import { AfterActionReportSection, AARReportEntry } from '@/components/AfterActionReportSection';
 import { ShippingConfirmationModal } from '@/components/ShippingConfirmationModal';
 import { WishlistItemModal } from '@/components/WishlistItemModal';
+import type { WishlistRules } from '@/lib/mission-wishlist';
+
+/** Dollars with cents, e.g. `$25.00`. */
+const formatMoney = (dollars: number) => `$${Number(dollars).toFixed(2)}`;
 import { detectCarrier } from '@/lib/carrier-tracking';
 import { UserDossierPreferences } from '@/lib/product-intelligence';
-import { generateRandomCodename } from '@/lib/codenameGenerator';
 import { resolveExchangeCode } from '@/lib/exchange-route';
 import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
@@ -33,6 +36,10 @@ interface OperationAgent {
   trackingNumber?: string;
   targetUserId?: string;
   wishlistId?: string;
+  /** Mission codename, assigned at join. */
+  codename?: string;
+  /** Present only on the viewer's own membership. */
+  codenameAccepted?: boolean;
   user?: {
     id: string;
     name: string;
@@ -93,6 +100,8 @@ interface OperationData {
   eventLocation?: string;
   maxParticipants?: number;
   enforcePenalties?: boolean;
+  /** Head Elf toggle: may a wishlist total more than `budgetMax`? Missing means yes. */
+  allowWishlistOverBudget?: boolean;
   organizerId?: string;
   opsLeaderId?: string;
   organizer?: {
@@ -145,7 +154,6 @@ export default function OperationCommandCenterPage() {
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authName, setAuthName] = useState('');
-  const [authCodename, setAuthCodename] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [enlisting, setEnlisting] = useState(false);
@@ -164,7 +172,7 @@ export default function OperationCommandCenterPage() {
       .then((json) => {
         if (cancelled || !json) return;
         const match = (json.invitations || []).find((inv: { exchange: { id: string } }) => inv.exchange.id === inviteExchangeId);
-        setMyInvitation(match ? { id: match.id, organizerName: match.exchange.organizer?.codename || match.exchange.organizer?.name || 'the Head Elf' } : null);
+        setMyInvitation(match ? { id: match.id, organizerName: match.exchange.organizer?.name || 'the Head Elf' } : null);
       })
       .catch(() => {});
     return () => {
@@ -212,12 +220,11 @@ export default function OperationCommandCenterPage() {
   const [editMaxParticipants, setEditMaxParticipants] = useState<number | undefined>(undefined);
   const [editIsLocalOnly, setEditIsLocalOnly] = useState(false);
   const [editEventLocation, setEditEventLocation] = useState('');
+  const [editAllowOverBudget, setEditAllowOverBudget] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsError, setSettingsError] = useState('');
 
-  // Wishlist Manifest & Manifest Items Scraper State
-  const [manifestItemUrl, setManifestItemUrl] = useState('');
-  const [scraping, setScraping] = useState(false);
+  // Wishlist Manifest state
   const [userManifest, setUserManifest] = useState<Array<{
     id: string;
     title: string;
@@ -236,9 +243,11 @@ export default function OperationCommandCenterPage() {
   // Item Customization & Review Modal State
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [itemModalMode, setItemModalMode] = useState<'add' | 'edit'>('add');
+  const [itemModalKind, setItemModalKind] = useState<'store' | 'personalized'>('store');
   const [itemModalData, setItemModalData] = useState<any>(null);
   const [userDossier, setUserDossier] = useState<UserDossierPreferences | undefined>(undefined);
-  const [userWishlistId, setUserWishlistId] = useState<string | undefined>(undefined);
+  const [wishlistRules, setWishlistRules] = useState<WishlistRules | null>(null);
+  const [codenameBusy, setCodenameBusy] = useState(false);
 
   const feasibility = useMemo(() => {
     if (!operation) return null;
@@ -297,14 +306,6 @@ export default function OperationCommandCenterPage() {
             favoriteHobbies: json.user.favoriteHobbies,
           });
 
-          // Pre-populate userManifest from primary wishlist if empty
-          const firstWishlist = json.user.wishlists?.[0];
-          if (firstWishlist) {
-            setUserWishlistId(firstWishlist.id);
-            if (firstWishlist.manifestItems && firstWishlist.manifestItems.length > 0) {
-              setUserManifest(firstWishlist.manifestItems);
-            }
-          }
         } else {
           // The server says the session is gone (expired or signed out): forget the cached
           // identity so the page offers sign-in instead of acting on a dead session.
@@ -322,6 +323,28 @@ export default function OperationCommandCenterPage() {
 
     initSession();
   }, [code]);
+
+  /** Rerolls or accepts the viewer's mission codename via `/api/codename`. */
+  async function updateCodename(action: 'reroll' | 'accept') {
+    if (!operation) return;
+    setCodenameBusy(true);
+    try {
+      const res = await fetch('/api/codename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exchangeId: operation.id, action }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Codename update failed');
+      const patch = (m: OperationAgent) =>
+        m.userId === userId ? { ...m, codename: json.codename, codenameAccepted: json.accepted, user: m.user && { ...m.user, codename: json.codename } } : m;
+      setOperation((prev) => prev && { ...prev, members: prev.members?.map(patch), agents: prev.agents?.map(patch) });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Codename update failed');
+    } finally {
+      setCodenameBusy(false);
+    }
+  }
 
   async function fetchExchangeDetails() {
     if (!code) return;
@@ -356,6 +379,7 @@ export default function OperationCommandCenterPage() {
     setEditMaxParticipants(op.maxParticipants);
     setEditIsLocalOnly(op.isLocalOnly);
     setEditEventLocation(op.eventLocation || '');
+    setEditAllowOverBudget(op.allowWishlistOverBudget !== false);
   }
 
   // Handle Enlistment Authentication (Register / Sign In with Invite Code)
@@ -367,17 +391,12 @@ export default function OperationCommandCenterPage() {
 
     try {
       if (authMode === 'register') {
-        const cleanCodename = authCodename.trim()
-          ? authCodename.trim().replace(/^(agent[-:\s]+)/i, '')
-          : undefined;
-
         const regRes = await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: authName.trim(),
             email: authEmail.trim(),
-            codename: cleanCodename,
             password: authPassword,
             inviteCode: operation.code,
           }),
@@ -483,6 +502,7 @@ export default function OperationCommandCenterPage() {
             maxParticipants: editMaxParticipants ? Number(editMaxParticipants) : undefined,
             isLocalOnly: editIsLocalOnly,
             eventLocation: editEventLocation,
+            allowWishlistOverBudget: editAllowOverBudget,
           },
         }),
       });
@@ -630,72 +650,27 @@ export default function OperationCommandCenterPage() {
     }
   }
 
-  // Handle URL Scraper for Manifest Items
-  async function handleScrapeUrl(e: React.FormEvent) {
-    e.preventDefault();
-    setValidationError('');
-    if (!manifestItemUrl.trim()) return;
-
-    // Strict White Elephant 1-Gift Limit Check
-    if (operation?.isWhiteElephant && userManifest.length >= 1) {
-      setValidationError('🐘 White Elephant Wishlist Manifests are strictly limited to 1 brought gift item per operative!');
-      return;
+  /** Switches Mission Comms to a conversation and scrolls it into view (roster shortcuts). */
+  function openComms(thread: 'command' | 'intel-target' | 'intel-santa') {
+    if (thread === 'command') {
+      setMsgTab('command');
+    } else {
+      setMsgTab('intel');
+      setIntelSide(thread === 'intel-target' ? 'target' : 'santa');
     }
-
-    setScraping(true);
-    try {
-      const res = await fetch('/api/scraper', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: manifestItemUrl.trim() }),
-      });
-      const json = await res.json();
-      const meta = json.metadata || {};
-
-      const initialItemData = {
-        url: manifestItemUrl.trim(),
-        title: meta.title || manifestItemUrl.trim(),
-        price: meta.price,
-        thumbnail: meta.thumbnail,
-        description: meta.description,
-        catalogProperties: meta.properties,
-      };
-
-      setItemModalMode('add');
-      setItemModalData(initialItemData);
-      setItemModalOpen(true);
-      setManifestItemUrl('');
-    } catch {
-      setItemModalMode('add');
-      setItemModalData({ url: manifestItemUrl.trim(), title: manifestItemUrl.trim() });
-      setItemModalOpen(true);
-      setManifestItemUrl('');
-    } finally {
-      setScraping(false);
-    }
+    document.getElementById('mission-comms')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function handleOpenPersonalizedModal() {
+  /** Opens the add form for the gift type the agent picked: store-bought (link + Get Data) or personalized. */
+  function openAddItem(kind: 'store' | 'personalized') {
     setValidationError('');
     if (operation?.isWhiteElephant && userManifest.length >= 1) {
-      setValidationError('🐘 White Elephant Wishlist Manifests are strictly limited to 1 brought gift item per operative!');
+      setValidationError('🐘 A White Elephant list holds exactly 1 gift, the one you are bringing.');
       return;
     }
+    setItemModalKind(kind);
     setItemModalMode('add');
-    setItemModalData({
-      url: '',
-      title: '',
-      price: undefined,
-      description: '',
-      thumbnail: '',
-      properties: {
-        isPersonalized: true,
-        details: [
-          { label: 'Instructions', value: '' },
-          { label: 'Preferences', value: '' },
-        ],
-      },
-    });
+    setItemModalData(null);
     setItemModalOpen(true);
   }
 
@@ -703,7 +678,8 @@ export default function OperationCommandCenterPage() {
   async function handleRemoveManifestItem(itemId: string) {
     setValidationError('');
     try {
-      const res = await fetch(`/api/opkits?itemId=${encodeURIComponent(itemId)}`, { method: 'DELETE' });
+      if (!operation) return;
+      const res = await fetch(`/api/wishlist?exchangeId=${encodeURIComponent(operation.id)}&itemId=${encodeURIComponent(itemId)}`, { method: 'DELETE' });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) throw new Error(json.error || 'Failed to remove Manifest Item');
       setUserManifest((prev) => prev.filter((i) => i.id !== itemId));
@@ -726,6 +702,26 @@ export default function OperationCommandCenterPage() {
   // Refresh messages when the mission loads, then every minute while the page is open
   const intelExchangeId = operation?.id;
   const intelEnrolled = Boolean(userId && (operation?.members || operation?.agents || []).some((m) => m.userId === userId));
+
+  // The agent's Wishlist Manifest belongs to this mission; load it with the mission's price rules,
+  // again whenever the Head Elf changes the budget or the over-limit toggle.
+  const wishlistBudgetMax = operation?.budgetMax;
+  const wishlistAllowOver = operation?.allowWishlistOverBudget;
+  useEffect(() => {
+    if (!intelExchangeId || !intelEnrolled) return;
+    let cancelled = false;
+    fetch(`/api/wishlist?exchangeId=${encodeURIComponent(intelExchangeId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled || !json?.success) return;
+        setUserManifest(json.wishlist.items);
+        setWishlistRules(json.rules);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [intelExchangeId, intelEnrolled, wishlistBudgetMax, wishlistAllowOver]);
   useEffect(() => {
     if (!intelExchangeId || !intelEnrolled) return;
     let cancelled = false;
@@ -841,8 +837,29 @@ export default function OperationCommandCenterPage() {
   const organizerData = operation?.organizer || operation?.opsLeader;
   const organizerIdVal = operation?.organizerId || operation?.opsLeaderId;
   const currentAgent = membersList.find((a) => a.userId === userId);
+
+  // Wishlist price rules for display; the server enforces the same rules on every save.
+  const itemMax = wishlistRules?.itemMax ?? operation?.budgetMax ?? 0;
+  const wishlistTotalMax = wishlistRules ? wishlistRules.totalMax : operation?.allowWishlistOverBudget === false ? operation.budgetMax : null;
+  const wishlistTotal = userManifest.reduce((sum, i) => sum + (i.price || 0), 0);
+  const wishlistOverTotal = wishlistTotalMax !== null && Math.round(wishlistTotal * 100) > Math.round(wishlistTotalMax * 100);
+  const organizerCodename = membersList.find((a) => a.userId === organizerIdVal)?.codename;
+  const canRerollCodename = Boolean(currentAgent && !currentAgent.codenameAccepted && operation?.status === 'RECRUITING');
   // A mission has exactly one Head Elf: the organizer. Leader promotion is not a feature yet.
   const isOpsLeader = Boolean(userId && organizerIdVal === userId);
+
+  // Roster. Before the draw everyone sees every agent. After it, an agent sees only who they can
+  // message: the Head Elf, their target, and their Secret Santa as an anonymous row (the Santa
+  // stays secret). The Head Elf keeps the full roster to manage the mission, with their own
+  // target and Santa marked (they can already see every assignment).
+  const myTargetId = currentAgent?.targetUserId ?? null;
+  const mySantaId = isOpsLeader
+    ? membersList.find((a) => a.targetUserId === userId)?.userId ?? null
+    : null;
+  const rosterNarrowed = Boolean(myTargetId) && !isOpsLeader;
+  const rosterAgents = rosterNarrowed
+    ? membersList.filter((a) => a.userId === organizerIdVal || a.userId === myTargetId)
+    : membersList;
   const assignedTarget = currentAgent?.targetUser;
   // Current timeline stage: colors the status badge and the 4-stage timeline (src/lib/stage-colors.ts).
   const missionPhase = getNextMilestoneCountdown(operation);
@@ -982,7 +999,7 @@ export default function OperationCommandCenterPage() {
                   )}
 
                   <span className="text-xs font-semibold text-kk-header-nav">
-                    Head Elf: <strong className="text-kk-on-header">{organizerData?.name || 'Organizer'} ({formatCodename(organizerData?.codename, organizerData?.name)})</strong>
+                    Head Elf: <strong className="text-kk-on-header">{organizerData?.name || 'Organizer'} ({formatCodename(organizerCodename, organizerData?.name)})</strong>
                   </span>
                 </div>
 
@@ -1068,7 +1085,7 @@ export default function OperationCommandCenterPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🎁</span>
                           <span className="text-xs font-mono font-bold uppercase tracking-wider text-kk-brand">
-                            {myInvitation ? `📩 Invited by ${formatCodename(myInvitation.organizerName)}` : 'Operative Clearance Verified'}
+                            {myInvitation ? `📩 Invited by ${myInvitation.organizerName}` : 'Operative Clearance Verified'}
                           </span>
                         </div>
                         <h2 className="text-xl font-black mt-1">
@@ -1111,6 +1128,43 @@ export default function OperationCommandCenterPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Mission codename: assigned at join, rerollable until accepted or recruiting closes */}
+            {currentAgent && !currentAgent.codenameAccepted && (
+              <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-kk-brand">🕶️ Your codename for this mission</span>
+                    <p className="text-2xl font-black mt-1">{formatCodename(currentAgent.codename)}</p>
+                    <p className="text-xs text-kk-muted mt-1">
+                      {canRerollCodename
+                        ? 'Not a fit? Draw another as often as you like. Once you accept, it stays for the whole mission.'
+                        : 'Recruiting has closed, so this codename is final.'}
+                    </p>
+                  </div>
+                  {canRerollCodename && (
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="button"
+                        disabled={codenameBusy}
+                        onClick={() => updateCodename('reroll')}
+                        className={`min-h-[44px] px-4 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50 ${theme.btnSecondary}`}
+                      >
+                        🎲 Draw another
+                      </button>
+                      <button
+                        type="button"
+                        disabled={codenameBusy}
+                        onClick={() => updateCodename('accept')}
+                        className={`min-h-[44px] px-4 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50 ${theme.btnPrimary}`}
+                      >
+                        ✓ Accept codename
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1578,12 +1632,14 @@ export default function OperationCommandCenterPage() {
                     </h2>
                   </div>
                   <p className={`text-xs font-semibold mb-1 ${theme.textAccent}`}>
-                    (Wishlist Manifest = {operation.isWhiteElephant ? 'Single Brought Gift' : 'Your Secret Santa Wishlist'} | Manifest Items = Wished-for Gift Items)
+                    {operation.isWhiteElephant
+                      ? `Your gift: up to ${formatMoney(itemMax)}.`
+                      : `Each item: up to ${formatMoney(itemMax)}. ${wishlistTotalMax === null ? 'Your list may total more than that.' : `Whole list: up to ${formatMoney(wishlistTotalMax)}.`}`}
                   </p>
                   <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
                     {operation.isWhiteElephant
-                      ? 'Add the 1 gift item you are bringing to the live White Elephant pool (Max 1 Manifest Item).'
-                      : 'Paste store product links to populate your Secret Santa Wishlist Manifest. We\'ll auto-scrape titles and prices!'}
+                      ? 'Add the 1 gift you are bringing to the White Elephant table. This list is for this mission only.'
+                      : 'This list is for this mission only. Pick Store-bought gift to fill in an item from a store link, or Personalized gift for something handmade or specially crafted.'}
                   </p>
 
                   {validationError && (
@@ -1592,43 +1648,26 @@ export default function OperationCommandCenterPage() {
                     </div>
                   )}
 
-                  <div className="flex flex-col sm:flex-row gap-2 mb-6">
-                    <form onSubmit={handleScrapeUrl} className="flex-1 flex gap-2">
-                      <input
-                        type="url"
-                        placeholder="Paste gift item link (Amazon, Target, Etsy, etc.)"
-                        value={manifestItemUrl}
-                        onChange={(e) => setManifestItemUrl(e.target.value)}
-                        required
-                        disabled={operation.isWhiteElephant && userManifest.length >= 1}
-                        className={`flex-1 border rounded-2xl px-4 py-3 text-xs focus:outline-none ${theme.inputBg}`}
-                      />
-                      <button
-                        type="submit"
-                        disabled={scraping || (operation.isWhiteElephant && userManifest.length >= 1)}
-                        className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all shadow-md cursor-pointer ${
-                          operation.isWhiteElephant && userManifest.length >= 1
-                            ? 'bg-kk-inset text-kk-ink cursor-not-allowed'
-                            : theme.btnPrimary
-                        }`}
-                      >
-                        {scraping ? 'Scraping...' : '+ Scrape Link'}
-                      </button>
-                    </form>
-
-                    <button
-                      type="button"
-                      onClick={handleOpenPersonalizedModal}
+                  <div className="mb-6">
+                    <label htmlFor="add-wishlist-item" className={`block text-xs font-bold mb-1 ${theme.textLabel}`}>
+                      Add an item
+                    </label>
+                    <select
+                      id="add-wishlist-item"
+                      value=""
                       disabled={operation.isWhiteElephant && userManifest.length >= 1}
-                      className={`px-4 py-3 rounded-2xl font-bold text-xs transition-all border shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
-                        operation.isWhiteElephant && userManifest.length >= 1
-                          ? 'opacity-50 cursor-not-allowed'
-                          : 'bg-kk-warning hover:brightness-95 text-kk-on-warning border-kk-border-strong'
-                      }`}
-                      title="Add a custom, handmade, experiential, or text-only gift without an external URL"
+                      onChange={(e) => {
+                        const kind = e.target.value;
+                        if (kind === 'store' || kind === 'personalized') openAddItem(kind);
+                      }}
+                      className={`w-full sm:w-auto border rounded-2xl px-4 py-3 text-sm font-bold cursor-pointer focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${theme.inputBg}`}
                     >
-                      <span>✨ Add Personalized Gift</span>
-                    </button>
+                      <option value="">
+                        {operation.isWhiteElephant && userManifest.length >= 1 ? 'Your White Elephant gift is added' : 'Add a gift type…'}
+                      </option>
+                      <option value="store">🛍️ Store-bought gift</option>
+                      <option value="personalized">✨ Personalized gift (handmade or specially crafted)</option>
+                    </select>
                   </div>
 
                   {/* Manifest Items List */}
@@ -1672,7 +1711,16 @@ export default function OperationCommandCenterPage() {
                                   )}
                                 </div>
 
-                                {item.price && <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>${item.price}</span>}
+                                {item.price ? <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>{formatMoney(item.price)}</span> : null}
+                                {!item.price ? (
+                                  <span className="text-[10px] font-bold mt-1 inline-block px-1.5 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong">
+                                    Needs a price: edit to add one
+                                  </span>
+                                ) : Math.round(item.price * 100) > Math.round(itemMax * 100) ? (
+                                  <span className="text-[10px] font-bold mt-1 inline-block px-1.5 py-0.5 rounded-full bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40">
+                                    Over the {formatMoney(itemMax)} limit: edit or remove
+                                  </span>
+                                ) : null}
 
                                 {item.description && (
                                   <p className="text-xs text-kk-muted mt-1 italic line-clamp-2 max-w-xs">
@@ -1728,14 +1776,183 @@ export default function OperationCommandCenterPage() {
                           </div>
                         );
                       })}
+                      {!operation.isWhiteElephant && (
+                        <p className={`text-xs font-bold text-right ${wishlistOverTotal ? 'text-kk-danger' : theme.textSubLabel}`}>
+                          List total: {formatMoney(wishlistTotal)}
+                          {wishlistOverTotal && wishlistTotalMax !== null && ` (over the ${formatMoney(wishlistTotalMax)} total the Head Elf set: remove or lower an item)`}
+                        </p>
+                      )}
                     </div>
                   )}
 
                 </div>
 
+
+              </div>
+
+              {/* Right Column: Participant Roster, Shipping Status & Mission Comms */}
+              <div className="lg:col-span-5 space-y-6">
+                <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
+                  <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                      👥 Elf Agents ({membersList.length})
+                      {isOpsLeader && pendingInviteCount > 0 && (
+                        <span className="text-xs font-semibold text-kk-header-nav">· {pendingInviteCount} invited</span>
+                      )}
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      {isOpsLeader && (
+                        <button
+                          onClick={() => setInviteModalOpen(true)}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 ${theme.btnAmber}`}
+                        >
+                          <span>✉️ + Invite Elf Agent</span>
+                        </button>
+                      )}
+                      <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full ${statusBadgeClass(missionPhase)}`}>
+                        ● {missionPhase.phaseStatusLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {rosterNarrowed && (
+                      <p className={`text-[11px] ${theme.textSubLabel}`}>
+                        Targets are drawn. You now see the agents you can message: your Head Elf, your target and your Secret Santa.
+                      </p>
+                    )}
+                    {rosterAgents.map((agent, i) => (
+                      <div key={agent.id} className="rounded-2xl border-2 border-kk-border overflow-hidden text-xs bg-kk-surface shadow-sm">
+                        {/* Agent info: tinted panel. Actions below sit on the plain card so they stand out. */}
+                        <div className={`p-4 flex items-center justify-between ${theme.infoPanel}`}>
+                          <div className="flex items-center gap-2.5">
+                            <span className={`font-mono text-xs ${theme.textSubLabel}`}>#{i + 1}</span>
+                            <div>
+                              <span className={`font-bold block text-sm ${theme.textLabel}`}>
+                                {formatCodename(agent.user?.codename, agent.user?.name)}
+                              </span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                  agent.userId === organizerIdVal ? theme.badgeAmber : theme.badgeSecretSanta
+                                }`}>
+                                  {agent.userId === organizerIdVal ? 'Head Elf' : 'Elf Agent'}
+                                </span>
+                                {agent.userId === myTargetId && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-kk-success text-kk-on-success" title="You are this agent's Secret Santa">
+                                    🎯 Your target
+                                  </span>
+                                )}
+                                {agent.userId === mySantaId && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-kk-warning text-kk-on-warning" title="This agent is your Secret Santa">
+                                    🎅 Your Secret Santa
+                                  </span>
+                                )}
+                                {agent.shippingStatus === 'SHIPPED' ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-mono font-bold text-kk-brand">
+                                      ✓ Shipped
+                                    </span>
+                                    {agent.trackingNumber && (() => {
+                                      const carrier = detectCarrier(agent.trackingNumber);
+                                      return (
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono font-bold ${carrier.badgeColor.bg} ${carrier.badgeColor.border} ${carrier.badgeColor.text}`}>
+                                          {carrier.badgeLabel}
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+                                ) : agent.shippingStatus === 'LOCAL_DELIVERY' ? (
+                                  <span className="text-[10px] font-mono font-bold text-kk-brand">
+                                    🤝 Hand Delivery
+                                  </span>
+                                ) : (
+                                  <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
+                                    ⏳ Pending
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {rosterNarrowed && (
+                          <div className="px-4 py-2 border-t-2 border-kk-border bg-kk-surface flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => openComms(agent.userId === myTargetId ? 'intel-target' : 'command')}
+                              className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-inset hover:brightness-95 transition-all cursor-pointer"
+                            >
+                              💬 {agent.userId === myTargetId ? 'Message your target' : 'Message the Head Elf'}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* OpsLeader Agent Management Action Bar */}
+                        {isOpsLeader && (
+                          <div className="px-4 py-3 border-t-2 border-kk-border bg-kk-surface flex items-center gap-2 flex-wrap">
+                            <button
+                              onClick={() => handleAgentAction('nudge_agent', agent)}
+                              title="Remind this agent about their next deadline (Command message, notification and email)"
+                              className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary shadow-sm transition-all cursor-pointer"
+                            >
+                              🔔 Nudge
+                            </button>
+
+                            {operation.status === 'COMPLETED' && operation.enforcePenalties !== false && (
+                              <button
+                                onClick={() => handleAgentAction('issue_demerit', agent)}
+                                title="Issue Coal Citation for deadline non-compliance"
+                                className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-gold text-kk-on-gold border border-kk-border-strong hover:brightness-95 shadow-sm transition-all cursor-pointer"
+                              >
+                                🪨 Issue Coal Citation
+                              </button>
+                            )}
+
+                            {agent.userId !== organizerIdVal && (
+                              <button
+                                onClick={() => handleAgentAction('remove_agent', agent)}
+                                title="Disenroll agent from operation"
+                                className="ml-auto text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-surface text-kk-danger border-2 border-kk-danger/60 hover:bg-kk-danger-soft transition-all cursor-pointer"
+                              >
+                                ❌ Disenroll
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {rosterNarrowed && (
+                    <div className="mt-3 rounded-2xl border-2 border-dashed border-kk-border overflow-hidden text-xs bg-kk-surface">
+                      <div className={`p-4 flex items-center justify-between gap-2 ${theme.infoPanel}`}>
+                        <div>
+                          <span className={`font-bold block text-sm ${theme.textLabel}`}>🎅 Your Secret Santa</span>
+                          <span className={`text-[11px] ${theme.textSubLabel}`}>Their identity stays hidden. You can still message them.</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openComms('intel-santa')}
+                          className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-inset hover:brightness-95 transition-all cursor-pointer shrink-0"
+                        >
+                          💬 Message
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {isOpsLeader && (
+                    <InvitedAgentsList
+                      operationId={operation.id}
+                      refreshKey={invitesRefreshKey}
+                      onPendingCountChange={setPendingInviteCount}
+                    />
+                  )}
+                </div>
+
                 {/* Mission Messaging: Command, Intel and Debrief */}
                 {intelEnrolled && (
-                <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
+                <div id="mission-comms" className={`p-6 rounded-3xl border shadow-md scroll-mt-4 ${theme.cardBg}`}>
                   <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       💬 Mission Comms
@@ -1879,123 +2096,6 @@ export default function OperationCommandCenterPage() {
                   })()}
                 </div>
                 )}
-
-              </div>
-
-              {/* Right Column: Participant Roster & Shipping Status */}
-              <div className="lg:col-span-5 space-y-6">
-                <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                  <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      👥 Elf Agents ({membersList.length})
-                      {isOpsLeader && pendingInviteCount > 0 && (
-                        <span className="text-xs font-semibold text-kk-header-nav">· {pendingInviteCount} invited</span>
-                      )}
-                    </h2>
-                    <div className="flex items-center gap-2">
-                      {isOpsLeader && (
-                        <button
-                          onClick={() => setInviteModalOpen(true)}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 ${theme.btnAmber}`}
-                        >
-                          <span>✉️ + Invite Elf Agent</span>
-                        </button>
-                      )}
-                      <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full ${statusBadgeClass(missionPhase)}`}>
-                        ● {missionPhase.phaseStatusLabel}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {membersList.map((agent, i) => (
-                      <div key={agent.id} className="rounded-2xl border-2 border-kk-border overflow-hidden text-xs bg-kk-surface shadow-sm">
-                        {/* Agent info: tinted panel. Actions below sit on the plain card so they stand out. */}
-                        <div className={`p-4 flex items-center justify-between ${theme.infoPanel}`}>
-                          <div className="flex items-center gap-2.5">
-                            <span className={`font-mono text-xs ${theme.textSubLabel}`}>#{i + 1}</span>
-                            <div>
-                              <span className={`font-bold block text-sm ${theme.textLabel}`}>
-                                {formatCodename(agent.user?.codename, agent.user?.name)}
-                              </span>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                                  agent.userId === organizerIdVal ? theme.badgeAmber : theme.badgeSecretSanta
-                                }`}>
-                                  {agent.userId === organizerIdVal ? 'Head Elf' : 'Elf Agent'}
-                                </span>
-                                {agent.shippingStatus === 'SHIPPED' ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] font-mono font-bold text-kk-brand">
-                                      ✓ Shipped
-                                    </span>
-                                    {agent.trackingNumber && (() => {
-                                      const carrier = detectCarrier(agent.trackingNumber);
-                                      return (
-                                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono font-bold ${carrier.badgeColor.bg} ${carrier.badgeColor.border} ${carrier.badgeColor.text}`}>
-                                          {carrier.badgeLabel}
-                                        </span>
-                                      );
-                                    })()}
-                                  </div>
-                                ) : agent.shippingStatus === 'LOCAL_DELIVERY' ? (
-                                  <span className="text-[10px] font-mono font-bold text-kk-brand">
-                                    🤝 Hand Delivery
-                                  </span>
-                                ) : (
-                                  <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
-                                    ⏳ Pending
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* OpsLeader Agent Management Action Bar */}
-                        {isOpsLeader && (
-                          <div className="px-4 py-3 border-t-2 border-kk-border bg-kk-surface flex items-center gap-2 flex-wrap">
-                            <button
-                              onClick={() => handleAgentAction('nudge_agent', agent)}
-                              title="Remind this agent about their next deadline (Command message, notification and email)"
-                              className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary shadow-sm transition-all cursor-pointer"
-                            >
-                              🔔 Nudge
-                            </button>
-
-                            {operation.status === 'COMPLETED' && operation.enforcePenalties !== false && (
-                              <button
-                                onClick={() => handleAgentAction('issue_demerit', agent)}
-                                title="Issue Coal Citation for deadline non-compliance"
-                                className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-gold text-kk-on-gold border border-kk-border-strong hover:brightness-95 shadow-sm transition-all cursor-pointer"
-                              >
-                                🪨 Issue Coal Citation
-                              </button>
-                            )}
-
-                            {agent.userId !== organizerIdVal && (
-                              <button
-                                onClick={() => handleAgentAction('remove_agent', agent)}
-                                title="Disenroll agent from operation"
-                                className="ml-auto text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-surface text-kk-danger border-2 border-kk-danger/60 hover:bg-kk-danger-soft transition-all cursor-pointer"
-                              >
-                                ❌ Disenroll
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {isOpsLeader && (
-                    <InvitedAgentsList
-                      operationId={operation.id}
-                      refreshKey={invitesRefreshKey}
-                      onPendingCountChange={setPendingInviteCount}
-                    />
-                  )}
-                </div>
               </div>
 
               {/* POST-EVENT AFTER-ACTION REPORT (AAR) SECTION: spans the full 12-column grid it sits in */}
@@ -2108,6 +2208,25 @@ export default function OperationCommandCenterPage() {
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}
                 />
               </div>
+
+              {!operation?.isWhiteElephant && (
+                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
+                  <label className="flex items-center justify-between gap-3 cursor-pointer">
+                    <div>
+                      <span className="font-bold text-sm block">🎁 Wishlists may total more than the limit</span>
+                      <span className="text-[11px] text-kk-muted block">
+                        No single item may cost more than the spending limit. When this is on, an agent&apos;s whole list may add up to more, so their Santa can pick from it.
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={editAllowOverBudget}
+                      onChange={(e) => setEditAllowOverBudget(e.target.checked)}
+                      className="h-5 w-5 rounded accent-red-600 dark:accent-sky-400 cursor-pointer shrink-0"
+                    />
+                  </label>
+                </div>
+              )}
 
               {/* Local In-Person Event Configuration Toggle */}
               <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
@@ -2352,7 +2471,9 @@ export default function OperationCommandCenterPage() {
         onClose={() => setItemModalOpen(false)}
         onSaveSuccess={handleItemSaveSuccess}
         mode={itemModalMode}
-        wishlistId={userWishlistId || currentAgent?.wishlistId}
+        kind={itemModalKind}
+        exchangeId={operation?.id}
+        itemMax={wishlistRules?.itemMax ?? operation?.budgetMax}
         initialData={itemModalData}
         userDossier={userDossier}
       />
@@ -2425,30 +2546,6 @@ export default function OperationCommandCenterPage() {
                     />
                   </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-kk-muted">Secret Codename / Call Sign</label>
-                      <button
-                        type="button"
-                        onClick={() => setAuthCodename(generateRandomCodename())}
-                        className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
-                      >
-                        🎲 Randomize Call Sign
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border ${theme.badgeCode}`}>
-                        Agent:
-                      </span>
-                      <input
-                        type="text"
-                        placeholder="e.g. Viper, Phoenix, Sentinel"
-                        value={authCodename}
-                        onChange={(e) => setAuthCodename(e.target.value)}
-                        className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                      />
-                    </div>
-                  </div>
                 </>
               )}
 

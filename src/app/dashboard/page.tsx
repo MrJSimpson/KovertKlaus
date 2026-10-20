@@ -5,7 +5,7 @@ import { USER_ID_KEY } from '@/lib/constants/auth';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
+import { formatDateString, getNextMilestoneCountdown } from '@/lib/security';
 import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
 import { Card, SectionHeader, Button, Badge, DataRow } from '@/components/ui';
@@ -14,29 +14,16 @@ import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
 import { WhatsNewLink } from '@/components/WhatsNewLink';
 
-interface WishlistManifest {
-  id: string;
-  name: string;
-  isMaster: boolean;
-  type: 'WISHLIST' | 'WHITE_ELEPHANT';
-  createdAt: string;
-  manifestItems?: Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>;
-  opTools?: Array<{ id: string; title: string; price?: number; url: string; thumbnail?: string }>;
-}
-type OpKit = WishlistManifest;
-
 interface UserData {
   id: string;
   email: string;
   name: string;
-  codename?: string;
   streetAddress?: string;
   city?: string;
   state?: string;
   zipCode?: string;
   demerits: number;
   accountStatus: string;
-  wishlists: WishlistManifest[];
   participations: Array<{
     id: string;
     role: string;
@@ -92,7 +79,7 @@ interface PendingInvitation {
     budgetMin: number | null;
     budgetMax: number;
     currency: string;
-    organizer: { name: string; codename: string | null };
+    organizer: { name: string };
   };
 }
 
@@ -115,18 +102,9 @@ export default function DashboardPage() {
   const [prefError, setPrefError] = useState('');
   */
 
-  // Wishlist Manifest Creation Modal
-  const [createManifestModalOpen, setCreateManifestModalOpen] = useState(false);
-  const [newManifestName, setNewManifestName] = useState('');
-  const [newManifestType, setNewManifestType] = useState<'WISHLIST' | 'WHITE_ELEPHANT'>('WISHLIST');
-
   // Operation Creation & Join Modals
   const [createOpModalOpen, setCreateOpModalOpen] = useState(false);
   const [joinOpModalOpen, setJoinOpModalOpen] = useState(false);
-
-  // Inline Wishlist Manifest Rename State
-  const [editingManifestId, setEditingManifestId] = useState<string | null>(null);
-  const [editingManifestName, setEditingManifestName] = useState('');
 
   // Pending email invitations (/api/invitations): accept enrolls through the normal join path and
   // opens the mission; decline just removes the card.
@@ -249,62 +227,6 @@ export default function DashboardPage() {
   }
   */
 
-  // Create Quick Wishlist Manifest
-  async function handleCreateQuickManifest(e: React.FormEvent) {
-    e.preventDefault();
-    if (!user || !newManifestName.trim()) return;
-
-    try {
-      const res = await fetch('/api/opkits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          name: newManifestName.trim(),
-          type: newManifestType,
-        }),
-      });
-      const json = await res.json();
-      const createdManifest = json.manifest || json.opKit;
-      if (json.success && createdManifest) {
-        setUser((prev) => (prev ? { ...prev, wishlists: [...prev.wishlists, createdManifest] } : prev));
-      }
-    } catch {
-      console.error('Failed to create Wishlist Manifest');
-    } finally {
-      setNewManifestName('');
-      setCreateManifestModalOpen(false);
-    }
-  }
-
-  // Handle Quick Inline Wishlist Manifest Rename
-  async function handleRenameQuickManifest(id: string) {
-    if (!editingManifestName.trim() || !user) return;
-    const cleanName = editingManifestName.trim();
-    setEditingManifestId(null);
-    setEditingManifestName('');
-
-    try {
-      await fetch('/api/opkits', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          wishlistId: id,
-          name: cleanName,
-        }),
-      });
-      setUser({
-        ...user,
-        wishlists: user.wishlists.map((k) =>
-          k.id === id ? { ...k, name: cleanName } : k
-        ),
-      });
-    } catch {
-      console.error('Failed to rename Wishlist Manifest');
-    }
-  }
-
   // Accept Operation Invitation Alert
   async function handleAcceptInvite(code: string) {
     if (!user) return;
@@ -325,13 +247,6 @@ export default function DashboardPage() {
       alert('Failed to accept invitation');
     }
   }
-
-  // Capped Wishlist Manifests (Max 3 items, Master Pinned First)
-  const recentManifests = user?.wishlists
-    ? [...user.wishlists]
-        .sort((a, b) => (b.isMaster ? 1 : 0) - (a.isMaster ? 1 : 0))
-        .slice(0, 3)
-    : [];
 
   // Capped Operations (Max 3 most recent active operations)
   const recentParticipations = user?.participations
@@ -416,7 +331,7 @@ export default function DashboardPage() {
                 </div>
 
                 <h1 className="text-3xl font-black">
-                  Welcome Back, {formatCodename(user.codename, user.name)}
+                  Welcome Back, {user.name}
                 </h1>
                 <p className={`text-xs mt-1 ${theme.textSubLabel}`}>
                   Logged in as: <strong className={theme.textLabel}>{user.email}</strong> | Full Name: <strong className={theme.textLabel}>{user.name}</strong>
@@ -520,7 +435,7 @@ export default function DashboardPage() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-kk-gold-ink">
-                            📩 Invitation{inv.isLatePass ? ' · Late Pass' : ''} from {formatCodename(inv.exchange.organizer.codename, inv.exchange.organizer.name)}
+                            📩 Invitation{inv.isLatePass ? ' · Late Pass' : ''} from {inv.exchange.organizer.name}
                           </span>
                           <h3 className="text-base font-bold">{inv.exchange.title}</h3>
                           <p className="text-xs text-kk-muted">
@@ -626,113 +541,6 @@ export default function DashboardPage() {
               )}
             </Card>
 
-            {/* Section 2: Wishlists & Gifts Inventory (3 Most Recent Limit) */}
-            <Card variant="section" className="space-y-6">
-              <SectionHeader
-                title="🧰 Wishlist Manifests"
-                subtitle="Create & manage your wishlist manifests and wished-for manifest items — Showing 3 most recent."
-                primaryAction={
-                  <Button onClick={() => setCreateManifestModalOpen(true)} variant="primary">
-                    + New Wishlist Manifest
-                  </Button>
-                }
-                secondaryAction={
-                  <Button href="/opkits" variant="toggle">
-                    ⚙️ Manage All Wishlist Manifests →
-                  </Button>
-                }
-              />
-
-              {/* Wishlist Manifests Display Grid */}
-              {recentManifests.length === 0 ? (
-                <div className={`p-8 text-center rounded-3xl border ${theme.cardBg}`}>
-                  <div className="text-3xl mb-2">🧰</div>
-                  <h3 className="text-base font-bold mb-1">No Wishlist Manifests Created Yet</h3>
-                  <p className="text-xs text-kk-muted mb-4">
-                    Create your first Wishlist Manifest to add wished-for gift items for your Secret Santa.
-                  </p>
-                  <button
-                    onClick={() => setCreateManifestModalOpen(true)}
-                    className={`px-5 py-2.5 text-xs font-bold rounded-xl shadow-md ${theme.btnPrimary}`}
-                  >
-                    + Create Wishlist Manifest
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {recentManifests.map((kit) => (
-                  <div
-                    key={kit.id}
-                    className={`p-6 rounded-3xl border shadow-md flex flex-col justify-between transition-all ${theme.cardBg}`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{kit.isMaster ? '⭐' : kit.type === 'WHITE_ELEPHANT' ? '🐘' : '🎁'}</span>
-                          {kit.isMaster && (
-                            <span className="text-[10px] bg-kk-warning text-kk-on-warning font-bold px-2 py-0.5 rounded-full">
-                              Master Wishlist Manifest
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => {
-                              setEditingManifestId(kit.id);
-                              setEditingManifestName(kit.name);
-                            }}
-                            title="Click to Rename Wishlist Manifest"
-                            className={`px-2.5 py-1 text-xs rounded-lg flex items-center gap-1 font-semibold border transition-all cursor-pointer shadow-xs ${theme.btnNeutral}`}
-                          >
-                            <span>✏️</span>
-                            <span className="text-[10px] font-bold">Rename</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {editingManifestId === kit.id ? (
-                        <input
-                          type="text"
-                          value={editingManifestName}
-                          onChange={(e) => setEditingManifestName(e.target.value)}
-                          onBlur={() => handleRenameQuickManifest(kit.id)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleRenameQuickManifest(kit.id)}
-                          autoFocus
-                          className={`w-full border rounded-xl px-3 py-1.5 text-sm font-bold ${theme.inputModalBg}`}
-                        />
-                      ) : (
-                        <h3 className="text-lg font-black">{kit.name}</h3>
-                      )}
-
-                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase inline-block mt-1 ${
-                        kit.type === 'WHITE_ELEPHANT' ? theme.badgeWhiteElephant : theme.badgeSecretSanta
-                      }`}>
-                        {kit.type === 'WHITE_ELEPHANT' ? '🐘 White Elephant' : '🎁 Secret Santa'}
-                      </span>
-
-                      <div className={`mt-4 p-4 rounded-2xl border space-y-2 ${theme.cardInnerBg}`}>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className={theme.textLabel}>Attached Manifest Items:</span>
-                          <strong className={theme.textAccent}>{kit.manifestItems?.length ?? kit.opTools?.length ?? 0} Items</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 flex items-center justify-end pt-3 border-t border-kk-border">
-                      <Link
-                        href="/opkits"
-                        className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
-                      >
-                        Manage Manifest Items →
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              )}
-            </Card>
-
           </>
         ) : null}
 
@@ -744,69 +552,6 @@ export default function DashboardPage() {
         onClose={() => setPrefModalOpen(false)}
         onProfileUpdated={fetchUserData}
       />
-
-      {/* MODAL: CREATE QUICK WISHLIST MANIFEST */}
-      {createManifestModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
-          <div className={`w-full sm:max-w-md max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl border transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
-            <div className="p-4 sm:p-6 pb-3 border-b border-kk-border flex items-center justify-between shrink-0">
-              <h3 className="text-xl sm:text-2xl font-black flex items-center gap-2">
-                <span>🧰 Create Quick Wishlist Manifest</span>
-              </h3>
-              <button
-                onClick={() => setCreateManifestModalOpen(false)}
-                className="text-kk-muted hover:text-kk-ink font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateQuickManifest} className="flex flex-col flex-1 overflow-hidden">
-              <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
-                <div>
-                  <label className="block text-kk-muted mb-1">Wishlist Manifest Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Office Holiday Exchange 2026"
-                    value={newManifestName}
-                    onChange={(e) => setNewManifestName(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-base sm:text-sm focus:outline-none ${theme.inputModalBg}`}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-kk-muted mb-1">Category Type *</label>
-                  <select
-                    value={newManifestType}
-                    onChange={(e) => setNewManifestType(e.target.value as 'WISHLIST' | 'WHITE_ELEPHANT')}
-                    className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs font-bold focus:outline-none ${theme.inputModalBg}`}
-                  >
-                    <option value="WISHLIST">🎁 Secret Santa Wishlist (Unlimited Manifest Items)</option>
-                    <option value="WHITE_ELEPHANT">🐘 White Elephant Brought Gift (Strictly 1 Manifest Item)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="p-4 sm:p-6 border-t border-kk-border shrink-0 flex gap-3 pb-safe-sheet bg-inherit">
-                <button
-                  type="button"
-                  onClick={() => setCreateManifestModalOpen(false)}
-                  className={`w-1/2 font-semibold py-3 min-h-[44px] rounded-2xl text-xs sm:text-sm cursor-pointer ${theme.btnNeutral}`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={`w-1/2 font-bold py-3 min-h-[44px] rounded-2xl text-xs sm:text-sm transition-all cursor-pointer shadow-md flex items-center justify-center ${theme.btnPrimary}`}
-                >
-                  Create Manifest
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* MODAL: CREATE OPERATION */}
       <CreateOperationModal

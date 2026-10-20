@@ -52,24 +52,27 @@ export function generateDemoPassword(): string {
 
 /** The demo cast. Holly is the Head Elf of every demo mission. */
 export const DEMO_AGENTS = [
-  { key: 'holly', name: 'Holly Berry', codename: 'Mistletoe', city: 'Tacoma', state: 'WA' },
-  { key: 'juniper', name: 'Juniper Frost', codename: 'Snowdrift', city: 'Olympia', state: 'WA' },
-  { key: 'rudy', name: 'Rudy Nordlund', codename: 'Red Nose', city: 'Bremerton', state: 'WA' },
-  { key: 'ivy', name: 'Ivy Garland', codename: 'Evergreen', city: 'Seattle', state: 'WA' },
-  { key: 'nick', name: 'Nick Kringle', codename: 'Chimney', city: 'Spokane', state: 'WA' },
-  { key: 'pepper', name: 'Pepper Minty', codename: 'Candy Cane', city: 'Portland', state: 'OR' },
+  { key: 'holly', name: 'Holly Berry', codename: 'Jolly Penguin', city: 'Tacoma', state: 'WA' },
+  { key: 'juniper', name: 'Juniper Frost', codename: 'Frosty Owl', city: 'Olympia', state: 'WA' },
+  { key: 'rudy', name: 'Rudy Nordlund', codename: 'Sparkly Reindeer', city: 'Bremerton', state: 'WA' },
+  { key: 'ivy', name: 'Ivy Garland', codename: 'Evergreen Scout', city: 'Seattle', state: 'WA' },
+  { key: 'nick', name: 'Nick Kringle', codename: 'Midnight Courier', city: 'Spokane', state: 'WA' },
+  { key: 'pepper', name: 'Pepper Minty', codename: 'Peppermint Elf', city: 'Portland', state: 'OR' },
 ] as const;
 
 type AgentKey = (typeof DEMO_AGENTS)[number]['key'];
 
-/** Wishlist ideas per agent: [name, price in USD]. Text-only items (no URL) are first-class gifts. */
+/**
+ * Wishlist ideas per agent: [name, price in USD]. Text-only items (no URL) are first-class gifts.
+ * Every item has a price and costs at most $30, the lowest Secret Santa limit below.
+ */
 const WISHLISTS: Record<AgentKey, Array<[string, number]>> = {
-  holly: [['Cast-iron waffle maker', 38], ['Peppermint bark sampler', 18], ['Wool hiking socks (size M)', 22]],
-  juniper: [['Watercolor travel set', 29], ['Hardcover mystery novel', 24], ['Hand-knit beanie, any color', 0]],
-  rudy: [['Bluetooth meat thermometer', 35], ['Hot sauce flight', 27], ['Board game: cooperative', 40]],
-  ivy: [['Houseplant (low light)', 25], ['Ceramic pour-over coffee set', 32], ['Handwritten recipe card', 0]],
+  holly: [['Cast-iron waffle maker', 28], ['Peppermint bark sampler', 18], ['Wool hiking socks (size M)', 22]],
+  juniper: [['Watercolor travel set', 29], ['Hardcover mystery novel', 24], ['Hand-knit beanie, any color', 15]],
+  rudy: [['Bluetooth meat thermometer', 29], ['Hot sauce flight', 27], ['Board game: cooperative', 26]],
+  ivy: [['Houseplant (low light)', 25], ['Ceramic pour-over coffee set', 27], ['Handwritten recipe card', 10]],
   nick: [['Headlamp, rechargeable', 30], ['Puzzle (1000 pieces)', 20], ['Fleece blanket', 28]],
-  pepper: [['Scented candle trio', 26], ['Mini indoor herb garden', 34], ['Fuzzy slippers (size 8)', 21]],
+  pepper: [['Scented candle trio', 26], ['Mini indoor herb garden', 24], ['Fuzzy slippers (size 8)', 21]],
 };
 
 /** One White Elephant item each (the 1-item rule). */
@@ -99,14 +102,13 @@ export async function loadDemoData(password: string, nowMs = Date.now()): Promis
   const day = (offset: number) => new Date(Math.floor(nowMs / DAY_MS) * DAY_MS + offset * DAY_MS);
   const passwordHash = await hashPassword(password);
 
-  // Agents, each with a Secret Santa manifest and a White Elephant manifest.
-  const users = {} as Record<AgentKey, { id: string; santaListId: string; elephantListId: string }>;
+  // Agents. Each mission membership gets its own Wishlist Manifest (see `enroll`).
+  const users = {} as Record<AgentKey, { id: string }>;
   for (const a of DEMO_AGENTS) {
     const user = await db.user.create({
       data: {
         email: `${a.key}@${DEMO_EMAIL_DOMAIN}`,
         name: a.name,
-        codename: a.codename,
         passwordHash,
         city: a.city,
         state: a.state,
@@ -116,29 +118,33 @@ export async function loadDemoData(password: string, nowMs = Date.now()): Promis
         emailNotifications: false,
       },
     });
-    const santaList = await db.wishlist.create({ data: { userId: user.id, name: `${a.name.split(' ')[0]}'s Wishlist`, type: 'STANDARD' } });
-    for (const [name, price] of WISHLISTS[a.key]) {
-      const item = await db.item.create({ data: { userId: user.id, name, url: '', price } });
-      await db.wishlistItem.create({ data: { wishlistId: santaList.id, itemId: item.id } });
-    }
-    const elephantList = await db.wishlist.create({ data: { userId: user.id, name: 'White Elephant Gift', type: 'WHITE_ELEPHANT' } });
-    const [weName, wePrice] = WHITE_ELEPHANT_ITEMS[a.key];
-    const weItem = await db.item.create({ data: { userId: user.id, name: weName, url: '', price: wePrice } });
-    await db.wishlistItem.create({ data: { wishlistId: elephantList.id, itemId: weItem.id } });
-    users[a.key] = { id: user.id, santaListId: santaList.id, elephantListId: elephantList.id };
+    users[a.key] = { id: user.id };
   }
   const holly = users.holly.id;
   const codenameOf = (key: AgentKey) => DEMO_AGENTS.find((a) => a.key === key)!.codename;
-  const enroll = (exchangeId: string, keys: AgentKey[], list: 'santaListId' | 'elephantListId') =>
-    db.exchangeMember.createMany({
-      data: keys.map((k) => ({
-        exchangeId,
-        userId: users[k].id,
-        codename: codenameOf(k),
-        wishlistId: users[k][list],
-        role: k === 'holly' ? ('ORGANIZER' as const) : ('MEMBER' as const),
-      })),
-    });
+  /** Enrolls agents with a fresh list for this mission: their wishlist, or their one White Elephant gift. */
+  const enroll = async (exchangeId: string, keys: AgentKey[], isWhiteElephant: boolean) => {
+    for (const k of keys) {
+      const userId = users[k].id;
+      const items = isWhiteElephant ? [WHITE_ELEPHANT_ITEMS[k]] : WISHLISTS[k];
+      await db.exchangeMember.create({
+        data: {
+          exchangeId,
+          userId,
+          codename: codenameOf(k),
+          role: k === 'holly' ? 'ORGANIZER' : 'MEMBER',
+          wishlist: {
+            create: {
+              userId,
+              name: isWhiteElephant ? 'White Elephant Gift' : 'Wishlist',
+              type: isWhiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD',
+              wishlistItems: { create: items.map(([name, price]) => ({ item: { create: { userId, name, url: '', price } } })) },
+            },
+          },
+        },
+      });
+    }
+  };
 
   // 1. Recruiting Secret Santa: try inviting, editing dates, the Command channel.
   const recruiting = await db.exchange.create({
@@ -149,7 +155,7 @@ export async function loadDemoData(password: string, nowMs = Date.now()): Promis
       paymentStatus: 'EXEMPT_SELF_HOSTED',
     },
   });
-  await enroll(recruiting.id, ['holly', 'juniper', 'rudy', 'ivy'], 'santaListId');
+  await enroll(recruiting.id, ['holly', 'juniper', 'rudy', 'ivy'], false);
   await db.missionInvitation.create({ data: { exchangeId: recruiting.id, email: `cousin.eddie@${DEMO_EMAIL_DOMAIN}`, invitedById: holly } });
   await db.exchangeMessage.create({
     data: { exchangeId: recruiting.id, channel: 'COMMAND', senderId: users.rudy.id, recipientId: holly, messageText: 'Is the budget per gift or total? Happy either way.', isFromSanta: false, createdAt: day(-1) },
@@ -168,7 +174,7 @@ export async function loadDemoData(password: string, nowMs = Date.now()): Promis
     },
   });
   const officeKeys: AgentKey[] = ['holly', 'juniper', 'rudy', 'ivy', 'nick', 'pepper'];
-  await enroll(office.id, officeKeys, 'santaListId');
+  await enroll(office.id, officeKeys, false);
   const assignments = executeLinkedListDraw(officeKeys.map((k) => ({ id: users[k].id, name: k, hasWishlistAttached: true })));
   for (const a of assignments) {
     await db.exchangeMember.update({ where: { exchangeId_userId: { exchangeId: office.id, userId: a.agentId } }, data: { targetUserId: a.targetId } });
@@ -194,7 +200,7 @@ export async function loadDemoData(password: string, nowMs = Date.now()): Promis
       paymentStatus: 'EXEMPT_SELF_HOSTED',
     },
   });
-  await enroll(party.id, officeKeys, 'elephantListId');
+  await enroll(party.id, officeKeys, true);
   await db.exchangeMessage.createMany({
     data: [
       { exchangeId: party.id, channel: 'DEBRIEF', senderId: users.nick.id, messageText: 'The singing fish was stolen three times. Legendary.', isFromSanta: false, createdAt: day(-2) },

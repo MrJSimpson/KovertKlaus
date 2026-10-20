@@ -42,7 +42,7 @@ function fakeDb(opts: { users?: Array<{ id: string; email: string; name: string 
     id: 'ex1', code: 'ABCD-1234', title: 'Family Swap', organizerId: 'boss', status: 'RECRUITING',
     inviteCutoffDate: opts.cutoff ?? CUTOFF, executionDate: new Date('2026-12-20T00:00:00Z'),
     budgetMin: null, budgetMax: 50, currency: 'USD', isWhiteElephant: false, isCovertDelivery: Boolean(opts.covert),
-    organizer: { name: 'Holly', email: 'boss@x.com', codename: null },
+    organizer: { name: 'Holly', email: 'boss@x.com' },
     members: (opts.members ?? ['boss']).map((userId) => ({ userId })),
   };
   const db = {

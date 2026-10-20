@@ -14,13 +14,12 @@ export async function GET() {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    let user = await db.user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         email: true,
         name: true,
-        codename: true,
         streetAddress: true,
         city: true,
         state: true,
@@ -49,7 +48,7 @@ export async function GET() {
                 status: true,
                 organizerId: true,
                 organizer: {
-                  select: { name: true, codename: true },
+                  select: { name: true },
                 },
               },
             },
@@ -60,16 +59,6 @@ export async function GET() {
           where: { isAcknowledged: false },
           orderBy: { createdAt: 'desc' },
         },
-        wishlists: {
-          include: {
-            wishlistItems: {
-              include: {
-                item: true,
-              },
-            },
-          },
-          orderBy: { createdAt: 'asc' },
-        },
       },
     });
 
@@ -77,51 +66,6 @@ export async function GET() {
       await clearSessionCookie();
       return NextResponse.json({ authenticated: false, error: 'User not found' }, { status: 404 });
     }
-
-    // Auto-create default Master Wishlist Manifest if user has none
-    if (user.wishlists.length === 0) {
-      await db.wishlist.create({
-        data: {
-          userId: user.id,
-          name: 'Master Wishlist Manifest - Secret Santa',
-          type: 'STANDARD',
-        },
-      });
-
-      // Refetch wishlists
-      const refetchedWishlists = await db.wishlist.findMany({
-        where: { userId: user.id },
-        include: {
-          wishlistItems: {
-            include: { item: true },
-          },
-        },
-        orderBy: { createdAt: 'asc' },
-      });
-      user = { ...user, wishlists: refetchedWishlists };
-    }
-
-    const formattedWishlists = user.wishlists.map((w, idx) => {
-      const items = w.wishlistItems.map((wi) => ({
-        id: wi.item.id,
-        title: wi.item.name,
-        price: wi.item.price ? Number(wi.item.price) : undefined,
-        url: wi.item.url,
-        thumbnail: wi.item.thumbnailUrl || undefined,
-        description: wi.item.description || undefined,
-        properties: wi.item.properties || undefined,
-      }));
-
-      return {
-        id: w.id,
-        name: w.name,
-        isMaster: idx === 0,
-        type: w.type,
-        createdAt: w.createdAt,
-        manifestItems: items,
-        opTools: items,
-      };
-    });
 
     // Sliding expiry: an agent who keeps visiting is never signed out mid-season.
     await renewSessionCookieIfStale();
@@ -132,7 +76,6 @@ export async function GET() {
       user: {
         ...user,
         demerits: user.penaltyPoints,
-        wishlists: formattedWishlists,
       },
     });
   } catch (error: any) {
@@ -151,7 +94,6 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const {
       name,
-      codename,
       streetAddress,
       city,
       state,
@@ -162,7 +104,6 @@ export async function PATCH(request: Request) {
       newPassword,
     } = body as {
       name?: string;
-      codename?: string;
       streetAddress?: string;
       city?: string;
       state?: string;
@@ -176,7 +117,6 @@ export async function PATCH(request: Request) {
     const updateData: Record<string, any> = {};
 
     if (name) updateData.name = sanitizeText(name);
-    if (codename) updateData.codename = sanitizeText(codename);
     if (streetAddress !== undefined) updateData.streetAddress = sanitizeText(streetAddress);
     if (city !== undefined) updateData.city = sanitizeText(city);
     if (state !== undefined) updateData.state = sanitizeText(state);
@@ -220,7 +160,6 @@ export async function PATCH(request: Request) {
         id: true,
         email: true,
         name: true,
-        codename: true,
         streetAddress: true,
         city: true,
         state: true,

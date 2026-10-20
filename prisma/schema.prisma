@@ -76,9 +76,6 @@ model User {
   id                             String        @id @default(uuid())
   email                          String        @unique
   name                           String
-  codename                       String?
-  preferredCodename              String?
-  autoRandomizeCodename          Boolean       @default(false)
   passwordHash                   String
   /// User session tokens issued before this instant are rejected (set on password change).
   sessionsRevokedAt              DateTime?
@@ -128,36 +125,38 @@ model User {
 }
 
 model Exchange {
-  id                    String         @id @default(uuid())
-  title                 String
-  description           String?
-  code                  String         @unique
-  organizerId           String
-  organizer             User           @relation("OrganizerExchanges", fields: [organizerId], references: [id])
-  maxParticipants       Int?
-  giftingType           GiftingType    @default(SINGLE)
-  isLocalOnly           Boolean        @default(false)
-  eventLocation         String?
-  isWhiteElephant       Boolean        @default(false)
-  organizerAssistedDraw Boolean        @default(true)
-  drawVerifiedAt        DateTime?
-  budgetMin             Decimal?       @db.Decimal(10, 2)
-  budgetMax             Decimal        @db.Decimal(10, 2)
-  currency              String         @default("USD")
-  inviteCutoffDate      DateTime
-  assignmentDate        DateTime
-  shippingDate          DateTime?
-  executionDate         DateTime
-  status                ExchangeStatus @default(RECRUITING)
+  id                      String         @id @default(uuid())
+  title                   String
+  description             String?
+  code                    String         @unique
+  organizerId             String
+  organizer               User           @relation("OrganizerExchanges", fields: [organizerId], references: [id])
+  maxParticipants         Int?
+  giftingType             GiftingType    @default(SINGLE)
+  isLocalOnly             Boolean        @default(false)
+  eventLocation           String?
+  isWhiteElephant         Boolean        @default(false)
+  organizerAssistedDraw   Boolean        @default(true)
+  drawVerifiedAt          DateTime?
+  budgetMin               Decimal?       @db.Decimal(10, 2)
+  budgetMax               Decimal        @db.Decimal(10, 2)
+  currency                String         @default("USD")
+  inviteCutoffDate        DateTime
+  assignmentDate          DateTime
+  shippingDate            DateTime?
+  executionDate           DateTime
+  status                  ExchangeStatus @default(RECRUITING)
   /// When the mission was marked COMPLETED. Mission-wide Intel stays readable for 14 days after.
-  completedAt           DateTime?
-  isFreeAnnualExchange  Boolean        @default(false)
-  enforcePenalties      Boolean        @default(true)
-  isCovertDelivery      Boolean        @default(false)
-  propertyWaiverText    String?
-  paymentStatus         PaymentStatus  @default(FREE_ANNUAL)
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  completedAt             DateTime?
+  isFreeAnnualExchange    Boolean        @default(false)
+  enforcePenalties        Boolean        @default(true)
+  /// When false, an agent's Wishlist Manifest may not total more than `budgetMax`. Each item is always capped at `budgetMax`.
+  allowWishlistOverBudget Boolean        @default(true)
+  isCovertDelivery        Boolean        @default(false)
+  propertyWaiverText      String?
+  paymentStatus           PaymentStatus  @default(FREE_ANNUAL)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
 
   members            ExchangeMember[]
   exclusionRules     ExclusionRule[]
@@ -211,17 +210,20 @@ model Item {
   @@schema("app")
 }
 
+/// One agent's Wishlist Manifest for one Holiday Mission. Created with the membership and deleted with it.
 model Wishlist {
-  id        String       @id @default(uuid())
+  id        String         @id @default(uuid())
   userId    String
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The mission membership this list belongs to (one list per member per mission).
+  memberId  String         @unique
+  member    ExchangeMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
   name      String
-  type      WishlistType @default(STANDARD)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  type      WishlistType   @default(STANDARD)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
-  wishlistItems   WishlistItem[]
-  exchangeMembers ExchangeMember[]
+  wishlistItems WishlistItem[]
 
   @@index([userId])
   @@schema("app")
@@ -243,8 +245,10 @@ model ExchangeMember {
   id                     String         @id @default(uuid())
   exchangeId             String
   userId                 String
+  /// Mission-assigned at join, drawn from `CODENAME_POOL` (`src/lib/codename.ts`). Unique per mission.
   codename               String?
-  wishlistId             String?
+  /// When the agent accepted their codename. Rerolls stop once set.
+  codenameAcceptedAt     DateTime?
   role                   MemberRole     @default(MEMBER)
   targetUserId           String?
   shippingStatus         ShippingStatus @default(PENDING)
@@ -267,10 +271,10 @@ model ExchangeMember {
   exchange   Exchange  @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
   user       User      @relation("MemberUser", fields: [userId], references: [id], onDelete: Cascade)
   targetUser User?     @relation("TargetUser", fields: [targetUserId], references: [id])
-  wishlist   Wishlist? @relation(fields: [wishlistId], references: [id])
+  wishlist   Wishlist?
 
   @@unique([exchangeId, userId])
-  @@index([exchangeId, codename])
+  @@unique([exchangeId, codename])
   @@index([exchangeId])
   @@index([userId])
   @@index([targetUserId])
