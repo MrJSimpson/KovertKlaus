@@ -1,156 +1,139 @@
 /**
- * KovertKlaus Tactical Callsign Generator & Collision Resolver Engine
- * 
- * Provides CSPRNG-based festive/espionage codename generation,
- * event-scoped roster collision detection, and automated resolution suggestions.
+ * @file codename.ts
+ * @description Mission-assigned codenames: one pre-generated pool, drawn per mission.
+ *
+ * Tier 1 (what): `CODENAME_POOL` is the only source of codenames. `drawCodename` picks one that is
+ * free in a mission roster; `enrollWithCodename` creates a member with a drawn codename;
+ * `rerollCodename` and `acceptCodename` implement `/api/codename` for both the edge worker (SaaS)
+ * and the Next.js route (self-hosted).
+ * Tier 2 (why): Personal, account-wide codenames are no longer supported (alpha feedback,
+ * 2026-10-20). A codename belongs to one `ExchangeMember`: assigned at random on join, rerolled
+ * as often as the agent likes, and fixed once they accept it. Rerolls also stop when recruiting
+ * closes, so every codename is fixed by the time of the draw.
+ * Tier 3 (how): Draws use the CSPRNG in `getSecureRandomInt`. The database enforces uniqueness
+ * with `@@unique([exchangeId, codename])`; two agents joining at the same moment can still draw
+ * the same name, so `enrollWithCodename` retries on that unique violation.
  */
 
-export const TACTICAL_PREFIXES = [
-  'Frost',
-  'Shadow',
-  'Blizzard',
-  'Kovert',
-  'Glacier',
-  'Midnight',
-  'Evergreen',
-  'Tinsel',
-  'Nutcracker',
-  'Vanguard',
-  'Cobalt',
-  'Ghost',
-  'Polar',
-  'Winter',
-  'Cipher',
-  'Icicle',
-  'Timber',
-  'Sleigh',
-  'Rudolph',
-  'Aurora',
+import type { PrismaClient } from '@prisma/client';
+import { getSecureRandomInt } from '@/lib/security';
+
+/** First half of a codename. */
+export const CODENAME_PREFIXES = [
+  'Frost', 'Shadow', 'Blizzard', 'Kovert', 'Glacier', 'Midnight', 'Evergreen', 'Tinsel', 'Nutcracker', 'Vanguard',
+  'Cobalt', 'Ghost', 'Polar', 'Winter', 'Cipher', 'Icicle', 'Timber', 'Sleigh', 'Rudolph', 'Aurora',
 ] as const;
 
-export const TACTICAL_SUFFIXES = [
-  'Viper',
-  'Spectre',
-  'Fox',
-  'Hawk',
-  'Falcon',
-  'Wolf',
-  'Reindeer',
-  'Echo',
-  'Cipher',
-  'Recon',
-  'Sentinel',
-  'Striker',
-  'Agent',
-  'Knight',
-  'Scout',
-  'Sniper',
-  'Courier',
-  'Stalker',
-  'Phantom',
-  'Tracker',
+/** Second half of a codename. */
+export const CODENAME_SUFFIXES = [
+  'Viper', 'Spectre', 'Fox', 'Hawk', 'Falcon', 'Wolf', 'Reindeer', 'Echo', 'Comet', 'Recon',
+  'Sentinel', 'Striker', 'Elf', 'Knight', 'Scout', 'Snowflake', 'Courier', 'Owl', 'Phantom', 'Tracker',
 ] as const;
+
+/** Every assignable codename, e.g. `Frost-Viper`. 400 names, so a mission never runs out in practice. */
+export const CODENAME_POOL: readonly string[] = CODENAME_PREFIXES.flatMap((prefix) =>
+  CODENAME_SUFFIXES.map((suffix) => `${prefix}-${suffix}`)
+);
+
+/** Attempts `enrollWithCodename` makes before giving up on concurrent collisions. */
+const ENROLL_ATTEMPTS = 5;
+
+/** Picks a random index below `maxExclusive`. Injectable for tests. */
+export type RandomInt = (maxExclusive: number) => number;
 
 /**
- * Generates a random festive/spy codename.
- * e.g. "Blizzard-Fox", "Shadow-Cipher", "Frost-Sentinel"
+ * Draws a codename that is not in `taken` (compared case-insensitively).
+ * When the whole pool is taken, appends the lowest free number to a random pool name
+ * (`Frost-Viper-2`), so a draw always succeeds.
  */
-export function generateRandomCodename(existingCodenames: string[] = []): string {
-  const normalizedExisting = new Set(
-    existingCodenames.map((c) => c.trim().toLowerCase())
-  );
+export function drawCodename(taken: Iterable<string | null | undefined>, randomInt: RandomInt = getSecureRandomInt): string {
+  const used = new Set<string>();
+  for (const name of taken) if (name) used.add(name.trim().toLowerCase());
 
-  // Try up to 50 random combinations to find an unused one
-  for (let i = 0; i < 50; i++) {
-    const prefix = TACTICAL_PREFIXES[Math.floor(Math.random() * TACTICAL_PREFIXES.length)];
-    const suffix = TACTICAL_SUFFIXES[Math.floor(Math.random() * TACTICAL_SUFFIXES.length)];
-    const candidate = `${prefix}-${suffix}`;
+  const free = CODENAME_POOL.filter((name) => !used.has(name.toLowerCase()));
+  if (free.length > 0) return free[randomInt(free.length)];
 
-    if (!normalizedExisting.has(candidate.toLowerCase())) {
-      return candidate;
+  const base = CODENAME_POOL[randomInt(CODENAME_POOL.length)];
+  let n = 2;
+  while (used.has(`${base}-${n}`.toLowerCase())) n++;
+  return `${base}-${n}`;
+}
+
+/** Codenames already used in one mission. */
+async function rosterCodenames(db: PrismaClient, exchangeId: string): Promise<string[]> {
+  const members = await db.exchangeMember.findMany({ where: { exchangeId }, select: { codename: true } });
+  return members.map((m) => m.codename).filter((c): c is string => Boolean(c));
+}
+
+/** True when `err` is a unique violation on the mission codename constraint. */
+function isCodenameCollision(err: unknown): boolean {
+  const e = err as { code?: string; meta?: { target?: unknown } } | null;
+  if (e?.code !== 'P2002') return false;
+  const target = e.meta?.target;
+  return Array.isArray(target) ? target.includes('codename') : String(target ?? '').includes('codename');
+}
+
+/**
+ * Draws a free codename for `exchangeId` and passes it to `create`, which inserts the member
+ * (alone or inside a transaction). Draws again if another agent claimed the same name first.
+ */
+export async function enrollWithCodename<T>(
+  db: PrismaClient,
+  exchangeId: string,
+  create: (codename: string) => Promise<T>
+): Promise<T> {
+  const tried: string[] = [];
+  for (let attempt = 1; ; attempt++) {
+    const codename = drawCodename([...(await rosterCodenames(db, exchangeId)), ...tried]);
+    try {
+      return await create(codename);
+    } catch (err) {
+      if (!isCodenameCollision(err) || attempt >= ENROLL_ATTEMPTS) throw err;
+      tried.push(codename);
     }
   }
-
-  // Fallback with random discriminator if all primary combinations are exhausted
-  const randomPrefix = TACTICAL_PREFIXES[Math.floor(Math.random() * TACTICAL_PREFIXES.length)];
-  const randomSuffix = TACTICAL_SUFFIXES[Math.floor(Math.random() * TACTICAL_SUFFIXES.length)];
-  const num = Math.floor(10 + Math.random() * 90);
-  return `${randomPrefix}-${randomSuffix}-${num}`;
 }
 
-export interface CodenameResolutionResult {
-  codename: string;
-  isRandomized: boolean;
-  wasCollided: boolean;
-  suggestions: string[];
+/** HTTP-shaped result shared by the worker and the Next route. */
+export interface CodenameResult {
+  status: number;
+  body: { codename?: string; accepted?: boolean; error?: string };
+}
+
+/** Loads the caller's membership with the fields the codename rules need. */
+async function findMember(db: PrismaClient, exchangeId: string, userId: string) {
+  return db.exchangeMember.findUnique({
+    where: { exchangeId_userId: { exchangeId, userId } },
+    select: { id: true, codename: true, codenameAcceptedAt: true, exchange: { select: { status: true } } },
+  });
 }
 
 /**
- * Resolves an operative's codename for a target operation roster:
- * 1. If autoRandomize is enabled -> Generates a unique random tactical callsign.
- * 2. If preferredName is provided -> Checks for collisions against existing members.
- * 3. If collision occurs -> Returns collision warning + 3 alternative suggestions.
+ * Gives the caller a new random codename in one mission.
+ * Allowed only while the mission is recruiting and the codename is not yet accepted.
  */
-export function resolveUniqueCodename(
-  requestedName: string | null | undefined,
-  existingRosterCodenames: string[] = [],
-  autoRandomize = false
-): CodenameResolutionResult {
-  const normalizedExisting = new Set(
-    existingRosterCodenames.map((c) => c.trim().toLowerCase())
+export async function rerollCodename(db: PrismaClient, exchangeId: string, userId: string): Promise<CodenameResult> {
+  const member = await findMember(db, exchangeId, userId);
+  if (!member) return { status: 404, body: { error: 'You are not enrolled in this mission.' } };
+  if (member.codenameAcceptedAt) return { status: 409, body: { error: 'Your codename is already accepted and cannot change.' } };
+  if (member.exchange.status !== 'RECRUITING') {
+    return { status: 409, body: { error: 'Codenames are fixed once recruiting closes.' } };
+  }
+
+  // The roster includes the caller's current codename, so a reroll always returns a different one.
+  const updated = await enrollWithCodename(db, exchangeId, (codename) =>
+    db.exchangeMember.update({ where: { id: member.id }, data: { codename }, select: { codename: true } })
   );
+  return { status: 200, body: { codename: updated.codename ?? undefined, accepted: false } };
+}
 
-  // Mode A: Stealth Randomization (Auto-Randomize Enabled)
-  if (autoRandomize || !requestedName || !requestedName.trim()) {
-    const generated = generateRandomCodename(existingRosterCodenames);
-    return {
-      codename: generated,
-      isRandomized: true,
-      wasCollided: false,
-      suggestions: [
-        generateRandomCodename([...existingRosterCodenames, generated]),
-        generateRandomCodename([...existingRosterCodenames, generated]),
-      ],
-    };
+/** Fixes the caller's current codename for the rest of the mission. Idempotent. */
+export async function acceptCodename(db: PrismaClient, exchangeId: string, userId: string): Promise<CodenameResult> {
+  const member = await findMember(db, exchangeId, userId);
+  if (!member) return { status: 404, body: { error: 'You are not enrolled in this mission.' } };
+  if (!member.codename) return { status: 409, body: { error: 'No codename is assigned yet.' } };
+  if (!member.codenameAcceptedAt) {
+    await db.exchangeMember.update({ where: { id: member.id }, data: { codenameAcceptedAt: new Date() } });
   }
-
-  const cleanRequested = requestedName.trim();
-  const lowerRequested = cleanRequested.toLowerCase();
-
-  // Mode B: Requested Name is Free
-  if (!normalizedExisting.has(lowerRequested)) {
-    return {
-      codename: cleanRequested,
-      isRandomized: false,
-      wasCollided: false,
-      suggestions: [],
-    };
-  }
-
-  // Mode C: Collision Detected -> Generate Smart Suggestions
-  const suggestions: string[] = [];
-
-  // Suggestion 1: Numeric suffix (e.g. "NightOwl-2")
-  let suffixNum = 2;
-  while (normalizedExisting.has(`${lowerRequested}-${suffixNum}`)) {
-    suffixNum++;
-  }
-  suggestions.push(`${cleanRequested}-${suffixNum}`);
-
-  // Suggestion 2: Tactical Prefix variation (e.g. "Shadow-NightOwl" or "Frost-NightOwl")
-  const prefix = TACTICAL_PREFIXES[Math.floor(Math.random() * TACTICAL_PREFIXES.length)];
-  const prefixCandidate = `${prefix}-${cleanRequested}`;
-  if (!normalizedExisting.has(prefixCandidate.toLowerCase())) {
-    suggestions.push(prefixCandidate);
-  }
-
-  // Suggestion 3: Fresh Random Tactical Callsign
-  suggestions.push(generateRandomCodename([...existingRosterCodenames, ...suggestions]));
-
-  return {
-    codename: suggestions[0], // Default to first available suggestion
-    isRandomized: false,
-    wasCollided: true,
-    suggestions,
-  };
+  return { status: 200, body: { codename: member.codename, accepted: true } };
 }

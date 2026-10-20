@@ -100,7 +100,7 @@ export interface NudgeTarget {
   userId: string;
   exchangeId: string;
   shippingStatus: string;
-  user: { email: string | null; name: string | null; codename: string | null; emailNotifications: boolean | null };
+  user: { email: string | null; name: string | null; emailNotifications: boolean | null };
   exchange: NudgeMission & { id: string; title: string; code: string; organizerId: string; organizer: { name: string } };
 }
 
@@ -168,7 +168,7 @@ export async function dispatchNudge(db: PrismaClient, deps: NudgeDeps, member: N
     try {
       const sent = await deps.sendEmail({
         recipientEmail: member.user.email,
-        recipientName: member.user.name || member.user.codename || 'Operative',
+        recipientName: member.user.name || 'Operative',
         organizerName: exchange.organizer.name,
         exchangeTitle: exchange.title,
         message: text,

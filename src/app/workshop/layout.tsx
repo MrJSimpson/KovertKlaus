@@ -250,7 +250,7 @@ export default function WorkshopLayout({ children }: { children: React.ReactNode
           {/* User Status & Return Links */}
           <div className="flex items-center gap-3 text-xs font-mono">
             <span className="text-kk-muted hidden lg:inline">
-              Tester: <strong className="text-kk-gold-ink">{authData.user?.codename || authData.user?.name}</strong>
+              Tester: <strong className="text-kk-gold-ink">{authData.user?.name}</strong>
             </span>
             <Link
               href="/dashboard"

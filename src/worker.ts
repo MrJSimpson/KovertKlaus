@@ -4,7 +4,7 @@ import { Prisma, type PrismaClient } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
-import { EXCHANGE_MEMBERS_INCLUDE, sanitizeExchangeMember } from './lib/exchange-view';
+import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, sanitizeExchangeMember } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { validateNistPassword } from './lib/adminAuth';
@@ -42,7 +42,7 @@ import { rewriteExchangeShellPath } from './lib/exchange-route';
 import { dispatchNudge } from './lib/nudge';
 import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
-import { resolveUniqueCodename } from './lib/codename';
+import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -66,6 +66,7 @@ const USER_COOKIE_NAME = SESSION_COOKIE_NAME;
  */
 export const WORKER_API_PATHS = new Set([
   '/api/clearance',
+  '/api/codename',
   '/api/config',
   '/api/demerits/audit',
   '/api/invitations',
@@ -509,7 +510,6 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 id: true,
                 name: true,
                 email: true,
-                codename: true,
                 penaltyPoints: true,
                 accountStatus: true,
                 isWorkshop: true,
@@ -548,7 +548,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               success: true,
               users: [],
               totalCount,
-              message: 'Enter an operative ID, email, or codename to inspect on demand.',
+              message: 'Enter an operative ID, email, or mission codename to inspect on demand.',
             });
           }
 
@@ -559,7 +559,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               { id: { equals: q } },
               { name: { contains: q, mode: 'insensitive' } },
               { email: { contains: q, mode: 'insensitive' } },
-              { codename: { contains: q, mode: 'insensitive' } },
+              { participations: { some: { codename: { contains: q, mode: 'insensitive' } } } },
             ];
           }
 
@@ -571,7 +571,6 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               id: true,
               name: true,
               email: true,
-              codename: true,
               penaltyPoints: true,
               accountStatus: true,
               isWorkshop: true,
@@ -599,7 +598,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as any;
-          const { userId, penaltyPoints, isWorkshop, accountStatus, codename } = body;
+          const { userId, penaltyPoints, isWorkshop, accountStatus } = body;
           if (!userId) return Response.json({ error: 'userId required' }, { status: 400 });
           const points = penaltyPoints !== undefined ? Number(penaltyPoints) : undefined;
           if (points !== undefined && (!Number.isInteger(points) || points < 0)) {
@@ -611,11 +610,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               ...(points !== undefined ? { penaltyPoints: points } : {}),
               ...(isWorkshop !== undefined ? { isWorkshop: Boolean(isWorkshop) } : {}),
               ...(accountStatus !== undefined ? { accountStatus } : {}),
-              ...(codename !== undefined ? { codename: codename ? sanitizeText(String(codename)) : null } : {}),
             },
             // Never return credential columns (passwordHash) to the browser.
             select: {
-              id: true, name: true, email: true, codename: true, penaltyPoints: true,
+              id: true, name: true, email: true, penaltyPoints: true,
               accountStatus: true, isWorkshop: true, createdAt: true,
             },
           });
@@ -640,7 +638,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const op = await adminDb.exchange.findFirst({
             where: id ? { id } : { code },
             include: {
-              organizer: { select: { id: true, name: true, email: true, codename: true } },
+              organizer: { select: { id: true, name: true, email: true } },
               _count: { select: { members: true, exclusionRules: true, reports: true } },
             },
           });
@@ -688,7 +686,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           take: 25,
           orderBy: { createdAt: 'desc' },
           include: {
-            organizer: { select: { id: true, name: true, email: true, codename: true } },
+            organizer: { select: { id: true, name: true, email: true } },
             _count: { select: { members: true, exclusionRules: true, reports: true } },
           },
         });
@@ -1201,7 +1199,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           success: true,
           token: signedUserId,
           message: 'Authentication successful',
-          user: { id: user.id, name: user.name, email: user.email, codename: user.codename, isWorkshop: user.isWorkshop },
+          user: { id: user.id, name: user.name, email: user.email, isWorkshop: user.isWorkshop },
         }), { status: 200, headers });
       }
 
@@ -1221,7 +1219,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           let user = await db.user.findUnique({
             where: { id: userId },
             select: {
-              id: true, email: true, name: true, codename: true, emailNotifications: true,
+              id: true, email: true, name: true, emailNotifications: true,
               penaltyPoints: true, isWorkshop: true, accountStatus: true, createdAt: true,
               ...PROFILE_DOSSIER_SELECT,
               participations: {
@@ -1230,7 +1228,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                     select: {
                       id: true, title: true, code: true, isLocalOnly: true, isWhiteElephant: true, budgetMin: true,
                       budgetMax: true, currency: true, inviteCutoffDate: true, assignmentDate: true, shippingDate: true,
-                      executionDate: true, status: true, organizerId: true, organizer: { select: { name: true, codename: true } },
+                      executionDate: true, status: true, organizerId: true, organizer: { select: { name: true } },
                     },
                   },
                 },
@@ -1287,12 +1285,11 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         // The preferences modal sends PUT; PATCH stays for existing callers.
         if (request.method === 'PATCH' || request.method === 'PUT') {
           const body = (await request.json().catch(() => ({}))) as any;
-          const { name, codename, emailNotifications, newPassword } = body;
+          const { name, emailNotifications, newPassword } = body;
           const oldPassword = body.currentPassword ?? body.oldPassword;
           const updateData: Record<string, any> = buildProfileUpdate(body);
 
           if (name) updateData.name = sanitizeText(name);
-          if (codename) updateData.codename = sanitizeText(codename);
           if (emailNotifications !== undefined) updateData.emailNotifications = Boolean(emailNotifications);
 
           if (newPassword) {
@@ -1312,7 +1309,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             where: { id: userId },
             data: updateData,
             select: {
-              id: true, email: true, name: true, codename: true, emailNotifications: true, ...PROFILE_DOSSIER_SELECT,
+              id: true, email: true, name: true, emailNotifications: true, ...PROFILE_DOSSIER_SELECT,
             },
           });
 
@@ -1329,7 +1326,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
       // 12. /api/users (POST - Registration)
       if (pathname === '/api/users' && request.method === 'POST') {
         const body = (await request.json().catch(() => ({}))) as any;
-        const { name, email, codename, password } = body;
+        const { name, email, password } = body;
 
         if (!email || !isValidEmail(email)) return Response.json({ error: 'Valid email required' }, { status: 400 });
         if (!name || !password) return Response.json({ error: 'Name, email, and password required' }, { status: 400 });
@@ -1418,10 +1415,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             data: {
               email: cleanEmail,
               name: sanitizeText(name),
-              codename: codename ? sanitizeText(codename) : undefined,
               passwordHash,
             },
-            select: { id: true, email: true, name: true, codename: true, accountStatus: true, penaltyPoints: true },
+            select: { id: true, email: true, name: true, accountStatus: true, penaltyPoints: true },
           });
 
           // If registered via PreLaunchApproval, immediately consume & remove the code to prevent reuse
@@ -1454,15 +1450,17 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 },
               });
 
-              await db.exchangeMember.create({
-                data: {
-                  exchangeId: targetExchange.id,
-                  userId: user.id,
-                  codename: user.codename,
-                  role: 'MEMBER',
-                  wishlistId: userManifest.id,
-                },
-              });
+              await enrollWithCodename(db, targetExchange.id, (codename) =>
+                db.exchangeMember.create({
+                  data: {
+                    exchangeId: targetExchange.id,
+                    userId: user.id,
+                    codename,
+                    role: 'MEMBER',
+                    wishlistId: userManifest.id,
+                  },
+                })
+              );
               await markInvitationAccepted(db, targetExchange.id, user.email, user.id);
             } catch (enrollErr) {
               console.warn('[Worker Auto-Enroll Warning]', enrollErr);
@@ -1474,7 +1472,6 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             await sendWelcomeEmail({
               to: user.email,
               name: user.name,
-              codename: user.codename || undefined,
               overrideConfig: emailConfig,
             });
           } catch (welcomeErr) {
@@ -1504,22 +1501,23 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             const exchange = await db.exchange.findUnique({
               where: { code: code.trim().toUpperCase() },
               include: {
-                organizer: { select: { id: true, name: true, codename: true } },
+                organizer: { select: { id: true, name: true } },
                 members: { include: EXCHANGE_MEMBERS_INCLUDE },
                 exclusionRules: {
                   include: {
-                    member: { select: { id: true, name: true, codename: true } },
-                    restrictedMember: { select: { id: true, name: true, codename: true } },
+                    member: { select: { id: true, name: true } },
+                    restrictedMember: { select: { id: true, name: true } },
                   },
                 },
-                reports: { include: { user: { select: { id: true, name: true, codename: true } } }, orderBy: { createdAt: 'desc' } },
+                reports: { include: { user: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' } },
               },
             });
             if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
 
             // Sanitize targetUser and physical addresses server-side
             const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
-            const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId }));
+            const memberCodenames = memberCodenameMap(exchange.members);
+            const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames }));
 
             return Response.json({
               success: true,
@@ -1538,7 +1536,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               OR: [{ organizerId: activeUserId }, { members: { some: { userId: activeUserId } } }],
             },
             include: {
-              organizer: { select: { id: true, name: true, codename: true } },
+              organizer: { select: { id: true, name: true } },
               members: { select: { id: true, userId: true, role: true, shippingStatus: true } },
             },
             orderBy: { createdAt: 'desc' },
@@ -1589,8 +1587,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 if (giver?.email && giver.emailNotifications !== false && target) {
                   return sendAssignmentEmail({
                     recipientEmail: giver.email,
-                    recipientName: giver.name || giver.codename || 'Operative',
-                    targetCodename: target.codename || target.name || 'Target Operative',
+                    recipientName: giver.name || 'Operative',
+                    targetCodename: ex.members.find((m) => m.userId === assignment.targetId)?.codename || 'Target Operative',
                     targetName: target.name || undefined,
                     exchangeTitle: ex.title,
                     shippingDeadline: ex.shippingDate ? new Date(ex.shippingDate).toLocaleDateString() : undefined,
@@ -1781,7 +1779,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 if (member.user.email && member.user.emailNotifications !== false) {
                   return sendNudgeEmail({
                     recipientEmail: member.user.email,
-                    recipientName: member.user.name || member.user.codename || 'Operative',
+                    recipientName: member.user.name || 'Operative',
                     organizerName: ex.organizer.name,
                     exchangeTitle: ex.title,
                     message: messageText.trim(),
@@ -1816,7 +1814,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 photoUrl: photoUrl?.trim() || null,
               },
               include: {
-                user: { select: { id: true, name: true, codename: true } },
+                user: { select: { id: true, name: true } },
               },
             });
             return Response.json({ success: true, message: 'Exchange Report entry posted!', data: report });
@@ -1848,7 +1846,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 10: Join With KDM Token
           if (action === 'joinWithKdmToken') {
-            const { token, propertyWaiverAgreed, codename } = body;
+            const { token, propertyWaiverAgreed } = body;
             if (!token?.trim()) return Response.json({ error: 'Token required' }, { status: 400 });
             if (!propertyWaiverAgreed) return Response.json({ error: 'Property accord required' }, { status: 400 });
 
@@ -1867,20 +1865,22 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             });
             if (existingMember) return Response.json({ error: 'Already enrolled', exchangeCode: inviteToken.exchange.code }, { status: 409 });
 
-            const [newMember] = await db.$transaction([
-              db.exchangeMember.create({
-                data: {
-                  exchangeId: inviteToken.exchangeId,
-                  userId,
-                  codename: codename?.trim() || null,
-                  propertyWaiverAgreedAt: new Date(),
-                },
-              }),
-              db.covertInviteToken.update({
-                where: { id: inviteToken.id },
-                data: { isUsed: true, usedByUserId: userId },
-              }),
-            ]);
+            const [newMember] = await enrollWithCodename(db, inviteToken.exchangeId, (codename) =>
+              db.$transaction([
+                db.exchangeMember.create({
+                  data: {
+                    exchangeId: inviteToken.exchangeId,
+                    userId,
+                    codename,
+                    propertyWaiverAgreedAt: new Date(),
+                  },
+                }),
+                db.covertInviteToken.update({
+                  where: { id: inviteToken.id },
+                  data: { isUsed: true, usedByUserId: userId },
+                }),
+              ])
+            );
 
             return Response.json({
               success: true,
@@ -1926,7 +1926,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
             const giverMember = await db.exchangeMember.findFirst({
               where: { exchangeId: operationId, targetUserId: userId },
-              include: { user: { select: { id: true, name: true, codename: true } } },
+              include: { user: { select: { id: true, name: true } } },
             });
             if (!giverMember) return Response.json({ error: 'Secret Santa assignment not found' }, { status: 404 });
 
@@ -2031,7 +2031,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 shippingDate: new Date(config.shippingDate),
                 executionDate: new Date(config.executionDate),
                 paymentStatus: 'EXEMPT_SELF_HOSTED',
-                members: { create: { userId, role: 'ORGANIZER', wishlistId: organizerWishlistId } },
+                members: { create: { userId, role: 'ORGANIZER', wishlistId: organizerWishlistId, codename: drawCodename([]) } },
               },
             });
             return Response.json({ success: true, data: newExchange });
@@ -2209,32 +2209,43 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           memberWishlistId = await resolveMemberWishlistId(db, activeUserId, exchange.isWhiteElephant);
         }
 
-        // Event-scoped codename, unique within this roster (parity with the Next.js route).
-        const user = await db.user.findUnique({
-          where: { id: activeUserId },
-          select: { email: true, name: true, codename: true, preferredCodename: true, autoRandomizeCodename: true },
-        });
-        const rosterCodenames = exchange.members.map((m) => m.codename).filter(Boolean) as string[];
-        const { customCodename, randomizeCodename } = body;
-        const preferred = customCodename || user?.preferredCodename || user?.codename || user?.name || 'Agent';
-        const resolution = resolveUniqueCodename(preferred, rosterCodenames, Boolean(randomizeCodename || user?.autoRandomizeCodename));
-
-        const member = await db.exchangeMember.create({
-          data: {
-            exchangeId: exchange.id,
-            userId: activeUserId,
-            codename: resolution.codename,
-            wishlistId: memberWishlistId,
-            role: 'MEMBER',
-          },
-        });
+        // Codename drawn for this mission; the agent can reroll it until they accept (parity with the Next.js route).
+        const user = await db.user.findUnique({ where: { id: activeUserId }, select: { email: true } });
+        const member = await enrollWithCodename(db, exchange.id, (codename) =>
+          db.exchangeMember.create({
+            data: {
+              exchangeId: exchange.id,
+              userId: activeUserId,
+              codename,
+              wishlistId: memberWishlistId,
+              role: 'MEMBER',
+            },
+          })
+        );
         if (user?.email) await markInvitationAccepted(db, exchange.id, user.email, activeUserId);
 
         return Response.json({
           success: true,
           message: 'Member successfully enrolled in exchange!',
-          data: { ...member, assignedCodename: resolution.codename, wasCollided: resolution.wasCollided, isRandomized: resolution.isRandomized },
+          data: { ...member, assignedCodename: member.codename },
         });
+      }
+
+      // /api/codename (POST): reroll or accept a mission codename, shared with the Next route.
+      if (pathname === '/api/codename' && request.method === 'POST') {
+        const userId = getUserIdFromRequest(request);
+        if (!userId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+        const body = (await request.json().catch(() => ({}))) as { exchangeId?: unknown; action?: unknown };
+        if (typeof body.exchangeId !== 'string' || !body.exchangeId) {
+          return Response.json({ error: 'exchangeId is required' }, { status: 400 });
+        }
+        if (body.action !== 'reroll' && body.action !== 'accept') {
+          return Response.json({ error: "action must be 'reroll' or 'accept'" }, { status: 400 });
+        }
+        const result = body.action === 'reroll'
+          ? await rerollCodename(db, body.exchangeId, userId)
+          : await acceptCodename(db, body.exchangeId, userId);
+        return Response.json(result.body, { status: result.status });
       }
 
       // /api/messages (GET / POST): Command, Intel and Debrief messaging, shared with the Next route.

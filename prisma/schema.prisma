@@ -76,9 +76,6 @@ model User {
   id                             String        @id @default(uuid())
   email                          String        @unique
   name                           String
-  codename                       String?
-  preferredCodename              String?
-  autoRandomizeCodename          Boolean       @default(false)
   passwordHash                   String
   /// User session tokens issued before this instant are rejected (set on password change).
   sessionsRevokedAt              DateTime?
@@ -243,7 +240,10 @@ model ExchangeMember {
   id                     String         @id @default(uuid())
   exchangeId             String
   userId                 String
+  /// Mission-assigned at join, drawn from `CODENAME_POOL` (`src/lib/codename.ts`). Unique per mission.
   codename               String?
+  /// When the agent accepted their codename. Rerolls stop once set.
+  codenameAcceptedAt     DateTime?
   wishlistId             String?
   role                   MemberRole     @default(MEMBER)
   targetUserId           String?
@@ -270,7 +270,7 @@ model ExchangeMember {
   wishlist   Wishlist? @relation(fields: [wishlistId], references: [id])
 
   @@unique([exchangeId, userId])
-  @@index([exchangeId, codename])
+  @@unique([exchangeId, codename])
   @@index([exchangeId])
   @@index([userId])
   @@index([targetUserId])

@@ -271,7 +271,7 @@ export async function listMyInvitations(db: PrismaClient, userId: string, nowMs 
         select: {
           id: true, title: true, code: true, status: true, inviteCutoffDate: true, executionDate: true,
           budgetMin: true, budgetMax: true, currency: true, isWhiteElephant: true,
-          organizer: { select: { name: true, codename: true } },
+          organizer: { select: { name: true } },
           members: { where: { userId }, select: { id: true } },
         },
       },

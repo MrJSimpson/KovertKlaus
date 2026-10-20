@@ -52,7 +52,7 @@ const rendered: Record<string, string> = {
     message: 'Please add your wishlist.',
     actionUrl: 'https://kovertklaus.com/exchange/K9X2R7M4',
   }).html,
-  welcome: getWelcomeEmailTemplate({ name: 'Ivy', codename: 'Ivy' }).html,
+  welcome: getWelcomeEmailTemplate({ name: 'Ivy' }).html,
   broadcast: getBroadcastEmailTemplate({
     to: 'elf@demo.invalid',
     exchangeTitle: 'Family Exchange',

@@ -9,7 +9,6 @@ interface UserRecord {
   id: string;
   email: string;
   name: string;
-  codename?: string;
   demerits: number;
   accountStatus: string;
   isWorkshop: boolean;
@@ -38,8 +37,6 @@ export default function NorthPoleUsersPage() {
       .catch(() => {});
   }, []);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [editingCodenameUser, setEditingCodenameUser] = useState<UserRecord | null>(null);
-  const [newCodename, setNewCodename] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   async function handleLookup(query = searchQuery, isWorkshop = workshopOnly, retryCount = 0) {
@@ -121,7 +118,6 @@ export default function NorthPoleUsersPage() {
                   demerits: json.user.demerits ?? u.demerits,
                   accountStatus: json.user.accountStatus ?? u.accountStatus,
                   isWorkshop: json.user.isWorkshop ?? u.isWorkshop,
-                  codename: json.user.codename ?? u.codename,
                 }
               : u
           )
@@ -135,7 +131,6 @@ export default function NorthPoleUsersPage() {
       alert(err?.message || 'Network error updating operative');
     } finally {
       setUpdatingId(null);
-      setEditingCodenameUser(null);
     }
   }
 
@@ -174,7 +169,7 @@ export default function NorthPoleUsersPage() {
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Search by exact User ID, email, codename, or name..."
+              placeholder="Search by exact User ID, email, name, or mission codename..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-kk-inset border border-kk-border focus:border-kk-focus rounded-xl pl-4 pr-10 py-3 text-xs text-kk-ink focus:outline-none font-mono"
@@ -235,7 +230,7 @@ export default function NorthPoleUsersPage() {
           <div className="text-3xl">🔎</div>
           <p className="text-kk-muted font-bold">Lookup Console Idle</p>
           <p className="text-kk-muted max-w-md mx-auto">
-            Zero initial DB payload. Enter a User ID, email, codename, or toggle filters above to inspect records on demand.
+            Zero initial DB payload. Enter a User ID, email, mission codename, or toggle filters above to inspect records on demand.
           </p>
         </div>
       ) : users.length === 0 ? (
@@ -283,14 +278,8 @@ export default function NorthPoleUsersPage() {
                   </span>
                 </div>
 
-                {/* Codename & Metrics */}
-                <div className="grid grid-cols-3 gap-2 bg-kk-inset/80 p-3 rounded-xl border border-kk-border text-center font-mono">
-                  <div>
-                    <span className="text-[10px] text-kk-muted block">Codename</span>
-                    <span className="text-xs text-kk-ink font-bold truncate block">
-                      {user.codename || 'Unassigned'}
-                    </span>
-                  </div>
+                {/* Metrics */}
+                <div className="grid grid-cols-2 gap-2 bg-kk-inset/80 p-3 rounded-xl border border-kk-border text-center font-mono">
                   <div>
                     <span className="text-[10px] text-kk-muted block">Coal Citations</span>
                     <span
@@ -347,54 +336,9 @@ export default function NorthPoleUsersPage() {
                       +1 Coal
                     </button>
                   </div>
-
-                  {/* Edit Codename */}
-                  <button
-                    onClick={() => {
-                      setEditingCodenameUser(user);
-                      setNewCodename(user.codename || '');
-                    }}
-                    className="px-2.5 py-1.5 bg-kk-surface hover:border-kk-border-strong text-kk-accent border border-kk-border-strong rounded-lg text-[11px]"
-                  >
-                    ✏️ Codename
-                  </button>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Edit Codename Modal */}
-      {editingCodenameUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-kk-surface border border-kk-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <h3 className="font-bold text-base text-kk-heading">Modify Operative Codename</h3>
-            <p className="text-xs text-kk-muted font-mono">
-              Update callsign for operative: <strong className="text-kk-ink">{editingCodenameUser.email}</strong>
-            </p>
-            <input
-              type="text"
-              placeholder="e.g. Agent: Klaus, Chewbacca, Frosty..."
-              value={newCodename}
-              onChange={(e) => setNewCodename(e.target.value)}
-              className="w-full bg-kk-inset border border-kk-border focus:border-kk-focus rounded-xl px-4 py-2.5 text-xs text-kk-ink focus:outline-none font-mono"
-            />
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => setEditingCodenameUser(null)}
-                className="px-4 py-2 bg-kk-surface hover:border-kk-border-strong text-kk-ink rounded-xl text-xs font-mono font-bold transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleUpdateUser(editingCodenameUser.id, { codename: newCodename.trim() })}
-                disabled={updatingId === editingCodenameUser.id}
-                className="px-4 py-2 bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary rounded-xl text-xs font-mono font-bold transition shadow-lg disabled:opacity-50"
-              >
-                {updatingId === editingCodenameUser.id ? 'Saving...' : 'Save Codename'}
-              </button>
-            </div>
           </div>
         </div>
       )}

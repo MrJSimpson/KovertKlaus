@@ -96,7 +96,6 @@ export interface WelcomeEmailParams {
   recipientEmail?: string;
   to?: string;
   name: string;
-  codename?: string;
   overrideConfig?: Partial<EmailConfig>;
 }
 

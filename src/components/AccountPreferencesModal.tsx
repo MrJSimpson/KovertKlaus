@@ -4,7 +4,6 @@ import { USER_ID_KEY } from '@/lib/constants/auth';
 
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
-import { generateRandomCodename } from '@/lib/codename';
 import { Card, Button, Badge } from '@/components/ui';
 
 export interface AccountPreferencesModalProps {
@@ -25,9 +24,6 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
   // Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [codename, setCodename] = useState('');
-  const [preferredCodename, setPreferredCodename] = useState('');
-  const [autoRandomizeCodename, setAutoRandomizeCodename] = useState(false);
   
   // Shipping State
   const [streetAddress, setStreetAddress] = useState('');
@@ -78,10 +74,6 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
         setEmail(data.user.email || '');
         
         // Strip legacy Agent: / Agent- prefix if provided for clean input display
-        let rawCodename = (data.user.codename || '').replace(/^(agent[-:\s]+)/i, '').trim();
-        setCodename(rawCodename);
-        setPreferredCodename(data.user.preferredCodename || rawCodename);
-        setAutoRandomizeCodename(Boolean(data.user.autoRandomizeCodename));
         
         setStreetAddress(data.user.streetAddress || '');
         setAddressLine2(data.user.addressLine2 || '');
@@ -128,9 +120,6 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
       const payload: any = {
         userId: savedUserId,
         name,
-        codename: preferredCodename || codename,
-        preferredCodename: preferredCodename || codename,
-        autoRandomizeCodename,
         streetAddress,
         addressLine2,
         city,
@@ -215,7 +204,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
               activeTab === 'identity' ? theme.tabActive : theme.tabInactive
             }`}
           >
-            👤 Identity & Codename
+            👤 Identity
           </button>
           <button
             type="button"
@@ -292,52 +281,9 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: A
                     />
                   </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className={`block text-xs font-semibold ${theme.textLabel}`}>Preferred Operative Codename</label>
-                      <button
-                        type="button"
-                        onClick={() => setPreferredCodename(generateRandomCodename())}
-                        className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
-                      >
-                        🎲 Randomize Call Sign
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-mono font-bold px-3 py-2.5 rounded-xl border ${theme.badgeCode}`}>
-                        Agent:
-                      </span>
-                      <input
-                        type="text"
-                        value={preferredCodename}
-                        onChange={(e) => setPreferredCodename(e.target.value)}
-                        placeholder="e.g. Viper, Phoenix, Sentinel"
-                        className={`flex-1 border rounded-xl px-4 py-2.5 text-base sm:text-xs focus:outline-none ${theme.inputBg}`}
-                      />
-                    </div>
-                    <p className={`text-[11px] mt-1 ${theme.textSubLabel}`}>
-                      Your default identity across holiday operations. You can adjust this for individual missions.
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-kk-border">
-                    <label className="flex items-start gap-2.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={autoRandomizeCodename}
-                        onChange={(e) => setAutoRandomizeCodename(e.target.checked)}
-                        className="mt-0.5 rounded text-kk-accent focus:ring-0"
-                      />
-                      <div>
-                        <span className={`text-xs font-bold block ${theme.textLabel}`}>
-                          🎲 Always randomize codename when joining operations (Stealth Mode)
-                        </span>
-                        <span className={`text-[11px] block mt-0.5 ${theme.textSubLabel}`}>
-                          When enabled, you will be assigned a fresh random tactical callsign on every new mission for maximum secrecy.
-                        </span>
-                      </div>
-                    </label>
-                  </div>
+                  <p className={`text-[11px] ${theme.textSubLabel}`}>
+                    🕶️ Codenames are assigned for each mission when you join. Reroll yours on the mission page until you accept it.
+                  </p>
                 </div>
               )}
 

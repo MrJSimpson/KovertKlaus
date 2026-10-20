@@ -78,7 +78,7 @@ function fakeDb(opts: {
         return m ? { userId: m.userId, targetUserId: m.targetUserId, exchange } : null;
       },
       findFirst: async ({ where }: any) => opts.members.find((x) => x.targetUserId === where.targetUserId) ?? null,
-      findMany: async () => opts.members.map((m) => ({ userId: m.userId, codename: `Agent: ${m.userId}`, user: { codename: null, name: m.userId } })),
+      findMany: async () => opts.members.map((m) => ({ userId: m.userId, codename: `Agent: ${m.userId}`, user: { name: m.userId } })),
     },
     exchangeMessage: {
       count: async () => opts.sentLastHour ?? 0,

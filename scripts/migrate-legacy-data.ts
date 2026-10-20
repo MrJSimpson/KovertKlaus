@@ -171,7 +171,6 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
     const modernUserData = {
       name: u.name,
       email: u.email,
-      codename: u.codename,
       passwordHash: u.passwordHash,
       streetAddress: u.streetAddress,
       addressLine2: u.addressLine2,

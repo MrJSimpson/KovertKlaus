@@ -8,7 +8,6 @@ import Link from 'next/link';
 import { calculateAutomaticOperationDates } from '@/lib/validations/operation';
 import { useTheme } from '@/context/ThemeContext';
 import { SeasonalLightsStrand } from '@/components/ui/SeasonalLightsStrand';
-import { generateRandomCodename } from '@/lib/codenameGenerator';
 import { APP_VERSION_LABEL, RELEASE_STAGE } from '@/lib/version';
 import { WhatsNewLink } from '@/components/WhatsNewLink';
 
@@ -118,13 +117,12 @@ export function AppHomeLanding() {
   const [errorMessage, setErrorMessage] = useState('');
 
   // Logged-in User State
-  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; codename?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
 
   // Shared Auth Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [codename, setCodename] = useState('');
   const [alphaCipher, setAlphaCipher] = useState('');
 
   // Exchange Specific Inputs
@@ -160,7 +158,7 @@ export function AppHomeLanding() {
       const res = await fetch(url);
       const json = await res.json();
       if (json.authenticated && json.user) {
-        setCurrentUser({ id: json.user.id, name: json.user.name, codename: json.user.codename });
+        setCurrentUser({ id: json.user.id, name: json.user.name });
         localStorage.setItem(USER_ID_KEY, json.user.id);
         localStorage.setItem('kovertklaus_user_name', json.user.name);
       } else {
@@ -201,7 +199,7 @@ export function AppHomeLanding() {
 
       localStorage.setItem(USER_ID_KEY, json.user.id);
       localStorage.setItem('kovertklaus_user_name', json.user.name);
-      setCurrentUser({ id: json.user.id, name: json.user.name, codename: json.user.codename });
+      setCurrentUser({ id: json.user.id, name: json.user.name });
       setLoginModalOpen(false);
       router.push('/dashboard');
     } catch (err: any) {
@@ -218,17 +216,12 @@ export function AppHomeLanding() {
     setErrorMessage('');
 
     try {
-      const cleanCodename = codename.trim()
-        ? codename.trim().replace(/^(agent[-:\s]+)/i, '')
-        : undefined;
-
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
-          codename: cleanCodename,
           password,
           inviteCode: alphaCipher.trim() || undefined,
         }),
@@ -242,7 +235,7 @@ export function AppHomeLanding() {
       const user = json.data;
       localStorage.setItem(USER_ID_KEY, user.id);
       localStorage.setItem('kovertklaus_user_name', user.name);
-      setCurrentUser({ id: user.id, name: user.name, codename: user.codename });
+      setCurrentUser({ id: user.id, name: user.name });
       setLoginModalOpen(false);
       router.push('/dashboard');
     } catch (err: any) {
@@ -273,7 +266,6 @@ export function AppHomeLanding() {
             body: JSON.stringify({
               name: name.trim(),
               email: email.trim(),
-              codename: codename.trim() ? codename.trim().replace(/^(agent[-:\s]+)/i, '') : undefined,
               password,
             }),
           });
@@ -357,7 +349,6 @@ export function AppHomeLanding() {
             body: JSON.stringify({
               name: name.trim(),
               email: email.trim(),
-              codename: codename.trim() ? codename.trim().replace(/^(agent[-:\s]+)/i, '') : undefined,
               password,
               inviteCode: cleanCode,
             }),
@@ -367,7 +358,7 @@ export function AppHomeLanding() {
             throw new Error(regData.error || 'Registration failed');
           }
           userId = regData.data.id;
-          setCurrentUser({ id: regData.data.id, name: regData.data.name, codename: regData.data.codename });
+          setCurrentUser({ id: regData.data.id, name: regData.data.name });
           localStorage.setItem(USER_ID_KEY, regData.data.id);
           localStorage.setItem('kovertklaus_user_name', regData.data.name);
         } else {
@@ -381,7 +372,7 @@ export function AppHomeLanding() {
             throw new Error(loginData.error || 'Invalid credentials');
           }
           userId = loginData.user.id;
-          setCurrentUser({ id: loginData.user.id, name: loginData.user.name, codename: loginData.user.codename });
+          setCurrentUser({ id: loginData.user.id, name: loginData.user.name });
           localStorage.setItem(USER_ID_KEY, loginData.user.id);
           localStorage.setItem('kovertklaus_user_name', loginData.user.name);
         }
@@ -417,7 +408,6 @@ export function AppHomeLanding() {
     setEmail('');
     setPassword('');
     setName('');
-    setCodename('');
   }
 
   return (
@@ -1023,30 +1013,6 @@ export function AppHomeLanding() {
                   />
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-kk-muted">Elf Agent Nickname / Codename</label>
-                    <button
-                      type="button"
-                      onClick={() => setCodename(generateRandomCodename())}
-                      className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
-                    >
-                      🎲 Randomize Call Sign
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border ${theme.badgeCode}`}>
-                      Agent:
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="e.g. Viper, Phoenix, Sentinel"
-                      value={codename}
-                      onChange={(e) => setCodename(e.target.value)}
-                      className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                    />
-                  </div>
-                </div>
 
                 <div>
                   <label className="block text-kk-muted mb-1">Create Strong Password *</label>
@@ -1186,30 +1152,6 @@ export function AppHomeLanding() {
                         onChange={(e) => setEmail(e.target.value)}
                         className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-kk-muted">Secret Codename / Call Sign</label>
-                        <button
-                          type="button"
-                          onClick={() => setCodename(generateRandomCodename())}
-                          className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
-                        >
-                          🎲 Randomize Call Sign
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border ${theme.badgeCode}`}>
-                          Agent:
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="e.g. Viper, Phoenix, Sentinel"
-                          value={codename}
-                          onChange={(e) => setCodename(e.target.value)}
-                          className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                        />
-                      </div>
                     </div>
                     <div>
                       <label className="block text-kk-muted mb-1">Password *</label>
@@ -1377,30 +1319,6 @@ export function AppHomeLanding() {
                         onChange={(e) => setEmail(e.target.value)}
                         className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
                       />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-kk-muted">Secret Codename / Call Sign</label>
-                        <button
-                          type="button"
-                          onClick={() => setCodename(generateRandomCodename())}
-                          className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
-                        >
-                          🎲 Randomize Call Sign
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border ${theme.badgeCode}`}>
-                          Agent:
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="e.g. Viper, Phoenix, Sentinel"
-                          value={codename}
-                          onChange={(e) => setCodename(e.target.value)}
-                          className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                        />
-                      </div>
                     </div>
                     <div>
                       <label className="block text-kk-muted mb-1">Password *</label>

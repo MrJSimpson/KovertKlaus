@@ -17,13 +17,12 @@
 /** Prisma `include` for `exchange.members` used by the mission detail view. */
 export const EXCHANGE_MEMBERS_INCLUDE = {
   user: {
-    select: { id: true, name: true, codename: true, streetAddress: true, city: true, state: true, zipCode: true },
+    select: { id: true, name: true, streetAddress: true, city: true, state: true, zipCode: true },
   },
   targetUser: {
     select: {
       id: true,
       name: true,
-      codename: true,
       streetAddress: true,
       city: true,
       state: true,
@@ -59,6 +58,13 @@ export interface ExchangeViewer {
   isOrganizer: boolean;
   /** The mission's Head Elf (`Exchange.organizerId`). */
   organizerId: string;
+  /** Mission codename by user ID, used to label a giver's target. Codenames belong to the mission, not the user. */
+  memberCodenames?: Record<string, string | null>;
+}
+
+/** Builds `ExchangeViewer.memberCodenames` from a mission's loaded members. */
+export function memberCodenameMap(members: { userId: string; codename: string | null }[]): Record<string, string | null> {
+  return Object.fromEntries(members.map((m) => [m.userId, m.codename]));
 }
 
 /**
@@ -76,7 +82,9 @@ export function sanitizeExchangeMember(m: any, viewer: ExchangeViewer) {
   return {
     id: m.id,
     userId: m.userId,
-    codename: m.codename || m.user.codename,
+    codename: m.codename,
+    // Only the agent sees whether their own codename is accepted; until then they may reroll it.
+    codenameAccepted: isSelf ? Boolean(m.codenameAcceptedAt) : undefined,
     // A mission has exactly one Head Elf. Older rows may carry ORGANIZER from the retired
     // promote action, so the role is derived from the mission rather than read from the row.
     role: m.userId === viewer.organizerId ? 'ORGANIZER' : 'MEMBER',
@@ -101,19 +109,19 @@ export function sanitizeExchangeMember(m: any, viewer: ExchangeViewer) {
     user: {
       id: m.user.id,
       name: m.user.name,
-      codename: m.codename || m.user.codename,
+      codename: m.codename,
       streetAddress: canViewDetails ? m.user.streetAddress : null,
       city: canViewDetails ? m.user.city : null,
       state: canViewDetails ? m.user.state : null,
       zipCode: canViewDetails ? m.user.zipCode : null,
     },
     targetUserId: canViewDetails ? m.targetUserId : null,
-    targetUser: canViewDetails ? sanitizeTarget(m.targetUser, isSelf) : null,
+    targetUser: canViewDetails ? sanitizeTarget(m.targetUser, isSelf, viewer.memberCodenames) : null,
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sanitizeTarget(t: any, viewerIsGiver: boolean) {
+function sanitizeTarget(t: any, viewerIsGiver: boolean, memberCodenames: Record<string, string | null> = {}) {
   if (!t) return null;
   const wishlist = t.wishlists?.[0];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,7 +142,7 @@ function sanitizeTarget(t: any, viewerIsGiver: boolean) {
   return {
     id: t.id,
     name: t.name,
-    codename: t.codename,
+    codename: memberCodenames[t.id] ?? null,
     streetAddress: t.streetAddress,
     city: t.city,
     state: t.state,

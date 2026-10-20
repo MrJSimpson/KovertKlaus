@@ -198,8 +198,8 @@ export async function advanceMissionLifecycle(db: any): Promise<LifecycleSummary
               if (giver?.email && giver.emailNotifications !== false && target) {
                 sendAssignmentEmail({
                   recipientEmail: giver.email,
-                  recipientName: giver.name || giver.codename || 'Operative',
-                  targetCodename: target.codename || target.name || 'Target Operative',
+                  recipientName: giver.name || 'Operative',
+                  targetCodename: ex.members.find((m: { userId: string; codename: string | null }) => m.userId === assignment.targetId)?.codename || 'Target Operative',
                   targetName: target.name || undefined,
                   exchangeTitle: ex.title,
                   shippingDeadline: ex.shippingDate ? new Date(ex.shippingDate).toLocaleDateString() : undefined,

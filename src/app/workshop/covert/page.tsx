@@ -46,7 +46,6 @@ export default function CovertDeliveryStudioPage() {
       user: {
         id: 'user-joshua',
         name: 'Joshua Simpson',
-        codename: 'Agent: Prime',
       },
     },
   ]);
@@ -428,7 +427,6 @@ export default function CovertDeliveryStudioPage() {
                 user: {
                   id: 'user-zach',
                   name: 'Zach Simpson',
-                  codename: 'Agent: Shadow',
                 },
               };
               setMockReports((prev) => [newReport, ...prev]);

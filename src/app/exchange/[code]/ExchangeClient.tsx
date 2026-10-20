@@ -20,7 +20,6 @@ import { ShippingConfirmationModal } from '@/components/ShippingConfirmationModa
 import { WishlistItemModal } from '@/components/WishlistItemModal';
 import { detectCarrier } from '@/lib/carrier-tracking';
 import { UserDossierPreferences } from '@/lib/product-intelligence';
-import { generateRandomCodename } from '@/lib/codenameGenerator';
 import { resolveExchangeCode } from '@/lib/exchange-route';
 import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
@@ -33,6 +32,10 @@ interface OperationAgent {
   trackingNumber?: string;
   targetUserId?: string;
   wishlistId?: string;
+  /** Mission codename, assigned at join. */
+  codename?: string;
+  /** Present only on the viewer's own membership. */
+  codenameAccepted?: boolean;
   user?: {
     id: string;
     name: string;
@@ -145,7 +148,6 @@ export default function OperationCommandCenterPage() {
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authName, setAuthName] = useState('');
-  const [authCodename, setAuthCodename] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [enlisting, setEnlisting] = useState(false);
@@ -164,7 +166,7 @@ export default function OperationCommandCenterPage() {
       .then((json) => {
         if (cancelled || !json) return;
         const match = (json.invitations || []).find((inv: { exchange: { id: string } }) => inv.exchange.id === inviteExchangeId);
-        setMyInvitation(match ? { id: match.id, organizerName: match.exchange.organizer?.codename || match.exchange.organizer?.name || 'the Head Elf' } : null);
+        setMyInvitation(match ? { id: match.id, organizerName: match.exchange.organizer?.name || 'the Head Elf' } : null);
       })
       .catch(() => {});
     return () => {
@@ -239,6 +241,7 @@ export default function OperationCommandCenterPage() {
   const [itemModalData, setItemModalData] = useState<any>(null);
   const [userDossier, setUserDossier] = useState<UserDossierPreferences | undefined>(undefined);
   const [userWishlistId, setUserWishlistId] = useState<string | undefined>(undefined);
+  const [codenameBusy, setCodenameBusy] = useState(false);
 
   const feasibility = useMemo(() => {
     if (!operation) return null;
@@ -323,6 +326,28 @@ export default function OperationCommandCenterPage() {
     initSession();
   }, [code]);
 
+  /** Rerolls or accepts the viewer's mission codename via `/api/codename`. */
+  async function updateCodename(action: 'reroll' | 'accept') {
+    if (!operation) return;
+    setCodenameBusy(true);
+    try {
+      const res = await fetch('/api/codename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exchangeId: operation.id, action }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Codename update failed');
+      const patch = (m: OperationAgent) =>
+        m.userId === userId ? { ...m, codename: json.codename, codenameAccepted: json.accepted, user: m.user && { ...m.user, codename: json.codename } } : m;
+      setOperation((prev) => prev && { ...prev, members: prev.members?.map(patch), agents: prev.agents?.map(patch) });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Codename update failed');
+    } finally {
+      setCodenameBusy(false);
+    }
+  }
+
   async function fetchExchangeDetails() {
     if (!code) return;
     setLoading(true);
@@ -367,17 +392,12 @@ export default function OperationCommandCenterPage() {
 
     try {
       if (authMode === 'register') {
-        const cleanCodename = authCodename.trim()
-          ? authCodename.trim().replace(/^(agent[-:\s]+)/i, '')
-          : undefined;
-
         const regRes = await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: authName.trim(),
             email: authEmail.trim(),
-            codename: cleanCodename,
             password: authPassword,
             inviteCode: operation.code,
           }),
@@ -841,6 +861,8 @@ export default function OperationCommandCenterPage() {
   const organizerData = operation?.organizer || operation?.opsLeader;
   const organizerIdVal = operation?.organizerId || operation?.opsLeaderId;
   const currentAgent = membersList.find((a) => a.userId === userId);
+  const organizerCodename = membersList.find((a) => a.userId === organizerIdVal)?.codename;
+  const canRerollCodename = Boolean(currentAgent && !currentAgent.codenameAccepted && operation?.status === 'RECRUITING');
   // A mission has exactly one Head Elf: the organizer. Leader promotion is not a feature yet.
   const isOpsLeader = Boolean(userId && organizerIdVal === userId);
   const assignedTarget = currentAgent?.targetUser;
@@ -982,7 +1004,7 @@ export default function OperationCommandCenterPage() {
                   )}
 
                   <span className="text-xs font-semibold text-kk-header-nav">
-                    Head Elf: <strong className="text-kk-on-header">{organizerData?.name || 'Organizer'} ({formatCodename(organizerData?.codename, organizerData?.name)})</strong>
+                    Head Elf: <strong className="text-kk-on-header">{organizerData?.name || 'Organizer'} ({formatCodename(organizerCodename, organizerData?.name)})</strong>
                   </span>
                 </div>
 
@@ -1068,7 +1090,7 @@ export default function OperationCommandCenterPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🎁</span>
                           <span className="text-xs font-mono font-bold uppercase tracking-wider text-kk-brand">
-                            {myInvitation ? `📩 Invited by ${formatCodename(myInvitation.organizerName)}` : 'Operative Clearance Verified'}
+                            {myInvitation ? `📩 Invited by ${myInvitation.organizerName}` : 'Operative Clearance Verified'}
                           </span>
                         </div>
                         <h2 className="text-xl font-black mt-1">
@@ -1111,6 +1133,43 @@ export default function OperationCommandCenterPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Mission codename: assigned at join, rerollable until accepted or recruiting closes */}
+            {currentAgent && !currentAgent.codenameAccepted && (
+              <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-kk-brand">🕶️ Your codename for this mission</span>
+                    <p className="text-2xl font-black mt-1">{formatCodename(currentAgent.codename)}</p>
+                    <p className="text-xs text-kk-muted mt-1">
+                      {canRerollCodename
+                        ? 'Not a fit? Draw another as often as you like. Once you accept, it stays for the whole mission.'
+                        : 'Recruiting has closed, so this codename is final.'}
+                    </p>
+                  </div>
+                  {canRerollCodename && (
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="button"
+                        disabled={codenameBusy}
+                        onClick={() => updateCodename('reroll')}
+                        className={`min-h-[44px] px-4 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50 ${theme.btnSecondary}`}
+                      >
+                        🎲 Draw another
+                      </button>
+                      <button
+                        type="button"
+                        disabled={codenameBusy}
+                        onClick={() => updateCodename('accept')}
+                        className={`min-h-[44px] px-4 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50 ${theme.btnPrimary}`}
+                      >
+                        ✓ Accept codename
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -2425,30 +2484,6 @@ export default function OperationCommandCenterPage() {
                     />
                   </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-kk-muted">Secret Codename / Call Sign</label>
-                      <button
-                        type="button"
-                        onClick={() => setAuthCodename(generateRandomCodename())}
-                        className="text-[11px] font-bold text-kk-accent hover:underline cursor-pointer flex items-center gap-1"
-                      >
-                        🎲 Randomize Call Sign
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border ${theme.badgeCode}`}>
-                        Agent:
-                      </span>
-                      <input
-                        type="text"
-                        placeholder="e.g. Viper, Phoenix, Sentinel"
-                        value={authCodename}
-                        onChange={(e) => setAuthCodename(e.target.value)}
-                        className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}
-                      />
-                    </div>
-                  </div>
                 </>
               )}
 

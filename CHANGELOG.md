@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Codename card on the mission page.** After joining, an Elf Agent sees their codename for the mission with **Draw another** and **Accept codename**. Rerolls are unlimited until they accept or recruiting closes; after that the codename is fixed. New endpoint `POST /api/codename` (`reroll` | `accept`).
 
 ### Changed
+- **Codenames are assigned per mission.** Joining a mission (invitation, sign-up with an invite code, Covert Delivery key, or creating it as Head Elf) draws a random codename from one pre-generated pool, unique within that mission. Accounts no longer have a codename: the codename fields are gone from sign-up, Account Preferences ("preferred codename", "always randomize") and the North Pole user editor. North Pole user search matches mission codenames. Assignment emails name the target by their mission codename; welcome and nudge emails use the agent's name.
+- **Database:** `ExchangeMember.codenameAcceptedAt` added and `(exchangeId, codename)` is now unique; `User.codename`, `preferredCodename` and `autoRandomizeCodename` are removed. Operators: run `prisma/sql/2026-10-20_mission-codenames.forward.sql` before deploying (it marks existing codenames accepted, renames duplicates inside a mission and fills blanks), then `2026-10-20_mission-codenames.cleanup.sql` after. Rollback: `2026-10-20_mission-codenames.rollback.sql`.
 - **New winter palette.** Light mode (Klaus) uses the classic Christmas colors and dark mode (Kovert) uses blue and gold (Indigo dye, Lion, Ecru, Wheat, Alice blue, French gray, Cambridge blue). Colors are semantic `kk-*` tokens in `src/app/globals.css`, so every page, modal, the North Pole and the Workshop follow the active theme, and every text color meets WCAG AA contrast. Spring, summer and autumn presets are unchanged. Existing databases keep the old winter button overrides until the `winter_holiday` preset's `lightTokens`/`darkTokens` are reduced to `accentColor` (on a fresh local database, `npm run db:seed` does it; on production, update that one row, because the seed also resets System Config and purges test accounts).
 - **Emails are always light.** Every email uses the light Christmas palette and declares `color-scheme: light only`, whatever the reader's theme.
 - **Light by default.** Pages start in light mode; a saved dark choice is applied before first paint. The Features page and the pre-launch page now follow the app theme.

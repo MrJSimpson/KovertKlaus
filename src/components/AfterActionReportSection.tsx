@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import { useTheme } from '@/context/ThemeContext';
-import { formatCodename } from '@/lib/security';
 import {
   compressImageToWebP,
   formatFileSize,
@@ -20,7 +19,6 @@ export interface AARReportEntry {
   user: {
     id: string;
     name: string;
-    codename?: string | null;
   };
 }
 
@@ -426,7 +424,7 @@ export function AfterActionReportSection({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {reports.map((report) => {
-              const displayName = formatCodename(report.user.codename, report.user.name);
+              const displayName = report.user.name;
               return (
                 <div
                   key={report.id}
