@@ -38,7 +38,7 @@ export default function CovertDeliveryStudioPage() {
     {
       id: 'kdm-1',
       userId: 'user-joshua',
-      thankYouText: '[🕶️ Kovert Delivery] Tactical doorstep drop executed with surgical stealth! 🕶️✨',
+      thankYouText: 'Tactical doorstep drop executed with surgical stealth! 🕶️✨',
       photoUrl: 'https://images.unsplash.com/photo-1512909006721-3d6018887383?w=800&auto=format&fit=crop&q=80',
       createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
       badgeAwarded: BADGE_KOVERT_KLAUS,
@@ -420,7 +420,7 @@ export default function CovertDeliveryStudioPage() {
               const newReport: AARReportEntry = {
                 id: `kdm-${Date.now()}`,
                 userId: 'user-zach',
-                thankYouText: '[🕶️ Kovert Delivery] Stealth porch drop logged from workshop studio! 🌟',
+                thankYouText: 'Stealth porch drop logged from workshop studio! 🌟',
                 photoUrl: dropPhoto,
                 createdAt: new Date().toISOString(),
                 badgeAwarded: badgeAwarded || BADGE_KOVERT_KLAUS,
