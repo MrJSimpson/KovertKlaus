@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Target draws, swaps, broadcasts and Kovert Delivery enrollment reported failure after saving.** The `db` proxy runs each model call immediately, so the array form of `$transaction` threw after its writes had already happened, one by one rather than all-or-nothing. The automatic draw on Assignment Day saved the targets and MATCHED, then told the Head Elf "Target Draw Pending", and agents never got their 🎯 assignment notice or email. The manual draw, target swap and OpTeam Broadcast returned errors after saving. All nine call sites (both runtimes) now use the callback form, and `src/lib/db-transactions.test.ts` rejects the array form.
+
 ---
 
 ## [0.5.0-alpha] - 2026-10-20

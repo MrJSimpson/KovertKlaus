@@ -105,9 +105,8 @@ test('Mission Lifecycle Engine - advances SETUP to MATCHED upon assignmentDate w
         return { id: 'notif-' + createdNotifications.length, ...data };
       },
     },
-    $transaction: async (ops: any[]) => {
-      return ops;
-    },
+    // Callback form only, like the real `db` proxy allows (src/lib/db.ts).
+    $transaction: async (fn: (tx: any) => Promise<unknown>) => fn(mockDb),
   };
 
   const summary = await advanceMissionLifecycle(mockDb);

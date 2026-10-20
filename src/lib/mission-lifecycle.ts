@@ -157,24 +157,21 @@ export async function advanceMissionLifecycle(db: any): Promise<LifecycleSummary
               exclusionRules: exclusions,
             });
 
-            const updateOps = assignments
-              .map((assignment) => {
+            // Callback transaction: `db` model calls run eagerly, so the array form fails (src/lib/db.ts).
+            await db.$transaction(async (tx: any) => {
+              for (const assignment of assignments) {
                 const member = ex.members.find((m: any) => m.userId === assignment.agentId);
-                if (!member) return null;
-                return db.exchangeMember.update({
+                if (!member) continue;
+                await tx.exchangeMember.update({
                   where: { id: member.id },
                   data: { targetUserId: assignment.targetId },
                 });
-              })
-              .filter(Boolean);
-
-            await db.$transaction([
-              ...(updateOps as any[]),
-              db.exchange.update({
+              }
+              await tx.exchange.update({
                 where: { id: ex.id },
                 data: { status: 'MATCHED', drawVerifiedAt: now },
-              }),
-            ]);
+              });
+            });
 
             // Dispatch in-app notifications
             for (const a of assignments) {
