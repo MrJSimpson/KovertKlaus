@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mission page layout.** Section headers are colored bands matching the page header, the title card uses the header color, items inside panels sit on a contrasting surface, and Elf Agent and invitation rows separate info (tinted) from actions (plain). The console now says Head Elf.
 
 ### Fixed
+- **After-Action Reports were squeezed into a narrow column** on wide screens. The section sat in the mission page's 12-column grid without a span, so it took one column and stretched down the page; it now spans the full width.
 - **`export-db` / `restore-db` no longer corrupt text.** Both piped the dump through Windows PowerShell, which re-encoded it as ASCII and turned emoji and accented characters into `?`. Backups are now pg_dump archives (`backups/kovertklaus-backup.dump`) copied with `docker cp`; the previous backup is kept as `kovertklaus-backup.prev.dump`, and restore still accepts an older `kovertklaus-backup.sql`.
 - Mission Center's Assigned filter and a drawn (`MATCHED`) mission's phase looked for a status that does not exist (`ASSIGNED`), so drawn missions were shown as recruiting.
 - `dark:` styles followed the operating system's dark mode instead of the in-app toggle, which mixed palettes (for example the Head Elf's Invite button showed near-black text on a dark button).

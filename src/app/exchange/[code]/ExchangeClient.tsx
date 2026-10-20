@@ -1998,9 +1998,9 @@ export default function OperationCommandCenterPage() {
                 </div>
               </div>
 
-              {/* POST-EVENT AFTER-ACTION REPORT (AAR) SECTION */}
+              {/* POST-EVENT AFTER-ACTION REPORT (AAR) SECTION: spans the full 12-column grid it sits in */}
               {operation.status === 'COMPLETED' && (
-                <div className="pt-6">
+                <div className="pt-6 lg:col-span-12">
                   <AfterActionReportSection
                     operationId={operation.id}
                     currentUserId={userId || ''}
