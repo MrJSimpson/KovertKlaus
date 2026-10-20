@@ -10,7 +10,9 @@
  * nobody reused one list across missions. A list now belongs to one `ExchangeMember`, is created
  * when the agent joins and is deleted with the membership. Every item needs a price, no item may
  * cost more than the mission's `budgetMax`, and the Head Elf decides whether the whole list may
- * total more than `budgetMax` (`Exchange.allowWishlistOverBudget`, on by default).
+ * total more than `budgetMax` (`Exchange.allowWishlistOverBudget`, on by default). A personalized
+ * gift (handmade or specially crafted, no store link) also needs a description, since the Santa
+ * has nothing else to go on.
  * Tier 3 (how): Prices are compared in whole cents. Rules are checked on every add and edit, so
  * items saved before a Head Elf lowered the budget stay until the agent edits or removes them;
  * the mission page flags them. A White Elephant list holds exactly one item.
@@ -161,6 +163,9 @@ export function toWishlistItemView(item: {
   };
 }
 
+/** Error when a personalized gift has no description. */
+export const PERSONALIZED_NEEDS_DESCRIPTION = 'Describe the gift for your Santa: what to make, and any details they need.';
+
 const NOT_A_MEMBER: WishlistResult = { status: 404, body: { error: 'You are not an agent in this mission.' } };
 
 /**
@@ -250,6 +255,9 @@ export async function addWishlistItem(db: PrismaClient, userId: string, input: W
     properties: input.properties,
   });
   if (!validation.valid) return { status: 400, body: { error: validation.error } };
+  if (validation.data.isPersonalized && !validation.data.description) {
+    return { status: 400, body: { error: PERSONALIZED_NEEDS_DESCRIPTION } };
+  }
 
   const price = parsePrice(input.price);
   const priceError = checkWishlistPrice(price, loaded.items.map((i) => Number(i.price)), loaded.rules);
@@ -305,6 +313,8 @@ export async function updateWishlistItem(db: PrismaClient, userId: string, input
   if (input.description !== undefined) {
     data.description = input.description ? sanitizeText(input.description).trim().substring(0, 500) || null : null;
   }
+  const finalDescription = input.description !== undefined ? data.description : existing.description;
+  if (isPersonalized && !finalDescription) return { status: 400, body: { error: PERSONALIZED_NEEDS_DESCRIPTION } };
   if (input.thumbnail !== undefined) data.thumbnailUrl = input.thumbnail ? input.thumbnail.trim() : null;
   if (input.properties !== undefined) {
     const merged: Record<string, unknown> = { ...existingProps };

@@ -18,7 +18,7 @@ interface FakeItem { id: string; name: string; price: number; url: string; thumb
 /** One member (`u1`) of mission `ex1`, with a list holding `items`. */
 function fakeDb(opts: { items?: Array<[string, number]>; budgetMax?: number; allowOver?: boolean; whiteElephant?: boolean; hasList?: boolean } = {}) {
   const items: FakeItem[] = (opts.items ?? []).map(([name, price], i) => ({
-    id: `i${i + 1}`, name, price, url: '', thumbnailUrl: null, description: null, properties: { isPersonalized: true }, createdAt: new Date(i),
+    id: `i${i + 1}`, name, price, url: '', thumbnailUrl: null, description: 'Any color', properties: { isPersonalized: true }, createdAt: new Date(i),
   }));
   let list = opts.hasList === false ? null : { id: 'w1', type: opts.whiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD' };
   let next = items.length;
@@ -59,6 +59,9 @@ function fakeDb(opts: { items?: Array<[string, number]>; budgetMax?: number; all
   };
   return { db: db as unknown as PrismaClient, items, list: () => list };
 }
+
+/** A personalized gift as the mission page sends it. */
+const gift = (title: string, price?: unknown) => ({ title, price, description: 'Any color', properties: { isPersonalized: true } });
 
 const rules = (budgetMax: number, allowOver: boolean, isWhiteElephant = false) =>
   wishlistRules({ budgetMax, allowWishlistOverBudget: allowOver, isWhiteElephant, currency: 'USD' });
@@ -122,25 +125,25 @@ test('Mission wishlist API', async (t) => {
 
   await t.test('POST adds a priced item and refuses one without a price or over the limit', async () => {
     const { db, items } = fakeDb();
-    const ok = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', title: 'Knit hat', price: '18', properties: { isPersonalized: true } });
+    const ok = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Knit hat', '18') });
     assert.equal(ok.status, 200);
     assert.equal(ok.body.item?.price, 18);
-    assert.equal((await addWishlistItem(db, 'u1', { exchangeId: 'ex1', title: 'Cookies', properties: { isPersonalized: true } })).status, 400);
-    assert.equal((await addWishlistItem(db, 'u1', { exchangeId: 'ex1', title: 'Drone', price: 31, properties: { isPersonalized: true } })).status, 400);
+    assert.equal((await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Cookies') })).status, 400);
+    assert.equal((await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Drone', 31) })).status, 400);
     assert.equal(items.length, 1);
   });
 
   await t.test('POST respects the total limit when the Head Elf turns it on', async () => {
     const { db } = fakeDb({ items: [['Book', 20]], allowOver: false });
-    const res = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', title: 'Socks', price: 11, properties: { isPersonalized: true } });
+    const res = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Socks', 11) });
     assert.equal(res.status, 400);
     assert.match(res.body.error!, /in total/);
-    assert.equal((await addWishlistItem(db, 'u1', { exchangeId: 'ex1', title: 'Socks', price: 10, properties: { isPersonalized: true } })).status, 200);
+    assert.equal((await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Socks', 10) })).status, 200);
   });
 
   await t.test('POST: a White Elephant list holds one gift', async () => {
     const { db } = fakeDb({ items: [['Singing fish', 20]], whiteElephant: true });
-    const res = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', title: 'Second gift', price: 5, properties: { isPersonalized: true } });
+    const res = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Second gift', 5) });
     assert.equal(res.status, 400);
   });
 
@@ -165,6 +168,15 @@ test('Mission wishlist API', async (t) => {
     assert.equal((await removeWishlistItem(db, 'stranger', 'ex1', 'i1')).status, 404);
     assert.equal((await removeWishlistItem(db, 'u1', 'ex1', 'i1')).status, 200);
     assert.equal(items.length, 0);
+  });
+
+  await t.test('a personalized gift needs a description, on add and on edit', async () => {
+    const { db } = fakeDb({ items: [['Knit hat', 18]] });
+    const add = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', title: 'Cookies', price: 10, properties: { isPersonalized: true } });
+    assert.equal(add.status, 400);
+    assert.match(add.body.error!, /Describe the gift/);
+    assert.equal((await updateWishlistItem(db, 'u1', { exchangeId: 'ex1', itemId: 'i1', description: '' })).status, 400);
+    assert.equal((await updateWishlistItem(db, 'u1', { exchangeId: 'ex1', itemId: 'i1', title: 'Knit hat (blue)' })).status, 200);
   });
 
   await t.test('handleWishlistRequest routes by method and refuses others', async () => {

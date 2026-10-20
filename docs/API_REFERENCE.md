@@ -255,7 +255,7 @@ The caller's Wishlist Manifest for one Holiday Mission. Each mission membership 
 - **`POST /api/wishlist`** adds an item: `{ "exchangeId", "title", "price", "url"?, "description"?, "thumbnail"?, "properties"?: { "isPersonalized", "details" } }`. Returns `{ "success": true, "item": { … } }`.
 - **`PATCH /api/wishlist`** edits one: `{ "exchangeId", "itemId", …fields to change }`. Fields left out are kept.
 - **`DELETE /api/wishlist?exchangeId=uuid&itemId=uuid`** removes one.
-- **Rules** (`400` with a message the agent can act on): every item needs a price above zero; no item may cost more than the mission's `budgetMax`; when `totalMax` is set, the list may not total more than it; a White Elephant list holds exactly one item. An edit is checked with the item's resulting price, so an item left over a lowered limit must be fixed or removed.
+- **Rules** (`400` with a message the agent can act on): every item needs a price above zero; no item may cost more than the mission's `budgetMax`; when `totalMax` is set, the list may not total more than it; a personalized gift (no store link) needs a description; a White Elephant list holds exactly one item. An edit is checked with the item's resulting price, so an item left over a lowered limit must be fixed or removed.
 
 ---
 

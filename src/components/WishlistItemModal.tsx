@@ -21,7 +21,11 @@ export interface WishlistItemModalProps {
   exchangeId?: string;
   /** The mission's per-item price limit (`budgetMax`), shown and checked before saving. */
   itemMax?: number;
-  isPersonalized?: boolean;
+  /**
+   * What the agent is adding: a store-bought gift (link + Get Data) or a personalized one
+   * (handmade or specially crafted; every field filled in by hand). Edits read it from the item.
+   */
+  kind?: 'store' | 'personalized';
   initialData?: {
     id?: string;
     url?: string;
@@ -46,7 +50,7 @@ export function WishlistItemModal({
   mode,
   exchangeId,
   itemMax,
-  isPersonalized,
+  kind = 'store',
   initialData,
   userDossier,
 }: WishlistItemModalProps) {
@@ -64,6 +68,7 @@ export function WishlistItemModal({
   const [isPersonalizedMode, setIsPersonalizedMode] = useState(false);
 
   const [saving, setSaving] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   // Synchronize state when modal opens or initialData changes
@@ -78,11 +83,9 @@ export function WishlistItemModal({
     setDescription(initialData?.description || '');
     setUrl(initialData?.url || '');
 
-    const isPersonalizedGift = Boolean(
-      isPersonalized ||
-      initialData?.properties?.isPersonalized ||
-      (!initialData?.url && mode === 'add')
-    );
+    const isPersonalizedGift = mode === 'add'
+      ? kind === 'personalized'
+      : Boolean(initialData?.properties?.isPersonalized || !initialData?.url);
     setIsPersonalizedMode(isPersonalizedGift);
 
     const catProps = initialData?.catalogProperties || null;
@@ -108,7 +111,7 @@ export function WishlistItemModal({
       }));
       setDetails(initialRows);
     }
-  }, [isOpen, initialData, isPersonalized, mode]);
+  }, [isOpen, initialData, kind, mode]);
 
   if (!isOpen) return null;
 
@@ -151,11 +154,62 @@ export function WishlistItemModal({
     });
   }
 
+  /** Fills the form from the pasted store link (`/api/scraper`). Fields it cannot read stay as they are. */
+  async function handleGetData() {
+    setErrorMessage('');
+    const link = url.trim();
+    if (!link) {
+      setErrorMessage('Paste a link to the item first.');
+      return;
+    }
+    setLookingUp(true);
+    try {
+      const res = await fetch('/api/scraper', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: link }),
+      });
+      const json = await res.json().catch(() => ({}));
+      const meta = json.metadata || {};
+      if (meta.title) setTitle(String(meta.title).substring(0, 100));
+      if (meta.price) setPrice(String(meta.price));
+      if (meta.thumbnail) setThumbnail(meta.thumbnail);
+      if (meta.description) setDescription(String(meta.description).substring(0, 500));
+      if (meta.properties) {
+        const props = meta.properties as CatalogProperties;
+        const detected: ProductCategory = props.category || 'GENERAL';
+        setCatalogProps(props);
+        setCategory(detected);
+        // Re-seed the detail rows for the detected category unless the agent already typed some.
+        setDetails((prev) => prev.some((d) => d.value.trim())
+          ? prev
+          : (props.variables || getCategorySuggestedKeys(detected)).slice(0, 3).map((k) => ({ label: k, value: '' })));
+      }
+      if (!res.ok || !meta.title || !meta.price) {
+        setErrorMessage(meta.title
+          ? 'We filled in what we could. Please add the missing details below.'
+          : "We couldn't read that page. Please fill in the details below.");
+      }
+    } catch {
+      setErrorMessage("We couldn't read that page. Please fill in the details below.");
+    } finally {
+      setLookingUp(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMessage('');
     if (!title.trim()) {
       setErrorMessage('Item title is required.');
+      return;
+    }
+    if (!isPersonalizedMode && !url.trim()) {
+      setErrorMessage('Paste the link to the item in the store.');
+      return;
+    }
+    if (isPersonalizedMode && !description.trim()) {
+      setErrorMessage('Describe the gift for your Santa: what to make, and any details they need.');
       return;
     }
 
@@ -226,16 +280,16 @@ export function WishlistItemModal({
               <h3 className="text-lg sm:text-xl font-black">
                 {isPersonalizedMode
                   ? mode === 'add'
-                    ? 'Add Personalized Gift Request'
-                    : 'Edit Personalized Gift Request'
+                    ? 'Add a Personalized Gift'
+                    : 'Edit Personalized Gift'
                   : mode === 'add'
-                  ? 'Confirm & Customize Wishlist Item'
-                  : 'Edit Wishlist Item Details'}
+                  ? 'Add a Store-Bought Gift'
+                  : 'Edit Store-Bought Gift'}
               </h3>
             </div>
             <span className="text-xs text-kk-muted">
               {isPersonalizedMode
-                ? '✨ Personalized / Text-Only Gift (Custom, handmade, or experiential request for your Santa)'
+                ? '✨ Handmade or specially crafted'
                 : categoryLabels[category] || 'Custom Gift Item'}
             </span>
           </div>
@@ -250,6 +304,39 @@ export function WishlistItemModal({
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs font-semibold">
+            <div className={`p-3 rounded-xl border text-xs font-semibold ${theme.cardInnerBg}`}>
+              {isPersonalizedMode
+                ? 'Describe a handmade or specially crafted gift. Fill in every field marked *, including an estimated price.'
+                : mode === 'add'
+                ? <>Paste a link and click <strong>Get Data</strong> to auto-fill the form. Update any missing details.</>
+                : 'Update any details your Santa needs. Fields marked * are required.'}
+            </div>
+
+            {!isPersonalizedMode && mode === 'add' && (
+              <div>
+                <label className="block text-[11px] text-kk-muted mb-0.5" htmlFor="wishlist-item-link">Link to the item *</label>
+                <div className="flex gap-2">
+                  <input
+                    id="wishlist-item-link"
+                    type="url"
+                    required
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://www.store.com/item"
+                    className={`flex-1 min-w-0 border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputModalBg}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGetData}
+                    disabled={lookingUp}
+                    className={`px-4 py-2 rounded-xl font-bold text-xs shadow-sm cursor-pointer shrink-0 disabled:opacity-60 ${theme.btnPrimary}`}
+                  >
+                    {lookingUp ? 'Getting data…' : 'Get Data'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {errorMessage && (
               <div className={`p-3 rounded-xl text-xs font-bold border ${theme.alertWarning}`}>
                 ⚠️ {errorMessage}
@@ -276,7 +363,7 @@ export function WishlistItemModal({
               <div className="flex-1 space-y-2">
                 <div>
                   <label className="block text-[11px] text-kk-muted mb-0.5">
-                    {isPersonalizedMode ? 'Personalized Gift Request Title *' : 'Product Title *'}
+                    {isPersonalizedMode ? 'Gift name *' : 'Item name *'}
                   </label>
                   <input
                     type="text"
@@ -328,16 +415,17 @@ export function WishlistItemModal({
             {/* Description / Instructions for Santa */}
             <div>
               <label className="block text-[11px] text-kk-muted mb-0.5">
-                {isPersonalizedMode ? 'Instructions or Notes for Santa (Optional)' : 'Special Instructions / Notes (Optional)'}
+                {isPersonalizedMode ? 'Description for your Santa *' : 'Notes for your Santa (Optional)'}
               </label>
               <textarea
-                rows={2}
+                rows={isPersonalizedMode ? 3 : 2}
+                required={isPersonalizedMode}
                 maxLength={500}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={
                   isPersonalizedMode
-                    ? 'Preferences, dietary constraints, preferred scents, or custom details for your secret giver...'
+                    ? 'What should your Santa make? Include colors, sizes, flavors, allergies or anything else they need to know.'
                     : 'Color preferences, sizing details, or gift receipt notes...'
                 }
                 className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs resize-none focus:outline-none ${theme.inputModalBg}`}
@@ -347,7 +435,19 @@ export function WishlistItemModal({
               </div>
             </div>
 
-            {url ? (
+            {isPersonalizedMode ? (
+              <div className="pt-2 border-t border-kk-border">
+                <label className="block text-[11px] text-kk-muted mb-0.5">Reference link, recipe or pattern (Optional)</label>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  disabled={mode === 'edit'}
+                  placeholder="https://... (optional example for your Santa)"
+                  className={`w-full border rounded-xl px-3 py-1.5 text-base sm:text-xs truncate focus:outline-none disabled:opacity-60 ${theme.inputModalBg}`}
+                />
+              </div>
+            ) : mode === 'edit' && url ? (
               <div className="text-[11px] text-kk-muted flex items-center justify-between pt-1 border-t border-kk-border">
                 <span className="truncate max-w-sm">🔗 {url}</span>
                 <a
@@ -358,17 +458,6 @@ export function WishlistItemModal({
                 >
                   View Store ↗
                 </a>
-              </div>
-            ) : isPersonalizedMode ? (
-              <div className="pt-2 border-t border-kk-border">
-                <label className="block text-[11px] text-kk-muted mb-0.5">Reference Link / Recipe / Pattern (Optional)</label>
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://... (Optional reference link for Santa)"
-                  className={`w-full border rounded-xl px-3 py-1.5 text-base sm:text-xs truncate focus:outline-none ${theme.inputModalBg}`}
-                />
               </div>
             ) : null}
           </div>
