@@ -32,6 +32,7 @@ export function CreateOperationModal({
   const [budgetMax, setBudgetMax] = useState(50);
   const [maxParticipants, setMaxParticipants] = useState<number>(5);
   const [enforcePenalties, setEnforcePenalties] = useState(true);
+  const [allowWishlistOverBudget, setAllowWishlistOverBudget] = useState(true);
 
   // Default execution date to 12/25/<current year>
   const currentYear = new Date().getFullYear();
@@ -89,6 +90,7 @@ export function CreateOperationModal({
             eventLocation: isLocalOnly ? eventLocation.trim() : undefined,
             isWhiteElephant,
             enforcePenalties,
+            allowWishlistOverBudget,
             maxParticipants: maxParticipants ? Number(maxParticipants) : undefined,
             inviteCutoffDate: calculatedDates.inviteCutoffDate,
             assignmentDate: calculatedDates.assignmentDate,
@@ -309,6 +311,26 @@ export function CreateOperationModal({
                 className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputModalBg}`}
               />
             </div>
+
+            {/* Wishlist total toggle (Secret Santa only; White Elephant lists hold one gift) */}
+            {!isWhiteElephant && (
+              <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allowWishlistOverBudget}
+                    onChange={(e) => setAllowWishlistOverBudget(e.target.checked)}
+                    className="mt-0.5 accent-emerald-600 w-4 h-4 rounded"
+                  />
+                  <div>
+                    <span className="font-bold block text-xs">Wishlists may total more than the limit</span>
+                    <span className="text-[11px] text-kk-muted font-normal block mt-0.5">
+                      On by default. No single item may cost more than the spending limit; with this on, an agent&apos;s whole list may add up to more so their Santa has choices.
+                    </span>
+                  </div>
+                </label>
+              </div>
+            )}
 
             {/* Penalty Enforcement Toggle & Trust Notice */}
             <div className={`p-4 rounded-2xl border transition-all ${enforcePenalties ? theme.cardInnerBg : 'bg-kk-warning border-kk-border-strong'}`}>

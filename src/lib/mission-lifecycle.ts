@@ -143,7 +143,7 @@ export async function advanceMissionLifecycle(db: any): Promise<LifecycleSummary
           const agentsForDraw = ex.members.map((a: any) => ({
             id: a.userId,
             name: a.user?.name || a.userId,
-            hasWishlistAttached: !!a.wishlistId,
+            hasWishlistAttached: true,
           }));
 
           const exclusions = (ex.exclusionRules || []).map((r: any) => ({

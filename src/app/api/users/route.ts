@@ -8,6 +8,7 @@ import { RELEASE_STAGE } from '@/lib/version';
 import { logInfo } from '@/lib/logger';
 import { markInvitationAccepted } from '@/lib/invitations';
 import { enrollWithCodename } from '@/lib/codename';
+import { memberWishlistCreate } from '@/lib/mission-wishlist';
 
 export async function POST(request: Request) {
   try {
@@ -154,15 +155,6 @@ export async function POST(request: Request) {
     // If joining via an exchange invite, automatically enroll the new operative
     if (targetExchange) {
       try {
-        const targetType = targetExchange.isWhiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD';
-        const userManifest = await db.wishlist.create({
-          data: {
-            userId: user.id,
-            name: targetExchange.isWhiteElephant ? 'White Elephant Gift' : 'Master Wishlist Manifest',
-            type: targetType,
-          },
-        });
-
         await enrollWithCodename(db, targetExchange.id, (codename) =>
           db.exchangeMember.create({
             data: {
@@ -170,7 +162,7 @@ export async function POST(request: Request) {
               userId: user.id,
               codename,
               role: 'MEMBER',
-              wishlistId: userManifest.id,
+              wishlist: memberWishlistCreate(user.id, targetExchange.isWhiteElephant),
             },
           })
         );

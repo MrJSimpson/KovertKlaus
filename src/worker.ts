@@ -4,7 +4,7 @@ import { Prisma, type PrismaClient } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
-import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, sanitizeExchangeMember } from './lib/exchange-view';
+import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { validateNistPassword } from './lib/adminAuth';
@@ -43,6 +43,7 @@ import { dispatchNudge } from './lib/nudge';
 import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
+import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -85,13 +86,13 @@ export const WORKER_API_PATHS = new Set([
   '/api/northpole/users',
   '/api/operations',
   '/api/operations/lifecycle',
-  '/api/opkits',
   '/api/scraper',
   '/api/shipping',
   '/api/users',
   '/api/users/login',
   '/api/users/me',
   '/api/users/profile',
+  '/api/wishlist',
   '/api/workshop/auth',
 ]);
 
@@ -151,24 +152,6 @@ async function requireAdmin(request: Request, adminDb: ReturnType<typeof getAdmi
   const admin = await adminDb.adminUser.findUnique({ where: { id: adminId } });
   if (!admin || !admin.isActive || admin.requiresPasswordReset) return null;
   return admin;
-}
-
-/**
- * Returns the Wishlist Manifest a member should attach when enrolling, creating one if needed.
- *
- * Secret Santa missions use the user's oldest STANDARD manifest; White Elephant missions use a
- * WHITE_ELEPHANT manifest (the single brought gift). Enrolling without one left `wishlistId`
- * null, so the draw saw the agent as having no manifest.
- */
-async function resolveMemberWishlistId(db: ReturnType<typeof getDb>, userId: string, isWhiteElephant: boolean): Promise<string> {
-  const type = isWhiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD';
-  const existing = await db.wishlist.findFirst({ where: { userId, type }, orderBy: { createdAt: 'asc' }, select: { id: true } });
-  if (existing) return existing.id;
-  const created = await db.wishlist.create({
-    data: { userId, type, name: isWhiteElephant ? 'White Elephant Gift' : 'Master Wishlist Manifest' },
-    select: { id: true },
-  });
-  return created.id;
 }
 
 /** JSON 405 for a known API path called with a method it does not support. */
@@ -1235,38 +1218,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 orderBy: { joinedAt: 'desc' },
               },
               notifications: { where: { isAcknowledged: false }, orderBy: { createdAt: 'desc' } },
-              wishlists: { include: { wishlistItems: { include: { item: true } } }, orderBy: { createdAt: 'asc' } },
             },
           });
 
           if (!user) return Response.json({ authenticated: false, error: 'User not found' }, { status: 404 });
-
-          // Ensure default wishlist
-          if (user.wishlists.length === 0) {
-            await db.wishlist.create({ data: { userId: user.id, name: 'Master Wishlist Manifest - Secret Santa', type: 'STANDARD' } });
-            const refetched = await db.wishlist.findMany({ where: { userId: user.id }, include: { wishlistItems: { include: { item: true } } } });
-            user = { ...user, wishlists: refetched };
-          }
-
-          const formattedWishlists = user.wishlists.map((w, idx) => {
-            const items = w.wishlistItems.map((wi) => ({
-              id: wi.item.id,
-              title: wi.item.name,
-              price: wi.item.price ? Number(wi.item.price) : undefined,
-              url: wi.item.url,
-              thumbnail: wi.item.thumbnailUrl || undefined,
-              description: wi.item.description || undefined,
-            }));
-            return {
-              id: w.id,
-              name: w.name,
-              isMaster: idx === 0,
-              type: w.type,
-              createdAt: w.createdAt,
-              manifestItems: items,
-              opTools: items,
-            };
-          });
 
           // Sliding expiry: re-issue the cookie once half its lifetime is used.
           const meHeaders = new Headers();
@@ -1278,7 +1233,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           return Response.json({
             success: true,
             authenticated: true,
-            user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints, wishlists: formattedWishlists },
+            user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints },
           }, { headers: meHeaders });
         }
 
@@ -1441,15 +1396,6 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           // Auto-enroll if registering via mission invite
           if (targetExchange) {
             try {
-              const targetType = targetExchange.isWhiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD';
-              const userManifest = await db.wishlist.create({
-                data: {
-                  userId: user.id,
-                  name: targetExchange.isWhiteElephant ? 'White Elephant Gift' : 'Master Wishlist Manifest',
-                  type: targetType,
-                },
-              });
-
               await enrollWithCodename(db, targetExchange.id, (codename) =>
                 db.exchangeMember.create({
                   data: {
@@ -1457,7 +1403,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                     userId: user.id,
                     codename,
                     role: 'MEMBER',
-                    wishlistId: userManifest.id,
+                    wishlist: memberWishlistCreate(user.id, targetExchange.isWhiteElephant),
                   },
                 })
               );
@@ -1517,7 +1463,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             // Sanitize targetUser and physical addresses server-side
             const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
             const memberCodenames = memberCodenameMap(exchange.members);
-            const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames }));
+            const memberWishlists = memberWishlistMap(exchange.members);
+            const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames, memberWishlists }));
 
             return Response.json({
               success: true,
@@ -1558,7 +1505,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can trigger draws' }, { status: 403 });
             if (ex.members.length < 4) return Response.json({ error: 'At least 4 members required. Perfect for families and groups of 4 or more!' }, { status: 400 });
 
-            const agents = ex.members.map((m) => ({ id: m.userId, name: m.userId, hasWishlistAttached: !!m.wishlistId }));
+            const agents = ex.members.map((m) => ({ id: m.userId, name: m.userId, hasWishlistAttached: true }));
             const exclusionRules = ex.exclusionRules.map((r) => ({ agentId: r.memberId, restrictedAgentId: r.restrictedMemberId }));
             const assignments = executeLinkedListDraw(agents, { isWhiteElephant: ex.isWhiteElephant, exclusionRules });
 
@@ -1873,6 +1820,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                     userId,
                     codename,
                     propertyWaiverAgreedAt: new Date(),
+                    wishlist: memberWishlistCreate(userId, inviteToken.exchange.isWhiteElephant),
                   },
                 }),
                 db.covertInviteToken.update({
@@ -2010,7 +1958,6 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               inviteCode = generateInviteCode();
             }
 
-            const organizerWishlistId = await resolveMemberWishlistId(db, userId, Boolean(config.isWhiteElephant));
             const newExchange = await db.exchange.create({
               data: {
                 title: sanitizeText(String(config.title)).trim(),
@@ -2023,6 +1970,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 eventLocation: config.eventLocation ? sanitizeText(String(config.eventLocation)).trim() : undefined,
                 isWhiteElephant: Boolean(config.isWhiteElephant),
                 enforcePenalties: config.enforcePenalties !== undefined ? Boolean(config.enforcePenalties) : true,
+                allowWishlistOverBudget: config.allowWishlistOverBudget !== undefined ? Boolean(config.allowWishlistOverBudget) : true,
                 budgetMin: config.budgetMin,
                 budgetMax: config.budgetMax,
                 currency: config.currency || 'USD',
@@ -2031,7 +1979,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 shippingDate: new Date(config.shippingDate),
                 executionDate: new Date(config.executionDate),
                 paymentStatus: 'EXEMPT_SELF_HOSTED',
-                members: { create: { userId, role: 'ORGANIZER', wishlistId: organizerWishlistId, codename: drawCodename([]) } },
+                members: { create: { userId, role: 'ORGANIZER', codename: drawCodename([]), wishlist: memberWishlistCreate(userId, Boolean(config.isWhiteElephant)) } },
               },
             });
             return Response.json({ success: true, data: newExchange });
@@ -2061,6 +2009,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             const memberToDelete = await findScopedMember(memberId);
             if (!memberToDelete) return Response.json({ error: 'Member not found in this operation' }, { status: 404 });
             if (memberToDelete.userId === ex.organizerId) return Response.json({ error: 'Cannot remove primary organizer' }, { status: 400 });
+            await deleteMemberWishlistItems(db, memberToDelete.id);
             await db.exchangeMember.delete({ where: { id: memberToDelete.id } });
             return Response.json({ success: true, message: 'Member removed' });
           }
@@ -2119,6 +2068,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               isLocalOnly: settings.isLocalOnly !== undefined ? Boolean(settings.isLocalOnly) : ex.isLocalOnly,
               eventLocation: settings.eventLocation !== undefined ? sanitizeText(String(settings.eventLocation)).trim() : ex.eventLocation,
               enforcePenalties: settings.enforcePenalties !== undefined ? Boolean(settings.enforcePenalties) : ex.enforcePenalties,
+              allowWishlistOverBudget: settings.allowWishlistOverBudget !== undefined ? Boolean(settings.allowWishlistOverBudget) : ex.allowWishlistOverBudget,
             };
             const validation = validateOperationSettings({ ...merged, isWhiteElephant: ex.isWhiteElephant, currentMemberCount: memberCount });
             if (!validation.isValid) {
@@ -2182,7 +2132,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
       if (pathname === '/api/invitations/accept' && request.method === 'POST') {
         const body = (await request.json().catch(() => ({}))) as any;
         const activeUserId = getUserIdFromRequest(request);
-        const { operationCode, wishlistId } = body;
+        const { operationCode } = body;
 
         if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
         if (!operationCode || typeof operationCode !== 'string') return Response.json({ error: 'operationCode required' }, { status: 400 });
@@ -2199,16 +2149,6 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           return Response.json({ error: 'This exchange has reached its maximum operative capacity.' }, { status: 400 });
         }
 
-        // Attach a manifest the caller owns; otherwise link (or create) the right one for this mission.
-        let memberWishlistId: string;
-        if (wishlistId) {
-          const owned = await db.wishlist.findFirst({ where: { id: wishlistId, userId: activeUserId }, select: { id: true } });
-          if (!owned) return Response.json({ error: 'Wishlist Manifest not found' }, { status: 404 });
-          memberWishlistId = owned.id;
-        } else {
-          memberWishlistId = await resolveMemberWishlistId(db, activeUserId, exchange.isWhiteElephant);
-        }
-
         // Codename drawn for this mission; the agent can reroll it until they accept (parity with the Next.js route).
         const user = await db.user.findUnique({ where: { id: activeUserId }, select: { email: true } });
         const member = await enrollWithCodename(db, exchange.id, (codename) =>
@@ -2217,8 +2157,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               exchangeId: exchange.id,
               userId: activeUserId,
               codename,
-              wishlistId: memberWishlistId,
               role: 'MEMBER',
+              wishlist: memberWishlistCreate(activeUserId, exchange.isWhiteElephant),
             },
           })
         );
@@ -2584,246 +2524,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
       }
 
-      // 16. /api/opkits (GET / POST / DELETE)
-      if (pathname === '/api/opkits') {
-        const activeUserId = getUserIdFromRequest(request);
-        if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
-
-        if (request.method === 'GET') {
-          const wishlists = await db.wishlist.findMany({
-            where: { userId: activeUserId },
-            include: { wishlistItems: { include: { item: true } } },
-            orderBy: { createdAt: 'asc' },
-          });
-          const formatted = wishlists.map((w, idx) => {
-            const items = w.wishlistItems.map((wi) => ({
-              id: wi.item.id,
-              title: wi.item.name,
-              price: wi.item.price ? Number(wi.item.price) : undefined,
-              url: wi.item.url,
-              thumbnail: wi.item.thumbnailUrl || undefined,
-              description: wi.item.description || undefined,
-              properties: wi.item.properties || undefined,
-            }));
-            return {
-              id: w.id,
-              name: w.name,
-              isMaster: idx === 0,
-              type: w.type,
-              createdAt: w.createdAt,
-              manifestItems: items,
-              opTools: items,
-            };
-          });
-          return Response.json({ success: true, manifests: formatted, opKits: formatted });
-        }
-
-        if (request.method === 'POST') {
-          const body = (await request.json().catch(() => ({}))) as any;
-          const { action, name, type, wishlistId, title, url: itemUrl, price, description, thumbnail, properties } = body;
-
-          if (action === 'add_manifest_item' || action === 'add_item' || action === 'add_optool' || (wishlistId && (itemUrl !== undefined || properties?.isPersonalized))) {
-            if (!wishlistId) {
-              return Response.json({ error: 'wishlistId is required to add a Manifest Item' }, { status: 400 });
-            }
-
-            const validation = validateAndSanitizeManifestItem({
-              title,
-              url: itemUrl,
-              price,
-              description,
-              thumbnail,
-              properties,
-            });
-
-            if (!validation.valid) {
-              return Response.json({ error: validation.error }, { status: 400 });
-            }
-
-            const { data: itemData } = validation;
-
-            const wishlist = await db.wishlist.findUnique({
-              where: { id: wishlistId },
-              include: { _count: { select: { wishlistItems: true } } },
-            });
-            if (!wishlist || wishlist.userId !== activeUserId) {
-              return Response.json({ error: 'Wishlist Manifest not found or unauthorized' }, { status: 404 });
-            }
-            if (wishlist.type === 'WHITE_ELEPHANT' && wishlist._count.wishlistItems >= 1) {
-              return Response.json({
-                error: '🐘 White Elephant Wishlist Manifests are strictly limited to 1 brought gift item per operative!',
-              }, { status: 400 });
-            }
-
-            const item = await db.item.create({
-              data: {
-                userId: activeUserId,
-                name: itemData.name,
-                url: itemData.url,
-                price: itemData.price,
-                description: itemData.description,
-                thumbnailUrl: itemData.thumbnailUrl,
-                properties: itemData.properties ? (itemData.properties as unknown as Prisma.InputJsonValue) : undefined,
-              },
-            });
-            await db.wishlistItem.create({ data: { wishlistId, itemId: item.id } });
-
-            if (itemData.url && itemData.properties?.details && itemData.properties.details.length > 0) {
-              try {
-                const normalizedUrl = normalizeProductUrl(itemData.url);
-                const cat = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
-                if (cat) {
-                  const updatedCatalogProps = updateCatalogIntelligence(cat.properties, itemData.properties.details);
-                  await db.productCatalog.update({
-                    where: { url: normalizedUrl },
-                    data: { properties: updatedCatalogProps as unknown as Prisma.InputJsonValue },
-                  });
-                }
-              } catch (e) {
-                console.warn('[Worker ProductCatalog Intelligence Update Error]', e);
-              }
-            }
-
-            const itemObj = {
-              id: item.id,
-              title: item.name,
-              price: Number(item.price),
-              url: item.url,
-              thumbnail: item.thumbnailUrl || undefined,
-              description: item.description || undefined,
-              properties: item.properties || undefined,
-            };
-            return Response.json({ success: true, manifestItem: itemObj, opTool: itemObj });
-          }
-
-          if (name) {
-            const newW = await db.wishlist.create({
-              data: { userId: activeUserId, name: sanitizeText(name), type: type === 'WHITE_ELEPHANT' ? 'WHITE_ELEPHANT' : 'STANDARD' },
-            });
-            const createdObj = { id: newW.id, name: newW.name, type: newW.type, manifestItems: [], opTools: [] };
-            return Response.json({ success: true, manifest: createdObj, opKit: createdObj });
-          }
-          return Response.json({ error: 'Provide a manifest name or a Manifest Item to add' }, { status: 400 });
-        }
-
-        if (request.method === 'PATCH') {
-          const body = (await request.json().catch(() => ({}))) as any;
-          const { wishlistId, itemId, name, title, price, description, thumbnail, properties } = body;
-
-          if (itemId) {
-            const existingItem = await db.item.findFirst({
-              where: { id: itemId, userId: activeUserId },
-            });
-
-            if (!existingItem) {
-              return Response.json({ error: 'Item not found or unauthorized' }, { status: 404 });
-            }
-
-            const existingProps = (existingItem.properties && typeof existingItem.properties === 'object')
-              ? (existingItem.properties as Record<string, any>)
-              : {};
-
-            const isPersonalized = properties?.isPersonalized !== undefined
-              ? Boolean(properties.isPersonalized)
-              : Boolean(existingProps.isPersonalized || !existingItem.url);
-
-            const details = Array.isArray(properties?.details)
-              ? sanitizeItemDetails(properties.details)
-              : undefined;
-
-            const updateData: any = {};
-            if (title !== undefined) updateData.name = sanitizeText(title).trim().substring(0, 100);
-            if (price !== undefined) {
-              const numPrice = Number(price);
-              updateData.price = !isNaN(numPrice) ? Math.max(0, Math.min(Math.round(numPrice * 100) / 100, 100000)) : 0;
-            }
-            if (description !== undefined) {
-              updateData.description = description ? sanitizeText(description).trim().substring(0, 500) : null;
-            }
-            if (thumbnail !== undefined) updateData.thumbnailUrl = thumbnail ? thumbnail.trim() : null;
-
-            if (properties !== undefined || details !== undefined) {
-              const mergedProps: Record<string, any> = { ...existingProps };
-              if (isPersonalized) {
-                mergedProps.isPersonalized = true;
-              } else {
-                delete mergedProps.isPersonalized;
-              }
-
-              if (details !== undefined) {
-                if (details.length > 0) {
-                  mergedProps.details = details;
-                } else {
-                  delete mergedProps.details;
-                }
-              }
-
-              updateData.properties = Object.keys(mergedProps).length > 0
-                ? (mergedProps as unknown as Prisma.InputJsonValue)
-                : Prisma.JsonNull;
-            }
-
-            const updated = await db.item.update({
-              where: { id: itemId },
-              data: updateData,
-            });
-
-            if (details && details.length > 0 && existingItem.url) {
-              try {
-                const normalizedUrl = normalizeProductUrl(existingItem.url);
-                const cat = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
-                if (cat) {
-                  const updatedCatalogProps = updateCatalogIntelligence(cat.properties, details);
-                  await db.productCatalog.update({
-                    where: { url: normalizedUrl },
-                    data: { properties: updatedCatalogProps as unknown as Prisma.InputJsonValue },
-                  });
-                }
-              } catch (e) {
-                console.warn('[Worker ProductCatalog Intelligence Update Error]', e);
-              }
-            }
-
-            return Response.json({
-              success: true,
-              message: 'Manifest Item updated successfully',
-              manifestItem: {
-                id: updated.id,
-                title: updated.name,
-                price: Number(updated.price),
-                url: updated.url,
-                thumbnail: updated.thumbnailUrl || undefined,
-                description: updated.description || undefined,
-                properties: updated.properties || undefined,
-              },
-            });
-          }
-
-          if (wishlistId && name) {
-            await db.wishlist.updateMany({
-              where: { id: wishlistId, userId: activeUserId },
-              data: { name: sanitizeText(name) },
-            });
-            return Response.json({ success: true, message: 'Wishlist renamed' });
-          }
-
-          return Response.json({ error: 'wishlistId or itemId required' }, { status: 400 });
-        }
-
-        if (request.method === 'DELETE') {
-          const itemId = url.searchParams.get('itemId');
-          const wishlistId = url.searchParams.get('wishlistId');
-          if (itemId) {
-            await db.item.deleteMany({ where: { id: itemId, userId: activeUserId } });
-            return Response.json({ success: true, message: 'Item deleted' });
-          }
-          if (wishlistId) {
-            await db.wishlist.deleteMany({ where: { id: wishlistId, userId: activeUserId } });
-            return Response.json({ success: true, message: 'Wishlist deleted' });
-          }
-          return Response.json({ error: 'itemId or wishlistId required' }, { status: 400 });
-        }
-        return methodNotAllowed(pathname, request.method);
+      // 16. /api/wishlist (GET / POST / PATCH / DELETE): the caller's list for one mission, shared with the Next route.
+      if (pathname === '/api/wishlist') {
+        const userId = getUserIdFromRequest(request);
+        if (!userId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+        const result = await handleWishlistRequest(db, userId, request.method, url.searchParams,
+          () => request.json().catch(() => ({})));
+        return Response.json(result.body, { status: result.status });
       }
 
     } catch (err: any) {

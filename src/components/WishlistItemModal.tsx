@@ -17,7 +17,10 @@ export interface WishlistItemModalProps {
   onClose: () => void;
   onSaveSuccess: (savedItem: any) => void;
   mode: 'add' | 'edit';
-  wishlistId?: string;
+  /** The Holiday Mission whose list the item belongs to. */
+  exchangeId?: string;
+  /** The mission's per-item price limit (`budgetMax`), shown and checked before saving. */
+  itemMax?: number;
   isPersonalized?: boolean;
   initialData?: {
     id?: string;
@@ -41,7 +44,8 @@ export function WishlistItemModal({
   onClose,
   onSaveSuccess,
   mode,
-  wishlistId,
+  exchangeId,
+  itemMax,
   isPersonalized,
   initialData,
   userDossier,
@@ -160,83 +164,48 @@ export function WishlistItemModal({
       .filter((d) => d.label.trim().length > 0 && d.value.trim().length > 0)
       .map((d) => ({ label: d.label.trim(), value: d.value.trim() }));
 
-    const parsedPrice = price.trim() ? parseFloat(price.trim()) : 0;
+    // Every item needs a price within the mission's limit; the server checks the same rules.
+    const parsedPrice = Number(price.trim());
+    if (!price.trim() || !Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      setErrorMessage('Enter a price. For handmade or experience gifts, an estimate is fine.');
+      setSaving(false);
+      return;
+    }
+    if (itemMax !== undefined && Math.round(parsedPrice * 100) > Math.round(itemMax * 100)) {
+      setErrorMessage(`Each item must cost $${itemMax.toFixed(2)} or less, the mission's spending limit.`);
+      setSaving(false);
+      return;
+    }
     const cleanDescription = description.trim() || undefined;
 
     try {
-      if (mode === 'add') {
-        if (wishlistId) {
-          const res = await fetch('/api/opkits', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'add_manifest_item',
-              wishlistId,
-              url: url.trim(),
-              title: title.trim(),
-              price: parsedPrice,
-              description: cleanDescription,
-              thumbnail: thumbnail.trim() || undefined,
-              properties: {
-                isPersonalized: isPersonalizedMode,
-                details: cleanDetails,
-              },
-            }),
-          });
-
-          const json = await res.json();
-          if (!res.ok || !json.success) {
-            throw new Error(json.error || 'Failed to add item to wishlist');
-          }
-
-          onSaveSuccess(json.manifestItem || json.opTool);
-        } else {
-          // Never fake a save: without a Wishlist Manifest the item would vanish on reload.
-          throw new Error('No Wishlist Manifest is selected. Reload the page and try again.');
-        }
-      } else {
-        // Edit Mode
-        if (initialData?.id && !initialData.id.startsWith('mock-')) {
-          const res = await fetch('/api/opkits', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              itemId: initialData.id,
-              title: title.trim(),
-              price: parsedPrice,
-              description: cleanDescription,
-              // Empty string clears the thumbnail server-side.
-              thumbnail: thumbnail.trim(),
-              properties: {
-                isPersonalized: isPersonalizedMode,
-                details: cleanDetails,
-              },
-            }),
-          });
-
-          const json = await res.json().catch(() => ({}));
-          if (!res.ok || !json.success) {
-            throw new Error(json.error || 'Failed to update Manifest Item');
-          }
-          onSaveSuccess(json.manifestItem);
-          onClose();
-          return;
-        }
-
-        // Unsaved local preview items (mock- IDs) are only updated in memory.
-        onSaveSuccess({
-          id: initialData?.id || Math.random().toString(36).substring(2, 9),
-          url: url.trim(),
+      if (!exchangeId) {
+        // Never fake a save: without a mission the item would vanish on reload.
+        throw new Error('This list is not linked to a mission. Reload the page and try again.');
+      }
+      const res = await fetch('/api/wishlist', {
+        method: mode === 'add' ? 'POST' : 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exchangeId,
+          itemId: mode === 'edit' ? initialData?.id : undefined,
+          url: mode === 'add' ? url.trim() : undefined,
           title: title.trim(),
           price: parsedPrice,
           description: cleanDescription,
-          thumbnail: thumbnail.trim() || undefined,
+          // On edit, an empty string clears the thumbnail server-side.
+          thumbnail: mode === 'add' ? thumbnail.trim() || undefined : thumbnail.trim(),
           properties: {
             isPersonalized: isPersonalizedMode,
             details: cleanDetails,
           },
-        });
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || (mode === 'add' ? 'Failed to add item to wishlist' : 'Failed to update Manifest Item'));
       }
+      onSaveSuccess(json.item);
       onClose();
     } catch (err: any) {
       setErrorMessage(err.message || 'An error occurred while saving.');
@@ -326,12 +295,15 @@ export function WishlistItemModal({
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-[11px] text-kk-muted mb-0.5">
-                      {isPersonalizedMode ? 'Target Budget (USD $)' : 'Price (USD $)'}
+                      {isPersonalizedMode ? 'Estimated cost (USD $) *' : 'Price (USD $) *'}
+                      {itemMax !== undefined && <span className="ml-1">(up to ${itemMax.toFixed(2)})</span>}
                     </label>
                     <input
                       type="number"
                       step="0.01"
-                      min="0"
+                      min="0.01"
+                      max={itemMax}
+                      required
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
                       placeholder="e.g. 25.00"

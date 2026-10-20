@@ -18,6 +18,10 @@ import { CompleteOperationModal } from '@/components/CompleteOperationModal';
 import { AfterActionReportSection, AARReportEntry } from '@/components/AfterActionReportSection';
 import { ShippingConfirmationModal } from '@/components/ShippingConfirmationModal';
 import { WishlistItemModal } from '@/components/WishlistItemModal';
+import type { WishlistRules } from '@/lib/mission-wishlist';
+
+/** Dollars with cents, e.g. `$25.00`. */
+const formatMoney = (dollars: number) => `$${Number(dollars).toFixed(2)}`;
 import { detectCarrier } from '@/lib/carrier-tracking';
 import { UserDossierPreferences } from '@/lib/product-intelligence';
 import { resolveExchangeCode } from '@/lib/exchange-route';
@@ -96,6 +100,8 @@ interface OperationData {
   eventLocation?: string;
   maxParticipants?: number;
   enforcePenalties?: boolean;
+  /** Head Elf toggle: may a wishlist total more than `budgetMax`? Missing means yes. */
+  allowWishlistOverBudget?: boolean;
   organizerId?: string;
   opsLeaderId?: string;
   organizer?: {
@@ -214,6 +220,7 @@ export default function OperationCommandCenterPage() {
   const [editMaxParticipants, setEditMaxParticipants] = useState<number | undefined>(undefined);
   const [editIsLocalOnly, setEditIsLocalOnly] = useState(false);
   const [editEventLocation, setEditEventLocation] = useState('');
+  const [editAllowOverBudget, setEditAllowOverBudget] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsError, setSettingsError] = useState('');
 
@@ -240,7 +247,7 @@ export default function OperationCommandCenterPage() {
   const [itemModalMode, setItemModalMode] = useState<'add' | 'edit'>('add');
   const [itemModalData, setItemModalData] = useState<any>(null);
   const [userDossier, setUserDossier] = useState<UserDossierPreferences | undefined>(undefined);
-  const [userWishlistId, setUserWishlistId] = useState<string | undefined>(undefined);
+  const [wishlistRules, setWishlistRules] = useState<WishlistRules | null>(null);
   const [codenameBusy, setCodenameBusy] = useState(false);
 
   const feasibility = useMemo(() => {
@@ -300,14 +307,6 @@ export default function OperationCommandCenterPage() {
             favoriteHobbies: json.user.favoriteHobbies,
           });
 
-          // Pre-populate userManifest from primary wishlist if empty
-          const firstWishlist = json.user.wishlists?.[0];
-          if (firstWishlist) {
-            setUserWishlistId(firstWishlist.id);
-            if (firstWishlist.manifestItems && firstWishlist.manifestItems.length > 0) {
-              setUserManifest(firstWishlist.manifestItems);
-            }
-          }
         } else {
           // The server says the session is gone (expired or signed out): forget the cached
           // identity so the page offers sign-in instead of acting on a dead session.
@@ -381,6 +380,7 @@ export default function OperationCommandCenterPage() {
     setEditMaxParticipants(op.maxParticipants);
     setEditIsLocalOnly(op.isLocalOnly);
     setEditEventLocation(op.eventLocation || '');
+    setEditAllowOverBudget(op.allowWishlistOverBudget !== false);
   }
 
   // Handle Enlistment Authentication (Register / Sign In with Invite Code)
@@ -503,6 +503,7 @@ export default function OperationCommandCenterPage() {
             maxParticipants: editMaxParticipants ? Number(editMaxParticipants) : undefined,
             isLocalOnly: editIsLocalOnly,
             eventLocation: editEventLocation,
+            allowWishlistOverBudget: editAllowOverBudget,
           },
         }),
       });
@@ -723,7 +724,8 @@ export default function OperationCommandCenterPage() {
   async function handleRemoveManifestItem(itemId: string) {
     setValidationError('');
     try {
-      const res = await fetch(`/api/opkits?itemId=${encodeURIComponent(itemId)}`, { method: 'DELETE' });
+      if (!operation) return;
+      const res = await fetch(`/api/wishlist?exchangeId=${encodeURIComponent(operation.id)}&itemId=${encodeURIComponent(itemId)}`, { method: 'DELETE' });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) throw new Error(json.error || 'Failed to remove Manifest Item');
       setUserManifest((prev) => prev.filter((i) => i.id !== itemId));
@@ -746,6 +748,26 @@ export default function OperationCommandCenterPage() {
   // Refresh messages when the mission loads, then every minute while the page is open
   const intelExchangeId = operation?.id;
   const intelEnrolled = Boolean(userId && (operation?.members || operation?.agents || []).some((m) => m.userId === userId));
+
+  // The agent's Wishlist Manifest belongs to this mission; load it with the mission's price rules,
+  // again whenever the Head Elf changes the budget or the over-limit toggle.
+  const wishlistBudgetMax = operation?.budgetMax;
+  const wishlistAllowOver = operation?.allowWishlistOverBudget;
+  useEffect(() => {
+    if (!intelExchangeId || !intelEnrolled) return;
+    let cancelled = false;
+    fetch(`/api/wishlist?exchangeId=${encodeURIComponent(intelExchangeId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled || !json?.success) return;
+        setUserManifest(json.wishlist.items);
+        setWishlistRules(json.rules);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [intelExchangeId, intelEnrolled, wishlistBudgetMax, wishlistAllowOver]);
   useEffect(() => {
     if (!intelExchangeId || !intelEnrolled) return;
     let cancelled = false;
@@ -861,6 +883,12 @@ export default function OperationCommandCenterPage() {
   const organizerData = operation?.organizer || operation?.opsLeader;
   const organizerIdVal = operation?.organizerId || operation?.opsLeaderId;
   const currentAgent = membersList.find((a) => a.userId === userId);
+
+  // Wishlist price rules for display; the server enforces the same rules on every save.
+  const itemMax = wishlistRules?.itemMax ?? operation?.budgetMax ?? 0;
+  const wishlistTotalMax = wishlistRules ? wishlistRules.totalMax : operation?.allowWishlistOverBudget === false ? operation.budgetMax : null;
+  const wishlistTotal = userManifest.reduce((sum, i) => sum + (i.price || 0), 0);
+  const wishlistOverTotal = wishlistTotalMax !== null && Math.round(wishlistTotal * 100) > Math.round(wishlistTotalMax * 100);
   const organizerCodename = membersList.find((a) => a.userId === organizerIdVal)?.codename;
   const canRerollCodename = Boolean(currentAgent && !currentAgent.codenameAccepted && operation?.status === 'RECRUITING');
   // A mission has exactly one Head Elf: the organizer. Leader promotion is not a feature yet.
@@ -1637,12 +1665,14 @@ export default function OperationCommandCenterPage() {
                     </h2>
                   </div>
                   <p className={`text-xs font-semibold mb-1 ${theme.textAccent}`}>
-                    (Wishlist Manifest = {operation.isWhiteElephant ? 'Single Brought Gift' : 'Your Secret Santa Wishlist'} | Manifest Items = Wished-for Gift Items)
+                    {operation.isWhiteElephant
+                      ? `Your gift: up to ${formatMoney(itemMax)}.`
+                      : `Each item: up to ${formatMoney(itemMax)}. ${wishlistTotalMax === null ? 'Your list may total more than that.' : `Whole list: up to ${formatMoney(wishlistTotalMax)}.`}`}
                   </p>
                   <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
                     {operation.isWhiteElephant
-                      ? 'Add the 1 gift item you are bringing to the live White Elephant pool (Max 1 Manifest Item).'
-                      : 'Paste store product links to populate your Secret Santa Wishlist Manifest. We\'ll auto-scrape titles and prices!'}
+                      ? 'Add the 1 gift you are bringing to the White Elephant table. This list is for this mission only.'
+                      : 'This list is for this mission only. Paste a link to an item in any online store and we\'ll fill in its name and price, or add a handmade or personalized gift.'}
                   </p>
 
                   {validationError && (
@@ -1671,7 +1701,7 @@ export default function OperationCommandCenterPage() {
                             : theme.btnPrimary
                         }`}
                       >
-                        {scraping ? 'Scraping...' : '+ Scrape Link'}
+                        {scraping ? 'Looking up item…' : 'Fill in from store link'}
                       </button>
                     </form>
 
@@ -1731,7 +1761,16 @@ export default function OperationCommandCenterPage() {
                                   )}
                                 </div>
 
-                                {item.price && <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>${item.price}</span>}
+                                {item.price ? <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>{formatMoney(item.price)}</span> : null}
+                                {!item.price ? (
+                                  <span className="text-[10px] font-bold mt-1 inline-block px-1.5 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong">
+                                    Needs a price: edit to add one
+                                  </span>
+                                ) : Math.round(item.price * 100) > Math.round(itemMax * 100) ? (
+                                  <span className="text-[10px] font-bold mt-1 inline-block px-1.5 py-0.5 rounded-full bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40">
+                                    Over the {formatMoney(itemMax)} limit: edit or remove
+                                  </span>
+                                ) : null}
 
                                 {item.description && (
                                   <p className="text-xs text-kk-muted mt-1 italic line-clamp-2 max-w-xs">
@@ -1787,6 +1826,12 @@ export default function OperationCommandCenterPage() {
                           </div>
                         );
                       })}
+                      {!operation.isWhiteElephant && (
+                        <p className={`text-xs font-bold text-right ${wishlistOverTotal ? 'text-kk-danger' : theme.textSubLabel}`}>
+                          List total: {formatMoney(wishlistTotal)}
+                          {wishlistOverTotal && wishlistTotalMax !== null && ` (over the ${formatMoney(wishlistTotalMax)} total the Head Elf set: remove or lower an item)`}
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -2168,6 +2213,25 @@ export default function OperationCommandCenterPage() {
                 />
               </div>
 
+              {!operation?.isWhiteElephant && (
+                <div className={`p-4 rounded-2xl border ${theme.cardInnerBg}`}>
+                  <label className="flex items-center justify-between gap-3 cursor-pointer">
+                    <div>
+                      <span className="font-bold text-sm block">🎁 Wishlists may total more than the limit</span>
+                      <span className="text-[11px] text-kk-muted block">
+                        No single item may cost more than the spending limit. When this is on, an agent&apos;s whole list may add up to more, so their Santa can pick from it.
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={editAllowOverBudget}
+                      onChange={(e) => setEditAllowOverBudget(e.target.checked)}
+                      className="h-5 w-5 rounded accent-red-600 dark:accent-sky-400 cursor-pointer shrink-0"
+                    />
+                  </label>
+                </div>
+              )}
+
               {/* Local In-Person Event Configuration Toggle */}
               <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
                 <div className="flex items-center justify-between cursor-pointer" onClick={() => setEditIsLocalOnly(!editIsLocalOnly)}>
@@ -2411,7 +2475,8 @@ export default function OperationCommandCenterPage() {
         onClose={() => setItemModalOpen(false)}
         onSaveSuccess={handleItemSaveSuccess}
         mode={itemModalMode}
-        wishlistId={userWishlistId || currentAgent?.wishlistId}
+        exchangeId={operation?.id}
+        itemMax={wishlistRules?.itemMax ?? operation?.budgetMax}
         initialData={itemModalData}
         userDossier={userDossier}
       />

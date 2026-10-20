@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary & System Overview
 
-**KovertKlaus** is a self-hosted covert intelligence gift exchange network and reliability management platform designed for families, friends, communities, and home-lab enthusiasts. The system transforms standard Secret Santa and White Elephant gift exchanges into interactive holiday missions governed by automated reliability tracking (Coal Citations), reusable Wishlist Manifests, 100% bidirectional match exclusion matrices, cryptographic session integrity, and an isolated containerized Docker stack.
+**KovertKlaus** is a self-hosted covert intelligence gift exchange network and reliability management platform designed for families, friends, communities, and home-lab enthusiasts. The system transforms standard Secret Santa and White Elephant gift exchanges into interactive holiday missions governed by automated reliability tracking (Coal Citations), per-mission Wishlist Manifests, 100% bidirectional match exclusion matrices, cryptographic session integrity, and an isolated containerized Docker stack.
 
 ```mermaid
 flowchart TD

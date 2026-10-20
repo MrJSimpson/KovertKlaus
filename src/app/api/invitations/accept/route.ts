@@ -3,16 +3,14 @@ import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { markInvitationAccepted } from '@/lib/invitations';
 import { enrollWithCodename } from '@/lib/codename';
+import { memberWishlistCreate } from '@/lib/mission-wishlist';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const activeUserId = await getSessionUserId();
 
-    const { operationCode, wishlistId } = body as {
-      operationCode: string;
-      wishlistId?: string;
-    };
+    const { operationCode } = body as { operationCode: string };
 
     if (!activeUserId || !operationCode) {
       return NextResponse.json(
@@ -58,44 +56,16 @@ export async function POST(request: Request) {
 
     const user = await db.user.findUnique({ where: { id: activeUserId }, select: { email: true } });
 
-    // 5. Auto-Link or Provision Master Wishlist Manifest
-    let linkedWishlistId: string | null = null;
-    if (wishlistId) {
-      // Only a manifest the caller owns may be attached.
-      const owned = await db.wishlist.findFirst({ where: { id: wishlistId, userId: activeUserId }, select: { id: true } });
-      if (!owned) return NextResponse.json({ error: 'Wishlist Manifest not found' }, { status: 404 });
-      linkedWishlistId = owned.id;
-    }
-    if (!linkedWishlistId) {
-      const targetType = exchange.isWhiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD';
-      const existingWishlist = await db.wishlist.findFirst({
-        where: { userId: activeUserId, type: targetType },
-        orderBy: { updatedAt: 'desc' },
-      });
-
-      if (existingWishlist) {
-        linkedWishlistId = existingWishlist.id;
-      } else {
-        const createdManifest = await db.wishlist.create({
-          data: {
-            userId: activeUserId,
-            name: exchange.isWhiteElephant ? 'White Elephant Gift' : 'Master Wishlist Manifest',
-            type: targetType,
-          },
-        });
-        linkedWishlistId = createdManifest.id;
-      }
-    }
-
-    // 6. Enroll with a codename drawn for this mission (the agent can reroll it until they accept).
+    // 5. Enroll with a codename drawn for this mission (the agent can reroll it until they accept).
     const newMember = await enrollWithCodename(db, exchange.id, (codename) =>
       db.exchangeMember.create({
         data: {
           exchangeId: exchange.id,
           userId: activeUserId,
           codename,
-          wishlistId: linkedWishlistId,
           role: 'MEMBER',
+          // Every agent gets a fresh Wishlist Manifest for this mission.
+          wishlist: memberWishlistCreate(activeUserId, exchange.isWhiteElephant),
         },
         include: {
           exchange: {

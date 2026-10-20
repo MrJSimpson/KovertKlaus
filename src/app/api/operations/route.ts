@@ -14,11 +14,12 @@ import {
   BADGE_VIGILANT_ELF,
 } from '@/lib/covertDelivery';
 import { processExchangeAudit } from '@/lib/audit-runner';
-import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, sanitizeExchangeMember } from '@/lib/exchange-view';
+import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember } from '@/lib/exchange-view';
 import { validateReportInput } from '@/lib/validations/report';
 import { resolveTimelineUpdate } from '@/lib/validations/timeline';
 import { dispatchNudge } from '@/lib/nudge';
 import { drawCodename, enrollWithCodename } from '@/lib/codename';
+import { deleteMemberWishlistItems, memberWishlistCreate } from '@/lib/mission-wishlist';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,8 +65,9 @@ export async function GET(request: Request) {
       const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
 
       const memberCodenames = memberCodenameMap(exchange.members);
+      const memberWishlists = memberWishlistMap(exchange.members);
 
-      const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames }));
+      const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames, memberWishlists }));
 
       const sanitizedData = {
         ...exchange,
@@ -155,7 +157,7 @@ export async function POST(request: Request) {
       const agentsForDraw = ex.members.map((a) => ({
         id: a.userId,
         name: a.userId,
-        hasWishlistAttached: !!a.wishlistId,
+        hasWishlistAttached: true,
       }));
 
       const exclusionRulesForDraw = ex.exclusionRules.map((r) => ({
@@ -580,6 +582,7 @@ export async function POST(request: Request) {
               userId: activeUserId,
               codename,
               propertyWaiverAgreedAt: new Date(),
+              wishlist: memberWishlistCreate(activeUserId, inviteToken.exchange.isWhiteElephant),
             },
           }),
           db.covertInviteToken.update({
@@ -855,6 +858,7 @@ export async function POST(request: Request) {
         executionDate: new Date(config.executionDate),
         isFreeAnnualExchange,
         enforcePenalties: config.enforcePenalties !== undefined ? config.enforcePenalties : true,
+        allowWishlistOverBudget: config.allowWishlistOverBudget !== undefined ? Boolean(config.allowWishlistOverBudget) : true,
         paymentStatus,
         members: {
           create: {
@@ -862,6 +866,7 @@ export async function POST(request: Request) {
             role: 'ORGANIZER',
             // The roster is empty, so any pool name is free.
             codename: drawCodename([]),
+            wishlist: memberWishlistCreate(activeUserId, Boolean(config.isWhiteElephant)),
           },
         },
       },
@@ -921,6 +926,7 @@ export async function PATCH(request: Request) {
         eventLocation?: string;
         isWhiteElephant?: boolean;
         enforcePenalties?: boolean;
+        allowWishlistOverBudget?: boolean;
       };
       agentId?: string;
       targetUserId?: string;
@@ -956,6 +962,7 @@ export async function PATCH(request: Request) {
       if (memberToDelete.userId === ex.organizerId) {
         return NextResponse.json({ error: 'Cannot remove the primary Organizer from the exchange' }, { status: 400 });
       }
+      await deleteMemberWishlistItems(db, memberToDelete.id);
       await db.exchangeMember.delete({ where: { id: memberToDelete.id } });
       return NextResponse.json({ success: true, message: 'Member removed from exchange' });
     }
@@ -1048,6 +1055,7 @@ export async function PATCH(request: Request) {
           isLocalOnly: settings.isLocalOnly !== undefined ? settings.isLocalOnly : ex.isLocalOnly,
           eventLocation: settings.eventLocation !== undefined ? settings.eventLocation.trim() : ex.eventLocation,
           enforcePenalties: settings.enforcePenalties !== undefined ? settings.enforcePenalties : ex.enforcePenalties,
+          allowWishlistOverBudget: settings.allowWishlistOverBudget !== undefined ? Boolean(settings.allowWishlistOverBudget) : ex.allowWishlistOverBudget,
         },
       });
 

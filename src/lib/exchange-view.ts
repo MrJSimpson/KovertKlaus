@@ -3,8 +3,9 @@
  * @description The single source for what a Holiday Mission's member list reveals to a viewer.
  *
  * Tier 1 (what): `EXCHANGE_MEMBERS_INCLUDE` is the Prisma include for a mission's members (with
- * each giver's target dossier and Wishlist Manifest), and `sanitizeExchangeMember` reduces one
- * loaded member to what the current viewer may see.
+ * each member's Wishlist Manifest and each giver's target dossier), and `sanitizeExchangeMember`
+ * reduces one loaded member to what the current viewer may see. A giver sees their target's list
+ * for this mission only (`memberWishlistMap`); lists belong to the membership, not the account.
  * Tier 2 (why): The Next.js route (self-hosted) and the edge worker (SaaS) used to build this
  * response separately. The worker's copy dropped the target's Wishlist Manifest, dossier and
  * Covert Delivery fields, so SaaS givers saw an empty target card. One builder keeps both
@@ -13,6 +14,8 @@
  * the member themselves (the giver viewing their own assignment). Dossier fields are further
  * gated by the target's `allowOrganizerView*` toggles unless the viewer is that target's giver.
  */
+
+import { toWishlistItemView, type WishlistItemView } from '@/lib/mission-wishlist';
 
 /** Prisma `include` for `exchange.members` used by the mission detail view. */
 export const EXCHANGE_MEMBERS_INCLUDE = {
@@ -42,11 +45,10 @@ export const EXCHANGE_MEMBERS_INCLUDE = {
       allowOrganizerViewMeasurements: true,
       allowOrganizerViewAllergies: true,
       allowOrganizerViewFavorites: true,
-      wishlists: {
-        include: { wishlistItems: { include: { item: true } } },
-        orderBy: { createdAt: 'asc' as const },
-      },
     },
+  },
+  wishlist: {
+    include: { wishlistItems: { include: { item: true }, orderBy: { item: { createdAt: 'asc' as const } } } },
   },
 } as const;
 
@@ -60,11 +62,25 @@ export interface ExchangeViewer {
   organizerId: string;
   /** Mission codename by user ID, used to label a giver's target. Codenames belong to the mission, not the user. */
   memberCodenames?: Record<string, string | null>;
+  /** Each member's list for this mission by user ID, used to show a giver their target's items. */
+  memberWishlists?: Record<string, WishlistItemView[]>;
 }
 
 /** Builds `ExchangeViewer.memberCodenames` from a mission's loaded members. */
 export function memberCodenameMap(members: { userId: string; codename: string | null }[]): Record<string, string | null> {
   return Object.fromEntries(members.map((m) => [m.userId, m.codename]));
+}
+
+/**
+ * Builds `ExchangeViewer.memberWishlists` from a mission's loaded members (see `EXCHANGE_MEMBERS_INCLUDE`).
+ *
+ * @param members - Members with `wishlist.wishlistItems.item` loaded.
+ * @returns Item views by user ID; members without a list map to an empty array.
+ */
+export function memberWishlistMap(
+  members: { userId: string; wishlist?: { wishlistItems: { item: Parameters<typeof toWishlistItemView>[0] }[] } | null }[]
+): Record<string, WishlistItemView[]> {
+  return Object.fromEntries(members.map((m) => [m.userId, (m.wishlist?.wishlistItems ?? []).map((wi) => toWishlistItemView(wi.item))]));
 }
 
 /**
@@ -89,7 +105,7 @@ export function sanitizeExchangeMember(m: any, viewer: ExchangeViewer) {
     // promote action, so the role is derived from the mission rather than read from the row.
     role: m.userId === viewer.organizerId ? 'ORGANIZER' : 'MEMBER',
     // Only whether a manifest is attached matters to other viewers; the ID grants nothing (writes check ownership).
-    wishlistId: m.wishlistId ?? null,
+    wishlistId: m.wishlist?.id ?? null,
     shippingStatus: m.shippingStatus,
     trackingNumber: canViewDetails ? m.trackingNumber : undefined,
     shippedAt: m.shippedAt,
@@ -116,24 +132,19 @@ export function sanitizeExchangeMember(m: any, viewer: ExchangeViewer) {
       zipCode: canViewDetails ? m.user.zipCode : null,
     },
     targetUserId: canViewDetails ? m.targetUserId : null,
-    targetUser: canViewDetails ? sanitizeTarget(m.targetUser, isSelf, viewer.memberCodenames) : null,
+    targetUser: canViewDetails ? sanitizeTarget(m.targetUser, isSelf, viewer.memberCodenames, viewer.memberWishlists) : null,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sanitizeTarget(t: any, viewerIsGiver: boolean, memberCodenames: Record<string, string | null> = {}) {
-  if (!t) return null;
-  const wishlist = t.wishlists?.[0];
+function sanitizeTarget(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wishlistItems = (wishlist?.wishlistItems ?? []).map((wi: any) => ({
-    id: wi.item.id,
-    title: wi.item.name,
-    price: wi.item.price ? Number(wi.item.price) : undefined,
-    url: wi.item.url,
-    thumbnail: wi.item.thumbnailUrl || undefined,
-    description: wi.item.description || undefined,
-    properties: wi.item.properties || undefined,
-  }));
+  t: any,
+  viewerIsGiver: boolean,
+  memberCodenames: Record<string, string | null> = {},
+  memberWishlists: Record<string, WishlistItemView[]> = {}
+) {
+  if (!t) return null;
+  const wishlistItems = memberWishlists[t.id] ?? [];
   const sizes = t.allowOrganizerViewSizes || viewerIsGiver;
   const measurements = t.allowOrganizerViewMeasurements || viewerIsGiver;
   const favorites = t.allowOrganizerViewFavorites || viewerIsGiver;

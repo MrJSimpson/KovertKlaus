@@ -11,6 +11,8 @@ export interface CreateOperationInput {
   eventLocation?: string;
   isWhiteElephant: boolean;
   enforcePenalties?: boolean;
+  /** Head Elf toggle: may a wishlist total more than `budgetMax`? Defaults to true. */
+  allowWishlistOverBudget?: boolean;
   budgetMin?: number;
   budgetMax: number;
   currency?: string;
