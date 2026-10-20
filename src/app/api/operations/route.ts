@@ -171,24 +171,21 @@ export async function POST(request: Request) {
           exclusionRules: exclusionRulesForDraw,
         });
 
-        const updateOps = assignments
-          .map((assignment) => {
+        // Callback transaction: `db` model calls run eagerly, so the array form fails (src/lib/db.ts).
+        await db.$transaction(async (tx) => {
+          for (const assignment of assignments) {
             const memberRecord = ex.members.find((a) => a.userId === assignment.agentId);
-            if (!memberRecord) return null;
-            return db.exchangeMember.update({
+            if (!memberRecord) continue;
+            await tx.exchangeMember.update({
               where: { id: memberRecord.id },
               data: { targetUserId: assignment.targetId },
             });
-          })
-          .filter(Boolean);
-
-        await db.$transaction([
-          ...(updateOps as any[]),
-          db.exchange.update({
+          }
+          await tx.exchange.update({
             where: { id: operationId },
             data: { status: 'MATCHED' },
-          }),
-        ]);
+          });
+        });
 
         // Dispatch Assignment Notification Emails to enrolled operatives
         try {
@@ -268,18 +265,16 @@ export async function POST(request: Request) {
           exclusionRules
         );
 
-        const updateOps = updatedAssignments
-          .map((assignment) => {
+        await db.$transaction(async (tx) => {
+          for (const assignment of updatedAssignments) {
             const memberRecord = ex.members.find((a) => a.userId === assignment.agentId);
-            if (!memberRecord) return null;
-            return db.exchangeMember.update({
+            if (!memberRecord) continue;
+            await tx.exchangeMember.update({
               where: { id: memberRecord.id },
               data: { targetUserId: assignment.targetId },
             });
-          })
-          .filter(Boolean);
-
-        await db.$transaction(updateOps as any[]);
+          }
+        });
 
         return NextResponse.json({
           success: true,
@@ -434,18 +429,14 @@ export async function POST(request: Request) {
       if (!ex) return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
       if (ex.organizerId !== activeUserId) return NextResponse.json({ error: 'Only Organizer can broadcast to members' }, { status: 403 });
 
-      const notificationInserts = ex.members.map((member) =>
-        db.notification.create({
-          data: {
-            userId: member.userId,
-            title: `📢 Exchange Broadcast: ${ex.title}`,
-            message: messageText.trim(),
-            exchangeId: ex.id,
-          },
-        })
-      );
-
-      await db.$transaction(notificationInserts);
+      await db.notification.createMany({
+        data: ex.members.map((member) => ({
+          userId: member.userId,
+          title: `📢 Exchange Broadcast: ${ex.title}`,
+          message: messageText.trim(),
+          exchangeId: ex.id,
+        })),
+      });
 
       for (const member of ex.members) {
         if (member.user.email && member.user.emailNotifications !== false) {
@@ -575,8 +566,8 @@ export async function POST(request: Request) {
 
       // Enroll member and consume single-use token in transaction
       const [newMember] = await enrollWithCodename(db, inviteToken.exchangeId, (codename) =>
-        db.$transaction([
-          db.exchangeMember.create({
+        db.$transaction(async (tx) => [
+          await tx.exchangeMember.create({
             data: {
               exchangeId: inviteToken.exchangeId,
               userId: activeUserId,
@@ -585,7 +576,7 @@ export async function POST(request: Request) {
               wishlist: memberWishlistCreate(activeUserId, inviteToken.exchange.isWhiteElephant),
             },
           }),
-          db.covertInviteToken.update({
+          await tx.covertInviteToken.update({
             where: { id: inviteToken.id },
             data: {
               isUsed: true,

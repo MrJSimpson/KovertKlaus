@@ -1509,18 +1509,15 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             const exclusionRules = ex.exclusionRules.map((r) => ({ agentId: r.memberId, restrictedAgentId: r.restrictedMemberId }));
             const assignments = executeLinkedListDraw(agents, { isWhiteElephant: ex.isWhiteElephant, exclusionRules });
 
-            const updateOps = assignments
-              .map((assignment) => {
+            // Callback transaction: `db` model calls run eagerly, so the array form fails (src/lib/db.ts).
+            await db.$transaction(async (tx) => {
+              for (const assignment of assignments) {
                 const mem = ex.members.find((m) => m.userId === assignment.agentId);
-                if (!mem) return null;
-                return db.exchangeMember.update({ where: { id: mem.id }, data: { targetUserId: assignment.targetId } });
-              })
-              .filter(Boolean);
-
-            await db.$transaction([
-              ...(updateOps as any[]),
-              db.exchange.update({ where: { id: operationId }, data: { status: 'MATCHED' } }),
-            ]);
+                if (!mem) continue;
+                await tx.exchangeMember.update({ where: { id: mem.id }, data: { targetUserId: assignment.targetId } });
+              }
+              await tx.exchange.update({ where: { id: operationId }, data: { status: 'MATCHED' } });
+            });
 
             // Dispatch assignment emails
             try {
@@ -1585,18 +1582,16 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 exclusionRules
               );
 
-              const updateOps = updatedAssignments
-                .map((assignment) => {
+              await db.$transaction(async (tx) => {
+                for (const assignment of updatedAssignments) {
                   const memberRecord = ex.members.find((a) => a.userId === assignment.agentId);
-                  if (!memberRecord) return null;
-                  return db.exchangeMember.update({
+                  if (!memberRecord) continue;
+                  await tx.exchangeMember.update({
                     where: { id: memberRecord.id },
                     data: { targetUserId: assignment.targetId },
                   });
-                })
-                .filter(Boolean);
-
-              await db.$transaction(updateOps as any[]);
+                }
+              });
               return Response.json({ success: true, message: 'Target swap executed successfully', assignments: updatedAssignments });
             } catch (err: any) {
               return Response.json({ error: err.message || 'Target swap failed' }, { status: 400 });
@@ -1707,18 +1702,14 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can broadcast' }, { status: 403 });
 
-            const notificationInserts = ex.members.map((m) =>
-              db.notification.create({
-                data: {
-                  userId: m.userId,
-                  title: `📢 Exchange Broadcast: ${ex.title}`,
-                  message: messageText.trim(),
-                  exchangeId: ex.id,
-                },
-              })
-            );
-
-            await db.$transaction(notificationInserts);
+            await db.notification.createMany({
+              data: ex.members.map((m) => ({
+                userId: m.userId,
+                title: `📢 Exchange Broadcast: ${ex.title}`,
+                message: messageText.trim(),
+                exchangeId: ex.id,
+              })),
+            });
 
             try {
               const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
@@ -1813,8 +1804,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (existingMember) return Response.json({ error: 'Already enrolled', exchangeCode: inviteToken.exchange.code }, { status: 409 });
 
             const [newMember] = await enrollWithCodename(db, inviteToken.exchangeId, (codename) =>
-              db.$transaction([
-                db.exchangeMember.create({
+              db.$transaction(async (tx) => [
+                await tx.exchangeMember.create({
                   data: {
                     exchangeId: inviteToken.exchangeId,
                     userId,
@@ -1823,7 +1814,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                     wishlist: memberWishlistCreate(userId, inviteToken.exchange.isWhiteElephant),
                   },
                 }),
-                db.covertInviteToken.update({
+                await tx.covertInviteToken.update({
                   where: { id: inviteToken.id },
                   data: { isUsed: true, usedByUserId: userId },
                 }),
