@@ -16,14 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Delete a cancelled mission.** A mission cancelled before the draw can be deleted permanently 48 hours later by its Head Elf or an admin, after typing the mission code. Every cancelled mission is deleted automatically 90 days after cancellation (the hourly lifecycle sweep). Deletion erases all of the mission's data and leaves one anonymous `MissionHistory` row (outcome and reason, no title or people); only the Head Elf is told. New actions `cancelMission` / `deleteMission` on `POST /api/operations` and `POST /api/northpole/operations` (`cancel` | `delete`), in both runtimes.
 - **Database:** `ExchangeStatus.CANCELLED`, enum `MissionActor`, Exchange cancellation columns, `Notification.dedupeKey` (unique per user) and table `MissionHistory`. Operators: back up (`export-db`), run `prisma/sql/2026-10-21_mission-cancellation.forward.sql`, then deploy. Rollback: `2026-10-21_mission-cancellation.rollback.sql` (refuses while any mission is cancelled).
 
-### Fixed
-- **Notification flood from stuck missions.** A mission past Assignment Day with too few agents (or a failed draw) created a new Head Elf notification every hourly sweep. It now keeps one notice that updates in place.
-
 ### Changed
 - **What's New opens as a pop-up** over the current page (close with ✕, Escape or a click outside) instead of a separate page. The `/announcements` page is gone.
 
 ### Fixed
 - **Target draws, swaps, broadcasts and Kovert Delivery enrollment reported failure after saving.** The `db` proxy runs each model call immediately, so the array form of `$transaction` threw after its writes had already happened, one by one rather than all-or-nothing. The automatic draw on Assignment Day saved the targets and MATCHED, then told the Head Elf "Target Draw Pending", and agents never got their 🎯 assignment notice or email. The manual draw, target swap and OpTeam Broadcast returned errors after saving. All nine call sites (both runtimes) now use the callback form, and `src/lib/db-transactions.test.ts` rejects the array form.
+- **Notification flood from stuck missions.** A mission past Assignment Day with too few agents (or a failed draw) created a new Head Elf notification every hourly sweep. It now keeps one notice that updates in place.
 
 ---
 
