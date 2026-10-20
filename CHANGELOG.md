@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+- **Wishlists live on the mission page.** The dashboard no longer has a Wishlist Manifests section, and the `/opkits` manifest library is retired (it now forwards to the dashboard). Each mission's page has the editor for that mission's wishlist.
 - **New winter palette.** Light mode (Klaus) uses the classic Christmas colors and dark mode (Kovert) uses blue and gold (Indigo dye, Lion, Ecru, Wheat, Alice blue, French gray, Cambridge blue). Colors are semantic `kk-*` tokens in `src/app/globals.css`, so every page, modal, the North Pole and the Workshop follow the active theme, and every text color meets WCAG AA contrast. Spring, summer and autumn presets are unchanged. Existing databases keep the old winter button overrides until the `winter_holiday` preset's `lightTokens`/`darkTokens` are reduced to `accentColor` (on a fresh local database, `npm run db:seed` does it; on production, update that one row, because the seed also resets System Config and purges test accounts).
 - **Emails are always light.** Every email uses the light Christmas palette and declares `color-scheme: light only`, whatever the reader's theme.
 - **Light by default.** Pages start in light mode; a saved dark choice is applied before first paint. The Features page and the pre-launch page now follow the app theme.
