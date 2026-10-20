@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { PrismaClient } from '@prisma/client';
+import { CODENAME_ADJECTIVES, CODENAME_NOUNS } from './codename-words';
 import {
   CODENAME_POOL,
-  CODENAME_PREFIXES,
-  CODENAME_SUFFIXES,
   acceptCodename,
   drawCodename,
   enrollWithCodename,
@@ -40,9 +39,13 @@ function fakeDb(members: FakeMember[], status = 'RECRUITING') {
 const p2002 = (field: string) => Object.assign(new Error('Unique constraint failed'), { code: 'P2002', meta: { target: ['exchangeId', field] } });
 
 test('Mission codename pool & assignment', async (t) => {
-  await t.test('pool is every prefix-suffix pair, all distinct', () => {
-    assert.equal(CODENAME_POOL.length, CODENAME_PREFIXES.length * CODENAME_SUFFIXES.length);
+  await t.test('pool is every adjective-noun pair, all distinct', () => {
+    assert.equal(CODENAME_POOL.length, CODENAME_ADJECTIVES.length * CODENAME_NOUNS.length);
     assert.equal(new Set(CODENAME_POOL.map((n) => n.toLowerCase())).size, CODENAME_POOL.length);
+  });
+
+  await t.test('codenames are "Adjective Noun": two words, a space, no hyphen', () => {
+    for (let i = 0; i < 50; i++) assert.match(drawCodename([]), /^[A-Z][a-z]+ [A-Z][a-z]+$/);
   });
 
   await t.test('drawCodename returns a pool name not already taken (case-insensitive)', () => {
@@ -52,8 +55,8 @@ test('Mission codename pool & assignment', async (t) => {
 
   await t.test('drawCodename numbers a pool name once the pool is exhausted', () => {
     const first = () => 0;
-    assert.equal(drawCodename(CODENAME_POOL, first), `${CODENAME_POOL[0]}-2`);
-    assert.equal(drawCodename([...CODENAME_POOL, `${CODENAME_POOL[0]}-2`], first), `${CODENAME_POOL[0]}-3`);
+    assert.equal(drawCodename(CODENAME_POOL, first), `${CODENAME_POOL[0]} 2`);
+    assert.equal(drawCodename([...CODENAME_POOL, `${CODENAME_POOL[0]} 2`], first), `${CODENAME_POOL[0]} 3`);
   });
 
   await t.test('drawCodename ignores empty roster entries', () => {
@@ -92,19 +95,19 @@ test('Mission codename pool & assignment', async (t) => {
   });
 
   await t.test('rerollCodename refuses once accepted, once recruiting closes, and for non-members', async () => {
-    const accepted: FakeMember = { id: 'm1', userId: 'u1', codename: 'Frost-Fox', codenameAcceptedAt: new Date() };
+    const accepted: FakeMember = { id: 'm1', userId: 'u1', codename: 'Snowy Spider', codenameAcceptedAt: new Date() };
     assert.equal((await rerollCodename(fakeDb([accepted]), 'ex1', 'u1')).status, 409);
-    const open: FakeMember = { id: 'm1', userId: 'u1', codename: 'Frost-Fox', codenameAcceptedAt: null };
+    const open: FakeMember = { id: 'm1', userId: 'u1', codename: 'Snowy Spider', codenameAcceptedAt: null };
     assert.equal((await rerollCodename(fakeDb([open], 'MATCHED'), 'ex1', 'u1')).status, 409);
-    assert.equal(open.codename, 'Frost-Fox');
+    assert.equal(open.codename, 'Snowy Spider');
     assert.equal((await rerollCodename(fakeDb([]), 'ex1', 'u1')).status, 404);
   });
 
   await t.test('acceptCodename locks the codename and is idempotent', async () => {
-    const me: FakeMember = { id: 'm1', userId: 'u1', codename: 'Frost-Fox', codenameAcceptedAt: null };
+    const me: FakeMember = { id: 'm1', userId: 'u1', codename: 'Snowy Spider', codenameAcceptedAt: null };
     const db = fakeDb([me]);
     const first = await acceptCodename(db, 'ex1', 'u1');
-    assert.deepEqual(first, { status: 200, body: { codename: 'Frost-Fox', accepted: true } });
+    assert.deepEqual(first, { status: 200, body: { codename: 'Snowy Spider', accepted: true } });
     const lockedAt = me.codenameAcceptedAt;
     assert.ok(lockedAt);
     await acceptCodename(db, 'ex1', 'u1');

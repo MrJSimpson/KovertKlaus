@@ -2,7 +2,7 @@
  * @file codename.ts
  * @description Mission-assigned codenames: one pre-generated pool, drawn per mission.
  *
- * Tier 1 (what): `CODENAME_POOL` is the only source of codenames. `drawCodename` picks one that is
+ * Tier 1 (what): `CODENAME_POOL` (adjective + noun from `codename-words.ts`) is the only source of codenames. `drawCodename` picks one that is
  * free in a mission roster; `enrollWithCodename` creates a member with a drawn codename;
  * `rerollCodename` and `acceptCodename` implement `/api/codename` for both the edge worker (SaaS)
  * and the Next.js route (self-hosted).
@@ -17,23 +17,18 @@
 
 import type { PrismaClient } from '@prisma/client';
 import { getSecureRandomInt } from '@/lib/security';
+import { CODENAME_ADJECTIVES, CODENAME_NOUNS } from '@/lib/codename-words';
 
-/** First half of a codename. */
-export const CODENAME_PREFIXES = [
-  'Frost', 'Shadow', 'Blizzard', 'Kovert', 'Glacier', 'Midnight', 'Evergreen', 'Tinsel', 'Nutcracker', 'Vanguard',
-  'Cobalt', 'Ghost', 'Polar', 'Winter', 'Cipher', 'Icicle', 'Timber', 'Sleigh', 'Rudolph', 'Aurora',
-] as const;
-
-/** Second half of a codename. */
-export const CODENAME_SUFFIXES = [
-  'Viper', 'Spectre', 'Fox', 'Hawk', 'Falcon', 'Wolf', 'Reindeer', 'Echo', 'Comet', 'Recon',
-  'Sentinel', 'Striker', 'Elf', 'Knight', 'Scout', 'Snowflake', 'Courier', 'Owl', 'Phantom', 'Tracker',
-] as const;
-
-/** Every assignable codename, e.g. `Frost-Viper`. 400 names, so a mission never runs out in practice. */
-export const CODENAME_POOL: readonly string[] = CODENAME_PREFIXES.flatMap((prefix) =>
-  CODENAME_SUFFIXES.map((suffix) => `${prefix}-${suffix}`)
+/**
+ * Every assignable codename: one adjective and one noun with a space, e.g. `Snowy Spider`.
+ * About 29,000 names, so a mission never runs out in practice. Words live in `codename-words.ts`.
+ */
+export const CODENAME_POOL: readonly string[] = CODENAME_ADJECTIVES.flatMap((adjective) =>
+  CODENAME_NOUNS.map((noun) => `${adjective} ${noun}`)
 );
+
+/** Random picks `drawCodename` tries before scanning the whole pool for a free name. */
+const RANDOM_TRIES = 20;
 
 /** Attempts `enrollWithCodename` makes before giving up on concurrent collisions. */
 const ENROLL_ATTEMPTS = 5;
@@ -43,20 +38,26 @@ export type RandomInt = (maxExclusive: number) => number;
 
 /**
  * Draws a codename that is not in `taken` (compared case-insensitively).
- * When the whole pool is taken, appends the lowest free number to a random pool name
- * (`Frost-Viper-2`), so a draw always succeeds.
+ * Tries random pool names first (a mission uses a tiny fraction of the pool), then scans for a
+ * free one. When the whole pool is taken, appends the lowest free number (`Snowy Spider 2`),
+ * so a draw always succeeds.
  */
 export function drawCodename(taken: Iterable<string | null | undefined>, randomInt: RandomInt = getSecureRandomInt): string {
   const used = new Set<string>();
   for (const name of taken) if (name) used.add(name.trim().toLowerCase());
+
+  for (let i = 0; i < RANDOM_TRIES; i++) {
+    const name = CODENAME_POOL[randomInt(CODENAME_POOL.length)];
+    if (!used.has(name.toLowerCase())) return name;
+  }
 
   const free = CODENAME_POOL.filter((name) => !used.has(name.toLowerCase()));
   if (free.length > 0) return free[randomInt(free.length)];
 
   const base = CODENAME_POOL[randomInt(CODENAME_POOL.length)];
   let n = 2;
-  while (used.has(`${base}-${n}`.toLowerCase())) n++;
-  return `${base}-${n}`;
+  while (used.has(`${base} ${n}`.toLowerCase())) n++;
+  return `${base} ${n}`;
 }
 
 /** Codenames already used in one mission. */

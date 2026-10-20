@@ -224,7 +224,7 @@ Rerolls or accepts the caller's codename in one mission.
 - **Response `200 OK`**:
   ```json
   {
-    "codename": "Polar-Owl",
+    "codename": "Snowy Spider",
     "accepted": false
   }
   ```

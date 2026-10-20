@@ -5,7 +5,7 @@ import { memberCodenameMap, sanitizeExchangeMember } from './exchange-view';
 const member = {
   id: 'm1',
   userId: 'giver',
-  codename: 'Frost-Fox',
+  codename: 'Snowy Spider',
   codenameAcceptedAt: null,
   role: 'MEMBER',
   trackingNumber: '9400111899562537624132',
@@ -61,11 +61,11 @@ test('Exchange View - only the mission organizer is shown as Head Elf', () => {
 });
 
 test('Exchange View - codenames come from the mission, not the account', () => {
-  const memberCodenames = memberCodenameMap([{ userId: 'giver', codename: 'Frost-Fox' }, { userId: 'target', codename: 'Polar-Owl' }]);
+  const memberCodenames = memberCodenameMap([{ userId: 'giver', codename: 'Snowy Spider' }, { userId: 'target', codename: 'Polar Owl' }]);
   const view = sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer', memberCodenames });
-  assert.strictEqual(view.codename, 'Frost-Fox');
-  assert.strictEqual(view.user.codename, 'Frost-Fox');
-  assert.strictEqual(view.targetUser?.codename, 'Polar-Owl');
+  assert.strictEqual(view.codename, 'Snowy Spider');
+  assert.strictEqual(view.user.codename, 'Snowy Spider');
+  assert.strictEqual(view.targetUser?.codename, 'Polar Owl');
 });
 
 test('Exchange View - only the agent sees whether their codename is accepted', () => {

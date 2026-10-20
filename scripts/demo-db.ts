@@ -52,12 +52,12 @@ export function generateDemoPassword(): string {
 
 /** The demo cast. Holly is the Head Elf of every demo mission. */
 export const DEMO_AGENTS = [
-  { key: 'holly', name: 'Holly Berry', codename: 'Tinsel-Fox', city: 'Tacoma', state: 'WA' },
-  { key: 'juniper', name: 'Juniper Frost', codename: 'Frost-Owl', city: 'Olympia', state: 'WA' },
-  { key: 'rudy', name: 'Rudy Nordlund', codename: 'Rudolph-Comet', city: 'Bremerton', state: 'WA' },
-  { key: 'ivy', name: 'Ivy Garland', codename: 'Evergreen-Scout', city: 'Seattle', state: 'WA' },
-  { key: 'nick', name: 'Nick Kringle', codename: 'Sleigh-Courier', city: 'Spokane', state: 'WA' },
-  { key: 'pepper', name: 'Pepper Minty', codename: 'Polar-Elf', city: 'Portland', state: 'OR' },
+  { key: 'holly', name: 'Holly Berry', codename: 'Jolly Penguin', city: 'Tacoma', state: 'WA' },
+  { key: 'juniper', name: 'Juniper Frost', codename: 'Frosty Owl', city: 'Olympia', state: 'WA' },
+  { key: 'rudy', name: 'Rudy Nordlund', codename: 'Sparkly Reindeer', city: 'Bremerton', state: 'WA' },
+  { key: 'ivy', name: 'Ivy Garland', codename: 'Evergreen Scout', city: 'Seattle', state: 'WA' },
+  { key: 'nick', name: 'Nick Kringle', codename: 'Midnight Courier', city: 'Spokane', state: 'WA' },
+  { key: 'pepper', name: 'Pepper Minty', codename: 'Peppermint Elf', city: 'Portland', state: 'OR' },
 ] as const;
 
 type AgentKey = (typeof DEMO_AGENTS)[number]['key'];
