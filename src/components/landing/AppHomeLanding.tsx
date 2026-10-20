@@ -9,7 +9,7 @@ import { calculateAutomaticOperationDates } from '@/lib/validations/operation';
 import { useTheme } from '@/context/ThemeContext';
 import { SeasonalLightsStrand } from '@/components/ui/SeasonalLightsStrand';
 import { APP_VERSION_LABEL, RELEASE_STAGE } from '@/lib/version';
-import { WhatsNewLink } from '@/components/WhatsNewLink';
+import { WhatsNewButton } from '@/components/WhatsNewButton';
 
 
 
@@ -1368,7 +1368,7 @@ export function AppHomeLanding() {
           </div>
           <div className="flex gap-6 font-semibold items-center">
             <Link href="/features" className="inline-flex items-center min-h-11 transition-colors hover:underline">Features &amp; Specs</Link>
-            <WhatsNewLink className="inline-flex items-center min-h-11 transition-colors hover:underline" />            <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className="inline-flex items-center min-h-11 transition-colors hover:underline">GitHub</a>
+            <WhatsNewButton className="inline-flex items-center min-h-11 transition-colors hover:underline" />            <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className="inline-flex items-center min-h-11 transition-colors hover:underline">GitHub</a>
           </div>
         </div>
       </footer>

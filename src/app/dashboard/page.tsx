@@ -9,10 +9,12 @@ import { formatDateString, getNextMilestoneCountdown } from '@/lib/security';
 import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
 import { Card, SectionHeader, Button, Badge, DataRow } from '@/components/ui';
-import { AccountPreferencesModal } from '@/components/AccountPreferencesModal';
+import { AccountPreferencesModal, type PreferencesTab } from '@/components/AccountPreferencesModal';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
-import { WhatsNewLink } from '@/components/WhatsNewLink';
+import { NotificationBell, type PinnedNotice } from '@/components/NotificationBell';
+import { WhatsNewButton } from '@/components/WhatsNewButton';
+import type { NotificationView } from '@/lib/notifications';
 
 interface UserData {
   id: string;
@@ -58,13 +60,6 @@ interface UserData {
       organizerId?: string;
     };
   }>;
-  notifications?: Array<{
-    id: string;
-    title: string;
-    message: string;
-    operationId?: string;
-    createdAt: string;
-  }>;
 }
 
 /** One open invitation from `GET /api/invitations`. */
@@ -91,6 +86,14 @@ export default function DashboardPage() {
 
   // Edit Preferences Modal
   const [prefModalOpen, setPrefModalOpen] = useState(false);
+  // Each opening remounts the modal (`key`), so it starts on the requested tab.
+  const [prefTab, setPrefTab] = useState<PreferencesTab>('identity');
+  const [prefOpenCount, setPrefOpenCount] = useState(0);
+  function openPreferences(tab: PreferencesTab = 'identity') {
+    setPrefTab(tab);
+    setPrefOpenCount((n) => n + 1);
+    setPrefModalOpen(true);
+  }
   /*
   // NOTE: Unused state variables in DashboardPage. Address & preference form state is handled directly inside <AccountPreferencesModal>. Commented out per Phase 2 Code Review rules.
   const [streetAddress, setStreetAddress] = useState('');
@@ -127,7 +130,8 @@ export default function DashboardPage() {
     };
   }, [signedInUserId, inviteReload]);
 
-  async function handleInvitation(inv: PendingInvitation, accept: boolean) {
+  /** Answers an invitation; `onDone` runs after it succeeds (the bell uses it to clear the notification). */
+  async function handleInvitation(inv: PendingInvitation, accept: boolean, onDone?: () => void) {
     setInviteBusyId(inv.id);
     setInviteError('');
     try {
@@ -145,6 +149,7 @@ export default function DashboardPage() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || (accept ? 'Could not join the mission' : 'Could not decline the invitation'));
       setInviteReload((n) => n + 1);
+      onDone?.();
       if (accept) router.push(`/exchange/${inv.exchange.code}`);
     } catch (err) {
       setInviteError(err instanceof Error ? err.message : 'Invitation update failed');
@@ -227,31 +232,47 @@ export default function DashboardPage() {
   }
   */
 
-  // Accept Operation Invitation Alert
-  async function handleAcceptInvite(code: string) {
-    if (!user) return;
-    try {
-      const res = await fetch('/api/invitations/accept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, operationCode: code }),
-      });
-      const json = await res.json();
-      if (res.ok && json.success) {
-        fetchUserData();
-        router.push(`/exchange/${code}`);
-      } else {
-        alert(json.error || 'Failed to accept invitation');
-      }
-    } catch {
-      alert('Failed to accept invitation');
-    }
-  }
-
   // Capped Operations (Max 3 most recent active operations)
   const recentParticipations = user?.participations
     ? [...user.participations].slice(0, 3)
     : [];
+
+  // Bell notices derived from the profile: a remote Secret Santa mission needs a shipping address.
+  const pinnedNotices: PinnedNotice[] = [];
+  if (
+    user &&
+    (!user.streetAddress || !user.city || !user.state || !user.zipCode) &&
+    user.participations?.some((p) => {
+      const ex = p.exchange || p.mission;
+      return ex && !ex.isLocalOnly && !ex.isWhiteElephant;
+    })
+  ) {
+    pinnedNotices.push({
+      id: 'shipping-address',
+      emoji: '📦',
+      title: 'Action Required: Courier Shipping Address Incomplete',
+      message: 'You are enrolled in a remote Secret Santa mission. Add your Courier Shipping Address so your Secret Santa can deliver your gift.',
+      actionLabel: 'Complete Shipping Address',
+      onAction: () => openPreferences('shipping'),
+    });
+  }
+
+  /** Accept/Decline on an invitation notification while the invitation is still open. */
+  function invitationActions(n: NotificationView, dismiss: () => void) {
+    const inv = invitations.find((i) => i.exchange.id === n.exchangeId);
+    if (!inv) return null;
+    const busy = inviteBusyId === inv.id;
+    return (
+      <>
+        <Button onClick={() => handleInvitation(inv, true, dismiss)} variant="primary" disabled={busy} className="px-3 py-1.5 text-[11px]">
+          {busy ? 'Working...' : '✅ Accept'}
+        </Button>
+        <Button onClick={() => handleInvitation(inv, false, dismiss)} variant="secondary" disabled={busy} className="px-3 py-1.5 text-[11px]">
+          Decline
+        </Button>
+      </>
+    );
+  }
 
   async function handleSignOut() {
     try {
@@ -284,7 +305,15 @@ export default function DashboardPage() {
           </Link>
 
           <div className="flex items-center gap-1.5 sm:gap-3">
-            <WhatsNewLink
+            {user && (
+              <NotificationBell
+                pinned={pinnedNotices}
+                actionsFor={invitationActions}
+                reloadKey={inviteReload}
+                className={`text-xs font-bold px-3 py-2 min-h-[44px] min-w-[44px] justify-center rounded-xl border transition-all ${theme.btnToggle}`}
+              />
+            )}
+            <WhatsNewButton
               compact
               className={`text-xs font-bold px-3 py-2 min-h-[44px] min-w-[44px] justify-center rounded-xl border transition-all ${theme.btnToggle}`}
             />
@@ -340,73 +369,13 @@ export default function DashboardPage() {
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => setPrefModalOpen(true)}
+                  onClick={() => openPreferences()}
                   className={`px-5 py-3 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnSecondary}`}
                 >
                   ⚙️ Account Preferences
                 </button>
               </div>
             </div>
-
-            {/* In-App Operation Invitation Alerts */}
-            {user.notifications && user.notifications.length > 0 && (
-              <div className="space-y-3">
-                {user.notifications.map((notif) => {
-                  const codeMatch = notif.message.match(/Code:\s*([A-Z0-9-]{8,16})/i);
-                  const code = codeMatch ? codeMatch[1] : null;
-
-                  return (
-                    <div
-                      key={notif.id}
-                      className={`p-5 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${theme.cardBg} border-kk-border-strong`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">📩</span>
-                        <div>
-                          <h4 className="font-extrabold text-sm">{notif.title}</h4>
-                          <p className={`text-xs mt-0.5 ${theme.textSubLabel}`}>
-                            {notif.message}
-                          </p>
-                        </div>
-                      </div>
-                      {code && (
-                        <button
-                          onClick={() => handleAcceptInvite(code)}
-                          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold shadow-md cursor-pointer whitespace-nowrap transition-all ${theme.btnPrimary}`}
-                        >
-                          🚀 Accept & Enlist
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Courier Shipping Address Incomplete Warning Banner */}
-            {(!user.streetAddress || !user.city || !user.state || !user.zipCode) &&
-              user.participations?.some((p) => {
-                const ex = p.exchange || p.mission;
-                return ex && !ex.isLocalOnly && !ex.isWhiteElephant;
-              }) && (
-                <div className={`p-5 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${theme.alertWarning}`}>
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">📦</span>
-                    <div>
-                      <h4 className="font-extrabold text-sm">Action Required: Courier Shipping Address Incomplete</h4>
-                      <p className="text-xs mt-0.5 opacity-90">
-                        You are enrolled in an active remote Secret Santa operation. Provide your Courier Shipping Address so your assigned Secret Santa can deliver your gifts!
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setPrefModalOpen(true)}
-                    className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-md cursor-pointer whitespace-nowrap transition-all ${theme.btnPrimary}`}
-                  >
-                    ⚙️ Complete Shipping Address
-                  </button>
-                </div>
-            )}
 
             {/* Section 1: Active Operations (Exchanges) */}
             <Card variant="section" className="space-y-6">
@@ -548,9 +517,11 @@ export default function DashboardPage() {
 
       {/* MODAL: ACCOUNT PREFERENCES */}
       <AccountPreferencesModal
+        key={prefOpenCount}
         isOpen={prefModalOpen}
         onClose={() => setPrefModalOpen(false)}
         onProfileUpdated={fetchUserData}
+        initialTab={prefTab}
       />
 
       {/* MODAL: CREATE OPERATION */}

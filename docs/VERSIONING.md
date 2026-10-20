@@ -48,7 +48,7 @@ During **beta**, every release increments `N` (`1.0.0-beta.N`); the changelog st
 
 1. Bump `package.json` (+ `package-lock.json`) and `src/lib/version.ts`.
 2. Move `[Unreleased]` into `## [X.Y.Z-stage] - YYYY-MM-DD` in `CHANGELOG.md`.
-3. Add a **user-friendly** entry at the top of `src/lib/announcements.ts`: plain language, what changed for agents and Head Elves, no internal jargon. It appears on `/announcements`.
+3. Add a **user-friendly** entry at the top of `src/lib/announcements.ts`: plain language, what changed for agents and Head Elves, no internal jargon. It appears in the What's New pop-up.
 4. `npm test` and `npm run build` pass.
 5. After merge: confirm the production deploy, then tag the dev repository's merge commit: `git tag -a vX.Y.Z-stage -m "KovertKlaus vX.Y.Z-stage"` and push the tag.
 6. **Minor releases only:** prune branches in both repositories (§5).
@@ -68,7 +68,7 @@ Release history is kept **outside the git log**, in three places with different 
 | Record | Audience | Content |
 | :--- | :--- | :--- |
 | `CHANGELOG.md` | Developers and self-hosters | Every notable change per version (Keep a Changelog format) |
-| `/announcements` (`src/lib/announcements.ts`) | Elf Agents and Head Elves | Friendly "what's new" notes per release |
+| What's New pop-up (`src/lib/announcements.ts`) | Elf Agents and Head Elves | Friendly "what's new" notes per release |
 | Owner's internal release log | Maintainers | Deploy notes, schema pushes, decisions (kept outside this repository) |
 
 ---

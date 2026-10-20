@@ -42,6 +42,7 @@ import { rewriteExchangeShellPath } from './lib/exchange-route';
 import { dispatchNudge } from './lib/nudge';
 import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
+import { dismissNotifications, listMyNotifications } from './lib/notifications';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
@@ -74,6 +75,7 @@ export const WORKER_API_PATHS = new Set([
   '/api/invitations/accept',
   '/api/leads',
   '/api/messages',
+  '/api/notifications',
   '/api/northpole/config',
   '/api/northpole/email/test',
   '/api/northpole/leads',
@@ -2114,6 +2116,23 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as { invitationId?: unknown; action?: unknown };
           const result = await updateInvitation(db, { invitationId: body.invitationId, userId: activeUserId, action: body.action });
+          return Response.json(result.body, { status: result.status });
+        }
+        return methodNotAllowed(pathname, request.method);
+      }
+
+      // /api/notifications (GET / PATCH): in-app notifications, shared with the Next route.
+      if (pathname === '/api/notifications') {
+        const activeUserId = getUserIdFromRequest(request);
+        if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+
+        if (request.method === 'GET') {
+          const result = await listMyNotifications(db, activeUserId);
+          return Response.json(result.body, { status: result.status });
+        }
+        if (request.method === 'PATCH') {
+          const body = (await request.json().catch(() => ({}))) as { ids?: unknown; all?: unknown };
+          const result = await dismissNotifications(db, { userId: activeUserId, ids: body.ids, all: body.all });
           return Response.json(result.body, { status: result.status });
         }
         return methodNotAllowed(pathname, request.method);
