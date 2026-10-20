@@ -1663,7 +1663,7 @@ export default function OperationCommandCenterPage() {
                       className={`w-full sm:w-auto border rounded-2xl px-4 py-3 text-sm font-bold cursor-pointer focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${theme.inputBg}`}
                     >
                       <option value="">
-                        {operation.isWhiteElephant && userManifest.length >= 1 ? 'Your White Elephant gift is added' : 'Choose a gift type…'}
+                        {operation.isWhiteElephant && userManifest.length >= 1 ? 'Your White Elephant gift is added' : 'Add a gift type…'}
                       </option>
                       <option value="store">🛍️ Store-bought gift</option>
                       <option value="personalized">✨ Personalized gift (handmade or specially crafted)</option>
