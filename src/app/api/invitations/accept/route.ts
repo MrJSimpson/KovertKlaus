@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { markInvitationAccepted } from '@/lib/invitations';
+import { enrollWithCodename } from '@/lib/codename';
 
 export async function POST(request: Request) {
   try {
@@ -55,22 +56,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Resolve Unique Event-Scoped Codename
-    const user = await db.user.findUnique({
-      where: { id: activeUserId },
-      select: { email: true, name: true, codename: true, preferredCodename: true, autoRandomizeCodename: true },
-    });
-
-    const existingRosterCodenames = exchange.members
-      .map((m: any) => m.codename)
-      .filter(Boolean) as string[];
-
-    const { customCodename, randomizeCodename } = body as { customCodename?: string; randomizeCodename?: boolean };
-    const preferred = customCodename || user?.preferredCodename || user?.codename || user?.name || 'Agent';
-    const shouldRandomize = Boolean(randomizeCodename || user?.autoRandomizeCodename);
-
-    const { resolveUniqueCodename } = await import('@/lib/codename');
-    const resolution = resolveUniqueCodename(preferred, existingRosterCodenames, shouldRandomize);
+    const user = await db.user.findUnique({ where: { id: activeUserId }, select: { email: true } });
 
     // 5. Auto-Link or Provision Master Wishlist Manifest
     let linkedWishlistId: string | null = null;
@@ -101,24 +87,26 @@ export async function POST(request: Request) {
       }
     }
 
-    // 6. Enroll Member into Exchange with Unique Codename and Linked Wishlist
-    const newMember = await db.exchangeMember.create({
-      data: {
-        exchangeId: exchange.id,
-        userId: activeUserId,
-        codename: resolution.codename,
-        wishlistId: linkedWishlistId,
-        role: 'MEMBER',
-      },
-      include: {
-        exchange: {
-          select: { title: true, code: true, assignmentDate: true, executionDate: true },
+    // 6. Enroll with a codename drawn for this mission (the agent can reroll it until they accept).
+    const newMember = await enrollWithCodename(db, exchange.id, (codename) =>
+      db.exchangeMember.create({
+        data: {
+          exchangeId: exchange.id,
+          userId: activeUserId,
+          codename,
+          wishlistId: linkedWishlistId,
+          role: 'MEMBER',
         },
-        wishlist: {
-          select: { id: true, name: true },
+        include: {
+          exchange: {
+            select: { title: true, code: true, assignmentDate: true, executionDate: true },
+          },
+          wishlist: {
+            select: { id: true, name: true },
+          },
         },
-      },
-    });
+      })
+    );
     if (user?.email) await markInvitationAccepted(db, exchange.id, user.email, activeUserId);
 
     return NextResponse.json({
@@ -126,9 +114,7 @@ export async function POST(request: Request) {
       message: 'Member successfully enrolled in exchange!',
       data: {
         ...newMember,
-        assignedCodename: resolution.codename,
-        wasCollided: resolution.wasCollided,
-        isRandomized: resolution.isRandomized,
+        assignedCodename: newMember.codename,
       },
     });
   } catch {

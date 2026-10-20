@@ -73,7 +73,7 @@ const member = (overrides: Record<string, unknown> = {}) => ({
   userId: 'u2',
   exchangeId: 'ex1',
   shippingStatus: 'PENDING',
-  user: { email: 'pal@x.com', name: 'Pal', codename: null, emailNotifications: true },
+  user: { email: 'pal@x.com', name: 'Pal', emailNotifications: true },
   exchange: { ...MISSION, id: 'ex1', title: 'Family Swap', code: 'ABCD-1234', organizerId: 'boss', organizer: { name: 'Holly' } },
   ...overrides,
 });
@@ -105,7 +105,7 @@ test('Nudge - no email when the agent opted out; refused with no deadline left o
   const fake = fakeDb();
   const emails: any[] = [];
   const deps = { baseUrl: 'https://kk.test', sendEmail: async (e: any) => { emails.push(e); return { success: true }; } };
-  const optedOut = member({ user: { email: 'pal@x.com', name: 'Pal', codename: null, emailNotifications: false } });
+  const optedOut = member({ user: { email: 'pal@x.com', name: 'Pal', emailNotifications: false } });
   assert.strictEqual((await dispatchNudge(fake.db, deps, optedOut, NOW)).status, 200);
   assert.strictEqual(emails.length, 0);
   assert.strictEqual((await dispatchNudge(fakeDb().db, deps, member(), at('2026-12-21'))).status, 409);

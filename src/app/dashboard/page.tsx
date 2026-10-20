@@ -5,7 +5,7 @@ import { USER_ID_KEY } from '@/lib/constants/auth';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
+import { formatDateString, getNextMilestoneCountdown } from '@/lib/security';
 import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
 import { Card, SectionHeader, Button, Badge, DataRow } from '@/components/ui';
@@ -18,7 +18,6 @@ interface UserData {
   id: string;
   email: string;
   name: string;
-  codename?: string;
   streetAddress?: string;
   city?: string;
   state?: string;
@@ -80,7 +79,7 @@ interface PendingInvitation {
     budgetMin: number | null;
     budgetMax: number;
     currency: string;
-    organizer: { name: string; codename: string | null };
+    organizer: { name: string };
   };
 }
 
@@ -332,7 +331,7 @@ export default function DashboardPage() {
                 </div>
 
                 <h1 className="text-3xl font-black">
-                  Welcome Back, {formatCodename(user.codename, user.name)}
+                  Welcome Back, {user.name}
                 </h1>
                 <p className={`text-xs mt-1 ${theme.textSubLabel}`}>
                   Logged in as: <strong className={theme.textLabel}>{user.email}</strong> | Full Name: <strong className={theme.textLabel}>{user.name}</strong>
@@ -436,7 +435,7 @@ export default function DashboardPage() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-kk-gold-ink">
-                            📩 Invitation{inv.isLatePass ? ' · Late Pass' : ''} from {formatCodename(inv.exchange.organizer.codename, inv.exchange.organizer.name)}
+                            📩 Invitation{inv.isLatePass ? ' · Late Pass' : ''} from {inv.exchange.organizer.name}
                           </span>
                           <h3 className="text-base font-bold">{inv.exchange.title}</h3>
                           <p className="text-xs text-kk-muted">

@@ -27,7 +27,6 @@ export async function GET(request: Request) {
           id: true,
           email: true,
           name: true,
-          codename: true,
           penaltyPoints: true,
           accountStatus: true,
           isWorkshop: true,
@@ -51,7 +50,6 @@ export async function GET(request: Request) {
                 id: user.id,
                 email: user.email,
                 name: user.name,
-                codename: user.codename,
                 demerits: user.penaltyPoints,
                 accountStatus: user.accountStatus,
                 isWorkshop: user.isWorkshop,
@@ -73,7 +71,7 @@ export async function GET(request: Request) {
         success: true,
         users: [],
         totalCount,
-        message: 'Enter a user ID, email, name, or codename to perform an on-demand lookup.',
+        message: 'Enter a user ID, email, name, or mission codename to perform an on-demand lookup.',
       });
     }
 
@@ -84,7 +82,7 @@ export async function GET(request: Request) {
         { id: { equals: query } },
         { name: { contains: query, mode: 'insensitive' } },
         { email: { contains: query, mode: 'insensitive' } },
-        { codename: { contains: query, mode: 'insensitive' } },
+        { participations: { some: { codename: { contains: query, mode: 'insensitive' } } } },
       ];
     }
 
@@ -100,7 +98,6 @@ export async function GET(request: Request) {
         id: true,
         email: true,
         name: true,
-        codename: true,
         penaltyPoints: true,
         accountStatus: true,
         isWorkshop: true,
@@ -124,7 +121,6 @@ export async function GET(request: Request) {
         id: u.id,
         email: u.email,
         name: u.name,
-        codename: u.codename,
         demerits: u.penaltyPoints,
         accountStatus: u.accountStatus,
         isWorkshop: u.isWorkshop,
@@ -148,7 +144,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { userId, isWorkshop, penaltyPoints, accountStatus, codename } = body;
+    const { userId, isWorkshop, penaltyPoints, accountStatus } = body;
 
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
@@ -175,9 +171,6 @@ export async function PATCH(request: Request) {
       updateData.accountStatus = accountStatus as AccountStatus;
     }
 
-    if (codename !== undefined) {
-      updateData.codename = codename.trim();
-    }
 
     const updatedUser = await adminDb.user.update({
       where: { id: userId },
@@ -186,7 +179,6 @@ export async function PATCH(request: Request) {
         id: true,
         email: true,
         name: true,
-        codename: true,
         penaltyPoints: true,
         accountStatus: true,
         isWorkshop: true,

@@ -1,19 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { sanitizeExchangeMember } from './exchange-view';
+import { memberCodenameMap, sanitizeExchangeMember } from './exchange-view';
 
 const member = {
   id: 'm1',
   userId: 'giver',
-  codename: null,
+  codename: 'Snowy Spider',
+  codenameAcceptedAt: null,
   role: 'MEMBER',
   trackingNumber: '9400111899562537624132',
   targetUserId: 'target',
-  user: { id: 'giver', name: 'Gina', codename: 'Agent: Gale', streetAddress: '1 Main', city: 'X', state: 'WA', zipCode: '98000' },
+  user: { id: 'giver', name: 'Gina', streetAddress: '1 Main', city: 'X', state: 'WA', zipCode: '98000' },
   targetUser: {
     id: 'target',
     name: 'Tom',
-    codename: 'Agent: Tide',
     streetAddress: '2 Elm',
     city: 'Y',
     state: 'WA',
@@ -58,4 +58,19 @@ test('Exchange View - only the mission organizer is shown as Head Elf', () => {
   assert.strictEqual(sanitizeExchangeMember(promoted, viewer).role, 'MEMBER');
   const headElf = { ...member, userId: 'organizer', role: 'MEMBER' };
   assert.strictEqual(sanitizeExchangeMember(headElf, viewer).role, 'ORGANIZER');
+});
+
+test('Exchange View - codenames come from the mission, not the account', () => {
+  const memberCodenames = memberCodenameMap([{ userId: 'giver', codename: 'Snowy Spider' }, { userId: 'target', codename: 'Polar Owl' }]);
+  const view = sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer', memberCodenames });
+  assert.strictEqual(view.codename, 'Snowy Spider');
+  assert.strictEqual(view.user.codename, 'Snowy Spider');
+  assert.strictEqual(view.targetUser?.codename, 'Polar Owl');
+});
+
+test('Exchange View - only the agent sees whether their codename is accepted', () => {
+  const accepted = { ...member, codenameAcceptedAt: new Date() };
+  assert.strictEqual(sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer' }).codenameAccepted, false);
+  assert.strictEqual(sanitizeExchangeMember(accepted, { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer' }).codenameAccepted, true);
+  assert.strictEqual(sanitizeExchangeMember(accepted, { activeUserId: 'organizer', isOrganizer: true, organizerId: 'organizer' }).codenameAccepted, undefined);
 });

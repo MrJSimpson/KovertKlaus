@@ -20,9 +20,6 @@ export async function GET() {
         id: true,
         name: true,
         email: true,
-        codename: true,
-        preferredCodename: true,
-        autoRandomizeCodename: true,
         streetAddress: true,
         addressLine2: true,
         city: true,
@@ -80,9 +77,6 @@ export async function PUT(request: Request) {
 
     const {
       name,
-      codename,
-      preferredCodename,
-      autoRandomizeCodename,
       streetAddress,
       addressLine2,
       city,
@@ -118,17 +112,6 @@ export async function PUT(request: Request) {
     const updateData: any = {};
 
     if (name !== undefined) updateData.name = sanitizeText(name);
-    if (codename !== undefined) {
-      let cleanCodename = sanitizeText(codename).replace(/^(agent[-:\s]+)/i, '').trim();
-      updateData.codename = cleanCodename || null;
-    }
-    if (preferredCodename !== undefined) {
-      let cleanPreferred = sanitizeText(preferredCodename).replace(/^(agent[-:\s]+)/i, '').trim();
-      updateData.preferredCodename = cleanPreferred || null;
-    }
-    if (autoRandomizeCodename !== undefined) {
-      updateData.autoRandomizeCodename = Boolean(autoRandomizeCodename);
-    }
 
     if (streetAddress !== undefined) updateData.streetAddress = sanitizeText(streetAddress) || null;
     if (addressLine2 !== undefined) updateData.addressLine2 = sanitizeText(addressLine2) || null;
@@ -197,9 +180,6 @@ export async function PUT(request: Request) {
         id: true,
         name: true,
         email: true,
-        codename: true,
-        preferredCodename: true,
-        autoRandomizeCodename: true,
         streetAddress: true,
         addressLine2: true,
         city: true,

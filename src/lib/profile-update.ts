@@ -6,7 +6,6 @@ import { sanitizeText } from './security';
  * Each key matches a nullable `String` column on the `User` model.
  */
 const DOSSIER_TEXT_FIELDS = [
-  'preferredCodename',
   'streetAddress',
   'addressLine2',
   'city',
@@ -45,9 +44,8 @@ type VisibilityColumn = (typeof VISIBILITY_FIELDS)[keyof typeof VISIBILITY_FIELD
  */
 export const PROFILE_DOSSIER_SELECT = {
   ...Object.fromEntries(DOSSIER_TEXT_FIELDS.map((field) => [field, true])),
-  autoRandomizeCodename: true,
   ...Object.fromEntries(Object.values(VISIBILITY_FIELDS).map((column) => [column, true])),
-} as Record<(typeof DOSSIER_TEXT_FIELDS)[number] | 'autoRandomizeCodename' | VisibilityColumn, true>;
+} as Record<(typeof DOSSIER_TEXT_FIELDS)[number] | VisibilityColumn, true>;
 
 /**
  * Builds the dossier portion of a profile update from an untrusted request body.
@@ -65,8 +63,6 @@ export function buildProfileUpdate(body: Record<string, unknown>): Record<string
     const value = body[field];
     if (value !== undefined && value !== null) data[field] = sanitizeText(String(value));
   }
-
-  if (body.autoRandomizeCodename !== undefined) data.autoRandomizeCodename = Boolean(body.autoRandomizeCodename);
 
   for (const [clientKey, column] of Object.entries(VISIBILITY_FIELDS)) {
     if (body[clientKey] !== undefined) data[column] = Boolean(body[clientKey]);

@@ -7,14 +7,14 @@ import { sendWelcomeEmail } from '@/lib/email';
 import { RELEASE_STAGE } from '@/lib/version';
 import { logInfo } from '@/lib/logger';
 import { markInvitationAccepted } from '@/lib/invitations';
+import { enrollWithCodename } from '@/lib/codename';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, codename, password } = body as {
+    const { name, email, password } = body as {
       name?: string;
       email: string;
-      codename?: string;
       password?: string;
     };
 
@@ -114,7 +114,6 @@ export async function POST(request: Request) {
     }
 
     const cleanName = sanitizeText(name);
-    const cleanCodename = codename ? sanitizeText(codename) : undefined;
 
     // Hash Password with native scrypt
     const passwordHash = await hashPassword(password);
@@ -124,14 +123,12 @@ export async function POST(request: Request) {
       data: {
         email: cleanEmail,
         name: cleanName,
-        codename: cleanCodename,
         passwordHash,
       },
       select: {
         id: true,
         email: true,
         name: true,
-        codename: true,
         accountStatus: true,
         penaltyPoints: true,
       },
@@ -166,15 +163,17 @@ export async function POST(request: Request) {
           },
         });
 
-        await db.exchangeMember.create({
-          data: {
-            exchangeId: targetExchange.id,
-            userId: user.id,
-            codename: user.codename,
-            role: 'MEMBER',
-            wishlistId: userManifest.id,
-          },
-        });
+        await enrollWithCodename(db, targetExchange.id, (codename) =>
+          db.exchangeMember.create({
+            data: {
+              exchangeId: targetExchange.id,
+              userId: user.id,
+              codename,
+              role: 'MEMBER',
+              wishlistId: userManifest.id,
+            },
+          })
+        );
         await markInvitationAccepted(db, targetExchange.id, user.email, user.id);
       } catch (enrollErr) {
         console.warn('[Auto-Enroll Warning]', enrollErr);
@@ -189,7 +188,6 @@ export async function POST(request: Request) {
       await sendWelcomeEmail({
         to: user.email,
         name: user.name,
-        codename: user.codename || undefined,
       });
     } catch (emailErr) {
       console.warn('[Welcome Email Non-Fatal]', emailErr);

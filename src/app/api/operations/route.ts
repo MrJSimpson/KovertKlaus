@@ -14,10 +14,11 @@ import {
   BADGE_VIGILANT_ELF,
 } from '@/lib/covertDelivery';
 import { processExchangeAudit } from '@/lib/audit-runner';
-import { EXCHANGE_MEMBERS_INCLUDE, sanitizeExchangeMember } from '@/lib/exchange-view';
+import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, sanitizeExchangeMember } from '@/lib/exchange-view';
 import { validateReportInput } from '@/lib/validations/report';
 import { resolveTimelineUpdate } from '@/lib/validations/timeline';
 import { dispatchNudge } from '@/lib/nudge';
+import { drawCodename, enrollWithCodename } from '@/lib/codename';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,18 +36,18 @@ export async function GET(request: Request) {
         where: { code: code.trim().toUpperCase() },
         include: {
           organizer: {
-            select: { id: true, name: true, codename: true },
+            select: { id: true, name: true },
           },
           members: { include: EXCHANGE_MEMBERS_INCLUDE },
           exclusionRules: {
             include: {
-              member: { select: { id: true, name: true, codename: true } },
-              restrictedMember: { select: { id: true, name: true, codename: true } },
+              member: { select: { id: true, name: true } },
+              restrictedMember: { select: { id: true, name: true } },
             },
           },
           reports: {
             include: {
-              user: { select: { id: true, name: true, codename: true } },
+              user: { select: { id: true, name: true } },
             },
             orderBy: { createdAt: 'desc' },
           },
@@ -62,7 +63,9 @@ export async function GET(request: Request) {
       // Only the exchange organizer or the specific assigned giver may view a member's target details and shipping address.
       const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
 
-      const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId }));
+      const memberCodenames = memberCodenameMap(exchange.members);
+
+      const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames }));
 
       const sanitizedData = {
         ...exchange,
@@ -89,7 +92,7 @@ export async function GET(request: Request) {
       },
       include: {
         organizer: {
-          select: { id: true, name: true, codename: true },
+          select: { id: true, name: true },
         },
         members: {
           select: { id: true, userId: true, role: true, shippingStatus: true },
@@ -198,8 +201,8 @@ export async function POST(request: Request) {
             if (giver && giver.email && giver.emailNotifications !== false) {
               sendAssignmentEmail({
                 recipientEmail: giver.email,
-                recipientName: giver.name || giver.codename || 'Operative',
-                targetCodename: target?.codename || 'Classified Operative',
+                recipientName: giver.name || 'Operative',
+                targetCodename: ex.members.find((m) => m.userId === assignment.targetId)?.codename || 'Classified Operative',
                 targetName: target?.name ?? undefined,
                 exchangeTitle: ex.title,
                 exchangeUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/exchange/${ex.code}`,
@@ -333,8 +336,8 @@ export async function POST(request: Request) {
           restrictedMemberId,
         },
         include: {
-          member: { select: { id: true, name: true, codename: true } },
-          restrictedMember: { select: { id: true, name: true, codename: true } },
+          member: { select: { id: true, name: true } },
+          restrictedMember: { select: { id: true, name: true } },
         },
       });
 
@@ -446,7 +449,7 @@ export async function POST(request: Request) {
         if (member.user.email && member.user.emailNotifications !== false) {
           sendNudgeEmail({
             recipientEmail: member.user.email,
-            recipientName: member.user.name || member.user.codename || 'Operative',
+            recipientName: member.user.name || 'Operative',
             organizerName: ex.organizer.name,
             exchangeTitle: ex.title,
             message: messageText.trim(),
@@ -482,7 +485,7 @@ export async function POST(request: Request) {
           photoUrl: photoUrl?.trim(),
         },
         include: {
-          user: { select: { id: true, name: true, codename: true } },
+          user: { select: { id: true, name: true } },
         },
       });
 
@@ -521,10 +524,9 @@ export async function POST(request: Request) {
 
     // Action: Join Exchange with KDM Token and Property Access Waiver
     if (action === 'joinWithKdmToken') {
-      const { token, propertyWaiverAgreed, codename } = body as {
+      const { token, propertyWaiverAgreed } = body as {
         token?: string;
         propertyWaiverAgreed?: boolean;
-        codename?: string;
       };
 
       if (!token?.trim()) {
@@ -570,23 +572,25 @@ export async function POST(request: Request) {
       }
 
       // Enroll member and consume single-use token in transaction
-      const [newMember] = await db.$transaction([
-        db.exchangeMember.create({
-          data: {
-            exchangeId: inviteToken.exchangeId,
-            userId: activeUserId,
-            codename: codename?.trim() || null,
-            propertyWaiverAgreedAt: new Date(),
-          },
-        }),
-        db.covertInviteToken.update({
-          where: { id: inviteToken.id },
-          data: {
-            isUsed: true,
-            usedByUserId: activeUserId,
-          },
-        }),
-      ]);
+      const [newMember] = await enrollWithCodename(db, inviteToken.exchangeId, (codename) =>
+        db.$transaction([
+          db.exchangeMember.create({
+            data: {
+              exchangeId: inviteToken.exchangeId,
+              userId: activeUserId,
+              codename,
+              propertyWaiverAgreedAt: new Date(),
+            },
+          }),
+          db.covertInviteToken.update({
+            where: { id: inviteToken.id },
+            data: {
+              isUsed: true,
+              usedByUserId: activeUserId,
+            },
+          }),
+        ])
+      );
 
       return NextResponse.json({
         success: true,
@@ -669,7 +673,7 @@ export async function POST(request: Request) {
           targetUserId: activeUserId,
         },
         include: {
-          user: { select: { id: true, name: true, codename: true } },
+          user: { select: { id: true, name: true } },
         },
       });
 
@@ -856,12 +860,14 @@ export async function POST(request: Request) {
           create: {
             userId: activeUserId,
             role: 'ORGANIZER',
+            // The roster is empty, so any pool name is free.
+            codename: drawCodename([]),
           },
         },
       },
       include: {
         organizer: {
-          select: { id: true, name: true, codename: true },
+          select: { id: true, name: true },
         },
         members: true,
       },

@@ -323,9 +323,9 @@ export function getNudgeEmailTemplate(params: NudgeEmailParams): { subject: stri
  * Generates a Welcome / Operative Onboarding email template.
  */
 export function getWelcomeEmailTemplate(params: WelcomeEmailParams): { subject: string; html: string; text: string } {
-  const { name, codename } = params;
-  const agentDisplay = codename ? `Agent ${codename} (${name})` : name;
-  const subject = `🕶️ Welcome to KovertKlaus, ${codename ? `Agent ${codename}` : name}!`;
+  const { name } = params;
+  const agentDisplay = name;
+  const subject = `🕶️ Welcome to KovertKlaus, ${name}!`;
 
   const bodyHtml = `
     <p>Welcome to the Division, <strong>${name}</strong>!</p>
@@ -341,7 +341,7 @@ export function getWelcomeEmailTemplate(params: WelcomeEmailParams): { subject: 
       <ul style="margin: 0; padding-left: 20px; color: ${EMAIL_PALETTE.ink}; font-size: 13px; line-height: 1.8;">
         <li><strong>Initialize Your Wishlist Manifest:</strong> Add Manifest Items from Amazon, Target, Etsy, or any store link.</li>
         <li><strong>Set Sizing & Preferences:</strong> Add hobbies, clothing/shoe sizes, and dietary notes for tailored gifting.</li>
-        <li><strong>Join or Create an Exchange:</strong> Host an operation for your family or join with an invite code.</li>
+        <li><strong>Join or Create an Exchange:</strong> Host an operation for your family or join with an invite code. Each mission gives you a fresh codename.</li>
       </ul>
     </div>
   `;

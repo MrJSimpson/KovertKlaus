@@ -20,7 +20,6 @@ export async function GET() {
         id: true,
         email: true,
         name: true,
-        codename: true,
         streetAddress: true,
         city: true,
         state: true,
@@ -49,7 +48,7 @@ export async function GET() {
                 status: true,
                 organizerId: true,
                 organizer: {
-                  select: { name: true, codename: true },
+                  select: { name: true },
                 },
               },
             },
@@ -151,7 +150,6 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const {
       name,
-      codename,
       streetAddress,
       city,
       state,
@@ -162,7 +160,6 @@ export async function PATCH(request: Request) {
       newPassword,
     } = body as {
       name?: string;
-      codename?: string;
       streetAddress?: string;
       city?: string;
       state?: string;
@@ -176,7 +173,6 @@ export async function PATCH(request: Request) {
     const updateData: Record<string, any> = {};
 
     if (name) updateData.name = sanitizeText(name);
-    if (codename) updateData.codename = sanitizeText(codename);
     if (streetAddress !== undefined) updateData.streetAddress = sanitizeText(streetAddress);
     if (city !== undefined) updateData.city = sanitizeText(city);
     if (state !== undefined) updateData.state = sanitizeText(state);
@@ -220,7 +216,6 @@ export async function PATCH(request: Request) {
         id: true,
         email: true,
         name: true,
-        codename: true,
         streetAddress: true,
         city: true,
         state: true,

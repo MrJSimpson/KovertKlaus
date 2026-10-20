@@ -39,7 +39,6 @@ Authenticates an operative using email and password, establishing an encrypted s
       "id": "usr_99a8b7c6d5",
       "email": "agent.claus@kovertklaus.com",
       "name": "Agent Claus",
-      "codename": "Frosty-Nine",
       "accountStatus": "ACTIVE",
       "demerits": 0
     },
@@ -66,7 +65,6 @@ Performs pre-flight email availability checks or registers a new operative accou
     "name": "James Bond",
     "email": "operative@example.com",
     "password": "SecurePassword10+",
-    "codename": "Agent: 007",
     "inviteCode": "ALPHA-XXXXXXXXXXXXXXXX"
   }
   ```
@@ -89,7 +87,6 @@ Retrieves the authenticated operative's profile, active mission memberships, and
       "id": "usr_12345",
       "email": "operative@example.com",
       "name": "James Bond",
-      "codename": "Agent: 007",
       "accountStatus": "ACTIVE",
       "demerits": 0,
       "address": "10 Downing Street",
@@ -211,6 +208,27 @@ Enrolls an operative into a holiday mission via invite code.
     "exchangeCode": "KOVERT-87WZ"
   }
   ```
+- **Codename**: the new member gets a random codename from the mission pool, unique within the mission (`data.assignedCodename`). Codenames belong to one mission; accounts have none.
+
+### `POST /api/codename`
+Rerolls or accepts the caller's codename in one mission.
+
+- **Request Body**:
+  ```json
+  {
+    "exchangeId": "uuid",
+    "action": "reroll"
+  }
+  ```
+  `action` is `reroll` or `accept`.
+- **Response `200 OK`**:
+  ```json
+  {
+    "codename": "Snowy Spider",
+    "accepted": false
+  }
+  ```
+- **Rules**: rerolls are unlimited until the agent accepts. `409` once the codename is accepted or the mission has left `RECRUITING`. `accept` is idempotent. `404` when the caller is not enrolled.
 
 ---
 
@@ -391,7 +409,6 @@ Inspects a single operative record by ID, or searches records on demand with zer
         "id": "usr_123",
         "email": "operative@example.com",
         "name": "James Bond",
-        "codename": "Agent: 007",
         "demerits": 0,
         "accountStatus": "ACTIVE",
         "isWorkshop": false
