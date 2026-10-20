@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+- **After-Action Report form no longer asks for a fulfillment type.** The mission already defines how gifts are delivered, so the selector (and the `[label]` it prefixed to each note) is gone; notes post as written. Existing entries keep their text.
 - **New winter palette.** Light mode (Klaus) uses the classic Christmas colors and dark mode (Kovert) uses blue and gold (Indigo dye, Lion, Ecru, Wheat, Alice blue, French gray, Cambridge blue). Colors are semantic `kk-*` tokens in `src/app/globals.css`, so every page, modal, the North Pole and the Workshop follow the active theme, and every text color meets WCAG AA contrast. Spring, summer and autumn presets are unchanged. Existing databases keep the old winter button overrides until the `winter_holiday` preset's `lightTokens`/`darkTokens` are reduced to `accentColor` (on a fresh local database, `npm run db:seed` does it; on production, update that one row, because the seed also resets System Config and purges test accounts).
 - **Emails are always light.** Every email uses the light Christmas palette and declares `color-scheme: light only`, whatever the reader's theme.
 - **Light by default.** Pages start in light mode; a saved dark choice is applied before first paint. The Features page and the pre-launch page now follow the app theme.
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mission page layout.** Section headers are colored bands matching the page header, the title card uses the header color, items inside panels sit on a contrasting surface, and Elf Agent and invitation rows separate info (tinted) from actions (plain). The console now says Head Elf.
 
 ### Fixed
+- **After-Action Reports were squeezed into a narrow column** on wide screens. The section sat in the mission page's 12-column grid without a span, so it took one column and stretched down the page; it now spans the full width.
 - **`export-db` / `restore-db` no longer corrupt text.** Both piped the dump through Windows PowerShell, which re-encoded it as ASCII and turned emoji and accented characters into `?`. Backups are now pg_dump archives (`backups/kovertklaus-backup.dump`) copied with `docker cp`; the previous backup is kept as `kovertklaus-backup.prev.dump`, and restore still accepts an older `kovertklaus-backup.sql`.
 - Mission Center's Assigned filter and a drawn (`MATCHED`) mission's phase looked for a status that does not exist (`ASSIGNED`), so drawn missions were shown as recruiting.
 - `dark:` styles followed the operating system's dark mode instead of the in-app toggle, which mixed palettes (for example the Head Elf's Invite button showed near-black text on a dark button).
