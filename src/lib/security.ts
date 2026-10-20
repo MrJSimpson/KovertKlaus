@@ -199,6 +199,19 @@ export function getNextMilestoneCountdown(mission?: {
   let targetDate: Date | null = cutoff;
   let stage: 1 | 2 | 3 | 4 = 1;
 
+  if (rawStatus === 'CANCELLED') {
+    return {
+      phaseStatusLabel: 'Cancelled',
+      milestoneLabel: 'Status',
+      daysLeft: 0,
+      formattedText: 'Mission Cancelled',
+      isPast: true,
+      isToday: false,
+      stage: 4,
+      isComplete: true,
+    };
+  }
+
   if (rawStatus === 'COMPLETED' || rawStatus === 'EXECUTED' || (exec && now > exec)) {
     // Phase 5: Completed
     return {

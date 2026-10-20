@@ -67,7 +67,7 @@ export function isInvitationOpen(
   exchange: { status: string; inviteCutoffDate: Date },
   nowMs = Date.now()
 ): boolean {
-  if (invitation.status !== 'PENDING' || exchange.status === 'COMPLETED') return false;
+  if (invitation.status !== 'PENDING' || exchange.status === 'COMPLETED' || exchange.status === 'CANCELLED') return false;
   return invitation.isLatePass || nowMs < new Date(exchange.inviteCutoffDate).getTime() + DAY_MS;
 }
 
@@ -115,6 +115,7 @@ export async function sendMissionInvitation(
     return { status: 403, body: { error: 'Only the Head Elf can send invitations for this mission.' } };
   }
   if (exchange.status === 'COMPLETED') return { status: 409, body: { error: 'This mission is complete.' } };
+  if (exchange.status === 'CANCELLED') return { status: 409, body: { error: 'This mission is cancelled and read-only.' } };
   if (normalizeEmail(exchange.organizer.email) === email) {
     return { status: 400, body: { error: 'You are already the Head Elf of this mission.' } };
   }

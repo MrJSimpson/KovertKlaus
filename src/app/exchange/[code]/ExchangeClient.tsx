@@ -15,6 +15,8 @@ import { PreventativeMatchModal, OperationExclusionRule } from '@/components/Pre
 import { ManageAssignmentsModal } from '@/components/ManageAssignmentsModal';
 import { OpTeamBroadcastModal } from '@/components/OpTeamBroadcastModal';
 import { CompleteOperationModal } from '@/components/CompleteOperationModal';
+import { MissionCancelModal } from '@/components/MissionCancelModal';
+import { actorLabel, canCancelMission, deletionSchedule } from '@/lib/mission-cancel';
 import { AfterActionReportSection, AARReportEntry } from '@/components/AfterActionReportSection';
 import { ShippingConfirmationModal } from '@/components/ShippingConfirmationModal';
 import { WishlistItemModal } from '@/components/WishlistItemModal';
@@ -119,6 +121,11 @@ interface OperationData {
   exclusionRules?: OperationExclusionRule[];
   reports?: AARReportEntry[];
   afterActionReports?: AARReportEntry[];
+  /** Set once the mission is cancelled (status CANCELLED). */
+  cancelledAt?: string | null;
+  cancelledBy?: string | null;
+  cancelReason?: string | null;
+  cancelledFromStatus?: string | null;
 }
 
 export default function OperationCommandCenterPage() {
@@ -146,6 +153,8 @@ export default function OperationCommandCenterPage() {
   const [manageAssignmentsModalOpen, setManageAssignmentsModalOpen] = useState(false);
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  // Head Elf cancel / delete dialog (src/components/MissionCancelModal.tsx)
+  const [missionActionMode, setMissionActionMode] = useState<'cancel' | 'delete' | null>(null);
   const [shippingModalOpen, setShippingModalOpen] = useState(false);
 
   // Join / Auth Modal State for Unauthenticated / Non-Enrolled Users
@@ -629,6 +638,28 @@ export default function OperationCommandCenterPage() {
     }
   }
 
+  /** Cancels or deletes the mission (Head Elf); throws the server's message for the dialog. */
+  async function handleMissionAction(mode: 'cancel' | 'delete', reason: string) {
+    if (!operation) return;
+    const res = await fetch('/api/operations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(
+        mode === 'cancel'
+          ? { action: 'cancelMission', operationId: operation.id, reason }
+          : { action: 'deleteMission', operationId: operation.id, confirm: true }
+      ),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.success) throw new Error(json.error || (mode === 'cancel' ? 'Could not cancel the mission' : 'Could not delete the mission'));
+    setMissionActionMode(null);
+    if (mode === 'delete') {
+      router.push('/dashboard');
+    } else {
+      fetchExchangeDetails();
+    }
+  }
+
   // Handle Demerit Audit Execution (OpsLeader Only - Completed Missions with Demerits Enabled)
   async function handleRunDemeritAudit() {
     if (!operation || !userId) return;
@@ -973,7 +1004,54 @@ export default function OperationCommandCenterPage() {
           </div>
         ) : operation ? (
           <div className="space-y-8">
-            
+
+            {/* Cancelled mission: read-only, with the deletion schedule for the Head Elf */}
+            {operation.status === 'CANCELLED' && (() => {
+              const schedule = deletionSchedule({
+                status: operation.status,
+                cancelledAt: operation.cancelledAt ? new Date(operation.cancelledAt) : null,
+                cancelledFromStatus: operation.cancelledFromStatus ?? null,
+              });
+              const by = operation.cancelledBy ? actorLabel(operation.cancelledBy) : 'the Head Elf';
+              const deletable = Boolean(schedule.manualDeleteFrom && Date.now() >= schedule.manualDeleteFrom.getTime());
+              return (
+                <div className={`p-5 sm:p-6 rounded-3xl border shadow-lg ${theme.alertWarning}`}>
+                  <h2 className="font-extrabold text-base">🛑 This mission was cancelled</h2>
+                  <p className="text-sm mt-1">
+                    Cancelled by {by}{operation.cancelledAt ? ` on ${new Date(operation.cancelledAt).toLocaleString()}` : ''}.
+                    {operation.cancelReason ? ` Reason: "${operation.cancelReason}".` : ''}
+                  </p>
+                  <p className="text-sm mt-1 font-bold">The mission is read-only. If there is any data you&apos;d like to save, please save it now.</p>
+                  {isOpsLeader && (
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+                      {schedule.manualDeleteFrom ? (
+                        <>
+                          <span>
+                            {deletable
+                              ? 'You can now delete it permanently.'
+                              : `You can delete it permanently from ${schedule.manualDeleteFrom.toLocaleString()}.`}
+                            {schedule.purgeOn ? ` Otherwise it is deleted automatically on ${schedule.purgeOn.toLocaleDateString()}.` : ''}
+                          </span>
+                          {deletable && (
+                            <button
+                              onClick={() => setMissionActionMode('delete')}
+                              className="px-4 py-2 min-h-[44px] rounded-xl font-extrabold cursor-pointer bg-kk-danger-soft text-kk-on-danger-soft border-2 border-kk-danger"
+                            >
+                              🗑️ Delete permanently
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <span>
+                          It was cancelled after the draw, so it is deleted automatically on {schedule.purgeOn?.toLocaleDateString()}. Save anything you need before then.
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Primary Operation Banner */}
             <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-kk-header text-kk-on-header border-kk-border-strong/50`}>
               <div>
@@ -1346,13 +1424,19 @@ export default function OperationCommandCenterPage() {
                   )}
 
                   {/* COMMON OPTIONS & TIMELINE EDITORS */}
-                  {operation.status !== 'COMPLETED' && (
+                  {canCancelMission(operation.status) && (
                     <>
                       <button onClick={() => { setSettingsError(''); setEditSettingsModalOpen(true); }} className={theme.btnAmber}>
                         ⚙️ Edit Operation Options
                       </button>
                       <button onClick={() => { setDateError(''); setEditDatesModalOpen(true); }} className={theme.btnSky}>
                         📅 Edit Operation Timeline
+                      </button>
+                      <button
+                        onClick={() => setMissionActionMode('cancel')}
+                        className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-extrabold cursor-pointer bg-kk-danger-soft text-kk-on-danger-soft border-2 border-kk-danger"
+                      >
+                        🛑 Cancel Mission
                       </button>
                     </>
                   )}
@@ -2436,6 +2520,18 @@ export default function OperationCommandCenterPage() {
           operationTitle={operation.title}
           opsLeaderUserId={userId}
           onSuccess={() => fetchExchangeDetails()}
+        />
+      )}
+
+      {/* MODAL: CANCEL OR DELETE MISSION (Head Elf) */}
+      {operation && isOpsLeader && missionActionMode && (
+        <MissionCancelModal
+          mode={missionActionMode}
+          missionTitle={operation.title}
+          missionCode={operation.code}
+          cancelledBeforeDraw={operation.status === 'RECRUITING' || operation.status === 'SETUP'}
+          onClose={() => setMissionActionMode(null)}
+          onConfirm={({ reason }) => handleMissionAction(missionActionMode, reason)}
         />
       )}
 

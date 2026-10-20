@@ -4,6 +4,7 @@ import {
   ClearanceConfirmationParams,
   ClearanceApprovalParams,
   InvitationEmailParams,
+  MissionCancelledEmailParams,
   NudgeEmailParams,
   WelcomeEmailParams,
 } from '../types';
@@ -503,6 +504,64 @@ export function getClearanceApprovalEmailTemplate(params: ClearanceApprovalParam
     ${registrationUrl}
 
     This code is tied to your email and expires immediately upon registration.
+  `);
+
+  return { subject, html, text };
+}
+
+/** Escapes text for safe interpolation into email HTML. */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Generates the "mission cancelled" email sent to every agent of a cancelled mission.
+ */
+export function getMissionCancelledEmailTemplate(params: MissionCancelledEmailParams): { subject: string; html: string; text: string } {
+  const recipientName = params.recipientName || 'Operative';
+  const { exchangeTitle, cancelledByLabel, reason, headElfNote, actionUrl } = params;
+  const by = cancelledByLabel.charAt(0).toUpperCase() + cancelledByLabel.slice(1);
+
+  const subject = `🛑 Mission cancelled: "${exchangeTitle}"`;
+
+  const bodyHtml = `
+    <p>Agent <strong>${escapeHtml(recipientName)}</strong>,</p>
+    <p>${escapeHtml(by)} cancelled the mission <strong>${escapeHtml(exchangeTitle)}</strong>.</p>
+    ${reason ? `
+    <div style="background-color: ${EMAIL_PALETTE.panel}; border-left: 4px solid ${EMAIL_PALETTE.gold}; padding: 14px 18px; margin: 20px 0; border-radius: 6px; font-style: italic; color: ${EMAIL_PALETTE.ink};">
+      "${escapeHtml(reason)}"
+    </div>` : ''}
+    <p><strong>If there is any data you'd like to save, please save it now.</strong> The mission is read-only and will be deleted.</p>
+    ${headElfNote ? `<p style="font-size: 14px; color: ${EMAIL_PALETTE.muted};">${escapeHtml(headElfNote)}</p>` : ''}
+  `;
+
+  const html = renderBaseEmail({
+    title: '🛑 Mission Cancelled',
+    preheader: `${by} cancelled ${exchangeTitle}`,
+    bodyHtml,
+    actionText: 'Open the mission',
+    actionUrl,
+  });
+
+  const text = stripHtml(`
+    KOVERT KLAUS // MISSION CANCELLED
+    --------------------------------------------------
+    Agent ${recipientName},
+
+    ${by} cancelled the mission "${exchangeTitle}".
+    ${reason ? `Reason: "${reason}"` : ''}
+
+    If there is any data you'd like to save, please save it now. The mission is read-only and will be deleted.
+    ${headElfNote ?? ''}
+
+    Open the mission:
+    ${actionUrl}
+    --------------------------------------------------
   `);
 
   return { subject, html, text };

@@ -4,6 +4,8 @@ import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { MissionCancelModal } from '@/components/MissionCancelModal';
+import { canCancelMission, deletionSchedule } from '@/lib/mission-cancel';
 
 interface OperationRecord {
   id: string;
@@ -31,6 +33,9 @@ interface OperationRecord {
   messagesCount: number;
   reportsCount: number;
   createdAt: string;
+  cancelledAt?: string | null;
+  cancelledBy?: string | null;
+  cancelledFromStatus?: string | null;
 }
 
 export default function NorthPoleOperationsPage() {
@@ -39,6 +44,23 @@ export default function NorthPoleOperationsPage() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  // Admin cancel / delete dialog for one mission
+  const [actionTarget, setActionTarget] = useState<{ op: OperationRecord; mode: 'cancel' | 'delete' } | null>(null);
+
+  /** Cancels or deletes a mission as an admin; throws the server's message for the dialog. */
+  async function handleMissionAction(op: OperationRecord, mode: 'cancel' | 'delete', reason: string) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
+    const res = await fetch('/api/northpole/operations', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'x-admin-token': token } : {}) },
+      body: JSON.stringify(mode === 'cancel' ? { action: 'cancel', operationId: op.id, reason } : { action: 'delete', operationId: op.id, confirm: true }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.success) throw new Error(json.error || 'The mission could not be updated');
+    setActionTarget(null);
+    handleLookup();
+  }
 
   async function handleLookup(query = searchQuery, retryCount = 0) {
     const trimmed = query.trim();
@@ -203,6 +225,8 @@ export default function NorthPoleOperationsPage() {
                     className={`text-[10px] font-mono px-2.5 py-1 rounded-full font-bold border ${
                       op.status === 'COMPLETED'
                         ? 'bg-kk-success text-kk-on-success border-kk-on-success/30'
+                        : op.status === 'CANCELLED'
+                        ? 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40'
                         : op.status === 'RECRUITING'
                         ? 'bg-kk-inset text-kk-accent border-kk-border-strong'
                         : 'bg-kk-warning text-kk-on-warning border-kk-border-strong'
@@ -256,6 +280,46 @@ export default function NorthPoleOperationsPage() {
                   </div>
                 </div>
 
+                {/* Cancel / delete (same rules as the Head Elf: src/lib/mission-cancel.ts) */}
+                {(() => {
+                  const schedule = deletionSchedule({
+                    status: op.status,
+                    cancelledAt: op.cancelledAt ? new Date(op.cancelledAt) : null,
+                    cancelledFromStatus: op.cancelledFromStatus ?? null,
+                  });
+                  const deletable = Boolean(schedule.manualDeleteFrom && Date.now() >= schedule.manualDeleteFrom.getTime());
+                  if (canCancelMission(op.status)) {
+                    return (
+                      <button
+                        onClick={() => setActionTarget({ op, mode: 'cancel' })}
+                        className="w-full px-3 py-2 min-h-[40px] rounded-lg text-[11px] font-bold cursor-pointer bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/60"
+                      >
+                        🛑 Cancel mission
+                      </button>
+                    );
+                  }
+                  if (op.status !== 'CANCELLED') return null;
+                  return (
+                    <div className="text-[11px] font-mono text-kk-muted space-y-2">
+                      <p>
+                        Cancelled {op.cancelledAt ? new Date(op.cancelledAt).toLocaleString() : ''} by {op.cancelledBy?.replace('_', ' ').toLowerCase() || 'unknown'}.{' '}
+                        {schedule.manualDeleteFrom
+                          ? deletable ? 'Can be deleted now.' : `Deletable from ${schedule.manualDeleteFrom.toLocaleString()}.`
+                          : 'Cancelled after the draw: no manual deletion.'}{' '}
+                        Auto-delete {schedule.purgeOn?.toLocaleDateString()}.
+                      </p>
+                      {deletable && (
+                        <button
+                          onClick={() => setActionTarget({ op, mode: 'delete' })}
+                          className="w-full px-3 py-2 min-h-[40px] rounded-lg text-[11px] font-bold cursor-pointer bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/60"
+                        >
+                          🗑️ Delete permanently
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Direct Action Link */}
                 <div className="pt-2 border-t border-kk-border flex items-center justify-between text-xs font-mono">
                   <span className="text-kk-muted text-[10px]">
@@ -274,6 +338,17 @@ export default function NorthPoleOperationsPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {actionTarget && (
+        <MissionCancelModal
+          mode={actionTarget.mode}
+          missionTitle={actionTarget.op.title}
+          missionCode={actionTarget.op.code}
+          cancelledBeforeDraw={actionTarget.op.status === 'RECRUITING' || actionTarget.op.status === 'SETUP'}
+          onClose={() => setActionTarget(null)}
+          onConfirm={({ reason }) => handleMissionAction(actionTarget.op, actionTarget.mode, reason)}
+        />
       )}
     </div>
   );

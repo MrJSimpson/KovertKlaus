@@ -126,3 +126,17 @@ export interface ClearanceApprovalParams {
   overrideConfig?: Partial<EmailConfig>;
 }
 
+
+export interface MissionCancelledEmailParams {
+  recipientEmail?: string;
+  to?: string;
+  recipientName?: string;
+  exchangeTitle: string;
+  /** Who cancelled, as shown to agents: "the Head Elf", "a KovertKlaus admin" or "KovertKlaus". */
+  cancelledByLabel: string;
+  reason?: string;
+  /** Extra line for the Head Elf (when the mission will be deleted). */
+  headElfNote?: string;
+  actionUrl: string;
+  overrideConfig?: Partial<EmailConfig>;
+}

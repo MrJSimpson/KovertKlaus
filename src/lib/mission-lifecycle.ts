@@ -1,5 +1,7 @@
 import { executeLinkedListDraw } from './draw';
 import { sendAssignmentEmail } from './email';
+import { notifyOnce } from './notifications';
+import { purgeCancelledMissions } from './mission-cancel';
 
 export interface LifecycleTransition {
   exchangeId: string;
@@ -15,6 +17,8 @@ export interface LifecycleSummary {
   missionsCheckedCount: number;
   transitionsCount: number;
   transitions: LifecycleTransition[];
+  /** Cancelled missions deleted this sweep (90 days after cancellation). */
+  purgedCount: number;
 }
 
 /**
@@ -217,26 +221,23 @@ export async function advanceMissionLifecycle(db: any): Promise<LifecycleSummary
 
             currentStatus = 'MATCHED';
           } catch (drawErr: any) {
-            await db.notification.create({
-              data: {
-                userId: ex.organizerId,
-                exchangeId: ex.id,
-                title: `⚠️ Target Draw Pending: ${ex.title}`,
-                message: `Automatic target draw could not be completed on Assignment Day (${drawErr?.message || 'Matching constraint conflict'}). Please verify rules in the Command Center.`,
-                isAcknowledged: false,
-              },
+            // One notice per mission, refreshed each sweep, instead of a new one every hour.
+            await notifyOnce(db, {
+              userId: ex.organizerId,
+              dedupeKey: `draw-blocked:${ex.id}`,
+              exchangeId: ex.id,
+              title: `⚠️ Target Draw Pending: ${ex.title}`,
+              message: `Automatic target draw could not be completed on Assignment Day (${drawErr?.message || 'Matching constraint conflict'}). Please verify rules in the Command Center.`,
             }).catch(() => {});
           }
         } else {
           // Fewer than 4 members
-          await db.notification.create({
-            data: {
-              userId: ex.organizerId,
-              exchangeId: ex.id,
-              title: `⚠️ Insufficient Operatives for Draw: ${ex.title}`,
-              message: `Assignment Day arrived, but mission has only ${ex.members.length} member(s). A minimum of 4 operatives is required to draw.`,
-              isAcknowledged: false,
-            },
+          await notifyOnce(db, {
+            userId: ex.organizerId,
+            dedupeKey: `draw-blocked:${ex.id}`,
+            exchangeId: ex.id,
+            title: `⚠️ Insufficient Operatives for Draw: ${ex.title}`,
+            message: `Assignment Day arrived, but mission has only ${ex.members.length} member(s). A minimum of 4 operatives is required to draw.`,
           }).catch(() => {});
         }
       }
@@ -317,10 +318,17 @@ export async function advanceMissionLifecycle(db: any): Promise<LifecycleSummary
     }
   }
 
+  // Cancelled missions are erased 90 days after cancellation (src/lib/mission-cancel.ts).
+  const purgedCount = await purgeCancelledMissions(db, now.getTime()).catch((err: unknown) => {
+    console.error('[Lifecycle] purge of cancelled missions failed:', err);
+    return 0;
+  });
+
   return {
     processedAt: now.toISOString(),
     missionsCheckedCount: activeExchanges.length,
     transitionsCount: transitions.length,
     transitions,
+    purgedCount,
   };
 }

@@ -50,6 +50,24 @@ export function pageNotifications<T>(items: T[], page: number, size = NOTIFICATI
   return { items: items.slice(safePage * size, safePage * size + size), page: safePage, pageCount };
 }
 
+/**
+ * Creates a notification, or refreshes the existing one with the same `dedupeKey` for this user.
+ *
+ * A refreshed notice moves to the top and shows again even if the agent removed it, so a problem
+ * that persists stays visible as one row instead of one new row per lifecycle run.
+ */
+export async function notifyOnce(
+  db: PrismaClient,
+  input: { userId: string; dedupeKey: string; title: string; message: string; exchangeId?: string | null }
+): Promise<void> {
+  const fields = { title: input.title, message: input.message, exchangeId: input.exchangeId ?? null };
+  await db.notification.upsert({
+    where: { userId_dedupeKey: { userId: input.userId, dedupeKey: input.dedupeKey } },
+    create: { userId: input.userId, dedupeKey: input.dedupeKey, ...fields },
+    update: { ...fields, isAcknowledged: false, createdAt: new Date() },
+  });
+}
+
 /** The caller's open (unremoved) notifications, newest first, each with its link. */
 export async function listMyNotifications(db: PrismaClient, userId: string): Promise<NotificationResult> {
   const rows = await db.notification.findMany({

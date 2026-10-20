@@ -22,6 +22,17 @@ enum ExchangeStatus {
   SHIPPED
   EXECUTED
   COMPLETED
+  /// Stopped before completion by the Head Elf, an admin or the system. Read-only; deleted later (`src/lib/mission-cancel.ts`).
+  CANCELLED
+
+  @@schema("app")
+}
+
+/// Who cancelled or deleted a mission.
+enum MissionActor {
+  HEAD_ELF
+  ADMIN
+  SYSTEM
 
   @@schema("app")
 }
@@ -155,6 +166,15 @@ model Exchange {
   isCovertDelivery        Boolean        @default(false)
   propertyWaiverText      String?
   paymentStatus           PaymentStatus  @default(FREE_ANNUAL)
+  /// Set when the mission is cancelled (status CANCELLED).
+  cancelledAt             DateTime?
+  cancelledBy             MissionActor?
+  /// Optional note from whoever cancelled; shown to agents, never copied into MissionHistory.
+  cancelReason            String?
+  /// Fixed reason code (`MissionFailureReason`), copied into MissionHistory on deletion.
+  cancelCode              String?
+  /// Stage at cancellation. Before the draw (RECRUITING/SETUP) the mission may be deleted by hand after 48 h.
+  cancelledFromStatus     ExchangeStatus?
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
 
@@ -387,9 +407,33 @@ model Notification {
   message        String
   exchangeId     String?
   isAcknowledged Boolean  @default(false)
+  /// One row per (user, key): repeating notices update this row instead of adding new ones.
+  dedupeKey      String?
   createdAt      DateTime @default(now())
 
+  @@unique([userId, dedupeKey])
   @@index([userId, isAcknowledged])
+  @@schema("app")
+}
+
+/// What remains of a deleted mission: its outcome and why, with nothing that identifies a person.
+model MissionHistory {
+  id                  String          @id @default(uuid())
+  /// Former `Exchange.id`. No foreign key: the mission is gone.
+  missionId           String
+  isWhiteElephant     Boolean
+  memberCount         Int
+  missionCreatedAt    DateTime
+  executionDate       DateTime
+  cancelledAt         DateTime?
+  cancelledBy         MissionActor?
+  cancelledFromStatus ExchangeStatus?
+  /// Fixed code, e.g. `HEAD_ELF_CANCELLED`, `NOT_ENOUGH_AGENTS` (`MissionFailureReason`).
+  reason              String
+  deletedBy           MissionActor
+  deletedAt           DateTime        @default(now())
+
+  @@index([deletedAt])
   @@schema("app")
 }
 

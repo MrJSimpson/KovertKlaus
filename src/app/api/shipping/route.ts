@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { closedMissionGuard } from '@/lib/mission-cancel';
 import { getSessionUserId } from '@/lib/auth';
 import { detectCarrier } from '@/lib/carrier-tracking';
 
@@ -21,6 +22,9 @@ export async function POST(request: Request) {
     if (!operationId) {
       return NextResponse.json({ error: 'operationId is required' }, { status: 400 });
     }
+
+    const closed = await closedMissionGuard(db, operationId);
+    if (closed) return NextResponse.json(closed.body, { status: closed.status });
 
     // Find member participation
     const member = await db.exchangeMember.findUnique({

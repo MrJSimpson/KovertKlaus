@@ -22,6 +22,7 @@ import { Prisma, type PrismaClient } from '@prisma/client';
 import { sanitizeText, normalizeProductUrl } from '@/lib/security';
 import { sanitizeItemDetails, updateCatalogIntelligence, type ItemDetail } from '@/lib/product-intelligence';
 import { validateAndSanitizeManifestItem } from '@/lib/validations/manifest';
+import { isMissionClosed, MISSION_CLOSED_RESULT } from '@/lib/mission-cancel';
 
 /** Highest price an item may carry, in dollars (matches the manifest validator). */
 const MAX_ITEM_PRICE = 100000;
@@ -178,7 +179,7 @@ async function loadMemberWishlist(db: PrismaClient, userId: string, exchangeId: 
     where: { exchangeId_userId: { exchangeId, userId } },
     select: {
       id: true,
-      exchange: { select: { budgetMax: true, allowWishlistOverBudget: true, isWhiteElephant: true, currency: true } },
+      exchange: { select: { budgetMax: true, allowWishlistOverBudget: true, isWhiteElephant: true, currency: true, status: true } },
       wishlist: { select: { id: true, type: true, wishlistItems: { include: { item: true }, orderBy: { item: { createdAt: 'asc' } } } } },
     },
   });
@@ -187,7 +188,7 @@ async function loadMemberWishlist(db: PrismaClient, userId: string, exchangeId: 
     data: { ...memberWishlistCreate(userId, member.exchange.isWhiteElephant).create, memberId: member.id },
     select: { id: true, type: true, wishlistItems: { include: { item: true } } },
   });
-  return { rules: wishlistRules(member.exchange), wishlist, items: wishlist.wishlistItems.map((wi) => wi.item) };
+  return { rules: wishlistRules(member.exchange), wishlist, items: wishlist.wishlistItems.map((wi) => wi.item), closed: isMissionClosed(member.exchange.status) };
 }
 
 /** Feeds an item's detail rows into the shared product catalog. Failures are logged, never fatal. */
@@ -241,6 +242,7 @@ export interface WishlistItemInput {
 export async function addWishlistItem(db: PrismaClient, userId: string, input: WishlistItemInput): Promise<WishlistResult> {
   const loaded = await loadMemberWishlist(db, userId, input.exchangeId);
   if (!loaded) return NOT_A_MEMBER;
+  if (loaded.closed) return MISSION_CLOSED_RESULT;
 
   if (loaded.rules.isWhiteElephant && loaded.items.length >= 1) {
     return { status: 400, body: { error: '🐘 A White Elephant list holds exactly 1 gift, the one you are bringing.' } };
@@ -288,6 +290,7 @@ export async function addWishlistItem(db: PrismaClient, userId: string, input: W
 export async function updateWishlistItem(db: PrismaClient, userId: string, input: WishlistItemInput): Promise<WishlistResult> {
   const loaded = await loadMemberWishlist(db, userId, input.exchangeId);
   if (!loaded) return NOT_A_MEMBER;
+  if (loaded.closed) return MISSION_CLOSED_RESULT;
   const existing = loaded.items.find((i) => i.id === input.itemId);
   if (!existing) return { status: 404, body: { error: 'That item is not on your list for this mission.' } };
 
@@ -339,6 +342,7 @@ export async function updateWishlistItem(db: PrismaClient, userId: string, input
 export async function removeWishlistItem(db: PrismaClient, userId: string, exchangeId: unknown, itemId: unknown): Promise<WishlistResult> {
   const loaded = await loadMemberWishlist(db, userId, exchangeId);
   if (!loaded) return NOT_A_MEMBER;
+  if (loaded.closed) return MISSION_CLOSED_RESULT;
   if (!loaded.items.some((i) => i.id === itemId)) {
     return { status: 404, body: { error: 'That item is not on your list for this mission.' } };
   }
