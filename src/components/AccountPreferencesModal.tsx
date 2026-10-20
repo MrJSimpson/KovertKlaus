@@ -10,11 +10,16 @@ export interface AccountPreferencesModalProps {
   isOpen: boolean;
   onClose: () => void;
   onProfileUpdated?: () => void;
+  /** Tab shown when the modal mounts (e.g. `shipping` from the missing-address notice); give the modal a new `key` per opening to apply it. */
+  initialTab?: PreferencesTab;
 }
 
-export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated }: AccountPreferencesModalProps) {
+/** The modal's tabs. */
+export type PreferencesTab = 'identity' | 'shipping' | 'dossier' | 'security';
+
+export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated, initialTab = 'identity' }: AccountPreferencesModalProps) {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'identity' | 'shipping' | 'dossier' | 'security'>('identity');
+  const [activeTab, setActiveTab] = useState<PreferencesTab>(initialTab);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

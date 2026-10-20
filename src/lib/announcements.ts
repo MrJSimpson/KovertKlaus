@@ -1,13 +1,13 @@
 /**
  * @file announcements.ts
- * @description User-friendly release announcements shown on `/announcements`.
+ * @description User-friendly release announcements shown in the What's New pop-up.
  *
  * Tier 1 (what): `ANNOUNCEMENTS` lists one entry per release, newest first, written for Elf Agents
  * and Head Elves rather than developers. `hasUnseenAnnouncement` drives the "What's New" dot.
  * Tier 2 (why): `CHANGELOG.md` is technical and lives in the repository; people using the app need
- * a plain-language "what changed for me" page inside the app.
+ * a plain-language "what changed for me" view inside the app.
  * Tier 3 (how): Every release pull request adds an entry here whose `version` equals `APP_VERSION`
- * (enforced by `src/lib/version.test.ts`; see `docs/VERSIONING.md`). The page is static, so it
+ * (enforced by `src/lib/version.test.ts`; see `docs/VERSIONING.md`). The content is static, so it
  * works in the self-hosted build and the SaaS static export alike. Never put credentials here.
  */
 
