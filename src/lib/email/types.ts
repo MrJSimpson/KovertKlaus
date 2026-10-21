@@ -140,3 +140,17 @@ export interface MissionCancelledEmailParams {
   actionUrl: string;
   overrideConfig?: Partial<EmailConfig>;
 }
+
+export interface MissionRepairEmailParams {
+  recipientEmail?: string;
+  to?: string;
+  recipientName?: string;
+  exchangeTitle: string;
+  /** What blocks the draw (Head Elf) or what this agent must do. */
+  lines: string[];
+  /** Day the mission is cancelled if still blocked. */
+  deadlineText: string;
+  isHeadElf: boolean;
+  actionUrl: string;
+  overrideConfig?: Partial<EmailConfig>;
+}

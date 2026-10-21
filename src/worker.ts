@@ -27,6 +27,7 @@ import {
   sendAssignmentEmail,
   sendNudgeEmail,
   sendMissionCancelledEmail,
+  sendMissionRepairEmail,
 } from './lib/email';
 import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
@@ -45,6 +46,7 @@ import { listMissionInvitations, listMyInvitations, markInvitationAccepted, rese
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { dismissNotifications, listMyNotifications } from './lib/notifications';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
+import { CLEAR_REPAIR_FIELDS, isRosterLocked, manualDrawBlock, READINESS_MEMBERS_INCLUDE, timelineRepairUpdate, visibleRepairIssues, type MissionRepairDeps } from './lib/mission-repair';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
@@ -250,6 +252,16 @@ async function resolveWorkerEmailConfig(
 
   const resolved = await getResolvedEmailConfig(configDbClient, envMap);
   return { ...resolved, dbClient: configDbClient || dbClient, env, ...explicitOverride };
+}
+
+/** Email senders for the lifecycle sweep (repair notices and system cancellations), with this worker's email settings. */
+async function workerLifecycleDeps(env: Env, adminDb: ReturnType<typeof getAdminDb>, baseUrl: string): Promise<MissionRepairDeps> {
+  const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+  return {
+    baseUrl: baseUrl || 'https://kovertklaus.com',
+    sendEmail: (email) => sendMissionCancelledEmail({ ...email, overrideConfig: emailConfig }),
+    sendRepairEmail: (email) => sendMissionRepairEmail({ ...email, overrideConfig: emailConfig }),
+  };
 }
 
 
@@ -1510,6 +1522,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 ...exchange,
                 members: sanitizedMembers,
                 exclusionRules: isOrganizer ? exchange.exclusionRules : [],
+                repairIssues: visibleRepairIssues(exchange.repairIssues, activeUserId, isOrganizer),
               },
             });
           }
@@ -1564,9 +1577,12 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 1: Draw
           if (action === 'draw' && operationId) {
-            const ex = await db.exchange.findUnique({ where: { id: operationId }, include: { members: true, exclusionRules: true, organizer: true } });
+            const ex = await db.exchange.findUnique({ where: { id: operationId }, include: { members: { include: READINESS_MEMBERS_INCLUDE }, exclusionRules: true, organizer: true } });
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can trigger draws' }, { status: 403 });
+            // Same readiness rules as the automatic draw (src/lib/mission-repair.ts).
+            const drawBlocked = manualDrawBlock(ex);
+            if (drawBlocked) return Response.json(drawBlocked.body, { status: drawBlocked.status });
             if (ex.members.length < 4) return Response.json({ error: 'At least 4 members required. Perfect for families and groups of 4 or more!' }, { status: 400 });
 
             const agents = ex.members.map((m) => ({ id: m.userId, name: m.userId, hasWishlistAttached: true }));
@@ -1580,7 +1596,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 if (!mem) continue;
                 await tx.exchangeMember.update({ where: { id: mem.id }, data: { targetUserId: assignment.targetId } });
               }
-              await tx.exchange.update({ where: { id: operationId }, data: { status: 'MATCHED' } });
+              await tx.exchange.update({ where: { id: operationId }, data: { status: 'MATCHED', ...CLEAR_REPAIR_FIELDS } });
             });
 
             // Dispatch assignment emails
@@ -2065,6 +2081,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             const memberToDelete = await findScopedMember(memberId);
             if (!memberToDelete) return Response.json({ error: 'Member not found in this operation' }, { status: 404 });
             if (memberToDelete.userId === ex.organizerId) return Response.json({ error: 'Cannot remove primary organizer' }, { status: 400 });
+            if (isRosterLocked(ex.status)) return Response.json({ error: 'Agents are locked in once the draw has happened.' }, { status: 409 });
             await deleteMemberWishlistItems(db, memberToDelete.id);
             await db.exchangeMember.delete({ where: { id: memberToDelete.id } });
             return Response.json({ success: true, message: 'Member removed' });
@@ -2143,7 +2160,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (Object.keys(change.data).length === 0) {
               return Response.json({ success: true, data: ex });
             }
-            const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: change.data });
+            // Moving Target Draw later lifts a repair pause (src/lib/mission-repair.ts).
+            const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: { ...change.data, ...timelineRepairUpdate(ex, change.data) } });
             return Response.json({ success: true, data: updatedExchange });
           }
 
@@ -2402,7 +2420,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           return Response.json({ error: 'Unauthorized. Valid admin session or CRON_SECRET required.' }, { status: 401 });
         }
 
-        const summary = await advanceMissionLifecycle(db);
+        const summary = await advanceMissionLifecycle(db, await workerLifecycleDeps(env, adminDb, url.origin));
         const now = new Date();
         await adminDb.systemConfig.upsert({
           where: { id: 'singleton' },
@@ -2736,7 +2754,7 @@ export default {
         }
 
         const db = getDb(appConnStr);
-        const summary = await advanceMissionLifecycle(db);
+        const summary = await advanceMissionLifecycle(db, await workerLifecycleDeps(env, adminDb, 'https://kovertklaus.com'));
         const now = new Date();
 
         await adminDb.systemConfig.upsert({

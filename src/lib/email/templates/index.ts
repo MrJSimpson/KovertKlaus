@@ -5,6 +5,7 @@ import {
   ClearanceApprovalParams,
   InvitationEmailParams,
   MissionCancelledEmailParams,
+  MissionRepairEmailParams,
   NudgeEmailParams,
   WelcomeEmailParams,
 } from '../types';
@@ -558,6 +559,56 @@ export function getMissionCancelledEmailTemplate(params: MissionCancelledEmailPa
 
     If there is any data you'd like to save, please save it now. The mission is read-only and will be deleted.
     ${headElfNote ?? ''}
+
+    Open the mission:
+    ${actionUrl}
+    --------------------------------------------------
+  `);
+
+  return { subject, html, text };
+}
+
+/**
+ * Generates the "draw paused" email: the Head Elf's daily reminder, or an agent's to-do.
+ */
+export function getMissionRepairEmailTemplate(params: MissionRepairEmailParams): { subject: string; html: string; text: string } {
+  const recipientName = params.recipientName || 'Operative';
+  const { exchangeTitle, lines, deadlineText, isHeadElf, actionUrl } = params;
+
+  const subject = isHeadElf ? `⏸️ Draw paused: "${exchangeTitle}" needs your decision` : `⚠️ Action needed for "${exchangeTitle}"`;
+  const intro = isHeadElf
+    ? `The Secret Santa draw for <strong>${escapeHtml(exchangeTitle)}</strong> is on hold:`
+    : `The draw for <strong>${escapeHtml(exchangeTitle)}</strong> is waiting on you:`;
+  const closing = isHeadElf
+    ? `Remove the agent or extend the timeline by <strong>${escapeHtml(deadlineText)}</strong>, or the mission will be cancelled. Recruiting is open again in the meantime.`
+    : `Please do this by <strong>${escapeHtml(deadlineText)}</strong>. Otherwise the Head Elf may remove you from the mission.`;
+
+  const bodyHtml = `
+    <p>Agent <strong>${escapeHtml(recipientName)}</strong>,</p>
+    <p>${intro}</p>
+    <ul style="color: ${EMAIL_PALETTE.ink};">
+      ${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}
+    </ul>
+    <p>${closing}</p>
+  `;
+
+  const html = renderBaseEmail({
+    title: isHeadElf ? '⏸️ Draw Paused' : '⚠️ Action Needed',
+    preheader: isHeadElf ? `Fix by ${deadlineText} or ${exchangeTitle} is cancelled` : `The draw for ${exchangeTitle} is waiting on you`,
+    bodyHtml,
+    actionText: 'Open the mission',
+    actionUrl,
+  });
+
+  const text = stripHtml(`
+    KOVERT KLAUS // ${isHeadElf ? 'DRAW PAUSED' : 'ACTION NEEDED'}
+    --------------------------------------------------
+    Agent ${recipientName},
+
+    ${isHeadElf ? `The draw for "${exchangeTitle}" is on hold:` : `The draw for "${exchangeTitle}" is waiting on you:`}
+    ${lines.map((l) => `- ${l}`).join('\n    ')}
+
+    ${isHeadElf ? `Remove the agent or extend the timeline by ${deadlineText}, or the mission will be cancelled.` : `Please do this by ${deadlineText}. Otherwise the Head Elf may remove you from the mission.`}
 
     Open the mission:
     ${actionUrl}
