@@ -17,6 +17,7 @@ import { OpTeamBroadcastModal } from '@/components/OpTeamBroadcastModal';
 import { CompleteOperationModal } from '@/components/CompleteOperationModal';
 import { MissionCancelModal } from '@/components/MissionCancelModal';
 import { actorLabel, canCancelMission, deletionSchedule } from '@/lib/mission-cancel';
+import { agentTodo, describeIssues, parseRepairIssues } from '@/lib/mission-repair';
 import { AfterActionReportSection, AARReportEntry } from '@/components/AfterActionReportSection';
 import { ShippingConfirmationModal } from '@/components/ShippingConfirmationModal';
 import { WishlistItemModal } from '@/components/WishlistItemModal';
@@ -126,6 +127,10 @@ interface OperationData {
   cancelledBy?: string | null;
   cancelReason?: string | null;
   cancelledFromStatus?: string | null;
+  /** Set while the draw is paused for repair (src/lib/mission-repair.ts). */
+  repairDeadline?: string | null;
+  /** JSON text of the blocking issues; agents receive only their own. */
+  repairIssues?: string | null;
 }
 
 export default function OperationCommandCenterPage() {
@@ -1004,6 +1009,62 @@ export default function OperationCommandCenterPage() {
           </div>
         ) : operation ? (
           <div className="space-y-8">
+
+            {/* Draw paused for repair: what blocks it and how to fix it before the deadline */}
+            {operation.repairDeadline && operation.status !== 'CANCELLED' && (() => {
+              const issues = parseRepairIssues(operation.repairIssues);
+              const roster = operation.members || operation.agents || [];
+              const memberOf = (uid: string) => roster.find((m) => m.userId === uid);
+              const nameOf = (uid: string) => {
+                const m = memberOf(uid);
+                return m?.codename ? formatCodename(m.codename) : m?.user?.name || 'An agent';
+              };
+              const deadline = new Date(operation.repairDeadline).toLocaleString();
+              const myTodo = userId ? agentTodo(issues, userId) : null;
+              return (
+                <div className={`p-5 sm:p-6 rounded-3xl border shadow-lg ${theme.alertWarning}`}>
+                  <h2 className="font-extrabold text-base">⏸️ The draw is paused</h2>
+                  {isOpsLeader ? (
+                    <>
+                      <p className="text-sm mt-1">
+                        Fix these by <strong>{deadline}</strong>, or the mission will be cancelled. Remove an agent, or extend the timeline to give everyone more time. Recruiting is open again until then.
+                      </p>
+                      <ul className="mt-3 space-y-2 text-sm">
+                        {describeIssues(issues, nameOf).map((line, i) => {
+                          const issue = issues[i];
+                          const agent = 'userId' in issue && issue.userId !== operation.organizerId ? memberOf(issue.userId) : undefined;
+                          return (
+                            <li key={`${issue.type}-${i}`} className="flex flex-wrap items-center justify-between gap-2">
+                              <span>• {line}</span>
+                              {agent && (
+                                <button
+                                  onClick={() => handleAgentAction('remove_agent', agent)}
+                                  className="px-3 py-1.5 min-h-[40px] rounded-xl text-xs font-bold cursor-pointer bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/60"
+                                >
+                                  Remove {nameOf(agent.userId)}
+                                </button>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <button
+                        onClick={() => { setDateError(''); setEditDatesModalOpen(true); }}
+                        className={`mt-3 ${theme.btnSky}`}
+                      >
+                        📅 Extend the timeline
+                      </button>
+                    </>
+                  ) : myTodo ? (
+                    <p className="text-sm mt-1">
+                      The draw is waiting on you: please {myTodo} by <strong>{deadline}</strong>. Otherwise the Head Elf may remove you from the mission.
+                    </p>
+                  ) : (
+                    <p className="text-sm mt-1">The Head Elf is sorting out a few things before the draw. Nothing is needed from you.</p>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Cancelled mission: read-only, with the deletion schedule for the Head Elf */}
             {operation.status === 'CANCELLED' && (() => {

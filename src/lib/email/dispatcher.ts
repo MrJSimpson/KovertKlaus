@@ -11,6 +11,7 @@ import {
   getClearanceApprovalEmailTemplate,
   getInvitationEmailTemplate,
   getMissionCancelledEmailTemplate,
+  getMissionRepairEmailTemplate,
   getNudgeEmailTemplate,
   getWelcomeEmailTemplate,
 } from './templates';
@@ -24,6 +25,7 @@ import {
   EmailResult,
   InvitationEmailParams,
   MissionCancelledEmailParams,
+  MissionRepairEmailParams,
   NudgeEmailParams,
   WelcomeEmailParams,
 } from './types';
@@ -290,6 +292,25 @@ export async function sendMissionCancelledEmail(params: MissionCancelledEmailPar
       html,
       text,
       tags: ['mission', 'cancelled'],
+    },
+    params.overrideConfig
+  );
+}
+
+/**
+ * Dispatches the "draw paused" email (Head Elf reminder or agent to-do).
+ */
+export async function sendMissionRepairEmail(params: MissionRepairEmailParams): Promise<EmailResult> {
+  const { subject, html, text } = getMissionRepairEmailTemplate(params);
+  const targetEmail = params.recipientEmail || params.to || '';
+  const recipientName = params.recipientName || 'Operative';
+  return sendEmail(
+    {
+      to: { email: targetEmail, name: recipientName },
+      subject,
+      html,
+      text,
+      tags: ['mission', 'repair'],
     },
     params.overrideConfig
   );

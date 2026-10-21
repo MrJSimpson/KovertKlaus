@@ -6,6 +6,7 @@ import { generateInviteCode } from '@/lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
 import { sendAssignmentEmail, sendMissionCancelledEmail, sendNudgeEmail } from '@/lib/email';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from '@/lib/mission-cancel';
+import { CLEAR_REPAIR_FIELDS, isRosterLocked, manualDrawBlock, READINESS_MEMBERS_INCLUDE, timelineRepairUpdate, visibleRepairIssues } from '@/lib/mission-repair';
 import { IS_SAAS } from '@/lib/config/mode';
 import {
   generateKdmToken,
@@ -75,6 +76,7 @@ export async function GET(request: Request) {
         members: sanitizedMembers,
         // Preventative exclusion rules and invite tokens are strictly visible only to the Head Elf
         exclusionRules: isOrganizer ? exchange.exclusionRules : [],
+        repairIssues: visibleRepairIssues(exchange.repairIssues, activeUserId, isOrganizer),
         covertInviteTokens: isOrganizer ? exchange.covertInviteTokens : [],
       };
 
@@ -162,7 +164,7 @@ export async function POST(request: Request) {
     if (action === 'draw' && operationId) {
       const ex = await db.exchange.findUnique({
         where: { id: operationId },
-        include: { members: true, exclusionRules: true },
+        include: { members: { include: READINESS_MEMBERS_INCLUDE }, exclusionRules: true },
       });
 
       if (!ex) {
@@ -184,6 +186,10 @@ export async function POST(request: Request) {
       if (ex.members.length < 4) {
         return NextResponse.json({ error: 'At least 4 members are required to execute a target draw. Perfect for families and groups of 4 or more!' }, { status: 400 });
       }
+
+      // Same readiness rules as the automatic draw (src/lib/mission-repair.ts).
+      const drawBlocked = manualDrawBlock(ex);
+      if (drawBlocked) return NextResponse.json(drawBlocked.body, { status: drawBlocked.status });
 
       const agentsForDraw = ex.members.map((a) => ({
         id: a.userId,
@@ -214,7 +220,7 @@ export async function POST(request: Request) {
           }
           await tx.exchange.update({
             where: { id: operationId },
-            data: { status: 'MATCHED' },
+            data: { status: 'MATCHED', ...CLEAR_REPAIR_FIELDS },
           });
         });
 
@@ -988,6 +994,9 @@ export async function PATCH(request: Request) {
       if (memberToDelete.userId === ex.organizerId) {
         return NextResponse.json({ error: 'Cannot remove the primary Organizer from the exchange' }, { status: 400 });
       }
+      if (isRosterLocked(ex.status)) {
+        return NextResponse.json({ error: 'Agents are locked in once the draw has happened.' }, { status: 409 });
+      }
       await deleteMemberWishlistItems(db, memberToDelete.id);
       await db.exchangeMember.delete({ where: { id: memberToDelete.id } });
       return NextResponse.json({ success: true, message: 'Member removed from exchange' });
@@ -1098,7 +1107,8 @@ export async function PATCH(request: Request) {
       if (Object.keys(change.data).length === 0) {
         return NextResponse.json({ success: true, data: ex });
       }
-      const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: change.data });
+      // Moving Target Draw later lifts a repair pause (src/lib/mission-repair.ts).
+      const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: { ...change.data, ...timelineRepairUpdate(ex, change.data) } });
       return NextResponse.json({ success: true, data: updatedExchange });
     }
 

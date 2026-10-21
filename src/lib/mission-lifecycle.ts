@@ -1,14 +1,15 @@
 import { executeLinkedListDraw } from './draw';
-import { sendAssignmentEmail } from './email';
+import { sendAssignmentEmail, sendMissionCancelledEmail, sendMissionRepairEmail } from './email';
 import { notifyOnce } from './notifications';
 import { purgeCancelledMissions } from './mission-cancel';
+import { READINESS_MEMBERS_INCLUDE, runRepairSweep, type MissionRepairDeps, type RepairOutcome } from './mission-repair';
 
 export interface LifecycleTransition {
   exchangeId: string;
   exchangeTitle: string;
   previousStatus: string;
   newStatus: string;
-  milestoneTriggered: 'inviteCutoffDate' | 'assignmentDate' | 'shippingDate' | 'executionDate';
+  milestoneTriggered: 'inviteCutoffDate' | 'assignmentDate' | 'shippingDate' | 'executionDate' | 'repair';
   details?: string;
 }
 
@@ -27,6 +28,9 @@ export interface LifecycleSummary {
  * Advances missions forward based on milestone dates:
  * 1. inviteCutoffDate: RECRUITING -> SETUP (Closes recruitment)
  * 2. assignmentDate:   SETUP -> MATCHED (Executes target draw & dispatches assignment emails)
+ *    First the readiness check (src/lib/mission-repair.ts): a mission with too few agents, a missing
+ *    address or an empty wishlist is paused (back to RECRUITING) until its repair deadline, then
+ *    resumed and drawn once fixed, or cancelled.
  * 3. shippingDate:     MATCHED -> SHIPPED (Enters pre-exchange in-transit countdown)
  * 4. executionDate:    SHIPPED/MATCHED -> EXECUTED (Exchange Day live event)
  * 
@@ -37,7 +41,16 @@ export interface LifecycleSummary {
  * @param db - Prisma client instance
  * @returns LifecycleSummary of all transitions executed
  */
-export async function advanceMissionLifecycle(db: any): Promise<LifecycleSummary> {
+/** Default email senders for the sweep; the edge worker passes its own (with its email settings). */
+export function defaultLifecycleDeps(): MissionRepairDeps {
+  return {
+    baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com',
+    sendEmail: (email) => sendMissionCancelledEmail(email),
+    sendRepairEmail: (email) => sendMissionRepairEmail(email),
+  };
+}
+
+export async function advanceMissionLifecycle(db: any, deps: MissionRepairDeps = defaultLifecycleDeps()): Promise<LifecycleSummary> {
   const now = new Date();
 
   // Find all active uncompleted missions
@@ -49,9 +62,7 @@ export async function advanceMissionLifecycle(db: any): Promise<LifecycleSummary
     },
     include: {
       members: {
-        include: {
-          user: true,
-        },
+        include: READINESS_MEMBERS_INCLUDE,
       },
       exclusionRules: true,
       organizer: true,
@@ -62,6 +73,28 @@ export async function advanceMissionLifecycle(db: any): Promise<LifecycleSummary
 
   for (const ex of activeExchanges) {
     let currentStatus = ex.status;
+    // Readiness checked this sweep (by the paused-mission branch), so the draw step does not repeat it.
+    let readyChecked = false;
+
+    // -------------------------------------------------------------------------
+    // PAUSED FOR REPAIR: no normal milestones until fixed or cancelled
+    // -------------------------------------------------------------------------
+    if (ex.repairDeadline) {
+      const outcome: RepairOutcome = await runRepairSweep(db, deps, ex, now.getTime());
+      if (outcome === 'cancelled') {
+        transitions.push({
+          exchangeId: ex.id, exchangeTitle: ex.title, previousStatus: currentStatus, newStatus: 'CANCELLED',
+          milestoneTriggered: 'repair', details: 'Repair deadline passed with the draw still blocked',
+        });
+      }
+      if (outcome !== 'ready') continue;
+      transitions.push({
+        exchangeId: ex.id, exchangeTitle: ex.title, previousStatus: currentStatus, newStatus: 'SETUP',
+        milestoneTriggered: 'repair', details: 'Draw issues resolved; resuming',
+      });
+      currentStatus = 'SETUP';
+      readyChecked = true;
+    }
 
     // -------------------------------------------------------------------------
     // MILESTONE 1: Invite Cutoff Date (RECRUITING -> SETUP)
@@ -106,6 +139,18 @@ export async function advanceMissionLifecycle(db: any): Promise<LifecycleSummary
       ex.assignmentDate &&
       now >= new Date(ex.assignmentDate)
     ) {
+      // Readiness first: an issue pauses the mission for repair instead of drawing.
+      if (!readyChecked && !ex.members.some((m: { targetUserId?: string | null }) => m.targetUserId)) {
+        const outcome: RepairOutcome = await runRepairSweep(db, deps, ex, now.getTime());
+        if (outcome !== 'ready') {
+          transitions.push({
+            exchangeId: ex.id, exchangeTitle: ex.title, previousStatus: 'SETUP', newStatus: 'RECRUITING',
+            milestoneTriggered: 'repair', details: 'Draw paused for repair (see repairIssues)',
+          });
+          continue;
+        }
+      }
+
       if (ex.isWhiteElephant) {
         // White Elephant does not require secret giver-receiver draw
         await db.exchange.update({

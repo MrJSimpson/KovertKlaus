@@ -175,6 +175,12 @@ model Exchange {
   cancelCode              String?
   /// Stage at cancellation. Before the draw (RECRUITING/SETUP) the mission may be deleted by hand after 48 h.
   cancelledFromStatus     ExchangeStatus?
+  /// Set while the draw is paused for repair (`src/lib/mission-repair.ts`); the mission is cancelled if still blocked then.
+  repairDeadline          DateTime?
+  /// What blocks the draw: JSON text of `ReadinessIssue[]`.
+  repairIssues            String?
+  /// Last repair notice and Head Elf email (sent at most once a day).
+  repairNoticeAt          DateTime?
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
 
