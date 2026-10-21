@@ -16,7 +16,7 @@ test('Next.js Route Configuration & Edge Assets Alignment (Finding 3.2)', async 
 });
 
 test('Cloudflare Edge Worker API Parity Logic (Finding 3.1)', async (t) => {
-  await t.test('2-Way Cascade Target Swap logic handles swaps correctly', () => {
+  await t.test('Circle-preserving target swap moves the new target into place', () => {
     const currentAssignments: LinkedAssignment[] = [
       { agentId: 'agent_1', targetId: 'agent_2' },
       { agentId: 'agent_2', targetId: 'agent_3' },
@@ -28,14 +28,13 @@ test('Cloudflare Edge Worker API Parity Logic (Finding 3.1)', async (t) => {
       { agentId: 'agent_1', restrictedAgentId: 'agent_5' },
     ];
 
-    // Swap agent_1 target from agent_2 to agent_4 (displacing agent_3 to receive agent_2)
+    // Move agent_4 in after agent_1: agent_1 -> agent_4 -> agent_2, and agent_3 -> agent_1 closes the gap.
     const updated = executeTargetSwap(currentAssignments, 'agent_1', 'agent_4', exclusions);
+    const targetOf = (id: string) => updated.find((a) => a.agentId === id)?.targetId;
 
-    const a1Target = updated.find((a) => a.agentId === 'agent_1')?.targetId;
-    const displacedGiverTarget = updated.find((a) => a.agentId === 'agent_3')?.targetId;
-
-    assert.strictEqual(a1Target, 'agent_4');
-    assert.strictEqual(displacedGiverTarget, 'agent_2');
+    assert.strictEqual(targetOf('agent_1'), 'agent_4');
+    assert.strictEqual(targetOf('agent_4'), 'agent_2');
+    assert.strictEqual(targetOf('agent_3'), 'agent_1');
   });
 
   await t.test('Execution Day Demerit Audit logic handles penalties and clearing', () => {

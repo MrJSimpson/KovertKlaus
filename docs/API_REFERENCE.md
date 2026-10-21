@@ -168,8 +168,8 @@ Executes the Sattolo derangement algorithm, commits target assignments atomicall
 }
 ```
 
-#### Action 3: 2-Way Cascade Target Swap (`action: 'swap'`)
-Swaps an operative's assigned target while atomically updating the displaced giver.
+#### Action 3: Circle-Preserving Target Swap (`action: 'swap'`)
+Moves `newTargetId` into the gift circle right after `originatorId`: the originator gives to the new target, the new target gives to the originator's old target, and the new target's old giver takes the new target's old target. Three assignments change in one transaction, and the circle stays whole. Refused (400) if any new pair is blocked.
 ```json
 {
   "action": "swap",
@@ -180,6 +180,7 @@ Swaps an operative's assigned target while atomically updating the displaced giv
 ```
 
 #### Action 4: Add / Remove Exclusion Rule (`action: 'addExclusion' | 'removeExclusion'`)
+Rules are two-way. For a Secret Santa mission with at least 4 agents, `addExclusion` is refused (409) when the rule would leave any agent with fewer than 2 allowed partners or make one gift circle through every agent impossible.
 ```json
 {
   "action": "addExclusion",

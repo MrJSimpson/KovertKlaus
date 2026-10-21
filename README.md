@@ -13,7 +13,7 @@
 > Clean Database Architecture | Internal Workshop Benches (`/workshop`) | NIST SP 800-63B Auth  
 > Contributions welcome: see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
-KovertKlaus turns standard Secret Santa and White Elephant gift exchanges into engaging, covert holiday missions. Featuring automated reliability tracking (Coal Citations), per-mission Wishlist Manifests, automated product metadata scraping, 100% bidirectional match exclusion rules, Sattolo target derangement algorithms, mobile-first 2-way target cascade swapping, phase-scoped Head Elf command consoles, After-Action Reports (AAR), and containerized PostgreSQL database management.
+KovertKlaus turns standard Secret Santa and White Elephant gift exchanges into engaging, covert holiday missions. Featuring automated reliability tracking (Coal Citations), per-mission Wishlist Manifests, automated product metadata scraping, 100% bidirectional match exclusion rules, single-circle target draws, circle-preserving target swaps, phase-scoped Head Elf command consoles, After-Action Reports (AAR), and containerized PostgreSQL database management.
 
 ---
 
@@ -39,7 +39,7 @@ All system documentation is maintained in both standard repository Markdown and 
 
 - 🎲 **Sattolo Derangement Matching Engine**: Eliminates chain predictability. No operative can draw themselves ($A \neq B$), and cyclic chains are randomized using cryptographically secure random numbers (`src/lib/draw.ts`).
 - 🚫 **100% Bidirectional Exclusion Rules ($A \iff B$)**: Prevents blocked pairs (spouses, household members) from being matched in either direction.
-- 🎯 **Mobile-First Tap-to-Swap Modal**: Allows Head Elves to execute atomic 2-way target cascade swaps ($A \to T_{\text{new}}$ and $B \to T_{\text{old}}$) without complex line-dragging UI.
+- 🎯 **Mobile-First Tap-to-Swap Modal**: Allows Head Elves to reassign a target ($A \to T$) without complex line-dragging UI; $T$ moves into place so the gift circle stays unbroken.
 - 🎖️ **Phase-Scoped Head Elf Admin Console**: Action buttons dynamically align with mission stages (`RECRUITING` ➔ `SETUP` ➔ `SHIPPED` ➔ `EXECUTED` ➔ `COMPLETED`).
 - ⚠️ **Demerit Reliability & Auto-Rehabilitation**: 
   - `0-2 Coal Citations`: `ACTIVE` (Full access across all remote and local missions).

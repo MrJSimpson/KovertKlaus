@@ -5,17 +5,17 @@
  * Every operative gives exactly 1 gift and receives exactly 1 gift.
  * 
  * Mathematical Invariants:
- * 1. Exact Cyclic Derangement: Permutation contains zero fixed points (sigma(i) != i for all i).
+ * 1. Single Gift Circle: The assignments form one cycle through every agent (no self-draws, no pairs drawing each other).
  * 2. Bidirectional Exclusion: For any rule (A, B), sigma(A) != B AND sigma(B) != A.
  * 3. Constant Chain Obfuscation: Pairings cannot be reverse-engineered by compromised participants.
- * 4. Two-Way Cascading Swaps: Allows Head Elf manual reassignments preserving the single 1-to-1 cycle.
+ * 4. Circle-Preserving Swaps: A Head Elf reassignment moves the new target into place, so the circle stays whole.
  * 
  * Algorithmic Design:
  * - CSPRNG Entropy: Uses unbiased rejection-sampled cryptographically secure pseudorandom integers.
  * - O(1) Pre-Indexed Exclusions: Compiles exclusion rules into a Set of composite keys (`${A}:${B}`),
  *   reducing candidate graph validation from O(N * |E|) to O(N).
- * - Fisher-Yates Derangement: Generates unbiased candidate permutations and verifies them against
- *   the pre-compiled exclusion matrix with configurable retry depth.
+ * - Random Circle Draw: CSPRNG shuffle read as a circle, with an exact circle search (`findGiftCircle`)
+ *   as the fallback for tightly constrained rosters.
  */
 
 import { getSecureRandomInt } from './security';
@@ -103,25 +103,123 @@ export function isMatchBlocked(
   );
 }
 
+/** Step cap for the circle search. Real rosters finish in far fewer; the cap keeps a pathological rule set from hanging a request. */
+export const CIRCLE_SEARCH_MAX_STEPS = 200_000;
+
+/** Result of a circle search: the agents in giving order, `null` when no circle exists, or `undefined` when the step cap ran out first. */
+export type CircleSearchResult = string[] | null | undefined;
+
 /**
- * Computes a cryptographically random cyclic derangement matching all eligible operatives.
- * 
- * Algorithm:
- * - Pre-compiles exclusion rules into an O(1) bidirectional lookup index.
- * - Employs a CSPRNG Fisher-Yates permutation algorithm with rejection sampling.
- * - Iteratively verifies candidate permutations in O(N) time against the active exclusion index.
- * - Automatically limits search space to 2,000 attempts before failing gracefully on over-constrained topologies.
- * 
- * Time Complexity: O(|E|) pre-compilation + O(K * N) where K <= 2000 attempts and N is agent count.
- * Space Complexity: O(N + |E|) for permutation and exclusion indices.
- * 
+ * Searches for one gift circle through every agent: an order in which each agent gives to the next
+ * and the last gives to the first, with no blocked pair next to each other.
+ *
+ * Tier 1 (what): Because blocks are two-way, the allowed pairs form an undirected graph and a gift
+ * circle is a Hamiltonian cycle in it.
+ * Tier 2 (why): The search is exact, so rule validation and the draw agree on whether a circle exists.
+ * Tier 3 (how): Depth-first search from a fixed start, trying neighbors with the fewest open partners
+ * first, and pruning when an unvisited agent is left with fewer than 2 reachable partners. Pass
+ * `randomInt` to shuffle the start and neighbor order (draws); omit it for a deterministic check.
+ *
+ * @param ids - Agent IDs on the roster
+ * @param blocked - Pre-compiled exclusion index from `buildExclusionIndex`
+ * @param options - Optional CSPRNG for shuffling and a step cap
+ * @returns Agent IDs in giving order, `null` if impossible, `undefined` if the cap was reached
+ */
+export function findGiftCircle(
+  ids: string[],
+  blocked: Set<string>,
+  options: { randomInt?: (maxExclusive: number) => number; maxSteps?: number } = {}
+): CircleSearchResult {
+  const n = ids.length;
+  if (n < 3) return null;
+  const { randomInt, maxSteps = CIRCLE_SEARCH_MAX_STEPS } = options;
+
+  const order = [...ids];
+  if (randomInt) shuffleInPlace(order, randomInt);
+  const adjacency: number[][] = order.map((a, i) =>
+    order.flatMap((b, j) => (i !== j && !blocked.has(`${a}:${b}`) ? [j] : []))
+  );
+  if (adjacency.some((list) => list.length < 2)) return null;
+  if (randomInt) adjacency.forEach((list) => shuffleInPlace(list, randomInt));
+
+  const visited = new Array<boolean>(n).fill(false);
+  const path: number[] = [0];
+  visited[0] = true;
+  let steps = 0;
+
+  /** True when every unvisited agent can still reach 2 partners (unvisited ones, the path end, or the start). */
+  const stillCompletable = (end: number): boolean => {
+    for (let v = 0; v < n; v++) {
+      if (visited[v]) continue;
+      let open = 0;
+      for (const w of adjacency[v]) {
+        if (!visited[w] || w === end || w === 0) open++;
+        if (open >= 2) break;
+      }
+      if (open < 2) return false;
+    }
+    return true;
+  };
+
+  const extend = (end: number): boolean | undefined => {
+    if (++steps > maxSteps) return undefined;
+    if (path.length === n) return adjacency[end].includes(0);
+    const next = adjacency[end]
+      .filter((w) => !visited[w])
+      .map((w) => ({ w, open: adjacency[w].filter((x) => !visited[x]).length }))
+      .sort((a, b) => a.open - b.open);
+    for (const { w } of next) {
+      visited[w] = true;
+      path.push(w);
+      if (stillCompletable(w)) {
+        const found = extend(w);
+        if (found !== false) return found;
+      }
+      path.pop();
+      visited[w] = false;
+    }
+    return false;
+  };
+
+  const found = extend(0);
+  if (found === undefined) return undefined;
+  return found ? path.map((i) => order[i]) : null;
+}
+
+/** CSPRNG Fisher-Yates shuffle, in place. */
+function shuffleInPlace<T>(items: T[], randomInt: (maxExclusive: number) => number): void {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+}
+
+/** Turns a giving order into assignments: each agent gives to the next, the last to the first. */
+function circleToAssignments(circle: string[]): LinkedAssignment[] {
+  return circle.map((agentId, i) => ({ agentId, targetId: circle[(i + 1) % circle.length] }));
+}
+
+/** Random-order attempts before the draw falls back to the circle search. */
+const RANDOM_CIRCLE_ATTEMPTS = 500;
+
+/**
+ * Draws Secret Santa targets as one gift circle through every eligible agent.
+ *
+ * Tier 1 (what): Every agent gives exactly 1 gift and receives exactly 1, nobody draws themselves or
+ * a blocked partner, and the assignments form a single circle (no pair gives to each other).
+ * Tier 2 (why): Smaller loops, such as two agents drawing each other, let agents work out who their
+ * Secret Santa is.
+ * Tier 3 (how): Shuffles the roster with the CSPRNG and reads it as a circle (equivalent to Sattolo's
+ * algorithm: every circle is equally likely). After 500 rejected shuffles, a randomized
+ * `findGiftCircle` search finds a circle when the rules are tight, or proves none exists.
+ *
  * @param agents - List of enrolled operatives
  * @param options - Draw configuration parameters (exclusions, wishlist requirements)
- * @returns Array of 1-to-1 LinkedAssignment mappings
- * 
+ * @returns Array of 1-to-1 LinkedAssignment mappings forming one circle
+ *
  * @throws {Error} If operation is White Elephant (digital draw forbidden).
  * @throws {Error} If fewer than 4 eligible operatives have attached wishlists.
- * @throws {Error} If exclusion rules make valid derangement mathematically impossible (over-constrained).
+ * @throws {Error} If exclusion rules leave no single gift circle (over-constrained).
  */
 export function executeLinkedListDraw(
   agents: FieldAgent[],
@@ -134,9 +232,7 @@ export function executeLinkedListDraw(
     );
   }
 
-  // Filter eligible agents
   let eligibleAgents = [...agents];
-
   if (options.dropAgentsWithoutWishlists) {
     eligibleAgents = eligibleAgents.filter((a) => a.hasWishlistAttached);
   }
@@ -148,38 +244,24 @@ export function executeLinkedListDraw(
   }
 
   const blockedSet = buildExclusionIndex(options.exclusionRules || []);
-  const n = eligibleAgents.length;
-  const maxAttempts = 2000;
+  const ids = eligibleAgents.map((a) => a.id);
+  const n = ids.length;
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const shuffled = [...eligibleAgents];
-
-    // Cryptographically secure Fisher-Yates shuffle
-    for (let i = n - 1; i > 0; i--) {
-      const j = getSecureRandomInt(i + 1);
-      const temp = shuffled[i];
-      shuffled[i] = shuffled[j];
-      shuffled[j] = temp;
-    }
-
-    // Check validity of all pairings in O(N) using pre-indexed O(1) set lookups
+  for (let attempt = 0; attempt < RANDOM_CIRCLE_ATTEMPTS; attempt++) {
+    const circle = [...ids];
+    shuffleInPlace(circle, getSecureRandomInt);
     let isValid = true;
     for (let i = 0; i < n; i++) {
-      const giverId = eligibleAgents[i].id;
-      const receiverId = shuffled[i].id;
-      if (giverId === receiverId || blockedSet.has(`${giverId}:${receiverId}`)) {
+      if (blockedSet.has(`${circle[i]}:${circle[(i + 1) % n]}`)) {
         isValid = false;
         break;
       }
     }
-
-    if (isValid) {
-      return eligibleAgents.map((agent, i) => ({
-        agentId: agent.id,
-        targetId: shuffled[i].id,
-      }));
-    }
+    if (isValid) return circleToAssignments(circle);
   }
+
+  const circle = findGiftCircle(ids, blockedSet, { randomInt: getSecureRandomInt });
+  if (circle) return circleToAssignments(circle);
 
   throw new Error(
     "Over-constrained operation: Unable to find a valid target assignment. Please remove or relax preventative match rules."
@@ -187,13 +269,34 @@ export function executeLinkedListDraw(
 }
 
 /**
+ * Describes moving `newTargetId` into the circle right after `originatorId`.
+ *
+ * Tier 1 (what): A → T, T → A's old target, and T's old giver → T's old target.
+ * Tier 2 (why): The circle closes up where T left and opens where T goes in, so it stays one circle.
+ * Tier 3 (how): Three assignments change; returns `null` when the move is a no-op or not possible.
+ */
+function planCircleMove(
+  currentAssignments: LinkedAssignment[],
+  originatorId: string,
+  newTargetId: string
+): { oldTargetId: string; displacedGiverId: string; displacedNextId: string } | null {
+  const oldTargetId = currentAssignments.find((a) => a.agentId === originatorId)?.targetId;
+  const displacedGiverId = currentAssignments.find((a) => a.targetId === newTargetId)?.agentId;
+  const displacedNextId = currentAssignments.find((a) => a.agentId === newTargetId)?.targetId;
+  if (!oldTargetId || !displacedGiverId || !displacedNextId) return null;
+  if (newTargetId === originatorId || newTargetId === oldTargetId) return null;
+  return { oldTargetId, displacedGiverId, displacedNextId };
+}
+
+/**
  * Computes the list of valid candidate targets for a manual reassignment.
- * 
- * Enforces 3 filtering predicates:
- * 1. Self Exclusion: Originator cannot be matched with themselves.
- * 2. Redundancy Guard: Originator cannot swap to their already-assigned target.
- * 3. Bidirectional Exclusions: Excludes any operative violating configured exclusion pairs.
- * 
+ *
+ * Tier 1 (what): Agents the originator can be moved onto without breaking the gift circle.
+ * Tier 2 (why): A move changes three assignments, so a candidate is valid only if all three new
+ * pairs are allowed, not just the originator's.
+ * Tier 3 (how): Excludes self and the current target, then checks A → T, T → A's old target and
+ * T's old giver → T's old target against the exclusion index.
+ *
  * @param eligibleAgents - Full roster of participating operatives
  * @param currentAssignments - Active linked assignments
  * @param originatorId - The operative requesting or undergoing target reassignment
@@ -206,38 +309,36 @@ export function getValidSwapCandidates(
   originatorId: string,
   exclusionRules: ExclusionRuleInput[] | Set<string> = []
 ): FieldAgent[] {
-  const currentAssignment = currentAssignments.find((a) => a.agentId === originatorId);
-  const currentTargetId = currentAssignment?.targetId;
   const blockedSet = exclusionRules instanceof Set ? exclusionRules : buildExclusionIndex(exclusionRules);
 
   return eligibleAgents.filter((candidate) => {
-    // 1. Exclude self
-    if (candidate.id === originatorId) return false;
-    // 2. Exclude current target
-    if (candidate.id === currentTargetId) return false;
-    // 3. Exclude blocked pairs (bidirectional check)
-    if (isMatchBlocked(originatorId, candidate.id, blockedSet)) return false;
-
-    return true;
+    const plan = planCircleMove(currentAssignments, originatorId, candidate.id);
+    if (!plan) return false;
+    return (
+      !isMatchBlocked(originatorId, candidate.id, blockedSet) &&
+      !isMatchBlocked(candidate.id, plan.oldTargetId, blockedSet) &&
+      !isMatchBlocked(plan.displacedGiverId, plan.displacedNextId, blockedSet)
+    );
   });
 }
 
 /**
- * Executes an atomic 2-way cascading target swap between the Originator and Displaced Giver.
- * 
- * Invariant Preservation:
- * - If Agent A gave to Target X, and Agent B gave to Target Y.
- * - After swapping A -> Y: Agent B is automatically updated to give B -> X.
- * - Guarantees that all operatives still give 1 gift and receive 1 gift without breaking the cyclic chain.
- * 
- * @param currentAssignments - Active linked assignments before swap
+ * Reassigns the originator's target while keeping one gift circle.
+ *
+ * Tier 1 (what): If A gave to X, and T sat between P and S (P → T → S), then after the move
+ * A → T → X and P → S. Everyone still gives 1 gift and receives 1.
+ * Tier 2 (why): Exchanging two agents' targets always splits a circle into two loops; moving T
+ * keeps it whole.
+ * Tier 3 (how): O(N) lookups; three assignments change. Throws if any new pair is blocked.
+ *
+ * @param currentAssignments - Active linked assignments before the move
  * @param originatorId - ID of the agent being reassigned
  * @param newTargetId - ID of the new target being assigned to originator
  * @param exclusionRules - Configured exclusion rules (raw array or pre-compiled Set)
  * @returns Updated array of LinkedAssignment mappings
- * 
- * @throws {Error} If originator assignment or displaced target assignment is not found.
- * @throws {Error} If either the direct swap or cascading swap violates an active exclusion rule.
+ *
+ * @throws {Error} If the originator or the new target has no assignment.
+ * @throws {Error} If any new pair violates an active exclusion rule.
  */
 export function executeTargetSwap(
   currentAssignments: LinkedAssignment[],
@@ -249,36 +350,33 @@ export function executeTargetSwap(
   if (!originatorAssignment) {
     throw new Error("Originating operator assignment not found.");
   }
-
-  const oldTargetId = originatorAssignment.targetId;
-  if (oldTargetId === newTargetId) {
+  if (originatorAssignment.targetId === newTargetId) {
     return [...currentAssignments];
   }
 
-  const displacedAssignment = currentAssignments.find((a) => a.targetId === newTargetId);
-  if (!displacedAssignment) {
+  const plan = planCircleMove(currentAssignments, originatorId, newTargetId);
+  if (!plan) {
     throw new Error("Selected target is not currently assigned to any agent.");
   }
-  const displacedGiverId = displacedAssignment.agentId;
+  const { oldTargetId, displacedGiverId, displacedNextId } = plan;
   const blockedSet = exclusionRules instanceof Set ? exclusionRules : buildExclusionIndex(exclusionRules);
 
-  // Validate both new pairs against self-draw and exclusion rules
   if (isMatchBlocked(originatorId, newTargetId, blockedSet)) {
     throw new Error("This target swap violates an active preventative match rule.");
   }
-  if (isMatchBlocked(displacedGiverId, oldTargetId, blockedSet)) {
+  if (
+    isMatchBlocked(newTargetId, oldTargetId, blockedSet) ||
+    isMatchBlocked(displacedGiverId, displacedNextId, blockedSet)
+  ) {
     throw new Error(
       "Cascading swap would assign a target that violates an active preventative match rule."
     );
   }
 
   return currentAssignments.map((a) => {
-    if (a.agentId === originatorId) {
-      return { ...a, targetId: newTargetId };
-    }
-    if (a.agentId === displacedGiverId) {
-      return { ...a, targetId: oldTargetId };
-    }
+    if (a.agentId === originatorId) return { ...a, targetId: newTargetId };
+    if (a.agentId === newTargetId) return { ...a, targetId: oldTargetId };
+    if (a.agentId === displacedGiverId) return { ...a, targetId: displacedNextId };
     return a;
   });
 }
@@ -293,9 +391,15 @@ export interface DrawFeasibilityResult {
 }
 
 /**
- * Pre-evaluates whether a proposed roster and set of exclusion rules can mathematically
- * generate a valid, unbroken Secret Santa cyclic derangement.
- * 
+ * Pre-evaluates whether a proposed roster and set of exclusion rules allow one unbroken gift circle.
+ *
+ * Tier 1 (what): Checks the roster minimum, then that every agent has at least 2 allowed partners
+ * (one to give to, one to receive from), then that a full circle exists.
+ * Tier 2 (why): Blocks are two-way, so an agent with fewer than 2 allowed partners can never sit in
+ * a circle; the circle check catches rule sets that pass the partner count but still split the group.
+ * Tier 3 (how): Exact `findGiftCircle` search. If the step cap runs out (only on very unusual rule
+ * sets) the result counts as feasible; the draw itself still refuses if no circle is found.
+ *
  * Returns festive, user-friendly diagnostic messages to guide the Head Elf in real time.
  */
 export function evaluateDrawFeasibility(
@@ -317,34 +421,24 @@ export function evaluateDrawFeasibility(
 
   const blockedSet = buildExclusionIndex(exclusionRules);
 
-  // Check if any agent is completely trapped (has 0 possible targets)
+  // Every agent needs 2 different allowed partners: one to give to, one to receive from.
   for (const agent of eligibleAgents) {
-    const validTargets = eligibleAgents.filter(
+    const partners = eligibleAgents.filter(
       (candidate) => candidate.id !== agent.id && !blockedSet.has(`${agent.id}:${candidate.id}`)
-    );
-    if (validTargets.length === 0) {
+    ).length;
+    if (partners < 2) {
       return {
         isFeasible: false,
         status: 'TRAPPED_AGENT',
         headline: '🎀 Tangled Ribbons Detected!',
-        message: `${agent.name} (${agent.codename || 'Elf Agent'}) is blocked from all other operatives in the workshop! Untangle a few restrictions so they can receive and give a gift.`,
+        message: `${agent.name} (${agent.codename || 'Elf Agent'}) can only be paired with ${partners === 0 ? 'nobody' : '1 other operative'}. Every agent needs at least 2: one to give to and one to receive from. Untangle a few restrictions.`,
         themeColor: 'rose',
         trappedAgentName: agent.name,
       };
     }
   }
 
-  // Pre-flight simulation check: Attempt derangement using the robust CSPRNG engine
-  try {
-    executeLinkedListDraw(eligibleAgents, { exclusionRules });
-    return {
-      isFeasible: true,
-      status: 'OPTIMAL',
-      headline: '✨ Sleigh Cleared for Takeoff! 🎄',
-      message: `All ${n} Elf Agents have verified secret target routes with zero rule conflicts. Ready for matching!`,
-      themeColor: 'emerald',
-    };
-  } catch {
+  if (findGiftCircle(eligibleAgents.map((a) => a.id), blockedSet) === null) {
     return {
       isFeasible: false,
       status: 'OVER_CONSTRAINED',
@@ -353,5 +447,40 @@ export function evaluateDrawFeasibility(
       themeColor: 'rose',
     };
   }
+
+  return {
+    isFeasible: true,
+    status: 'OPTIMAL',
+    headline: '✨ Sleigh Cleared for Takeoff! 🎄',
+    message: `All ${n} Elf Agents have verified secret target routes with zero rule conflicts. Ready for matching!`,
+    themeColor: 'emerald',
+  };
 }
 
+/**
+ * Checks a proposed new exclusion rule against the current roster.
+ *
+ * Tier 1 (what): Returns an error message when adding the rule would leave no gift circle, else `null`.
+ * Tier 2 (why): Rules are validated when they are made, so the Head Elf sees the problem at once
+ * instead of at the draw.
+ * Tier 3 (how): Skipped below the roster minimum (more agents may still join; the draw-time check
+ * covers it). Uses `evaluateDrawFeasibility` with every enrolled agent counted.
+ *
+ * @param members - Enrolled agents (ID and display name)
+ * @param existingRules - Rules already on the mission
+ * @param newRule - The rule being added
+ * @returns A user-facing error message, or `null` when the rule is acceptable
+ */
+export function exclusionRuleProblem(
+  members: { id: string; name: string; codename?: string | null }[],
+  existingRules: ExclusionRuleInput[],
+  newRule: ExclusionRuleInput
+): string | null {
+  if (members.length < MIN_PARTICIPANTS) return null;
+  const agents = members.map((m) => ({ ...m, hasWishlistAttached: true }));
+  const result = evaluateDrawFeasibility(agents, [...existingRules, newRule]);
+  if (result.isFeasible) return null;
+  return result.status === 'TRAPPED_AGENT'
+    ? `This rule would leave ${result.trappedAgentName} with fewer than 2 possible partners (one to give to, one to receive from).`
+    : 'This rule would make a single gift circle through every agent impossible.';
+}

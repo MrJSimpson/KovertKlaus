@@ -58,7 +58,7 @@ flowchart TD
 ## 🗄️ 4. Concurrency, Atomic Transactions & Resource Lifecycle
 
 1. **Atomic Mutation Boundaries**:
-   All multi-entity updates (such as target assignment derangements, broadcast notifications, and cascade swaps) are executed inside atomic transactions (`db.$transaction([...])`). This guarantees data consistency and eliminates sequential $O(N)$ database round-trips.
+   All multi-entity updates (such as target assignment derangements, broadcast notifications, and cascade swaps) are executed inside atomic interactive transactions (`db.$transaction(async (tx) => …)`; the array form fails through the `db` proxy, see `src/lib/db-transactions.test.ts`). This guarantees data consistency and eliminates sequential $O(N)$ database round-trips.
 2. **Explicit Connection Pool Teardown**:
    Database disconnects and cache invalidation routines explicitly await connection closure (`client.$disconnect()`, `pool.end()`) inside `try...catch` blocks to prevent dangling sockets.
 3. **Relational Index Directives**:

@@ -862,7 +862,8 @@ export default function OperationCommandCenterPage() {
       if (!res.ok || !json.success) {
         throw new Error(json.error || 'Action failed');
       }
-      alert(json.message || 'Agent action executed successfully!');
+      // A removal can leave the remaining preventative match rules without a gift circle.
+      alert(json.warning ? `${json.message}\n\n⚠️ ${json.warning}` : json.message || 'Agent action executed successfully!');
       fetchExchangeDetails();
     } catch (err: any) {
       alert(err.message || 'Action failed');

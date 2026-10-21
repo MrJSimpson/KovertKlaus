@@ -331,7 +331,7 @@ export default function WorkshopDrawBench() {
       setSelectedNewTargetId('');
       setDrawError(null);
       setSwapSuccessMsg(
-        `✓ 2-Way Cascade Swap Executed: ${originator?.name} now gives to ${newTarget?.name}. Displaced giver re-routed automatically to maintain 1-to-1 giving invariant.`
+        `✓ Swap Executed: ${originator?.name} now gives to ${newTarget?.name}. ${newTarget?.name} moved into place in the circle, which stays unbroken.`
       );
     } catch (err: unknown) {
       if (err instanceof Error) {
