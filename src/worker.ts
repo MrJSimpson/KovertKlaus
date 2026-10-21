@@ -1268,7 +1268,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 },
                 orderBy: { joinedAt: 'desc' },
               },
-              notifications: { where: { isAcknowledged: false }, orderBy: { createdAt: 'desc' } },
+              // Notifications are not loaded here: the bell pages them from /api/notifications.
             },
           });
 
