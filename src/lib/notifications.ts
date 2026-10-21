@@ -21,6 +21,12 @@ export const NOTIFICATION_PAGE_SIZE = 10;
 /** Most notifications one request may remove. */
 export const MAX_DISMISS_IDS = 100;
 
+/**
+ * Most open notifications one list request loads (newest first); `total` reports the full count.
+ * Unbounded loads exceeded the Worker CPU limit once a user had piled up thousands (2026-10-21).
+ */
+export const MAX_LISTED_NOTIFICATIONS = 100;
+
 /** HTTP-shaped result shared by the worker and the Next route. */
 export interface NotificationResult {
   status: number;
@@ -70,10 +76,16 @@ export async function notifyOnce(
 
 /** The caller's open (unremoved) notifications, newest first, each with its link. */
 export async function listMyNotifications(db: PrismaClient, userId: string): Promise<NotificationResult> {
-  const rows = await db.notification.findMany({
-    where: { userId, isAcknowledged: false },
-    orderBy: { createdAt: 'desc' },
-  });
+  const where = { userId, isAcknowledged: false };
+  const [rows, total] = await Promise.all([
+    db.notification.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: MAX_LISTED_NOTIFICATIONS,
+      select: { id: true, title: true, message: true, exchangeId: true, createdAt: true },
+    }),
+    db.notification.count({ where }),
+  ]);
 
   const exchangeIds = [...new Set(rows.map((r) => r.exchangeId).filter((id): id is string => Boolean(id)))];
   const exchanges = exchangeIds.length
@@ -90,7 +102,7 @@ export async function listMyNotifications(db: PrismaClient, userId: string): Pro
     href: notificationHref(r.exchangeId ? codeById.get(r.exchangeId) : null),
   }));
 
-  return { status: 200, body: { success: true, notifications } };
+  return { status: 200, body: { success: true, notifications, total } };
 }
 
 /** Removes the caller's notifications: `{ ids: string[] }` or `{ all: true }`. */

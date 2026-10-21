@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- the fake Prisma client is deliberately untyped */
 import test from 'node:test';
 import assert from 'node:assert';
-import { dismissNotifications, listMyNotifications, MAX_DISMISS_IDS, notificationHref, pageNotifications } from './notifications';
+import { dismissNotifications, listMyNotifications, MAX_DISMISS_IDS, MAX_LISTED_NOTIFICATIONS, notificationHref, pageNotifications } from './notifications';
 
 /** In-memory stand-in for the two Prisma models the service touches. */
 function fakeDb() {
@@ -16,8 +16,12 @@ function fakeDb() {
     n.userId === where.userId && n.isAcknowledged === where.isAcknowledged && (!where.id || where.id.in.includes(n.id));
   const db = {
     notification: {
-      findMany: async ({ where }: any) =>
-        notifications.filter((n) => matches(n, where)).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+      findMany: async ({ where, take }: any) =>
+        notifications
+          .filter((n) => matches(n, where))
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(0, take ?? Infinity),
+      count: async ({ where }: any) => notifications.filter((n) => matches(n, where)).length,
       updateMany: async ({ where, data }: any) => {
         const hit = notifications.filter((n) => matches(n, where));
         hit.forEach((n) => Object.assign(n, data));
@@ -44,6 +48,16 @@ test('Notifications - list returns only my open notifications, newest first, wit
   assert.strictEqual(result.status, 200);
   assert.deepStrictEqual(list.map((n) => n.id), ['n2', 'n3', 'n1']);
   assert.deepStrictEqual(list.map((n) => n.href), [null, null, '/exchange/ABCD-1234']);
+});
+
+test('Notifications - list loads at most MAX_LISTED_NOTIFICATIONS and reports the total', async () => {
+  const { db, notifications } = fakeDb();
+  for (let i = 0; i < MAX_LISTED_NOTIFICATIONS + 50; i++) {
+    notifications.push({ id: `bulk${i}`, userId: 'me', isAcknowledged: false, title: 't', message: 'm', exchangeId: null, createdAt: new Date(2026, 0, 1, 0, i) });
+  }
+  const result = await listMyNotifications(db, 'me');
+  assert.strictEqual((result.body.notifications as any[]).length, MAX_LISTED_NOTIFICATIONS);
+  assert.strictEqual(result.body.total, MAX_LISTED_NOTIFICATIONS + 53);
 });
 
 test('Notifications - remove by id touches only my notifications', async () => {

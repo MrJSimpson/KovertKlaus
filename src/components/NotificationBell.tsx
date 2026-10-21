@@ -52,6 +52,8 @@ export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, class
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationView[]>([]);
   const [page, setPage] = useState(0);
+  // Open notifications beyond the newest batch the server sent (it caps each list request).
+  const [unloaded, setUnloaded] = useState(0);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
   const [anchor, setAnchor] = useState({ top: 72, right: 8 });
@@ -63,7 +65,11 @@ export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, class
     fetch('/api/notifications')
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        if (!cancelled && json) setNotifications(json.notifications || []);
+        if (!cancelled && json) {
+          const list: NotificationView[] = json.notifications || [];
+          setNotifications(list);
+          setUnloaded(Math.max(0, (json.total ?? list.length) - list.length));
+        }
       })
       .catch(() => {});
     return () => {
@@ -108,14 +114,16 @@ export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, class
         body: JSON.stringify({ ids }),
       });
       if (!res.ok) throw new Error();
+      // Pull the next batch in once removals make room.
+      if (unloaded > 0) setReload((n) => n + 1);
     } catch {
       setError('Could not remove that. Try again.');
       setReload((n) => n + 1);
     }
-  }, []);
+  }, [unloaded]);
 
   const shown = pageNotifications(notifications, page);
-  const count = notifications.length + pinned.length;
+  const count = notifications.length + unloaded + pinned.length;
   const countLabel = count > 9 ? '9+' : String(count);
 
   return (
@@ -230,7 +238,7 @@ export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, class
                     ‹
                   </button>
                   <span className="font-mono text-kk-muted">
-                    {shown.page * NOTIFICATION_PAGE_SIZE + 1}–{shown.page * NOTIFICATION_PAGE_SIZE + shown.items.length} of {notifications.length}
+                    {shown.page * NOTIFICATION_PAGE_SIZE + 1}–{shown.page * NOTIFICATION_PAGE_SIZE + shown.items.length} of {notifications.length + unloaded}
                   </span>
                   <button
                     onClick={() => setPage(shown.page + 1)}
