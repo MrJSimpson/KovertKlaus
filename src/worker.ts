@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
+import { cachedSystemConfigReader, clearSystemConfigCaches, publicConfigCache } from './lib/system-config-cache';
 import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
 import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
@@ -226,6 +227,8 @@ async function markRevokedUserSession(request: Request, db: PrismaClient): Promi
  * app role cannot read. Given the app client, the config read failed and fell back to env vars, so
  * user-facing mail (invites, welcome, nudges, assignments) went out with no provider configured.
  * The admin client is therefore always preferred; `dbClient` is only a fallback.
+ * The row is read through this isolate's short-lived copy (src/lib/system-config-cache.ts), so a
+ * user action that sends mail does not open an admin connection each time.
  */
 async function resolveWorkerEmailConfig(
   env: Env,
@@ -252,7 +255,7 @@ async function resolveWorkerEmailConfig(
   const adminConnStr = env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL;
   const configDbClient = adminConnStr ? getAdminDb(adminConnStr) : dbClient;
 
-  const resolved = await getResolvedEmailConfig(configDbClient, envMap);
+  const resolved = await getResolvedEmailConfig(adminConnStr ? cachedSystemConfigReader(configDbClient) : configDbClient, envMap);
   return { ...resolved, dbClient: configDbClient || dbClient, env, ...explicitOverride };
 }
 
@@ -485,6 +488,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               ...updateData,
             },
           });
+          clearSystemConfigCaches();
           return Response.json({ success: true, config: { ...updated, appMode: 'saas' } });
         }
         return methodNotAllowed(pathname, request.method);
@@ -1106,10 +1110,15 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
       if (pathname === '/api/config' && request.method === 'GET') {
         // Public, allowlisted view only (toPublicConfig): SystemConfig also holds SMTP/API secrets.
         // Read via adminDb: SystemConfig lives in the admin schema the app role cannot reach.
+        // Every page loads this, so the payload is kept per isolate for a minute (cleared on a
+        // North Pole save) and most page loads never open the admin connection.
         // The edge worker only serves the SaaS edition.
-        const config = await adminDb.systemConfig.findUnique({ where: { id: 'singleton' } });
-        const theme = config ? await adminDb.themePreset.findUnique({ where: { id: config.activeThemeId } }) : null;
-        return Response.json(toPublicConfig(config, theme, 'saas'), {
+        const payload = await publicConfigCache.get(async () => {
+          const config = await adminDb.systemConfig.findUnique({ where: { id: 'singleton' } });
+          const theme = config ? await adminDb.themePreset.findUnique({ where: { id: config.activeThemeId } }) : null;
+          return toPublicConfig(config, theme, 'saas');
+        });
+        return Response.json(payload, {
           headers: { 'Cache-Control': 'public, max-age=60' },
         });
       }

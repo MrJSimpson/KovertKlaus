@@ -2,7 +2,6 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { neonConfig } from '@neondatabase/serverless';
-import pg from 'pg';
 import ws from 'ws';
 import { dropScopedClient, getScopedClient, inDbScope } from './dbRequestScope';
 
@@ -19,7 +18,6 @@ if (typeof process !== 'undefined' && process.versions?.node) {
 neonConfig.pipelineConnect = 'password';
 
 let cachedDb: PrismaClient | null = null;
-let cachedPool: pg.Pool | null = null;
 let lastConnStr: string = '';
 
 const BACKOFF_DELAYS = [500, 1200, 2500];
@@ -35,10 +33,8 @@ export async function invalidateCachedDb(): Promise<void> {
     return;
   }
   const dbToDisconnect = cachedDb;
-  const poolToClose = cachedPool;
 
   cachedDb = null;
-  cachedPool = null;
   lastConnStr = '';
 
   if (dbToDisconnect) {
@@ -46,14 +42,6 @@ export async function invalidateCachedDb(): Promise<void> {
       await dbToDisconnect.$disconnect();
     } catch (err) {
       console.warn('[DB Teardown] Error disconnecting Prisma client:', err);
-    }
-  }
-
-  if (poolToClose) {
-    try {
-      await poolToClose.end();
-    } catch (err) {
-      console.warn('[DB Teardown] Error ending PostgreSQL connection pool:', err);
     }
   }
 }
@@ -77,7 +65,6 @@ export function getRawDb(overrideConnStr?: string): PrismaClient {
 
   const created = createAppClient(connectionString);
   cachedDb = created.client;
-  cachedPool = created.pool;
   lastConnStr = connectionString;
   return cachedDb;
 }
@@ -86,7 +73,7 @@ export function getRawDb(overrideConnStr?: string): PrismaClient {
  * Builds a Prisma client (Neon WebSocket adapter for neon.tech, pg pool otherwise) together with
  * a closer that releases its connections. Used for both the module cache and per-request scopes.
  */
-function createAppClient(connectionString: string): { client: PrismaClient; pool: pg.Pool | null; close: () => Promise<void> } {
+function createAppClient(connectionString: string): { client: PrismaClient; close: () => Promise<void> } {
   const isNeon = connectionString.includes('neon.tech');
   const isLocalOrInternal =
     connectionString.includes('localhost') ||
@@ -99,7 +86,6 @@ function createAppClient(connectionString: string): { client: PrismaClient; pool
     (!isLocalOrInternal && !connectionString.includes('sslmode=disable'));
 
   let adapter: any;
-  let pool: pg.Pool | null = null;
   if (isNeon) {
     adapter = new PrismaNeon(
       {
@@ -113,25 +99,22 @@ function createAppClient(connectionString: string): { client: PrismaClient; pool
       }
     );
   } else {
-    const appPool = new pg.Pool({
+    // The adapter owns its pool: $disconnect ends it and the next query opens a new one, so a
+    // client parked between worker requests (src/lib/dbRequestScope.ts) never keeps an old socket.
+    adapter = new PrismaPg({
       connectionString,
       ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
     });
-    pool = appPool;
-    adapter = new PrismaPg(appPool);
   }
 
   const client = new PrismaClient({ adapter });
   return {
     client,
-    pool,
-    close: async () => {
-      await client.$disconnect().catch(() => {});
-      if (pool) await pool.end().catch(() => {});
-    },
+    // Rejects when the disconnect fails, so the request scope discards the client instead of parking it.
+    close: () => client.$disconnect(),
   };
 }
 

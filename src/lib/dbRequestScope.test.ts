@@ -1,6 +1,9 @@
-import test from 'node:test';
+import test, { beforeEach } from 'node:test';
 import assert from 'node:assert';
-import { dropScopedClient, getScopedClient, inDbScope, runWithDbScope } from './dbRequestScope';
+import { clearParkedClients, dropScopedClient, getScopedClient, inDbScope, runWithDbScope } from './dbRequestScope';
+
+// Parked clients outlive a request by design; start every test without any.
+beforeEach(() => clearParkedClients());
 
 /** Fake client factory that records creations and closes. */
 function makeFactory() {
@@ -83,4 +86,54 @@ test('DB Scope - waitUntil receives the disposal so the response is not delayed'
   assert.ok(pending, 'disposal handed to waitUntil');
   await pending;
   assert.deepStrictEqual(f.closed, [1]);
+});
+
+test('DB Scope - a later request reuses the closed client instead of building a new one', async () => {
+  const f = makeFactory();
+  const first = await runWithDbScope(async () => getScopedClient('app:x', f.create)!);
+  const second = await runWithDbScope(async () => getScopedClient('app:x', f.create)!);
+  assert.strictEqual(second, first, 'same client object');
+  assert.deepStrictEqual(f.created, [1], 'built once');
+  assert.deepStrictEqual(f.closed, [1, 1], 'its connections were closed after each request');
+});
+
+test('DB Scope - concurrent requests never share a client, even with parked ones available', async () => {
+  const f = makeFactory();
+  await runWithDbScope(async () => { getScopedClient('app:x', f.create); });
+  const ids = await Promise.all(
+    Array.from({ length: 6 }, () =>
+      runWithDbScope(async () => {
+        const c = getScopedClient('app:x', f.create)!;
+        await tick();
+        return c.id;
+      })
+    )
+  );
+  assert.strictEqual(new Set(ids).size, 6, 'each in-flight request holds its own client');
+  assert.ok(ids.includes(1), 'the parked client went to one of them');
+});
+
+test('DB Scope - a client whose close fails is discarded, not reused', async () => {
+  let built = 0;
+  const create = () => ({ client: { id: ++built }, close: async () => { throw new Error('socket already gone'); } });
+  await runWithDbScope(async () => { getScopedClient('app:x', create); });
+  const next = await runWithDbScope(async () => getScopedClient('app:x', create)!);
+  assert.strictEqual(next.id, 2);
+});
+
+test('DB Scope - a dropped client (connection error) is never handed to another request', async () => {
+  const f = makeFactory();
+  await runWithDbScope(async () => {
+    getScopedClient('app:x', f.create);
+    await dropScopedClient('app:x');
+  });
+  const next = await runWithDbScope(async () => getScopedClient('app:x', f.create)!);
+  assert.strictEqual(next.id, 2);
+});
+
+test('DB Scope - at most 4 clients are parked per key', async () => {
+  const f = makeFactory();
+  await Promise.all(Array.from({ length: 7 }, () => runWithDbScope(async () => { getScopedClient('app:x', f.create); await tick(); })));
+  const reused = await Promise.all(Array.from({ length: 7 }, () => runWithDbScope(async () => { const c = getScopedClient('app:x', f.create)!; await tick(); return c.id; })));
+  assert.strictEqual(reused.filter((id) => id <= 7).length, 4);
 });
