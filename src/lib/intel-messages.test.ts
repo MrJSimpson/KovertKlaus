@@ -155,3 +155,11 @@ test('Messages - the Head Elf can message every other agent', async () => {
   const res = await listIntelMessages(fakeDb({ members: drawn }).db, 'x', 'boss');
   assert.deepStrictEqual((res.body.commandRecipients as any[]).map((r) => r.userId), ['a', 'b']);
 });
+
+test('Messages - a cancelled mission reports every channel closed', async () => {
+  const res = await listIntelMessages(fakeDb({ members: drawn, status: 'CANCELLED' }).db, 'x', 'a', Date.parse('2026-12-23T00:00:00Z'));
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.canSendCommand, false);
+  assert.strictEqual(res.body.canSendIntel, false);
+  assert.strictEqual(res.body.canSendDebrief, false);
+});

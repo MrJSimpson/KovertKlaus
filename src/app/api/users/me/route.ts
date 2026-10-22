@@ -45,6 +45,7 @@ export async function GET() {
                 assignmentDate: true,
                 shippingDate: true,
                 executionDate: true,
+                repairDeadline: true,
                 status: true,
                 organizerId: true,
                 organizer: {

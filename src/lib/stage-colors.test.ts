@@ -44,4 +44,23 @@ test('Mission stage color system', async (t) => {
     assert.equal(done.stage, 4);
     assert.equal(done.isComplete, true);
   });
+
+  await t.test('getNextMilestoneCountdown shows a paused draw instead of Recruiting', () => {
+    const dates = {
+      inviteCutoffDate: '2026-11-01',
+      assignmentDate: '2026-11-05',
+      shippingDate: '2026-12-10',
+      executionDate: '2026-12-20',
+      virtualSystemDate: '2026-11-06',
+    };
+    const paused = getNextMilestoneCountdown({ ...dates, status: 'RECRUITING', repairDeadline: '2026-11-22T12:00:00.000Z' });
+    assert.equal(paused.phaseStatusLabel, 'Draw Paused');
+    assert.equal(paused.milestoneLabel, 'Repair Deadline');
+    assert.equal(paused.stage, 2);
+    assert.equal(paused.daysLeft, 16);
+    // A cancelled mission keeps its Cancelled badge even if a repair deadline was still set.
+    assert.equal(getNextMilestoneCountdown({ ...dates, status: 'CANCELLED', repairDeadline: '2026-11-22' }).phaseStatusLabel, 'Cancelled');
+    // No repair deadline: the usual label.
+    assert.notEqual(getNextMilestoneCountdown({ ...dates, status: 'RECRUITING', repairDeadline: null }).phaseStatusLabel, 'Draw Paused');
+  });
 });

@@ -12,6 +12,8 @@ interface OperationRecord {
   title: string;
   code: string;
   status: string;
+  /** Set while the draw is paused for repair; the status then still reads RECRUITING. */
+  repairDeadline?: string | null;
   giftingType: string;
   isWhiteElephant: boolean;
   isLocalOnly: boolean;
@@ -227,12 +229,12 @@ export default function NorthPoleOperationsPage() {
                         ? 'bg-kk-success text-kk-on-success border-kk-on-success/30'
                         : op.status === 'CANCELLED'
                         ? 'bg-kk-danger-soft text-kk-on-danger-soft border-kk-danger/40'
-                        : op.status === 'RECRUITING'
+                        : op.status === 'RECRUITING' && !op.repairDeadline
                         ? 'bg-kk-inset text-kk-accent border-kk-border-strong'
                         : 'bg-kk-warning text-kk-on-warning border-kk-border-strong'
                     }`}
                   >
-                    {op.status}
+                    {op.repairDeadline && (op.status === 'RECRUITING' || op.status === 'SETUP') ? 'DRAW PAUSED' : op.status}
                   </span>
                 </div>
 

@@ -160,11 +160,12 @@ Handles all mission lifecycle state transitions, matching derangements, and team
 ```
 
 #### Action 2: Execute Target Draw (`action: 'draw'`)
-Executes the Sattolo derangement algorithm, commits target assignments atomically, and dispatches target notification emails.
+Head Elf only. Runs the same readiness checks as the automatic draw (409 with `issues` when blocked), draws one gift circle through every agent, saves it in one transaction (status `MATCHED`), and sends each agent a 🎯 notification and an assignment email. If targets are already drawn it returns 409 with `requiresConfirmation: true` unless `forceUnlock: true` is sent; once the mission is `SHIPPED` or later the draw is refused. Rules that allow no circle return 400. Both runtimes share `src/lib/manual-draw.ts`.
 ```json
 {
   "action": "draw",
-  "exchangeId": "op_98765"
+  "exchangeId": "op_98765",
+  "forceUnlock": false
 }
 ```
 

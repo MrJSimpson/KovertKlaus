@@ -16,7 +16,7 @@ import { ManageAssignmentsModal } from '@/components/ManageAssignmentsModal';
 import { OpTeamBroadcastModal } from '@/components/OpTeamBroadcastModal';
 import { CompleteOperationModal } from '@/components/CompleteOperationModal';
 import { MissionCancelModal } from '@/components/MissionCancelModal';
-import { actorLabel, canCancelMission, deletionSchedule } from '@/lib/mission-cancel';
+import { actorLabel, canCancelMission, deletionSchedule, isMissionClosed } from '@/lib/mission-cancel';
 import { agentTodo, describeIssues, parseRepairIssues } from '@/lib/mission-repair';
 import { AfterActionReportSection, AARReportEntry } from '@/components/AfterActionReportSection';
 import { ShippingConfirmationModal } from '@/components/ShippingConfirmationModal';
@@ -884,6 +884,8 @@ export default function OperationCommandCenterPage() {
   const canRerollCodename = Boolean(currentAgent && !currentAgent.codenameAccepted && operation?.status === 'RECRUITING');
   // A mission has exactly one Head Elf: the organizer. Leader promotion is not a feature yet.
   const isOpsLeader = Boolean(userId && organizerIdVal === userId);
+  // Cancelled missions are read-only (the API refuses every change), so their edit controls are hidden.
+  const missionClosed = isMissionClosed(operation?.status);
 
   // Roster. Before the draw everyone sees every agent. After it, an agent sees only who they can
   // message: the Head Elf, their target, and their Secret Santa as an anonymous row (the Santa
@@ -1746,6 +1748,7 @@ export default function OperationCommandCenterPage() {
                             );
                           })()}
 
+                          {!missionClosed && (
                           <div className="pt-1">
                             <button
                               onClick={() => setShippingModalOpen(true)}
@@ -1758,12 +1761,15 @@ export default function OperationCommandCenterPage() {
                               <span>📦 {currentAgent?.shippingStatus === 'SHIPPED' || currentAgent?.shippingStatus === 'LOCAL_DELIVERY' ? 'Update Shipping Details' : 'Confirm Gift Shipped'}</span>
                             </button>
                           </div>
+                          )}
                         </div>
                       </div>
                     ) : (
                       <div className="text-center py-6 border-2 border-dashed border-kk-border rounded-2xl">
                         <p className={`text-xs font-medium ${theme.textSubLabel}`}>
-                          Target assignments have not been drawn yet. Stand by for your OpsLeader to initiate the draw!
+                          {missionClosed
+                            ? 'This mission was cancelled before targets were drawn.'
+                            : 'Target assignments have not been drawn yet. Stand by for your OpsLeader to initiate the draw!'}
                         </p>
                       </div>
                     )}
@@ -1794,6 +1800,7 @@ export default function OperationCommandCenterPage() {
                     </div>
                   )}
 
+                  {!missionClosed && (
                   <div className="mb-6">
                     <label htmlFor="add-wishlist-item" className={`block text-xs font-bold mb-1 ${theme.textLabel}`}>
                       Add an item
@@ -1815,6 +1822,7 @@ export default function OperationCommandCenterPage() {
                       <option value="personalized">✨ Personalized gift (handmade or specially crafted)</option>
                     </select>
                   </div>
+                  )}
 
                   {/* Manifest Items List */}
                   {userManifest.length === 0 ? (
@@ -1900,6 +1908,7 @@ export default function OperationCommandCenterPage() {
                                 )}
                               </div>
                             </div>
+                            {!missionClosed && (
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <button
                                 type="button"
@@ -1919,6 +1928,7 @@ export default function OperationCommandCenterPage() {
                                 Remove
                               </button>
                             </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1947,7 +1957,7 @@ export default function OperationCommandCenterPage() {
                       )}
                     </h2>
                     <div className="flex items-center gap-2">
-                      {isOpsLeader && (
+                      {isOpsLeader && !missionClosed && (
                         <button
                           onClick={() => setInviteModalOpen(true)}
                           className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 ${theme.btnAmber}`}
@@ -2034,7 +2044,7 @@ export default function OperationCommandCenterPage() {
                         )}
 
                         {/* OpsLeader Agent Management Action Bar */}
-                        {isOpsLeader && (
+                        {isOpsLeader && !missionClosed && (
                           <div className="px-4 py-3 border-t-2 border-kk-border bg-kk-surface flex items-center gap-2 flex-wrap">
                             <button
                               onClick={() => handleAgentAction('nudge_agent', agent)}
@@ -2175,7 +2185,9 @@ export default function OperationCommandCenterPage() {
                         ? 'Share thank-yous and reveals with the whole mission.'
                         : 'Debrief closed 14 days after the mission completed.';
                     const closedNote =
-                      !activeCanSend && missionDone && msgTab !== 'debrief'
+                      missionClosed
+                        ? 'This mission was cancelled, so its channels are closed. The thread stays readable.'
+                        : !activeCanSend && missionDone && msgTab !== 'debrief'
                         ? 'This channel closed when the mission completed. The thread stays readable.'
                         : '';
                     return (

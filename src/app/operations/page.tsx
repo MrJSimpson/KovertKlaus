@@ -24,6 +24,8 @@ interface ExchangeData {
   assignmentDate: string;
   shippingDate?: string;
   executionDate: string;
+  /** Set while the draw is paused for repair. */
+  repairDeadline?: string | null;
   organizer?: {
     id: string;
     name: string;
