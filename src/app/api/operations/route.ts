@@ -3,10 +3,11 @@ import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
 import { validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
 import { generateInviteCode } from '@/lib/security';
-import { executeLinkedListDraw, executeTargetSwap } from '@/lib/draw';
+import { executeTargetSwap } from '@/lib/draw';
+import { runManualDraw } from '@/lib/manual-draw';
 import { sendAssignmentEmail, sendMissionCancelledEmail, sendNudgeEmail } from '@/lib/email';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from '@/lib/mission-cancel';
-import { CLEAR_REPAIR_FIELDS, isRosterLocked, manualDrawBlock, READINESS_MEMBERS_INCLUDE, timelineRepairUpdate, visibleRepairIssues } from '@/lib/mission-repair';
+import { isRosterLocked, timelineRepairUpdate, visibleRepairIssues } from '@/lib/mission-repair';
 import { IS_SAAS } from '@/lib/config/mode';
 import {
   generateKdmToken,
@@ -161,105 +162,15 @@ export async function POST(request: Request) {
       return NextResponse.json(result.body, { status: result.status });
     }
 
-    // Action: Trigger Target Draw for Secret Santa
+    // Action: Trigger Target Draw (shared with the worker: src/lib/manual-draw.ts)
     if (action === 'draw' && operationId) {
-      const ex = await db.exchange.findUnique({
-        where: { id: operationId },
-        include: { members: { include: READINESS_MEMBERS_INCLUDE }, exclusionRules: true },
-      });
-
-      if (!ex) {
-        return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
-      }
-
-      if (ex.organizerId !== activeUserId) {
-        return NextResponse.json({ error: 'Only the Organizer can trigger target draws' }, { status: 403 });
-      }
-
-      // Hardening D1: Lock Guard against accidental re-draws
-      if (ex.status === 'MATCHED' && !forceUnlock) {
-        return NextResponse.json({
-          error: 'Target assignments have already been drawn for this exchange. Re-drawing will overwrite existing targets.',
-          requiresConfirmation: true,
-        }, { status: 409 });
-      }
-
-      if (ex.members.length < 4) {
-        return NextResponse.json({ error: 'At least 4 members are required to execute a target draw. Perfect for families and groups of 4 or more!' }, { status: 400 });
-      }
-
-      // Same readiness rules as the automatic draw (src/lib/mission-repair.ts).
-      const drawBlocked = manualDrawBlock(ex);
-      if (drawBlocked) return NextResponse.json(drawBlocked.body, { status: drawBlocked.status });
-
-      const agentsForDraw = ex.members.map((a) => ({
-        id: a.userId,
-        name: a.userId,
-        hasWishlistAttached: true,
-      }));
-
-      const exclusionRulesForDraw = ex.exclusionRules.map((r) => ({
-        agentId: r.memberId,
-        restrictedAgentId: r.restrictedMemberId,
-      }));
-
-      try {
-        const assignments = executeLinkedListDraw(agentsForDraw, {
-          isWhiteElephant: ex.isWhiteElephant,
-          exclusionRules: exclusionRulesForDraw,
-        });
-
-        // Callback transaction: `db` model calls run eagerly, so the array form fails (src/lib/db.ts).
-        await db.$transaction(async (tx) => {
-          for (const assignment of assignments) {
-            const memberRecord = ex.members.find((a) => a.userId === assignment.agentId);
-            if (!memberRecord) continue;
-            await tx.exchangeMember.update({
-              where: { id: memberRecord.id },
-              data: { targetUserId: assignment.targetId },
-            });
-          }
-          await tx.exchange.update({
-            where: { id: operationId },
-            data: { status: 'MATCHED', ...CLEAR_REPAIR_FIELDS },
-          });
-        });
-
-        // Dispatch Assignment Notification Emails to enrolled operatives
-        try {
-          const enrolledUsers = await db.user.findMany({
-            where: { id: { in: ex.members.map((m) => m.userId) } },
-          });
-
-          for (const assignment of assignments) {
-            const giver = enrolledUsers.find((u) => u.id === assignment.agentId);
-            const target = enrolledUsers.find((u) => u.id === assignment.targetId);
-
-            if (giver && giver.email && giver.emailNotifications !== false) {
-              sendAssignmentEmail({
-                recipientEmail: giver.email,
-                recipientName: giver.name || 'Operative',
-                targetCodename: ex.members.find((m) => m.userId === assignment.targetId)?.codename || 'Classified Operative',
-                targetName: target?.name ?? undefined,
-                exchangeTitle: ex.title,
-                exchangeUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/exchange/${ex.code}`,
-                shippingDeadline: ex.shippingDate ? new Date(ex.shippingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
-                exchangeDate: ex.executionDate ? new Date(ex.executionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
-              }).catch((e) => console.warn('[EMAIL WARNING] Assignment email dispatch error:', e));
-            }
-          }
-        } catch (emailErr) {
-          console.warn('[EMAIL WARNING] Failed to batch dispatch assignment emails:', emailErr);
-        }
-
-        return NextResponse.json({
-          success: true,
-          message: 'Target assignments completed via Sattolo algorithm with exclusion rule enforcement',
-        });
-      } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : 'Target draw failed';
-        return NextResponse.json({ error: errorMsg }, { status: 400 });
-      }
+      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      const result = await runManualDraw(
+        db,
+        { exchangeUrl: (code) => `${baseUrl}/exchange/${code}`, sendAssignmentEmail: (email) => sendAssignmentEmail(email) },
+        { exchangeId: operationId, userId: activeUserId, forceUnlock }
+      );
+      return NextResponse.json(result.body, { status: result.status });
     }
 
     // Action: 2-Way Cascade Target Swap

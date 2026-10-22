@@ -158,6 +158,7 @@ async function resolveContext(db: PrismaClient, exchangeId: string, userId: stri
     targetId: member.targetUserId,
     santaId: santa?.userId ?? null,
     completed: mission.status === 'COMPLETED',
+    closed: isMissionClosed(mission.status),
   };
 }
 
@@ -225,9 +226,9 @@ export async function listIntelMessages(db: PrismaClient, exchangeId: string, us
       isHeadElf: ctx.isHeadElf,
       hasTarget: Boolean(ctx.targetId),
       hasSanta: Boolean(ctx.santaId),
-      canSendCommand: !ctx.completed,
-      canSendIntel: !ctx.completed && Boolean(ctx.targetId || ctx.santaId),
-      canSendDebrief: debrief.open,
+      canSendCommand: !ctx.completed && !ctx.closed,
+      canSendIntel: !ctx.completed && !ctx.closed && Boolean(ctx.targetId || ctx.santaId),
+      canSendDebrief: debrief.open && !ctx.closed,
       debriefOpenUntil: debrief.until?.toISOString() ?? null,
       maxChars: INTEL_MESSAGE_MAX_CHARS,
       // Head Elf picks a Command recipient from the roster; agents always write to the Head Elf.

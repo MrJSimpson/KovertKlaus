@@ -149,6 +149,8 @@ export function getNextMilestoneCountdown(mission?: {
   shippingDate?: string | Date | null;
   executionDate?: string | Date | null;
   virtualSystemDate?: string | Date | null;
+  /** Set while the draw is paused for repair (src/lib/mission-repair.ts). */
+  repairDeadline?: string | Date | null;
 } | null): OperationPhaseInfo {
   if (!mission) {
     return {
@@ -212,7 +214,16 @@ export function getNextMilestoneCountdown(mission?: {
     };
   }
 
-  if (rawStatus === 'COMPLETED' || rawStatus === 'EXECUTED' || (exec && now > exec)) {
+  const repair = parseLocalDateSafe(mission.repairDeadline);
+
+  if (repair && (rawStatus === 'RECRUITING' || rawStatus === 'SETUP')) {
+    // Draw paused for repair: the status stays RECRUITING so agents can still join, but the
+    // mission is waiting on the Head Elf, so the badge says so and counts down to the repair deadline.
+    stage = 2;
+    targetDate = repair;
+    milestoneLabel = 'Repair Deadline';
+    phaseStatusLabel = 'Draw Paused';
+  } else if (rawStatus === 'COMPLETED' || rawStatus === 'EXECUTED' || (exec && now > exec)) {
     // Phase 5: Completed
     return {
       phaseStatusLabel: 'Completed',

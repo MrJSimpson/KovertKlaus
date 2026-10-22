@@ -16,7 +16,8 @@ import {
   isSafePublicUrl,
   normalizeProductUrl,
 } from './lib/security';
-import { executeLinkedListDraw, executeTargetSwap } from './lib/draw';
+import { executeTargetSwap } from './lib/draw';
+import { runManualDraw } from './lib/manual-draw';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
 import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
 import { sendEmail } from './lib/email/dispatcher';
@@ -47,7 +48,7 @@ import { listMissionInvitations, listMyInvitations, markInvitationAccepted, rese
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { dismissNotifications, listMyNotifications } from './lib/notifications';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
-import { CLEAR_REPAIR_FIELDS, isRosterLocked, manualDrawBlock, READINESS_MEMBERS_INCLUDE, timelineRepairUpdate, visibleRepairIssues, type MissionRepairDeps } from './lib/mission-repair';
+import { isRosterLocked, timelineRepairUpdate, visibleRepairIssues, type MissionRepairDeps } from './lib/mission-repair';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
@@ -1262,7 +1263,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                     select: {
                       id: true, title: true, code: true, isLocalOnly: true, isWhiteElephant: true, budgetMin: true,
                       budgetMax: true, currency: true, inviteCutoffDate: true, assignmentDate: true, shippingDate: true,
-                      executionDate: true, status: true, organizerId: true, organizer: { select: { name: true } },
+                      executionDate: true, status: true, repairDeadline: true, organizerId: true, organizer: { select: { name: true } },
                     },
                   },
                 },
@@ -1577,59 +1578,18 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           }
 
           // Action 1: Draw
+          // Manual target draw (shared with the Next route: src/lib/manual-draw.ts)
           if (action === 'draw' && operationId) {
-            const ex = await db.exchange.findUnique({ where: { id: operationId }, include: { members: { include: READINESS_MEMBERS_INCLUDE }, exclusionRules: true, organizer: true } });
-            if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
-            if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can trigger draws' }, { status: 403 });
-            // Same readiness rules as the automatic draw (src/lib/mission-repair.ts).
-            const drawBlocked = manualDrawBlock(ex);
-            if (drawBlocked) return Response.json(drawBlocked.body, { status: drawBlocked.status });
-            if (ex.members.length < 4) return Response.json({ error: 'At least 4 members required. Perfect for families and groups of 4 or more!' }, { status: 400 });
-
-            const agents = ex.members.map((m) => ({ id: m.userId, name: m.userId, hasWishlistAttached: true }));
-            const exclusionRules = ex.exclusionRules.map((r) => ({ agentId: r.memberId, restrictedAgentId: r.restrictedMemberId }));
-            const assignments = executeLinkedListDraw(agents, { isWhiteElephant: ex.isWhiteElephant, exclusionRules });
-
-            // Callback transaction: `db` model calls run eagerly, so the array form fails (src/lib/db.ts).
-            await db.$transaction(async (tx) => {
-              for (const assignment of assignments) {
-                const mem = ex.members.find((m) => m.userId === assignment.agentId);
-                if (!mem) continue;
-                await tx.exchangeMember.update({ where: { id: mem.id }, data: { targetUserId: assignment.targetId } });
-              }
-              await tx.exchange.update({ where: { id: operationId }, data: { status: 'MATCHED', ...CLEAR_REPAIR_FIELDS } });
-            });
-
-            // Dispatch assignment emails
-            try {
-              const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
-              const enrolledUsers = await db.user.findMany({
-                where: { id: { in: ex.members.map((m) => m.userId) } },
-              });
-              const emailPromises = assignments.map(async (assignment) => {
-                const giver = enrolledUsers.find((u) => u.id === assignment.agentId);
-                const target = enrolledUsers.find((u) => u.id === assignment.targetId);
-                if (giver?.email && giver.emailNotifications !== false && target) {
-                  return sendAssignmentEmail({
-                    recipientEmail: giver.email,
-                    recipientName: giver.name || 'Operative',
-                    targetCodename: ex.members.find((m) => m.userId === assignment.targetId)?.codename || 'Target Operative',
-                    targetName: target.name || undefined,
-                    exchangeTitle: ex.title,
-                    shippingDeadline: ex.shippingDate ? new Date(ex.shippingDate).toLocaleDateString() : undefined,
-                    exchangeDate: ex.executionDate ? new Date(ex.executionDate).toLocaleDateString() : undefined,
-                    exchangeUrl: `https://kovertklaus.com/exchange/${ex.code}`,
-                    overrideConfig: emailConfig,
-                  });
-                }
-                return null;
-              });
-              await Promise.allSettled(emailPromises);
-            } catch (emailErr) {
-              console.error('[Draw Email Dispatch Error]', emailErr);
-            }
-
-            return Response.json({ success: true, message: 'Draw completed successfully' });
+            const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+            const result = await runManualDraw(
+              db,
+              {
+                exchangeUrl: (code) => `https://kovertklaus.com/exchange/${code}`,
+                sendAssignmentEmail: (email) => sendAssignmentEmail({ ...email, overrideConfig: emailConfig }),
+              },
+              { exchangeId: operationId, userId, forceUnlock: body.forceUnlock }
+            );
+            return Response.json(result.body, { status: result.status });
           }
 
           // Action 2: 2-Way Cascade Target Swap

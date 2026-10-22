@@ -120,6 +120,7 @@ export async function GET(request: Request) {
         title: op.title,
         code: op.code,
         status: op.status,
+        repairDeadline: op.repairDeadline,
         giftingType: op.giftingType,
         isWhiteElephant: op.isWhiteElephant,
         isLocalOnly: op.isLocalOnly,

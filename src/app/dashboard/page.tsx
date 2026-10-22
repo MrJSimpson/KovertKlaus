@@ -41,6 +41,8 @@ interface UserData {
       budgetMax: number;
       currency: string;
       executionDate: string;
+      /** Set while the draw is paused for repair. */
+      repairDeadline?: string | null;
       /** The mission's Head Elf. */
       organizerId?: string;
     };
@@ -56,6 +58,8 @@ interface UserData {
       budgetMax: number;
       currency: string;
       executionDate: string;
+      /** Set while the draw is paused for repair. */
+      repairDeadline?: string | null;
       /** The mission's Head Elf. */
       organizerId?: string;
     };
