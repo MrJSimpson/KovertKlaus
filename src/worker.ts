@@ -17,6 +17,7 @@ import {
   normalizeProductUrl,
 } from './lib/security';
 import { executeLinkedListDraw, executeTargetSwap } from './lib/draw';
+import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
 import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
 import { sendEmail } from './lib/email/dispatcher';
 import {
@@ -1707,6 +1708,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             });
             if (existing) return Response.json({ error: 'This preventative match rule already exists' }, { status: 409 });
 
+            const ruleProblem = await exclusionRuleProblemForMission(db, ex, { agentId: memberId, restrictedAgentId: restrictedMemberId });
+            if (ruleProblem) return Response.json({ error: ruleProblem }, { status: 409 });
+
             await db.exclusionRule.create({
               data: { exchangeId: operationId, memberId, restrictedMemberId },
             });
@@ -2084,7 +2088,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (isRosterLocked(ex.status)) return Response.json({ error: 'Agents are locked in once the draw has happened.' }, { status: 409 });
             await deleteMemberWishlistItems(db, memberToDelete.id);
             await db.exchangeMember.delete({ where: { id: memberToDelete.id } });
-            return Response.json({ success: true, message: 'Member removed' });
+            const ruleWarning = await removeMemberExclusionRules(db, ex, memberToDelete.userId);
+            return Response.json({ success: true, message: 'Member removed', ...(ruleWarning ? { warning: ruleWarning } : {}) });
           }
 
           if (action === 'issue_demerit' && targetUserId) {

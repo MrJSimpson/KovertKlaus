@@ -153,7 +153,7 @@ export function ManageAssignmentsModal({
         </div>
 
         <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
-          View current target pairings and execute mobile-friendly <strong>2-way target swaps</strong>. Candidate dropdowns automatically exclude self, current targets, and active preventative rules.
+          View current target pairings and reassign targets. The new target moves into place in the gift circle, so a few other agents' targets change too and the circle stays unbroken. The list only offers targets that keep every pairing within the preventative match rules.
         </p>
 
         {error && (

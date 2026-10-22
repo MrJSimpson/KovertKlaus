@@ -7,6 +7,8 @@ import {
   isMatchBlocked,
   buildExclusionIndex,
   evaluateDrawFeasibility,
+  exclusionRuleProblem,
+  findGiftCircle,
   FieldAgent,
   LinkedAssignment,
   ExclusionRuleInput,
@@ -226,34 +228,12 @@ test('Candidate Filtering - getValidSwapCandidates excludes self, current target
     { agentId: '1', restrictedAgentId: '4' },
   ];
 
-  // Candidates for Chewie (id '1') should EXCLUDE:
-  // - Chewie (self, id '1')
-  // - Han (current target, id '2')
-  // - Luke (exclusion rule, id '4')
-  // Remaining valid candidates: Leia (id '3') and Lando (id '5')
+  // Candidates for Chewie (id '1') EXCLUDE self ('1'), the current target Han ('2') and Luke ('4', blocked).
+  // Lando ('5') is also out: moving Lando after Chewie leaves Luke -> Chewie, which is blocked.
+  // Leia ('3') works: Chewie -> Leia -> Han, and Han -> Luke.
   const candidates = getValidSwapCandidates(agents, currentAssignments, '1', exclusions);
 
-  assert.strictEqual(candidates.length, 2);
-  assert.ok(candidates.some((c) => c.id === '3'));
-  assert.ok(candidates.some((c) => c.id === '5'));
-});
-
-test('Target Swap Engine - Executes 2-Way Cascade Target Swap', () => {
-  const currentAssignments: LinkedAssignment[] = [
-    { agentId: '1', targetId: '2' }, // Chewie -> Han
-    { agentId: '3', targetId: '4' }, // Leia -> Luke
-  ];
-
-  // Swap Chewie's target from Han ('2') to Luke ('4')
-  const updatedAssignments = executeTargetSwap(currentAssignments, '1', '4');
-
-  const chewieNewTarget = updatedAssignments.find((a) => a.agentId === '1')?.targetId;
-  const leiaNewTarget = updatedAssignments.find((a) => a.agentId === '3')?.targetId;
-
-  // Chewie gets Luke ('4')
-  assert.strictEqual(chewieNewTarget, '4');
-  // Leia gets Han ('2') (displaced target cascade)
-  assert.strictEqual(leiaNewTarget, '2');
+  assert.deepStrictEqual(candidates.map((c) => c.id), ['3']);
 });
 
 test('Feasibility Evaluator - evaluateDrawFeasibility', async (t) => {
@@ -309,3 +289,148 @@ test('Feasibility Evaluator - evaluateDrawFeasibility', async (t) => {
   });
 });
 
+
+/** Builds n agents with IDs a1..an. */
+function makeAgents(n: number): FieldAgent[] {
+  return Array.from({ length: n }, (_, i) => ({ id: `a${i + 1}`, name: `Elf ${i + 1}`, hasWishlistAttached: true }));
+}
+
+/** Length of the loop that contains the first giver (equals the roster size for a single circle). */
+function circleLength(assignments: LinkedAssignment[]): number {
+  const next = new Map(assignments.map((a) => [a.agentId, a.targetId]));
+  const start = assignments[0].agentId;
+  let length = 1;
+  for (let at = next.get(start)!; at !== start; at = next.get(at)!) length++;
+  return length;
+}
+
+/** "Bowtie": a1 is the only bridge between two pairs, so every agent has 2 partners but no circle exists. */
+const BOWTIE_RULES: ExclusionRuleInput[] = [
+  { agentId: 'a2', restrictedAgentId: 'a4' },
+  { agentId: 'a2', restrictedAgentId: 'a5' },
+  { agentId: 'a3', restrictedAgentId: 'a4' },
+  { agentId: 'a3', restrictedAgentId: 'a5' },
+];
+
+test('Target Swap Engine - Moves the new target into place and keeps one circle', () => {
+  const currentAssignments: LinkedAssignment[] = [
+    { agentId: '1', targetId: '2' }, // Chewie -> Han
+    { agentId: '2', targetId: '3' }, // Han -> Leia
+    { agentId: '3', targetId: '4' }, // Leia -> Luke
+    { agentId: '4', targetId: '5' }, // Luke -> Lando
+    { agentId: '5', targetId: '1' }, // Lando -> Chewie
+  ];
+
+  // Move Luke ('4') in after Chewie: Chewie -> Luke -> Han, and Leia -> Lando closes the gap.
+  const updated = executeTargetSwap(currentAssignments, '1', '4');
+  const targetOf = (id: string) => updated.find((a) => a.agentId === id)?.targetId;
+
+  assert.strictEqual(targetOf('1'), '4');
+  assert.strictEqual(targetOf('4'), '2');
+  assert.strictEqual(targetOf('3'), '5');
+  assert.strictEqual(circleLength(updated), 5);
+});
+
+test('Target Swap Engine - Refuses a move whose closing pair is blocked', () => {
+  const currentAssignments: LinkedAssignment[] = [
+    { agentId: '1', targetId: '2' },
+    { agentId: '2', targetId: '3' },
+    { agentId: '3', targetId: '4' },
+    { agentId: '4', targetId: '1' },
+  ];
+  // Moving '3' after '1' needs '2' -> '4'; block it.
+  assert.throws(
+    () => executeTargetSwap(currentAssignments, '1', '3', [{ agentId: '2', restrictedAgentId: '4' }]),
+    /Cascading swap/
+  );
+});
+
+test('Target Swap Engine - Every allowed move keeps a single circle', () => {
+  const agents = makeAgents(7);
+  const exclusions: ExclusionRuleInput[] = [{ agentId: 'a1', restrictedAgentId: 'a2' }];
+  for (let round = 0; round < 30; round++) {
+    let assignments = executeLinkedListDraw(agents, { exclusionRules: exclusions });
+    for (const agent of agents) {
+      const [candidate] = getValidSwapCandidates(agents, assignments, agent.id, exclusions);
+      if (!candidate) continue;
+      const moved = executeTargetSwap(assignments, agent.id, candidate.id, exclusions);
+      assert.strictEqual(circleLength(moved), agents.length);
+      assert.ok(moved.every((a) => !isMatchBlocked(a.agentId, a.targetId, exclusions)));
+      assignments = moved;
+    }
+  }
+});
+
+test('Single Gift Circle - every draw is one circle, never smaller loops', () => {
+  for (let n = 4; n <= 9; n++) {
+    const agents = makeAgents(n);
+    for (let round = 0; round < 40; round++) {
+      const results = executeLinkedListDraw(agents, { exclusionRules: [{ agentId: 'a1', restrictedAgentId: 'a2' }] });
+      assert.strictEqual(circleLength(results), n, `draw of ${n} split into smaller loops`);
+    }
+  }
+});
+
+test('Single Gift Circle - tight rules fall back to the search and still find the only circle', () => {
+  // Allowed pairs form exactly one circle a1-a2-a3-a4-a5-a6-a1; block every other pair.
+  const agents = makeAgents(6);
+  const ring = new Set(['a1:a2', 'a2:a3', 'a3:a4', 'a4:a5', 'a5:a6', 'a1:a6']);
+  const exclusions: ExclusionRuleInput[] = [];
+  for (let i = 1; i <= 6; i++) {
+    for (let j = i + 1; j <= 6; j++) {
+      if (!ring.has(`a${i}:a${j}`)) exclusions.push({ agentId: `a${i}`, restrictedAgentId: `a${j}` });
+    }
+  }
+  const results = executeLinkedListDraw(agents, { exclusionRules: exclusions });
+  assert.strictEqual(circleLength(results), 6);
+  assert.ok(results.every((a) => !isMatchBlocked(a.agentId, a.targetId, exclusions)));
+});
+
+test('Single Gift Circle - findGiftCircle proves impossibility the partner count misses', () => {
+  const ids = makeAgents(5).map((a) => a.id);
+  assert.strictEqual(findGiftCircle(ids, buildExclusionIndex(BOWTIE_RULES)), null);
+  assert.ok(Array.isArray(findGiftCircle(ids, buildExclusionIndex([]))));
+  assert.throws(() => executeLinkedListDraw(makeAgents(5), { exclusionRules: BOWTIE_RULES }), /Over-constrained/);
+});
+
+test('Feasibility Evaluator - circle and partner checks', async (t) => {
+  await t.test('An agent with only 1 allowed partner is trapped', () => {
+    const res = evaluateDrawFeasibility(makeAgents(4), [
+      { agentId: 'a1', restrictedAgentId: 'a2' },
+      { agentId: 'a1', restrictedAgentId: 'a3' },
+    ]);
+    assert.strictEqual(res.status, 'TRAPPED_AGENT');
+    assert.strictEqual(res.trappedAgentName, 'Elf 1');
+  });
+
+  await t.test('Partner counts pass but no circle exists -> OVER_CONSTRAINED', () => {
+    const res = evaluateDrawFeasibility(makeAgents(5), BOWTIE_RULES);
+    assert.strictEqual(res.isFeasible, false);
+    assert.strictEqual(res.status, 'OVER_CONSTRAINED');
+  });
+});
+
+test('Exclusion rule validation at creation - exclusionRuleProblem', async (t) => {
+  const members = makeAgents(5).map(({ id, name }) => ({ id, name }));
+
+  await t.test('Accepts a rule that leaves a circle', () => {
+    assert.strictEqual(exclusionRuleProblem(members, [], { agentId: 'a1', restrictedAgentId: 'a2' }), null);
+  });
+
+  await t.test('Names the agent left with fewer than 2 partners', () => {
+    const existing = [
+      { agentId: 'a1', restrictedAgentId: 'a2' },
+      { agentId: 'a1', restrictedAgentId: 'a3' },
+    ];
+    assert.match(exclusionRuleProblem(members, existing, { agentId: 'a1', restrictedAgentId: 'a4' }) ?? '', /Elf 1/);
+  });
+
+  await t.test('Rejects the rule that breaks the last circle', () => {
+    const problem = exclusionRuleProblem(members, BOWTIE_RULES.slice(0, 3), BOWTIE_RULES[3]);
+    assert.match(problem ?? '', /single gift circle/);
+  });
+
+  await t.test('Skips validation below the roster minimum', () => {
+    assert.strictEqual(exclusionRuleProblem(members.slice(0, 3), [], { agentId: 'a1', restrictedAgentId: 'a2' }), null);
+  });
+});

@@ -22,6 +22,7 @@ import { resolveTimelineUpdate } from '@/lib/validations/timeline';
 import { dispatchNudge } from '@/lib/nudge';
 import { drawCodename, enrollWithCodename } from '@/lib/codename';
 import { deleteMemberWishlistItems, memberWishlistCreate } from '@/lib/mission-wishlist';
+import { exclusionRuleProblemForMission, removeMemberExclusionRules } from '@/lib/exclusion-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -362,6 +363,9 @@ export async function POST(request: Request) {
       if (existing) {
         return NextResponse.json({ error: 'Preventative match rule already exists for these members' }, { status: 409 });
       }
+
+      const ruleProblem = await exclusionRuleProblemForMission(db, ex, { agentId: memberId, restrictedAgentId: restrictedMemberId });
+      if (ruleProblem) return NextResponse.json({ error: ruleProblem }, { status: 409 });
 
       const newRule = await db.exclusionRule.create({
         data: {
@@ -999,7 +1003,8 @@ export async function PATCH(request: Request) {
       }
       await deleteMemberWishlistItems(db, memberToDelete.id);
       await db.exchangeMember.delete({ where: { id: memberToDelete.id } });
-      return NextResponse.json({ success: true, message: 'Member removed from exchange' });
+      const ruleWarning = await removeMemberExclusionRules(db, ex, memberToDelete.userId);
+      return NextResponse.json({ success: true, message: 'Member removed from exchange', ...(ruleWarning ? { warning: ruleWarning } : {}) });
     }
 
     // Member Action 3: Issue Penalty Citation (one per call, enrolled agents only, waivers honored)

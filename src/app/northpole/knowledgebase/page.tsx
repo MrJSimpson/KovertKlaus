@@ -167,9 +167,9 @@ export default function NorthPoleKnowledgeBasePage() {
                 Symmetric two-way exclusion prevents spouses or household members from drawing each other. Blocking Agent A from Agent B automatically and symmetrically blocks Agent B from Agent A.
               </p>
 
-              <h3 className="text-sm font-bold text-kk-gold-ink pt-2">3.4 Mobile-First 2-Way Cascade Target Swap Invariant</h3>
+              <h3 className="text-sm font-bold text-kk-gold-ink pt-2">3.4 Circle-Preserving Target Swap Invariant</h3>
               <p className="text-kk-muted">
-                Selecting a new target for Agent A automatically reassigns the displaced giver to Agent A's old target, preserving the fundamental invariant that <strong className="text-kk-ink">every operative gives exactly 1 gift and receives exactly 1 gift</strong>.
+                The draw always forms <strong className="text-kk-ink">one gift circle</strong> through every agent. Selecting a new target T for Agent A moves T into the circle right after A: A gives to T, T gives to A's old target, and T's old giver now gives to T's old target. Every operative still gives exactly 1 gift and receives exactly 1, and the circle never splits into smaller loops.
               </p>
             </div>
           )}

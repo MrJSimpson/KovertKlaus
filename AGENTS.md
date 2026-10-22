@@ -87,9 +87,10 @@ Every change (from maintainers, contributors, or AI agents) must meet:
 
 ## 🎲 7. Secret Target Assignment & Swap Algorithms
 
-* **Secret Santa Operations:** Target assignment MUST use Sattolo's algorithm derangement (`src/lib/draw.ts`). No `Elf Agent` can be assigned to themselves ($A[i] \neq i$).
+* **Secret Santa Operations:** Target assignment MUST form one gift circle through every agent (Sattolo-equivalent random circle, `src/lib/draw.ts`). No `Elf Agent` is assigned to themselves, and no smaller loops (such as two agents drawing each other).
 * **100% Bidirectional Exclusion Rules ($A \iff B$)**: Prevented pairs apply equally in both directions. Never create single-direction exclusion toggles.
-* **Mobile-First Tap-to-Swap**: Swapping target for Operative $A \to T_{\text{new}}$ automatically displaces Operative $B \to T_{\text{old}}$, preserving the 1-to-1 giving invariant.
+* **Mobile-First Tap-to-Swap**: Reassigning Operative $A \to T$ moves $T$ into the circle after $A$ ($T \to$ A's old target; T's old giver $\to$ T's old target), so the circle stays whole.
+* **Rule validation**: A new exclusion rule is refused when any agent would keep fewer than 2 allowed partners or no single circle remains (`src/lib/exclusion-rules.ts`). The draw re-checks and pauses the mission if the rules are invalid then.
 
 ---
 
