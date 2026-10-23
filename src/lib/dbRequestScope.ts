@@ -13,11 +13,16 @@ import { AsyncLocalStorage } from 'node:async_hooks';
  * has no such rule, so outside a scope the existing module cache is used unchanged.
  * Tier 3 (how): `runWithDbScope(fn, waitUntil)` runs `fn` with a fresh scope; clients register a
  * closer via `getScopedClient`; disposal runs through `waitUntil` so it never delays the response.
+ * Closing releases a client's connections but keeps the client: it is parked and the next request
+ * reuses it (Prisma reconnects on that request's first query, so the new socket belongs to it).
+ * Building a Prisma client and compiling its queries cost most of a request's CPU time, and reuse
+ * keeps both. A parked client is only ever held by one request at a time.
  */
 
 /** A client created inside a scope, with the function that releases its connections. */
 interface ScopedClient<T> {
   client: T;
+  /** Releases the client's connections. The client stays usable and reconnects when next queried. */
   close: () => Promise<void>;
 }
 
@@ -27,6 +32,25 @@ interface DbScope {
 }
 
 const storage = new AsyncLocalStorage<DbScope>();
+
+/** Most parked clients kept per key; enough for a few concurrent requests in one isolate. */
+const MAX_PARKED_PER_KEY = 4;
+
+/** Clients whose request has ended and whose connections are closed, ready for the next request. */
+const parked = new Map<string, ScopedClient<unknown>[]>();
+
+/** Parks a closed client for reuse, unless the key already has enough parked. */
+function park(key: string, entry: ScopedClient<unknown>): void {
+  const list = parked.get(key) ?? [];
+  if (list.length >= MAX_PARKED_PER_KEY) return;
+  list.push(entry);
+  parked.set(key, list);
+}
+
+/** Forgets every parked client (tests, or after a connection string changes). */
+export function clearParkedClients(): void {
+  parked.clear();
+}
 
 /**
  * Reports whether the caller is running inside a per-request database scope.
@@ -39,7 +63,8 @@ export function inDbScope(): boolean {
  * Returns the scope's client for `key`, creating it with `create` on first use.
  *
  * Tier 1: Within one request every call with the same key shares one client.
- * Tier 2: Different requests never share a client, so no socket crosses requests.
+ * Tier 2: Concurrent requests never share a client, so no socket crosses requests. A later request
+ * may get a parked client back, with its connections already closed.
  * Tier 3: Returns `undefined` outside a scope so callers fall back to their module cache.
  */
 export function getScopedClient<T>(key: string, create: () => ScopedClient<T>): T | undefined {
@@ -47,13 +72,14 @@ export function getScopedClient<T>(key: string, create: () => ScopedClient<T>): 
   if (!scope) return undefined;
   const existing = scope.clients.get(key) as ScopedClient<T> | undefined;
   if (existing) return existing.client;
-  const created = create();
-  scope.clients.set(key, created as ScopedClient<unknown>);
-  return created.client;
+  const entry = (parked.get(key)?.pop() as ScopedClient<T> | undefined) ?? create();
+  scope.clients.set(key, entry as ScopedClient<unknown>);
+  return entry.client;
 }
 
 /**
  * Drops and closes the scope's client for `key` (used by retry logic after connection errors).
+ * A dropped client is never parked, so a broken one is not handed to another request.
  */
 export async function dropScopedClient(key: string): Promise<void> {
   const scope = storage.getStore();
@@ -64,12 +90,20 @@ export async function dropScopedClient(key: string): Promise<void> {
 }
 
 /**
- * Closes every client created in a scope. Never throws.
+ * Closes every client used in a scope and parks it for reuse. Never throws; a client whose close
+ * fails is discarded instead of parked.
  */
 async function disposeScope(scope: DbScope): Promise<void> {
-  const entries = [...scope.clients.values()];
+  const entries = [...scope.clients];
   scope.clients.clear();
-  await Promise.all(entries.map((e) => e.close().catch(() => {})));
+  await Promise.all(
+    entries.map(([key, entry]) =>
+      entry.close().then(
+        () => park(key, entry),
+        () => {}
+      )
+    )
+  );
 }
 
 /**

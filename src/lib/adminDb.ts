@@ -2,7 +2,6 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { neonConfig } from '@neondatabase/serverless';
-import pg from 'pg';
 import ws from 'ws';
 import { dropScopedClient, getScopedClient, inDbScope } from './dbRequestScope';
 
@@ -19,7 +18,6 @@ if (typeof process !== 'undefined' && process.versions?.node) {
 neonConfig.pipelineConnect = 'password';
 
 let cachedAdminDb: PrismaClient | null = null;
-let cachedAdminPool: pg.Pool | null = null;
 let lastAdminConnStr: string = '';
 
 const BACKOFF_DELAYS = [500, 1200, 2500];
@@ -35,10 +33,8 @@ export async function invalidateCachedAdminDb(): Promise<void> {
     return;
   }
   const dbToDisconnect = cachedAdminDb;
-  const poolToClose = cachedAdminPool;
 
   cachedAdminDb = null;
-  cachedAdminPool = null;
   lastAdminConnStr = '';
 
   if (dbToDisconnect) {
@@ -46,14 +42,6 @@ export async function invalidateCachedAdminDb(): Promise<void> {
       await dbToDisconnect.$disconnect();
     } catch (err) {
       console.warn('[AdminDB Teardown] Error disconnecting Prisma client:', err);
-    }
-  }
-
-  if (poolToClose) {
-    try {
-      await poolToClose.end();
-    } catch (err) {
-      console.warn('[AdminDB Teardown] Error ending Admin PostgreSQL pool:', err);
     }
   }
 }
@@ -79,7 +67,6 @@ export function getRawAdminDb(overrideConnStr?: string): PrismaClient {
 
   const created = createAdminClient(adminConnectionString);
   cachedAdminDb = created.client;
-  cachedAdminPool = created.pool;
   lastAdminConnStr = adminConnectionString;
   return cachedAdminDb;
 }
@@ -88,7 +75,7 @@ export function getRawAdminDb(overrideConnStr?: string): PrismaClient {
  * Builds a Prisma client (Neon WebSocket adapter for neon.tech, pg pool otherwise) together with
  * a closer that releases its connections. Used for both the module cache and per-request scopes.
  */
-function createAdminClient(adminConnectionString: string): { client: PrismaClient; pool: pg.Pool | null; close: () => Promise<void> } {
+function createAdminClient(adminConnectionString: string): { client: PrismaClient; close: () => Promise<void> } {
   const isNeon = adminConnectionString.includes('neon.tech');
   const isLocalOrInternal =
     adminConnectionString.includes('localhost') ||
@@ -101,7 +88,6 @@ function createAdminClient(adminConnectionString: string): { client: PrismaClien
     (!isLocalOrInternal && !adminConnectionString.includes('sslmode=disable'));
 
   let adapter: any;
-  let pool: pg.Pool | null = null;
   if (isNeon) {
     adapter = new PrismaNeon(
       {
@@ -115,25 +101,22 @@ function createAdminClient(adminConnectionString: string): { client: PrismaClien
       }
     );
   } else {
-    const adminPool = new pg.Pool({
+    // The adapter owns its pool: $disconnect ends it and the next query opens a new one, so a
+    // client parked between worker requests (src/lib/dbRequestScope.ts) never keeps an old socket.
+    adapter = new PrismaPg({
       connectionString: adminConnectionString,
       ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
       max: 5,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
     });
-    pool = adminPool;
-    adapter = new PrismaPg(adminPool);
   }
 
   const client = new PrismaClient({ adapter });
   return {
     client,
-    pool,
-    close: async () => {
-      await client.$disconnect().catch(() => {});
-      if (pool) await pool.end().catch(() => {});
-    },
+    // Rejects when the disconnect fails, so the request scope discards the client instead of parking it.
+    close: () => client.$disconnect(),
   };
 }
 
