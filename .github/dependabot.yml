@@ -53,5 +53,10 @@ updates:
       timezone: America/Los_Angeles
     cooldown:
       default-days: 7
+    ignore:
+      # Node runtime majors are a deliberate change (LTS lines only, with CI node-version and
+      # @types/node). Odd majors (25, 27, ...) never become LTS. Patch/minor image updates still come.
+      - dependency-name: node
+        update-types: [version-update:semver-major]
     commit-message:
       prefix: "chore(docker)"
