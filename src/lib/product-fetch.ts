@@ -9,7 +9,9 @@
  * scrape failed silently. `redirect: 'manual'` works in Workers and Node alike.
  * Tier 3 (how): Each hop is fetched with `redirect: 'manual'`; a 3xx `Location` is resolved against
  * the current URL and validated before it is followed. Failures throw `ProductFetchError` with a
- * `reason` the caller logs. `fetchImpl` is injectable for tests.
+ * `reason` the caller logs. `fetchImpl` is injectable for tests. Stores that refuse lookups often
+ * answer with a bot-check page (sometimes with a 2xx status), so `assertProductTitle` rejects titles
+ * that are not a product before anything is cached.
  */
 
 import { isSafePublicUrl } from './security';
@@ -34,7 +36,9 @@ export type ProductFetchFailure =
   | 'BLOCKED_REDIRECT'
   | 'TOO_MANY_REDIRECTS'
   | 'HTTP_STATUS'
-  | 'NETWORK';
+  | 'NETWORK'
+  | 'BOT_CHALLENGE'
+  | 'NO_METADATA';
 
 /** A failed product page fetch, with a reason for the scraper log. */
 export class ProductFetchError extends Error {
@@ -113,6 +117,35 @@ export async function fetchProductPage(url: string, options: ProductFetchOptions
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+/** Titles of bot-check and error pages that stores send instead of the product (e.g. "Robot or human?"). */
+const BOT_PAGE_TITLE =
+  /(robot or human|human or robot|are you a (robot|human)|verify you are (a )?human|human verification|captcha|access denied|access to this page has been denied|attention required|just a moment\.\.\.|pardon our interruption|request (blocked|rejected)|something went wrong)/i;
+
+/** Why a page title is not a product name, or `null` when it can be used. */
+function titleProblem(title: string, hostname: string): 'BOT_CHALLENGE' | 'NO_METADATA' | null {
+  const clean = title.trim().toLowerCase();
+  const bareHost = hostname.toLowerCase().replace(/^www\./, '');
+  if (!clean || clean === bareHost || clean === `www.${bareHost}`) return 'NO_METADATA';
+  if (BOT_PAGE_TITLE.test(clean)) return 'BOT_CHALLENGE';
+  return null;
+}
+
+/**
+ * Throws `ProductFetchError` when `title` is empty, only the store's domain, or a bot-check page,
+ * so the scraper never caches or shows it as the item's name.
+ */
+export function assertProductTitle(title: string, hostname: string): void {
+  const problem = titleProblem(title, hostname);
+  if (problem) {
+    throw new ProductFetchError(`Page title is not a product: "${title.trim().slice(0, 80)}"`, problem);
+  }
+}
+
+/** True when a cached `ProductCatalog` title is a real product name (rows saved before bot-page checks may not be). */
+export function isUsableProductTitle(title: string, hostname: string): boolean {
+  return titleProblem(title, hostname) === null;
 }
 
 /** Scraper log action and details for a failed fetch (`logScraperEvent`). */
