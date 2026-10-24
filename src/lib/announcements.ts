@@ -34,6 +34,19 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '0.6.1-alpha',
+    date: '2026-10-24',
+    title: 'Get Data works again',
+    summary: 'Pasting a store link and clicking Get Data now fills in the item for you, as it was always meant to.',
+    highlights: [
+      {
+        emoji: '🔗',
+        title: 'Get Data fills in store items',
+        text: 'When you add a store-bought item, paste its link and click Get Data. The name, price and picture are filled in for you. Some stores do not allow lookups; if nothing appears, type in the details yourself.',
+      },
+    ],
+  },
+  {
     version: '0.6.0-alpha',
     date: '2026-10-23',
     title: 'A notification bell and safer draws',
