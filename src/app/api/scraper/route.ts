@@ -3,7 +3,7 @@ import * as cheerio from 'cheerio';
 import { db } from '@/lib/db';
 import { isSafePublicUrl, sanitizeText, normalizeProductUrl } from '@/lib/security';
 import { logScraperEvent } from '@/lib/logger';
-import { describeFetchFailure, fetchProductPage } from '@/lib/product-fetch';
+import { assertProductTitle, describeFetchFailure, fetchProductPage, isUsableProductTitle } from '@/lib/product-fetch';
 import { detectProductCategory, getCategorySuggestedKeys } from '@/lib/product-intelligence';
 
 export async function POST(request: Request) {
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     // SSRF Security Validation (OWASP A01: SSRF Protection)
     const ssrfCheck = isSafePublicUrl(formattedUrl);
     if (!ssrfCheck.safe) {
-      logScraperEvent(formattedUrl, 'BLOCKED_SSRF', { reason: ssrfCheck.error }).catch(() => {});
+      await logScraperEvent(formattedUrl, 'BLOCKED_SSRF', { reason: ssrfCheck.error }).catch(() => {});
       return NextResponse.json({ error: ssrfCheck.error || 'Access to this URL is blocked for security reasons.' }, { status: 403 });
     }
 
@@ -36,6 +36,10 @@ export async function POST(request: Request) {
       });
     } catch {
       // Database connection error, offline test, or cold start - proceed with live scraping
+    }
+    // Rows saved from bot-check pages before they were detected are ignored (and replaced on success)
+    if (existingCatalog && !isUsableProductTitle(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname)) {
+      existingCatalog = null;
     }
 
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
@@ -72,8 +76,11 @@ export async function POST(request: Request) {
         $('meta[property="og:title"]').attr('content') ||
         $('meta[name="title"]').attr('content') ||
         $('title').text() ||
-        parsedUrl.hostname
+        ''
       );
+
+      // Bot-check pages and pages without a title are failures, never cached
+      assertProductTitle(title, parsedUrl.hostname);
 
       const image =
         $('meta[property="og:image"]').attr('content') ||
@@ -147,7 +154,7 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       const failure = describeFetchFailure(error);
-      logScraperEvent(normalizedUrl, failure.action, failure.details).catch(() => {});
+      await logScraperEvent(normalizedUrl, failure.action, failure.details).catch(() => {});
 
       // If we had a stale catalog record, fallback to it
       if (existingCatalog) {
@@ -177,7 +184,6 @@ export async function POST(request: Request) {
         success: false,
         fallback: true,
         metadata: {
-          title: parsedUrl.hostname,
           url: parsedUrl.toString(),
           domain: parsedUrl.hostname,
           properties: {

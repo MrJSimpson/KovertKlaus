@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { describeFetchFailure, fetchProductPage, ProductFetchError } from './product-fetch';
+import { assertProductTitle, describeFetchFailure, fetchProductPage, isUsableProductTitle, ProductFetchError } from './product-fetch';
 
 /** A fake fetch that serves `routes` by URL and records every request. */
 function fakeFetch(routes: Record<string, () => Response>) {
@@ -81,5 +81,37 @@ test('Product page fetch (scraper)', async (t) => {
     assert.equal(http.action, 'SCRAPE_FAILURE');
     assert.equal(http.details.status, 403);
     assert.equal(describeFetchFailure(new Error('db down')).details.reason, 'PROCESSING');
+  });
+
+  await t.test('rejects bot-check pages and domain-only titles so they are never cached', () => {
+    const reasonOf = (title: string, host = 'www.etsy.com') => {
+      try {
+        assertProductTitle(title, host);
+        return null;
+      } catch (error) {
+        return error instanceof ProductFetchError ? error.reason : 'OTHER';
+      }
+    };
+    // Seen on kovertklaus.com 2026-10-24
+    assert.equal(reasonOf('Robot or human?', 'www.walmart.com'), 'BOT_CHALLENGE');
+    assert.equal(reasonOf('Human or robot?'), 'BOT_CHALLENGE');
+    assert.equal(reasonOf('etsy.com'), 'NO_METADATA');
+    assert.equal(reasonOf('www.etsy.com'), 'NO_METADATA');
+    assert.equal(reasonOf('   '), 'NO_METADATA');
+    assert.equal(reasonOf('Just a moment...', 'shop.example.com'), 'BOT_CHALLENGE');
+    assert.equal(reasonOf('Access Denied', 'www.example.com'), 'BOT_CHALLENGE');
+    assert.equal(reasonOf('Amazon.com: Sorry! Something went wrong!', 'www.amazon.com'), 'BOT_CHALLENGE');
+    // Real products that merely contain similar words are kept
+    assert.equal(reasonOf('Robot Vacuum Cleaner with Self-Empty Base', 'www.amazon.com'), null);
+    assert.equal(reasonOf('The Human Body Book', 'www.amazon.com'), null);
+    assert.equal(reasonOf('Personalized Wooden Ornament - Etsy'), null);
+    assert.equal(isUsableProductTitle('www.etsy.com', 'www.etsy.com'), false);
+    assert.equal(isUsableProductTitle('Knitted Scarf', 'www.etsy.com'), true);
+  });
+
+  await t.test('logs title rejections as scrape failures with their reason', () => {
+    const failure = describeFetchFailure(new ProductFetchError('x', 'BOT_CHALLENGE'));
+    assert.equal(failure.action, 'SCRAPE_FAILURE');
+    assert.equal(failure.details.reason, 'BOT_CHALLENGE');
   });
 });
