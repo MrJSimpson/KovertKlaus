@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.6.0-alpha] - 2026-10-23
+
+Dev #32–#40.
+
 ### Added
 - **Notification bell in the dashboard header.** Notifications no longer stack under the welcome card. The bell shows a count and opens a panel listing them ten at a time (‹ › to page), newest first. Each one has a ✕ to remove it, **Remove these** clears the page shown, and a notification about a mission links to that mission. An invitation notification has **Accept** and **Decline** while the invitation is open. The missing shipping address warning moved into the panel and opens Account Preferences on the Shipping tab; it stays until the address is filled in.
 - **API:** `/api/notifications` (GET lists the caller's open notifications with a link each; PATCH `{ ids }` or `{ all: true }` removes them), served by both the edge worker and the Next.js route.

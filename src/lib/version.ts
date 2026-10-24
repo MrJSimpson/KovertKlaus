@@ -9,7 +9,7 @@
  * section or the newest announcement drift apart.
  */
 
-export const APP_VERSION = '0.5.0-alpha';
+export const APP_VERSION = '0.6.0-alpha';
 export const APP_VERSION_LABEL = `v${APP_VERSION}`;
 export const RELEASE_STAGE = 'ALPHA' as const;
 

@@ -34,6 +34,39 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '0.6.0-alpha',
+    date: '2026-10-23',
+    title: 'A notification bell and safer draws',
+    summary: 'Notifications now live in one tidy place, the draw always makes one big gift circle, and missions that cannot draw get a chance to fix things instead of quietly stalling.',
+    highlights: [
+      {
+        emoji: '🔔',
+        title: 'A notification bell',
+        text: 'Your notifications moved into a bell at the top of the dashboard. Open it to see them ten at a time, jump straight to the mission they are about, accept or decline invitations, and remove the ones you are done with.',
+      },
+      {
+        emoji: '🔁',
+        title: 'One gift circle for everyone',
+        text: 'Every Secret Santa draw now makes one circle through the whole mission, so two agents never end up drawing each other. Target swaps keep the circle intact too.',
+      },
+      {
+        emoji: '🛠️',
+        title: 'A chance to fix things before the draw',
+        text: 'If a mission is not ready on Assignment Day (too few agents, a missing shipping address, an empty wishlist, or rules that make a draw impossible), the draw pauses and shows Draw Paused. The Head Elf and the agents involved are told exactly what to fix, and the draw happens as soon as it is fixed.',
+      },
+      {
+        emoji: '🛑',
+        title: 'Cancelling a mission',
+        text: 'A Head Elf can now cancel a mission that is not finished. Everyone is told, the mission becomes read-only so you can still save what you need, and nobody receives a Coal Citation.',
+      },
+      {
+        emoji: '⚡',
+        title: 'Faster and more reliable',
+        text: 'The dashboard and Account Preferences no longer fail with a resource error, pages load with less work behind the scenes, and draws and swaps no longer report an error after they actually worked.',
+      },
+    ],
+  },
+  {
     version: '0.5.0-alpha',
     date: '2026-10-20',
     title: 'Codenames and wishlists for every mission',
