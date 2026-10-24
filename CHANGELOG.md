@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Get Data no longer fills in a store's domain or its bot check as the item name.** When a store refused the lookup, the title box was filled with the domain (for example `www.etsy.com`), and a store that answered with its "Robot or human?" page had that title saved as the item name and cached for 24 hours for everyone. Pages without a product title, domain-only titles and bot-check pages are now treated as failed lookups: nothing is cached, the title is left empty, and the form asks the agent to fill in the details. Catalog entries saved from such pages earlier are ignored and replaced on the next successful lookup.
+- **Scraper failures now reach North Pole → Logs on the SaaS edition.** The log write was not awaited, so the Worker could finish the request before it was saved. Failed lookups (including the new `BOT_CHALLENGE` and `NO_METADATA` reasons) are now logged reliably.
+
 ---
 
 ## [0.6.1-alpha] - 2026-10-24

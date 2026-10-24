@@ -53,7 +53,7 @@ import { isRosterLocked, timelineRepairUpdate, visibleRepairIssues, type Mission
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
-import { describeFetchFailure, fetchProductPage } from './lib/product-fetch';
+import { assertProductTitle, describeFetchFailure, fetchProductPage, isUsableProductTitle } from './lib/product-fetch';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
 import { RELEASE_STAGE } from './lib/version';
@@ -2429,7 +2429,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const formattedUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
         const ssrfCheck = isSafePublicUrl(formattedUrl);
         if (!ssrfCheck.safe) {
-          logScraperEvent(formattedUrl, 'BLOCKED_SSRF', { reason: ssrfCheck.error }, { dbClient: db, env }).catch(() => {});
+          await logScraperEvent(formattedUrl, 'BLOCKED_SSRF', { reason: ssrfCheck.error }, { dbClient: db, env }).catch(() => {});
           return Response.json({ error: ssrfCheck.error || 'URL forbidden' }, { status: 403 });
         }
 
@@ -2437,7 +2437,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const normalizedUrl = normalizeProductUrl(formattedUrl);
         const parsedUrl = new URL(normalizedUrl);
 
-        const existingCatalog = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
+        // Rows saved from bot-check pages before they were detected are ignored (and replaced on success)
+        const cachedCatalog = await db.productCatalog.findUnique({ where: { url: normalizedUrl } });
+        const existingCatalog = cachedCatalog && isUsableProductTitle(cachedCatalog.title, cachedCatalog.domain || parsedUrl.hostname) ? cachedCatalog : null;
         const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
         const isFresh = existingCatalog && (Date.now() - new Date(existingCatalog.scrapedAt).getTime() < TWENTY_FOUR_HOURS_MS);
 
@@ -2471,8 +2473,11 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             $('meta[property="og:title"]').attr('content') ||
             $('meta[name="title"]').attr('content') ||
             $('title').text() ||
-            parsedUrl.hostname
+            ''
           );
+
+          // Bot-check pages and pages without a title are failures, never cached
+          assertProductTitle(title, parsedUrl.hostname);
 
           const image =
             $('meta[property="og:image"]').attr('content') ||
@@ -2540,7 +2545,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           });
         } catch (error) {
           const failure = describeFetchFailure(error);
-          logScraperEvent(normalizedUrl, failure.action, failure.details, { dbClient: db, env }).catch(() => {});
+          await logScraperEvent(normalizedUrl, failure.action, failure.details, { dbClient: db, env }).catch(() => {});
           if (existingCatalog) {
             const category = (existingCatalog.properties as any)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
             const variables = (existingCatalog.properties as any)?.variables || getCategorySuggestedKeys(category);
@@ -2566,7 +2571,6 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             success: false,
             fallback: true,
             metadata: {
-              title: parsedUrl.hostname,
               url: parsedUrl.toString(),
               domain: parsedUrl.hostname,
               properties: {
