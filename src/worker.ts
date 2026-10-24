@@ -53,6 +53,7 @@ import { isRosterLocked, timelineRepairUpdate, visibleRepairIssues, type Mission
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
+import { describeFetchFailure, fetchProductPage } from './lib/product-fetch';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
 import { RELEASE_STAGE } from './lib/version';
@@ -2461,23 +2462,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           });
         }
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
-
         try {
-          const response = await fetch(parsedUrl.toString(), {
-            signal: controller.signal,
-            redirect: 'error',
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Accept-Language': 'en-US,en;q=0.9',
-            },
-          });
-          clearTimeout(timeoutId);
-
-          if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-
-          const html = await response.text();
+          // Workers rejects redirect: 'error', so redirects are followed (and re-checked) by hand
+          const { html } = await fetchProductPage(parsedUrl.toString());
           const $ = cheerio.load(html);
 
           const title = sanitizeText(
@@ -2551,8 +2538,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               properties: catalogRecord.properties || initialProps,
             },
           });
-        } catch {
-          clearTimeout(timeoutId);
+        } catch (error) {
+          const failure = describeFetchFailure(error);
+          logScraperEvent(normalizedUrl, failure.action, failure.details, { dbClient: db, env }).catch(() => {});
           if (existingCatalog) {
             const category = (existingCatalog.properties as any)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
             const variables = (existingCatalog.properties as any)?.variables || getCategorySuggestedKeys(category);

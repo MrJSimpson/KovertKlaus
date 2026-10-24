@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import { db } from '@/lib/db';
 import { isSafePublicUrl, sanitizeText, normalizeProductUrl } from '@/lib/security';
 import { logScraperEvent } from '@/lib/logger';
+import { describeFetchFailure, fetchProductPage } from '@/lib/product-fetch';
 import { detectProductCategory, getCategorySuggestedKeys } from '@/lib/product-intelligence';
 
 export async function POST(request: Request) {
@@ -61,28 +62,9 @@ export async function POST(request: Request) {
       });
     }
 
-    // Step 2: 2.5 second AbortController timeout for fast failover scraping
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
-
+    // Step 2: live fetch within a 2.5 second budget, following only safe redirects
     try {
-      const response = await fetch(parsedUrl.toString(), {
-        signal: controller.signal,
-        redirect: 'error',
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error ${response.status}`);
-      }
-
-      const html = await response.text();
+      const { html } = await fetchProductPage(parsedUrl.toString());
       const $ = cheerio.load(html);
 
       // Extract & Sanitize Open Graph & Meta Metadata (Stored XSS Prevention)
@@ -163,9 +145,10 @@ export async function POST(request: Request) {
           properties: catalogRecord?.properties || initialProps,
         },
       });
-    } catch {
-      clearTimeout(timeoutId);
-      
+    } catch (error) {
+      const failure = describeFetchFailure(error);
+      logScraperEvent(normalizedUrl, failure.action, failure.details).catch(() => {});
+
       // If we had a stale catalog record, fallback to it
       if (existingCatalog) {
         const category = (existingCatalog.properties as any)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
