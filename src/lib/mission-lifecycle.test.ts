@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { advanceMissionLifecycle } from './mission-lifecycle';
+import type { AssignmentEmailParams } from './email/types';
 
 test('Mission Lifecycle Engine - advances RECRUITING to SETUP upon inviteCutoffDate', async () => {
   const pastDate = new Date(Date.now() - 86400000); // Yesterday
@@ -217,4 +218,65 @@ test('Mission Lifecycle Engine - advances SHIPPED to EXECUTED upon executionDate
 
   assert.strictEqual(updatedExchanges.length, 1);
   assert.strictEqual(updatedExchanges[0].data.status, 'EXECUTED');
+});
+
+test('Mission Lifecycle Engine - Assignment Day draw waits for every assignment email (Workers drop unfinished sends)', async () => {
+  const pastDate = new Date(Date.now() - 86400000);
+  const futureDate = new Date('2026-12-20T20:00:00Z');
+  const user = (n: number, emailNotifications: boolean) => ({
+    name: `Agent ${n}`, email: `a${n}@test.com`, emailNotifications,
+    streetAddress: '1 Elf Way', city: 'North Pole', state: 'AK', zipCode: '99705',
+  });
+
+  type Write = { where: { id: string }; data: Record<string, unknown> };
+  const echo = async ({ where, data }: Write) => ({ ...where, ...data });
+  const mockDb = {
+    exchange: {
+      findMany: async () => [
+        {
+          id: 'op-draw-emails',
+          title: 'Operation Mailbag',
+          status: 'SETUP',
+          organizerId: 'org-1',
+          code: 'MAIL26',
+          inviteCutoffDate: pastDate,
+          assignmentDate: pastDate,
+          shippingDate: futureDate,
+          executionDate: futureDate,
+          isWhiteElephant: false,
+          members: [1, 2, 3, 4].map((n) => ({
+            id: `m${n}`, userId: `u${n}`, codename: `Snowy Spider ${n}`,
+            user: user(n, n !== 4), // agent 4 turned email off
+            wishlist: { _count: { wishlistItems: 1 } },
+          })),
+          exclusionRules: [],
+        },
+      ],
+      update: echo,
+    },
+    exchangeMember: { update: echo },
+    notification: { create: async ({ data }: { data: Record<string, unknown> }) => ({ id: 'n', ...data }) },
+    $transaction: async (fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(mockDb),
+  };
+
+  const delivered: AssignmentEmailParams[] = [];
+  const summary = await advanceMissionLifecycle(mockDb, {
+    baseUrl: 'https://kovertklaus.example/',
+    sendEmail: async () => ({ success: true }),
+    sendRepairEmail: async () => ({ success: true }),
+    sendAssignmentEmail: async (email) => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      if (email.recipientEmail === 'a2@test.com') throw new Error('provider down');
+      delivered.push(email);
+    },
+  });
+
+  assert.strictEqual(summary.transitions[0]?.newStatus, 'MATCHED');
+  // Every send finished before the sweep resolved; one failure did not stop the others or the draw
+  assert.deepStrictEqual(delivered.map((e) => e.recipientEmail).sort(), ['a1@test.com', 'a3@test.com']);
+  for (const e of delivered) {
+    assert.strictEqual(e.exchangeUrl, 'https://kovertklaus.example/exchange/MAIL26');
+    assert.match(e.targetCodename, /^Snowy Spider [1-4]$/);
+    assert.strictEqual(e.shippingDeadline, 'Dec 20, 2026');
+  }
 });

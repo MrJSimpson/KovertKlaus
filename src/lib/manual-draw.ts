@@ -5,6 +5,7 @@
  * Tier 1 (what): `runManualDraw` checks who is asking, refuses a draw that would overwrite drawn
  * targets, applies the same readiness rules as the automatic draw, draws one gift circle, saves it,
  * and tells every agent (in-app notice, plus an email through `deps.sendAssignmentEmail`).
+ * `sendDrawAssignmentEmails` is shared with the automatic draw in `mission-lifecycle.ts`.
  * Tier 2 (why): The two runtimes each had their own copy and drifted: the worker had no re-draw lock,
  * so a second click silently replaced every agent's target, and a failed draw surfaced as a 500.
  * Tier 3 (how): Returns an HTTP-shaped result. Only the email sender differs per runtime (each
@@ -37,6 +38,52 @@ export interface ManualDrawDeps {
 /** Short US date (e.g. "Dec 20, 2026") for email copy, or `undefined` when unset. */
 function emailDate(date: Date | null | undefined): string | undefined {
   return date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined;
+}
+
+/** A drawn mission as the email helper reads it (members loaded with `READINESS_MEMBERS_INCLUDE`). */
+interface DrawnMission {
+  code: string;
+  title: string;
+  shippingDate: Date | null;
+  executionDate: Date | null;
+  members: {
+    userId: string;
+    codename: string | null;
+    user: { email: string | null; name: string | null; emailNotifications: boolean | null };
+  }[];
+}
+
+/**
+ * Emails every giver their target after a draw (manual or automatic) and waits for every send.
+ * Agents who turned email notifications off are skipped. A failed send is logged, never thrown, so one
+ * bad address cannot undo a saved draw; awaiting matters on Workers, where a request or cron run can
+ * end (and drop unfinished sends) as soon as its promise resolves.
+ */
+export async function sendDrawAssignmentEmails(
+  ex: DrawnMission,
+  assignments: { agentId: string; targetId: string }[],
+  deps: Required<ManualDrawDeps>,
+  logPrefix: string
+): Promise<void> {
+  const byId = new Map(ex.members.map((m) => [m.userId, m]));
+  const results = await Promise.allSettled(
+    assignments.map(async (a) => {
+      const giver = byId.get(a.agentId);
+      const target = byId.get(a.targetId);
+      if (!giver?.user.email || giver.user.emailNotifications === false || !target) return;
+      await deps.sendAssignmentEmail({
+        recipientEmail: giver.user.email,
+        recipientName: giver.user.name || 'Operative',
+        targetCodename: target.codename || 'Classified Operative',
+        targetName: target.user.name || undefined,
+        exchangeTitle: ex.title,
+        exchangeUrl: deps.exchangeUrl(ex.code),
+        shippingDeadline: emailDate(ex.shippingDate),
+        exchangeDate: emailDate(ex.executionDate),
+      });
+    })
+  );
+  for (const r of results) if (r.status === 'rejected') console.warn(`${logPrefix} Assignment email failed:`, r.reason);
 }
 
 /**
@@ -113,27 +160,7 @@ export async function runManualDraw(
   }
 
   if (deps.sendAssignmentEmail) {
-    const send = deps.sendAssignmentEmail;
-    const byId = new Map(ex.members.map((m) => [m.userId, m]));
-    await Promise.allSettled(
-      assignments.map(async (a) => {
-        const giver = byId.get(a.agentId);
-        const target = byId.get(a.targetId);
-        if (!giver?.user.email || giver.user.emailNotifications === false || !target) return;
-        await send({
-          recipientEmail: giver.user.email,
-          recipientName: giver.user.name || 'Operative',
-          targetCodename: target.codename || 'Classified Operative',
-          targetName: target.user.name || undefined,
-          exchangeTitle: ex.title,
-          exchangeUrl: deps.exchangeUrl(ex.code),
-          shippingDeadline: emailDate(ex.shippingDate),
-          exchangeDate: emailDate(ex.executionDate),
-        });
-      })
-    ).then((results) => {
-      for (const r of results) if (r.status === 'rejected') console.warn('[Manual Draw] Assignment email failed:', r.reason);
-    });
+    await sendDrawAssignmentEmails(ex, assignments, { ...deps, sendAssignmentEmail: deps.sendAssignmentEmail }, '[Manual Draw]');
   }
 
   return { status: 200, body: { success: true, message: 'Target draw complete: one gift circle through every agent.' } };

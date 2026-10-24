@@ -36,7 +36,7 @@ import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
 import { evaluateMemberAudit } from './lib/demerits';
 import { processExchangeAudit } from './lib/audit-runner';
-import { advanceMissionLifecycle } from './lib/mission-lifecycle';
+import { advanceMissionLifecycle, type MissionLifecycleDeps } from './lib/mission-lifecycle';
 import { detectCarrier } from './lib/carrier-tracking';
 import { detectProductCategory, getCategorySuggestedKeys, updateCatalogIntelligence, sanitizeItemDetails } from './lib/product-intelligence';
 import { validateAndSanitizeManifestItem } from './lib/validations/manifest';
@@ -49,7 +49,7 @@ import { listMissionInvitations, listMyInvitations, markInvitationAccepted, rese
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { dismissNotifications, listMyNotifications } from './lib/notifications';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
-import { isRosterLocked, timelineRepairUpdate, visibleRepairIssues, type MissionRepairDeps } from './lib/mission-repair';
+import { isRosterLocked, timelineRepairUpdate, visibleRepairIssues } from './lib/mission-repair';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
@@ -260,13 +260,14 @@ async function resolveWorkerEmailConfig(
   return { ...resolved, dbClient: configDbClient || dbClient, env, ...explicitOverride };
 }
 
-/** Email senders for the lifecycle sweep (repair notices and system cancellations), with this worker's email settings. */
-async function workerLifecycleDeps(env: Env, adminDb: ReturnType<typeof getAdminDb>, baseUrl: string): Promise<MissionRepairDeps> {
+/** Email senders for the lifecycle sweep (repair notices, system cancellations, Assignment Day draw), with this worker's email settings. */
+async function workerLifecycleDeps(env: Env, adminDb: ReturnType<typeof getAdminDb>, baseUrl: string): Promise<MissionLifecycleDeps> {
   const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
   return {
     baseUrl: baseUrl || 'https://kovertklaus.com',
     sendEmail: (email) => sendMissionCancelledEmail({ ...email, overrideConfig: emailConfig }),
     sendRepairEmail: (email) => sendMissionRepairEmail({ ...email, overrideConfig: emailConfig }),
+    sendAssignmentEmail: (email) => sendAssignmentEmail({ ...email, overrideConfig: emailConfig }),
   };
 }
 
