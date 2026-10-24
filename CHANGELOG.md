@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.6.1-alpha] - 2026-10-24
+
+Dev #42.
+
 ### Fixed
 - **Get Data never filled anything in on kovertklaus.com (SaaS).** The scraper asked for `redirect: 'error'`, which Cloudflare Workers rejects before sending the request, so every live lookup fell back to the bare domain name (only links already in the catalog from the last 24 hours worked). Both runtimes now share `src/lib/product-fetch.ts`: it follows up to 3 redirects by hand and re-checks each target with the SSRF filter, so a store link still can never redirect to an internal address. Self-hosted also gains redirects (for example `http://` → `https://www.`), which the old code refused.
 - **Scraper failures are logged.** A failed lookup now writes a `SCRAPER` log entry with the reason (HTTP status, timeout, blocked redirect, network or processing error) instead of failing silently. Watch North Pole → Logs for stores that block lookups from Cloudflare.
