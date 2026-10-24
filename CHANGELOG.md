@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **User pages stay on the app database connection (SaaS).** `/api/config` (loaded by every page) and the email settings behind invites, nudges and assignment mail read admin-schema settings through a one-minute per-isolate copy, cleared when North Pole saves, so they no longer open an admin connection on almost every request. North Pole endpoints keep using the admin connection.
 
 ### Fixed
+- **Mission countdowns read one day too many across the autumn clock change.** In time zones with daylight saving time, a countdown spanning the change showed "In 11 days" for 10. The countdown now counts calendar days.
 - **A second manual draw silently replaced every target (SaaS).** The worker had no re-draw lock, and a draw that the rules made impossible returned a 500. Both runtimes now share one manual draw (`src/lib/manual-draw.ts`): a drawn mission needs explicit confirmation to re-draw, the draw is refused once gifts ship, and agents get the 🎯 notice the automatic draw sends.
 - **A paused draw showed as Recruiting.** While the Head Elf repairs a mission, its badge on the dashboard, Mission Center, mission page and North Pole now reads Draw Paused and counts down to the repair deadline.
 - **Cancelled missions still showed agent controls.** Wishlist editing, shipping, invites, nudges and disenroll buttons are hidden on a cancelled mission (the server already refused them), and its message channels report closed instead of failing on send.
