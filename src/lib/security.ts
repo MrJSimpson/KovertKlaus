@@ -290,7 +290,7 @@ export function getNextMilestoneCountdown(mission?: {
   }
 
   const diffTime = targetDate.getTime() - now.getTime();
-  const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.round(diffTime / (1000 * 60 * 60 * 24));
   const isToday = daysLeft === 0;
 
   let formattedText = '';

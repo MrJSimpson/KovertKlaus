@@ -64,6 +64,23 @@ test('Lifecycle & Milestone Engine Test Suite', async (t) => {
     assert.equal(result.isToday, false);
   });
 
+  // Local midnights across a DST change are 23 or 25 hours apart; the count must stay whole days.
+  // Run with TZ=America/Los_Angeles to exercise it (CI runs in UTC, which has no DST).
+  await t.test('getNextMilestoneCountdown counts calendar days across a DST change', () => {
+    const mission = {
+      status: 'RECRUITING',
+      virtualSystemDate: '2026-10-23',
+      inviteCutoffDate: '2026-11-02',
+      assignmentDate: '2026-12-01',
+      shippingDate: '2026-12-15',
+      executionDate: '2026-12-25',
+    };
+
+    const result = getNextMilestoneCountdown(mission);
+    assert.equal(result.daysLeft, 10);
+    assert.equal(result.formattedText, 'In 10 days');
+  });
+
   await t.test('getNextMilestoneCountdown handles Today milestone with celebratory label', () => {
     const today = new Date();
     const dateStr = toLocalDateString(today);
