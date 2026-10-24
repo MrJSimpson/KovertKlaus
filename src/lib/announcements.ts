@@ -34,6 +34,19 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '0.6.3-alpha',
+    date: '2026-10-24',
+    title: 'Your target email arrives on Assignment Day',
+    summary: 'When a mission draws targets on its own on Assignment Day, every agent now reliably gets the email with their target.',
+    highlights: [
+      {
+        emoji: '🎯',
+        title: 'Assignment emails always go out',
+        text: 'On Assignment Day the draw happens automatically and every agent is emailed their target. That email could get cut off before it was sent; now the draw waits until every email is on its way. You still get the notice in the app too.',
+      },
+    ],
+  },
+  {
     version: '0.6.2-alpha',
     date: '2026-10-24',
     title: 'Clearer Get Data results and security updates',
