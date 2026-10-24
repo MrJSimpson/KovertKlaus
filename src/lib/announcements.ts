@@ -34,6 +34,30 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '0.6.2-alpha',
+    date: '2026-10-24',
+    title: 'Clearer Get Data results and security updates',
+    summary: 'Get Data no longer fills in a store name or a "robot check" as your item, and KovertKlaus is running on the latest security fixes.',
+    highlights: [
+      {
+        emoji: '🔗',
+        title: 'No more store names as item names',
+        text: 'Some stores refuse lookups. Before, Get Data could fill the item name with the store\'s web address or a "Robot or human?" message. Now it leaves the form empty and asks you to fill in the details yourself.',
+      },
+      {
+        emoji: '🛡️',
+        title: 'Security updates',
+        text: 'Everything KovertKlaus is built on has been updated to the latest versions, including important security fixes.',
+      },
+      {
+        emoji: '🖥️',
+        title: 'Self-hosted: please update',
+        text: 'This release fixes serious security issues in Next.js that affect self-hosted servers. Update your instance as soon as you can.',
+        selfHostedOnly: true,
+      },
+    ],
+  },
+  {
     version: '0.6.1-alpha',
     date: '2026-10-24',
     title: 'Get Data works again',

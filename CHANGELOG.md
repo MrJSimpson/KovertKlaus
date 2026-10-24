@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.6.2-alpha] - 2026-10-24
+
+Dev #44–#46.
+
 ### Security
 - **Next.js 16.4.3** fixes two critical remote code execution advisories (image optimizer with SVG files, `use cache` returning typed arrays) and a Server Actions denial of service (GHSA-2464-fhr4-w9xw, GHSA-673q-mjm6-r5xr, GHSA-p3m5-59mp-jv5r). The SaaS edition is a static export and was not exposed; **self-hosted instances run a Next.js server and should update.**
 - **Nodemailer 10.2.1** fixes address-parsing flaws that could turn display text into an extra recipient.
