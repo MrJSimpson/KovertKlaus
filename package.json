@@ -64,7 +64,7 @@
     "js-yaml": ">=4.3.2",
     "qs": ">=6.15.4",
     "mysql2": ">=3.23.1",
-    "brace-expansion": ">=1.1.21",
+    "brace-expansion@1": "^1.1.21",
     "glob": "^12.0.0",
     "@node-minify/core": "^11.0.0",
     "@napi-rs/wasm-runtime": {
