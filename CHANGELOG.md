@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Assignment Day emails are no longer at risk of being dropped.** The automatic draw started each agent's assignment email without waiting for it, so on the SaaS edition the hourly sweep could finish (and Cloudflare could end it) before the emails were sent. The automatic and manual draws now share one sender that waits for every email, logs any that fail without stopping the others, and uses the edge worker's email settings. No automatic draw had run in production yet. Email dates in the automatic draw now read like the manual draw's ("Dec 20, 2026").
+
 ---
 
 ## [0.6.2-alpha] - 2026-10-24

@@ -3,6 +3,8 @@ import { sendAssignmentEmail, sendMissionCancelledEmail, sendMissionRepairEmail 
 import { notifyOnce } from './notifications';
 import { purgeCancelledMissions } from './mission-cancel';
 import { READINESS_MEMBERS_INCLUDE, runRepairSweep, type MissionRepairDeps, type RepairOutcome } from './mission-repair';
+import { sendDrawAssignmentEmails } from './manual-draw';
+import type { AssignmentEmailParams } from './email/types';
 
 export interface LifecycleTransition {
   exchangeId: string;
@@ -41,16 +43,22 @@ export interface LifecycleSummary {
  * @param db - Prisma client instance
  * @returns LifecycleSummary of all transitions executed
  */
+/** Runtime pieces for the sweep: repair and cancellation emails, plus the Assignment Day draw email. */
+export interface MissionLifecycleDeps extends MissionRepairDeps {
+  sendAssignmentEmail: (email: AssignmentEmailParams) => Promise<unknown>;
+}
+
 /** Default email senders for the sweep; the edge worker passes its own (with its email settings). */
-export function defaultLifecycleDeps(): MissionRepairDeps {
+export function defaultLifecycleDeps(): MissionLifecycleDeps {
   return {
     baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://kovertklaus.com',
     sendEmail: (email) => sendMissionCancelledEmail(email),
     sendRepairEmail: (email) => sendMissionRepairEmail(email),
+    sendAssignmentEmail: (email) => sendAssignmentEmail(email),
   };
 }
 
-export async function advanceMissionLifecycle(db: any, deps: MissionRepairDeps = defaultLifecycleDeps()): Promise<LifecycleSummary> {
+export async function advanceMissionLifecycle(db: any, deps: MissionLifecycleDeps = defaultLifecycleDeps()): Promise<LifecycleSummary> {
   const now = new Date();
 
   // Find all active uncompleted missions
@@ -235,25 +243,16 @@ export async function advanceMissionLifecycle(db: any, deps: MissionRepairDeps =
               }).catch(() => {});
             }
 
-            // Dispatch assignment notification emails
-            const enrolledUsers = ex.members.map((m: any) => m.user).filter(Boolean);
-            for (const assignment of assignments) {
-              const giver = enrolledUsers.find((u: any) => u.id === assignment.agentId);
-              const target = enrolledUsers.find((u: any) => u.id === assignment.targetId);
-
-              if (giver?.email && giver.emailNotifications !== false && target) {
-                sendAssignmentEmail({
-                  recipientEmail: giver.email,
-                  recipientName: giver.name || 'Operative',
-                  targetCodename: ex.members.find((m: { userId: string; codename: string | null }) => m.userId === assignment.targetId)?.codename || 'Target Operative',
-                  targetName: target.name || undefined,
-                  exchangeTitle: ex.title,
-                  shippingDeadline: ex.shippingDate ? new Date(ex.shippingDate).toLocaleDateString() : undefined,
-                  exchangeDate: ex.executionDate ? new Date(ex.executionDate).toLocaleDateString() : undefined,
-                  exchangeUrl: `${process.env.NEXTAUTH_URL || 'https://kovertklaus.com'}/exchange/${ex.code}`,
-                }).catch(() => {});
-              }
-            }
+            // Assignment emails, awaited: the cron's waitUntil ends with this sweep, and unfinished sends were dropped
+            await sendDrawAssignmentEmails(
+              ex,
+              assignments,
+              {
+                exchangeUrl: (code) => `${deps.baseUrl.replace(/\/+$/, '')}/exchange/${code}`,
+                sendAssignmentEmail: deps.sendAssignmentEmail,
+              },
+              '[Lifecycle Draw]'
+            );
 
             transitions.push({
               exchangeId: ex.id,
