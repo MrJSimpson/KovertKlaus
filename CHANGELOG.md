@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Next.js 16.4.3** fixes two critical remote code execution advisories (image optimizer with SVG files, `use cache` returning typed arrays) and a Server Actions denial of service (GHSA-2464-fhr4-w9xw, GHSA-673q-mjm6-r5xr, GHSA-p3m5-59mp-jv5r). The SaaS edition is a static export and was not exposed; **self-hosted instances run a Next.js server and should update.**
+- **Nodemailer 10.2.1** fixes address-parsing flaws that could turn display text into an extra recipient.
+- **All dependencies updated** to their newest release that is at least 7 days old. `.npmrc` now sets `min-release-age=7`, so `npm install` skips versions published in the last week (most malicious package versions are caught within days). Urgent security fixes are installed explicitly after checking their registry signatures and provenance. Notable: React 19.3.1, Prisma 7.10.1, TypeScript 6.0, `@types/node` 24 (matches the Node 24 runtime).
+
 ### Fixed
+- **`npm run lint` crashed** (`expand is not a function`): the `brace-expansion` override forced v5 under ESLint's `minimatch@3`. The override now applies to the 1.x line only.
 - **Get Data no longer fills in a store's domain or its bot check as the item name.** When a store refused the lookup, the title box was filled with the domain (for example `www.etsy.com`), and a store that answered with its "Robot or human?" page had that title saved as the item name and cached for 24 hours for everyone. Pages without a product title, domain-only titles and bot-check pages are now treated as failed lookups: nothing is cached, the title is left empty, and the form asks the agent to fill in the details. Catalog entries saved from such pages earlier are ignored and replaced on the next successful lookup.
 - **Scraper failures now reach North Pole → Logs on the SaaS edition.** The log write was not awaited, so the Worker could finish the request before it was saved. Failed lookups (including the new `BOT_CHALLENGE` and `NO_METADATA` reasons) are now logged reliably.
 

@@ -1,0 +1,57 @@
+# Dependabot version updates for KovertKlaus (dev). The SaaS repository receives these through the
+# upstream sync (.github/ is not synced, so this file stays here).
+#
+# Supply-chain cooldown: a new release is proposed only after it has been public for 7 days, matching
+# `min-release-age=7` in .npmrc. Dependabot security updates (repository setting) are not delayed.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    groups:
+      # One PR for every minor and patch update; majors come one per PR so each can be reviewed.
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Majors blocked by peer ranges (see CHANGELOG, Unreleased → Security). Revisit when the
+      # typescript-eslint and eslint-plugin-react/import/jsx-a11y peer ranges allow them.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
+      # Track the Node 24 runtime (Dockerfile, CI), not the newest Node typings.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "ci(deps)"
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(docker)"
