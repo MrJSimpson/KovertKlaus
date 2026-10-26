@@ -29,6 +29,7 @@ import { detectCarrier } from '@/lib/carrier-tracking';
 import { UserDossierPreferences } from '@/lib/product-intelligence';
 import { resolveExchangeCode } from '@/lib/exchange-route';
 import { fetchJsonWithRetry } from '@/lib/load-retry';
+import { memberCardStatus } from '@/lib/member-status';
 import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
 
@@ -943,7 +944,7 @@ export default function OperationCommandCenterPage() {
       {/* Top Header Navigation */}
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
-          <Link href="/operations" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md shrink-0 bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
@@ -968,11 +969,11 @@ export default function OperationCommandCenterPage() {
             {userId ? (
               <>
                 <Link
-                  href="/operations"
+                  href="/dashboard"
                   className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
                 >
-                  <span className="sm:hidden">← Ops</span>
-                  <span className="hidden sm:inline">← Operations Center</span>
+                  <span className="sm:hidden">← Home</span>
+                  <span className="hidden sm:inline">← Dashboard</span>
                 </Link>
 
                 <button
@@ -1030,8 +1031,8 @@ export default function OperationCommandCenterPage() {
                   Try Again
                 </button>
               )}
-              <Link href="/operations" className={`px-6 py-3 font-bold text-xs rounded-xl ${theme.btnPrimary}`}>
-                Return to Operations Center
+              <Link href="/dashboard" className={`px-6 py-3 font-bold text-xs rounded-xl ${theme.btnPrimary}`}>
+                Return to Dashboard
               </Link>
             </div>
           </div>
@@ -2028,7 +2029,13 @@ export default function OperationCommandCenterPage() {
                                     🎅 Your Secret Santa
                                   </span>
                                 )}
-                                {agent.shippingStatus === 'SHIPPED' ? (
+                                {(() => {
+                                  const cardStatus = memberCardStatus(operation, agent);
+                                  return cardStatus === 'JOINED' ? (
+                                  <span className="text-[10px] font-mono font-bold text-kk-brand">
+                                    ✓ Joined
+                                  </span>
+                                ) : cardStatus === 'SHIPPED' ? (
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-[10px] font-mono font-bold text-kk-brand">
                                       ✓ Shipped
@@ -2042,15 +2049,16 @@ export default function OperationCommandCenterPage() {
                                       );
                                     })()}
                                   </div>
-                                ) : agent.shippingStatus === 'LOCAL_DELIVERY' ? (
+                                ) : cardStatus === 'HAND_DELIVERY' ? (
                                   <span className="text-[10px] font-mono font-bold text-kk-brand">
                                     🤝 Hand Delivery
                                   </span>
                                 ) : (
                                   <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
-                                    ⏳ Pending
+                                    ⏳ Not Shipped Yet
                                   </span>
-                                )}
+                                );
+                                })()}
                               </div>
                             </div>
                           </div>

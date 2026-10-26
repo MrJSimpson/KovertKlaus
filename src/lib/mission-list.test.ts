@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import {
   DEFAULT_HIDE_PREFS,
+  filterMissions,
   getHidePrefsSnapshot,
   getServerHidePrefsSnapshot,
   HIDE_PREFS_KEY,
@@ -10,7 +11,7 @@ import {
   setHidePrefs,
   subscribeHidePrefs,
   writeHidePrefs,
-} from './mission-list-prefs';
+} from './mission-list';
 
 /** In-memory storage; `broken` makes every call throw like a blocked private window. */
 function memoryStorage(broken = false) {
@@ -73,4 +74,26 @@ test('Mission list - store notifies subscribers and saves the toggles', () => {
   unsubscribe();
   setHidePrefs(DEFAULT_HIDE_PREFS, s);
   assert.strictEqual(calls, 1);
+});
+
+test('Mission list - filters by search, role, status and hide toggles', () => {
+  const missions = [
+    { id: '1', title: 'Family Secret Santa', code: 'KOVERT-AAAA', status: 'RECRUITING', organizerId: 'me' },
+    { id: '2', title: 'Office Swap', code: 'KOVERT-BBBB', status: 'MATCHED', organizerId: 'boss' },
+    { id: '3', title: 'Last Year', code: 'KOVERT-CCCC', status: 'COMPLETED', organizerId: 'me' },
+    { id: '4', title: 'Failed One', code: 'KOVERT-DDDD', status: 'CANCELLED', organizerId: 'boss' },
+  ];
+  const ids = (f: Partial<Parameters<typeof filterMissions>[2]>) =>
+    filterMissions(missions, 'me', { query: '', role: 'ALL', status: 'ALL', hide: DEFAULT_HIDE_PREFS, ...f }).map((m) => m.id);
+
+  assert.deepStrictEqual(ids({}), ['1', '2', '3', '4'], 'everything by default');
+  assert.deepStrictEqual(ids({ query: '  santa ' }), ['1']);
+  assert.deepStrictEqual(ids({ query: 'bbbb' }), ['2'], 'search matches the code');
+  assert.deepStrictEqual(ids({ role: 'HEAD_ELF' }), ['1', '3']);
+  assert.deepStrictEqual(ids({ role: 'ELF_AGENT' }), ['2', '4']);
+  assert.deepStrictEqual(ids({ status: 'RECRUITING' }), ['1']);
+  assert.deepStrictEqual(ids({ status: 'ASSIGNED' }), ['2']);
+  assert.deepStrictEqual(ids({ status: 'COMPLETED' }), ['3']);
+  assert.deepStrictEqual(ids({ hide: { hideCompleted: true, hideCancelled: true } }), ['1', '2']);
+  assert.deepStrictEqual(ids({ status: 'COMPLETED', hide: { hideCompleted: true, hideCancelled: false } }), [], 'hide wins over the status filter');
 });
