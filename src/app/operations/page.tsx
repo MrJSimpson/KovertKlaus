@@ -2,11 +2,20 @@
 
 import { USER_ID_KEY } from '@/lib/constants/auth';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
 import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
+import { fetchJsonWithRetry } from '@/lib/load-retry';
+import {
+  getHidePrefsSnapshot,
+  getServerHidePrefsSnapshot,
+  isHiddenFinished,
+  setHidePrefs,
+  subscribeHidePrefs,
+  type HidePrefs,
+} from '@/lib/mission-list-prefs';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
 
@@ -55,6 +64,8 @@ const STATUS_FILTER_GROUPS: Record<'RECRUITING' | 'ASSIGNED' | 'COMPLETED', stri
 export default function OperationCenterPage() {
   const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
+  /** Set once a load has been retried, so the loading screen says the servers are waking up. */
+  const [wakingUp, setWakingUp] = useState(false);
   const [operations, setOperations] = useState<OperationItem[]>([]);
 
   // Modals
@@ -66,22 +77,29 @@ export default function OperationCenterPage() {
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'ORGANIZER' | 'MEMBER' | 'OPS_LEADER' | 'AGENT'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RECRUITING' | 'ASSIGNED' | 'COMPLETED'>('ALL');
 
+  // Hide finished missions (remembered per browser; the server render shows everything)
+  const hidePrefs = useSyncExternalStore(subscribeHidePrefs, getHidePrefsSnapshot, getServerHidePrefsSnapshot);
+
   useEffect(() => {
     fetchOperations();
   }, []);
+
+  function toggleHide(key: keyof HidePrefs) {
+    setHidePrefs({ ...hidePrefs, [key]: !hidePrefs[key] });
+  }
 
   async function fetchOperations() {
     setLoading(true);
     let activeUserId = localStorage.getItem(USER_ID_KEY);
 
     try {
-      const meRes = await fetch('/api/users/me');
-      const meJson = await meRes.json();
-      if (meRes.ok && meJson.authenticated && meJson.user) {
+      const me = await fetchJsonWithRetry('/api/users/me', { onRetry: () => setWakingUp(true) });
+      const meJson = me.json;
+      if (me.ok && meJson.authenticated && meJson.user) {
         activeUserId = meJson.user.id;
         localStorage.setItem(USER_ID_KEY, meJson.user.id);
         localStorage.setItem('kovertklaus_user_name', meJson.user.name);
-      } else if (meRes.status === 401) {
+      } else if (me.status === 401) {
         // Session expired or signed out: drop the cached identity.
         activeUserId = null;
         localStorage.removeItem(USER_ID_KEY);
@@ -93,12 +111,14 @@ export default function OperationCenterPage() {
 
     if (!activeUserId) {
       setLoading(false);
+      setWakingUp(false);
       return;
     }
 
     try {
-      const res = await fetch(`/api/operations?userId=${activeUserId}`);
-      const json = await res.json();
+      const { json } = await fetchJsonWithRetry(`/api/operations?userId=${encodeURIComponent(activeUserId)}`, {
+        onRetry: () => setWakingUp(true),
+      });
       if (json.success && Array.isArray(json.data)) {
         const mapped = json.data.map((op: any) => {
           const userMember = op.members?.find((m: any) => m.userId === activeUserId) || op.agents?.find((a: any) => a.userId === activeUserId);
@@ -117,6 +137,7 @@ export default function OperationCenterPage() {
       console.error('Failed to load operations');
     } finally {
       setLoading(false);
+      setWakingUp(false);
     }
   }
 
@@ -134,8 +155,14 @@ export default function OperationCenterPage() {
       (roleFilter === 'MEMBER' && item.role === 'FIELD_AGENT');
     // Filters group the real ExchangeStatus values: Recruiting covers setup, Assigned covers drawn missions.
     const statusMatch = statusFilter === 'ALL' || STATUS_FILTER_GROUPS[statusFilter].includes(ex.status);
-    return (titleMatch || codeMatch) && roleMatch && statusMatch;
+    return (titleMatch || codeMatch) && roleMatch && statusMatch && !isHiddenFinished(ex.status, hidePrefs);
   });
+
+  /** Missions the hide toggles alone are keeping off the list, for the empty-state hint. */
+  const hiddenFinishedCount = operations.filter((item) => {
+    const ex = item.exchange || item.mission;
+    return ex ? isHiddenFinished(ex.status, hidePrefs) : false;
+  }).length;
 
   async function handleSignOut() {
     try {
@@ -312,6 +339,32 @@ export default function OperationCenterPage() {
                 Assigned
               </button>
             </div>
+
+            {/* Hide finished missions */}
+            <div className={`flex flex-wrap items-center gap-1 p-1 rounded-xl border bg-kk-inset border-kk-border`}>
+              <button
+                onClick={() => toggleHide('hideCompleted')}
+                aria-pressed={hidePrefs.hideCompleted}
+                className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
+                  hidePrefs.hideCompleted
+                    ? theme.btnPrimary
+                    : 'text-kk-muted hover:text-kk-ink'
+                }`}
+              >
+                Hide Completed
+              </button>
+              <button
+                onClick={() => toggleHide('hideCancelled')}
+                aria-pressed={hidePrefs.hideCancelled}
+                className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
+                  hidePrefs.hideCancelled
+                    ? theme.btnPrimary
+                    : 'text-kk-muted hover:text-kk-ink'
+                }`}
+              >
+                Hide Cancelled
+              </button>
+            </div>
           </div>
         </div>
 
@@ -320,6 +373,9 @@ export default function OperationCenterPage() {
           <div className="text-center py-20">
             <div className="text-4xl animate-bounce mb-3">🎁</div>
             <p className="text-sm font-semibold">Loading Exchange Workspace...</p>
+            {wakingUp && (
+              <p className={`text-xs mt-2 ${theme.textSubLabel}`}>Waking up the North Pole servers. This can take up to half a minute.</p>
+            )}
           </div>
         ) : filteredOperations.length === 0 ? (
           <div className={`p-12 text-center rounded-3xl border ${theme.cardBg}`}>
@@ -328,6 +384,11 @@ export default function OperationCenterPage() {
             <p className={`text-xs mb-6 ${theme.textSubLabel}`}>
               You aren't currently enrolled in any exchanges matching your filter criteria.
             </p>
+            {hiddenFinishedCount > 0 && (
+              <p className={`text-xs -mt-4 mb-6 ${theme.textSubLabel}`}>
+                {hiddenFinishedCount} finished {hiddenFinishedCount === 1 ? 'mission is' : 'missions are'} hidden. Turn off Hide Completed or Hide Cancelled to see {hiddenFinishedCount === 1 ? 'it' : 'them'}.
+              </p>
+            )}
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={() => setCreateModalOpen(true)}
