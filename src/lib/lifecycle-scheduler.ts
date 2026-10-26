@@ -139,6 +139,22 @@ export async function tickLifecycleScheduler(
   return true;
 }
 
+/** How often the self-hosted scheduler sends emails held over the daily quota. */
+const HELD_EMAIL_FLUSH_INTERVAL_MS = 10 * 60 * 1000;
+let lastHeldEmailFlushAt = 0;
+
+/**
+ * Sends emails held over the daily quota (Brevo only), at most every 10 minutes. Separate from the
+ * lifecycle sweep so held mail goes out even when the sweep is disabled or not due.
+ */
+export async function tickHeldEmailFlush(now = Date.now()): Promise<void> {
+  if (now - lastHeldEmailFlushAt < HELD_EMAIL_FLUSH_INTERVAL_MS) return;
+  lastHeldEmailFlushAt = now;
+  // Imported here so the scheduler's tests do not load the email stack.
+  const { flushHeldEmailQueue } = await import('./email/dispatcher');
+  await flushHeldEmailQueue();
+}
+
 export function stopLifecycleScheduler(): void {
   if (globalThis.__kovertklaus_lifecycle_initial_timeout__) {
     clearTimeout(globalThis.__kovertklaus_lifecycle_initial_timeout__);
@@ -189,6 +205,11 @@ export function initLifecycleScheduler(tickIntervalMs = 60000): void {
       await tickLifecycleScheduler();
     } catch (err) {
       console.error('[Lifecycle Scheduler] Error during periodic evaluation tick:', err);
+    }
+    try {
+      await tickHeldEmailFlush();
+    } catch (err) {
+      console.error('[Lifecycle Scheduler] Error sending held emails:', err);
     }
   }, tickIntervalMs);
   ticker.unref?.();

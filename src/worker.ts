@@ -22,7 +22,7 @@ import { executeTargetSwap } from './lib/draw';
 import { runManualDraw } from './lib/manual-draw';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
 import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
-import { sendEmail } from './lib/email/dispatcher';
+import { flushHeldEmailQueue, sendEmail } from './lib/email/dispatcher';
 import {
   sendWelcomeEmail,
   sendInvitationEmail,
@@ -2698,6 +2698,12 @@ export default {
           process.env.DATABASE_ADMIN_URL;
 
         const adminDb = getAdminDb(adminConnStr);
+
+        // Emails held over yesterday's quota go out first, whether or not a lifecycle sweep is due.
+        await flushHeldEmailQueue(await resolveWorkerEmailConfig(env, adminDb)).catch((err: unknown) => {
+          console.error('[CRON] Held email flush failed:', err instanceof Error ? err.message : err);
+        });
+
         const config = await adminDb.systemConfig.findUnique({
           where: { id: 'singleton' },
           select: {

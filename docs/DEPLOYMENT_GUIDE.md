@@ -137,6 +137,7 @@ Access your instance at: `http://localhost:3000`
 | `EMAIL_PROVIDER` | Optional | `auto` (`brevo`, `smtp`, `resend`, `console`) | Active transactional email provider. |
 | `BREVO_API_KEY` | Optional | `xkeysib-...` | Brevo REST API key for zero-dependency edge dispatches. |
 | `BREVO_SENDER_EMAIL` | Optional | `admin@kovertklaus.com` | Verified transactional sender email address. |
+| `EMAIL_DAILY_QUOTA` | Optional | `300` | Brevo emails allowed per day (resets midnight Pacific). Sends past 10 below it are held until the next day; see `docs/EMAIL_SYSTEM.md`. |
 | `SMTP_HOST` | Optional | `mail.yourdomain.com` | SMTP host for self-hosted mail dispatch. |
 | `SMTP_PORT` | Optional | `587` | SMTP port (587 for TLS, 465 for SSL). |
 | `SMTP_USER` | Optional | `operative@yourdomain.com` | SMTP username. |

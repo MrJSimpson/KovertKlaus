@@ -23,6 +23,8 @@ export interface EmailResult {
   messageId?: string;
   error?: string;
   attempts?: number;
+  /** True when the email was held over the daily quota; it is sent after midnight Pacific. */
+  held?: boolean;
 }
 
 export interface EmailConfig {

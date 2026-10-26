@@ -583,6 +583,25 @@ model SystemLog {
   @@schema("admin")
 }
 
+/// Ledger of Brevo sends and emails held over the daily quota (src/lib/email/daily-limit.ts).
+/// SENT rows keep only counts; HELD rows keep the message until it is sent. Admin schema: the
+/// held content includes assignment details.
+model EmailOutbox {
+  id         String    @id @default(uuid())
+  status     String // "SENT" | "HELD" | "FAILED"
+  recipients Int       @default(1)
+  subject    String
+  message    String?   @db.Text // JSON EmailMessage while HELD; null once sent or failed
+  attempts   Int       @default(0) // failed flush attempts
+  lastError  String?
+  createdAt  DateTime  @default(now())
+  sentAt     DateTime?
+
+  @@index([status, createdAt])
+  @@index([status, sentAt])
+  @@schema("admin")
+}
+
 model PreLaunchApproval {
   id         String   @id @default(uuid())
   email      String   @unique
