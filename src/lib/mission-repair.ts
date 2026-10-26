@@ -124,12 +124,30 @@ export function failureReasonFor(issues: ReadinessIssue[]): MissionFailureReason
   return 'REPAIR_DEADLINE_MISSED';
 }
 
-/** What agents are told when the deadline passes. */
-function cancellationReasonText(issues: ReadinessIssue[]): string {
+/** `1 agent` / `2 agents`. */
+function agentCount(n: number): string {
+  return `${n} ${n === 1 ? 'agent' : 'agents'}`;
+}
+
+/**
+ * What every agent is told when the deadline passes. It says what was left unfixed, with counts
+ * but no names, because the same text goes to every agent and is stored on the mission.
+ */
+export function cancellationReasonText(issues: ReadinessIssue[]): string {
   const code = failureReasonFor(issues);
-  if (code === 'NOT_ENOUGH_AGENTS') return 'There were not enough agents to start the mission.';
+  if (code === 'NOT_ENOUGH_AGENTS') {
+    const short = issues.find((i): i is Extract<ReadinessIssue, { type: 'NOT_ENOUGH_AGENTS' }> => i.type === 'NOT_ENOUGH_AGENTS');
+    return `There were not enough agents to start the mission: ${short?.have ?? 0} of the ${short?.need ?? 0} needed had joined by the deadline.`;
+  }
   if (code === 'DRAW_FAILED') return 'The match rules made a Secret Santa draw impossible and were not changed in time.';
-  return 'Problems blocking the draw were not fixed before the deadline.';
+  const wishlists = issues.filter((i) => i.type === 'EMPTY_WISHLIST').length;
+  const addresses = issues.filter((i) => i.type === 'MISSING_ADDRESS').length;
+  const parts = [
+    wishlists ? `${agentCount(wishlists)} still had an empty wishlist` : null,
+    addresses ? `${agentCount(addresses)} still had no shipping address` : null,
+  ].filter(Boolean);
+  if (parts.length === 0) return 'Problems blocking the draw were not fixed before the deadline.';
+  return `The draw could not run: at the deadline, ${parts.join(' and ')}.`;
 }
 
 /** `November 3, 2026` (UTC). */

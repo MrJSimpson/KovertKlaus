@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import {
   agentTodo,
+  cancellationReasonText,
   drawReadinessIssues,
   failureReasonFor,
   isRosterLocked,
@@ -77,6 +78,30 @@ test('Repair - failure reasons and agent to-dos', () => {
   const issues = [{ type: 'MISSING_ADDRESS' as const, userId: 'a' }, { type: 'EMPTY_WISHLIST' as const, userId: 'a' }];
   assert.match(agentTodo(issues, 'a')!, /shipping address.*and.*wishlist/);
   assert.strictEqual(agentTodo(issues, 'b'), null);
+});
+
+test('Repair - cancellation reason says what was left unfixed, without names', () => {
+  assert.strictEqual(
+    cancellationReasonText([{ type: 'NOT_ENOUGH_AGENTS', have: 2, need: 4 }, { type: 'EMPTY_WISHLIST', userId: 'a' }]),
+    'There were not enough agents to start the mission: 2 of the 4 needed had joined by the deadline.'
+  );
+  assert.match(cancellationReasonText([{ type: 'DRAW_IMPOSSIBLE' }]), /match rules/);
+  assert.strictEqual(
+    cancellationReasonText([{ type: 'EMPTY_WISHLIST', userId: 'a' }]),
+    'The draw could not run: at the deadline, 1 agent still had an empty wishlist.'
+  );
+  assert.strictEqual(
+    cancellationReasonText([{ type: 'MISSING_ADDRESS', userId: 'a' }, { type: 'MISSING_ADDRESS', userId: 'b' }]),
+    'The draw could not run: at the deadline, 2 agents still had no shipping address.'
+  );
+  const mixed = cancellationReasonText([
+    { type: 'MISSING_ADDRESS', userId: 'a' },
+    { type: 'EMPTY_WISHLIST', userId: 'a' },
+    { type: 'EMPTY_WISHLIST', userId: 'b' },
+  ]);
+  assert.strictEqual(mixed, 'The draw could not run: at the deadline, 2 agents still had an empty wishlist and 1 agent still had no shipping address.');
+  assert.doesNotMatch(mixed, /a|b/, 'no agent identifiers in a reason every agent sees');
+  assert.match(cancellationReasonText([]), /Problems blocking the draw/);
 });
 
 test('Repair - agents see only their own issues; the Head Elf sees all', () => {
@@ -195,6 +220,6 @@ test('Repair sweep - still blocked at the deadline: cancelled by the system with
   assert.strictEqual(f.ex.status, 'CANCELLED');
   assert.strictEqual(f.ex.cancelledBy, 'SYSTEM');
   assert.strictEqual(f.ex.cancelCode, 'NOT_ENOUGH_AGENTS');
-  assert.match(f.ex.cancelReason, /not enough agents/);
+  assert.match(f.ex.cancelReason, /not enough agents to start the mission: 2 of the 4 needed/);
   assert.ok(f.notices.some((n) => n.dedupeKey === 'mission-cancelled:ex1' && n.message.startsWith('KovertKlaus cancelled')));
 });

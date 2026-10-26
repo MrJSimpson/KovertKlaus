@@ -28,6 +28,8 @@ const formatMoney = (dollars: number) => `$${Number(dollars).toFixed(2)}`;
 import { detectCarrier } from '@/lib/carrier-tracking';
 import { UserDossierPreferences } from '@/lib/product-intelligence';
 import { resolveExchangeCode } from '@/lib/exchange-route';
+import { fetchJsonWithRetry } from '@/lib/load-retry';
+import { memberCardStatus } from '@/lib/member-status';
 import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
 
@@ -143,6 +145,10 @@ export default function OperationCommandCenterPage() {
   const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  /** HTTP status of a failed load (0 when the server was unreachable); picks the error heading. */
+  const [errorStatus, setErrorStatus] = useState(0);
+  /** Set once a load has been retried, so the loading screen says the servers are waking up. */
+  const [wakingUp, setWakingUp] = useState(false);
   const [operation, setOperation] = useState<OperationData | null>(null);
 
   // Current User Session
@@ -301,9 +307,8 @@ export default function OperationCommandCenterPage() {
   useEffect(() => {
     async function initSession() {
       try {
-        const res = await fetch('/api/users/me');
-        const json = await res.json();
-        if (res.ok && json.authenticated && json.user) {
+        const { status, ok, json } = await fetchJsonWithRetry('/api/users/me', { onRetry: () => setWakingUp(true) });
+        if (ok && json.authenticated && json.user) {
           setUserId(json.user.id);
           setUserName(json.user.name);
           localStorage.setItem(USER_ID_KEY, json.user.id);
@@ -320,9 +325,10 @@ export default function OperationCommandCenterPage() {
             favoriteHobbies: json.user.favoriteHobbies,
           });
 
-        } else {
+        } else if (status === 401 || status === 404) {
           // The server says the session is gone (expired or signed out): forget the cached
-          // identity so the page offers sign-in instead of acting on a dead session.
+          // identity so the page offers sign-in instead of acting on a dead session. A server
+          // that is still unreachable after the retries says nothing about the session.
           localStorage.removeItem(USER_ID_KEY);
           localStorage.removeItem('kovertklaus_user_name');
         }
@@ -364,19 +370,24 @@ export default function OperationCommandCenterPage() {
     if (!code) return;
     setLoading(true);
     setError('');
+    setErrorStatus(0);
     try {
-      const res = await fetch(`/api/operations?code=${code}`);
-      const json = await res.json();
-      if (!res.ok || !json.success || !json.data) {
+      const { status, ok, json } = await fetchJsonWithRetry(`/api/operations?code=${encodeURIComponent(code)}`, {
+        onRetry: () => setWakingUp(true),
+      });
+      if (!ok || !json.success || !json.data) {
+        setErrorStatus(status);
         setError(json.error || 'Operation not found');
       } else {
         setOperation(json.data);
         populateForms(json.data);
       }
     } catch {
-      setError('Failed to load operation details');
+      setErrorStatus(0);
+      setError('Could not reach KovertKlaus. Check your connection and try again.');
     } finally {
       setLoading(false);
+      setWakingUp(false);
     }
   }
 
@@ -933,7 +944,7 @@ export default function OperationCommandCenterPage() {
       {/* Top Header Navigation */}
       <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
-          <Link href="/operations" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md shrink-0 bg-kk-primary text-kk-on-primary border border-kk-border-strong">
               🎁
             </div>
@@ -958,11 +969,11 @@ export default function OperationCommandCenterPage() {
             {userId ? (
               <>
                 <Link
-                  href="/operations"
+                  href="/dashboard"
                   className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
                 >
-                  <span className="sm:hidden">← Ops</span>
-                  <span className="hidden sm:inline">← Operations Center</span>
+                  <span className="sm:hidden">← Home</span>
+                  <span className="hidden sm:inline">← Dashboard</span>
                 </Link>
 
                 <button
@@ -1000,15 +1011,30 @@ export default function OperationCommandCenterPage() {
           <div className="text-center py-20">
             <div className="text-4xl animate-bounce mb-3">🎁</div>
             <p className="text-sm font-semibold">Initializing Command Center Data Stream...</p>
+            {wakingUp && (
+              <p className="text-xs text-kk-muted mt-2">Waking up the North Pole servers. This can take up to half a minute.</p>
+            )}
           </div>
         ) : error ? (
           <div className="text-center py-20 max-w-md mx-auto">
             <div className="text-4xl mb-3">⚠️</div>
-            <h2 className="text-xl font-bold mb-2">Operation Access Denied</h2>
+            <h2 className="text-xl font-bold mb-2">
+              {errorStatus === 404 ? 'Operation Not Found' : errorStatus === 401 || errorStatus === 403 ? 'Operation Access Denied' : 'Command Center Unreachable'}
+            </h2>
             <p className="text-xs text-kk-muted mb-6">{error}</p>
-            <Link href="/operations" className={`px-6 py-3 font-bold text-xs rounded-xl ${theme.btnPrimary}`}>
-              Return to Operations Center
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {(errorStatus === 0 || errorStatus >= 500) && (
+                <button
+                  onClick={() => fetchExchangeDetails()}
+                  className={`px-6 py-3 font-bold text-xs rounded-xl cursor-pointer ${theme.btnSecondary}`}
+                >
+                  Try Again
+                </button>
+              )}
+              <Link href="/dashboard" className={`px-6 py-3 font-bold text-xs rounded-xl ${theme.btnPrimary}`}>
+                Return to Dashboard
+              </Link>
+            </div>
           </div>
         ) : operation ? (
           <div className="space-y-8">
@@ -2003,7 +2029,13 @@ export default function OperationCommandCenterPage() {
                                     🎅 Your Secret Santa
                                   </span>
                                 )}
-                                {agent.shippingStatus === 'SHIPPED' ? (
+                                {(() => {
+                                  const cardStatus = memberCardStatus(operation, agent);
+                                  return cardStatus === 'JOINED' ? (
+                                  <span className="text-[10px] font-mono font-bold text-kk-brand">
+                                    ✓ Joined
+                                  </span>
+                                ) : cardStatus === 'SHIPPED' ? (
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-[10px] font-mono font-bold text-kk-brand">
                                       ✓ Shipped
@@ -2017,15 +2049,16 @@ export default function OperationCommandCenterPage() {
                                       );
                                     })()}
                                   </div>
-                                ) : agent.shippingStatus === 'LOCAL_DELIVERY' ? (
+                                ) : cardStatus === 'HAND_DELIVERY' ? (
                                   <span className="text-[10px] font-mono font-bold text-kk-brand">
                                     🤝 Hand Delivery
                                   </span>
                                 ) : (
                                   <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
-                                    ⏳ Pending
+                                    ⏳ Not Shipped Yet
                                   </span>
-                                )}
+                                );
+                                })()}
                               </div>
                             </div>
                           </div>

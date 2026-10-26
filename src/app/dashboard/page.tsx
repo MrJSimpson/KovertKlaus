@@ -2,19 +2,31 @@
 
 import { USER_ID_KEY } from '@/lib/constants/auth';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateString, getNextMilestoneCountdown } from '@/lib/security';
 import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
 import { useTheme } from '@/context/ThemeContext';
-import { Card, SectionHeader, Button, Badge, DataRow } from '@/components/ui';
+import { Card, SectionHeader, Button, Badge, DataRow, FilterContainer, FilterTab } from '@/components/ui';
 import { AccountPreferencesModal, type PreferencesTab } from '@/components/AccountPreferencesModal';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
 import { NotificationBell, type PinnedNotice } from '@/components/NotificationBell';
 import { WhatsNewButton } from '@/components/WhatsNewButton';
 import type { NotificationView } from '@/lib/notifications';
+import { fetchJsonWithRetry } from '@/lib/load-retry';
+import {
+  filterMissions,
+  getHidePrefsSnapshot,
+  getServerHidePrefsSnapshot,
+  isHiddenFinished,
+  setHidePrefs,
+  subscribeHidePrefs,
+  type HidePrefs,
+  type RoleFilter,
+  type StatusFilter,
+} from '@/lib/mission-list';
 
 interface UserData {
   id: string;
@@ -66,6 +78,26 @@ interface UserData {
   }>;
 }
 
+/** One mission from `GET /api/operations`: every mission the agent runs or has joined. */
+interface MissionSummary {
+  id: string;
+  title: string;
+  code: string;
+  status: string;
+  isLocalOnly?: boolean;
+  isWhiteElephant: boolean;
+  budgetMin?: number | null;
+  budgetMax: number;
+  currency: string;
+  inviteCutoffDate: string;
+  assignmentDate: string;
+  shippingDate?: string | null;
+  executionDate: string;
+  /** Set while the draw is paused for repair. */
+  repairDeadline?: string | null;
+  organizerId: string;
+}
+
 /** One open invitation from `GET /api/invitations`. */
 interface PendingInvitation {
   id: string;
@@ -86,7 +118,21 @@ export default function DashboardPage() {
   const router = useRouter();
   const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
+  /** Set once a load has been retried, so the loading screen says the servers are waking up. */
+  const [wakingUp, setWakingUp] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
+
+  // Every mission the agent runs or has joined, with the list filters (the old Operations Center's).
+  const [missions, setMissions] = useState<MissionSummary[]>([]);
+  const [missionsError, setMissionsError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  // Hide finished missions (remembered per browser; the server render shows everything)
+  const hidePrefs = useSyncExternalStore(subscribeHidePrefs, getHidePrefsSnapshot, getServerHidePrefsSnapshot);
+  function toggleHide(key: keyof HidePrefs) {
+    setHidePrefs({ ...hidePrefs, [key]: !hidePrefs[key] });
+  }
 
   // Edit Preferences Modal
   const [prefModalOpen, setPrefModalOpen] = useState(false);
@@ -168,26 +214,13 @@ export default function DashboardPage() {
 
   async function fetchUserData() {
     setLoading(true);
-    const savedUserId = localStorage.getItem(USER_ID_KEY);
-
     try {
-      if (savedUserId) {
-        const res = await fetch(`/api/users/me?userId=${savedUserId}`);
-        const json = await res.json();
-        if (json.authenticated && json.user) {
-          setUser(json.user);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Dev mock fallback if no stored operative ID
-      const res = await fetch('/api/users/me');
-      const json = await res.json();
-      if (json.authenticated && json.user) {
-        setUser(json.user);
-        localStorage.setItem(USER_ID_KEY, json.user.id);
-      } else {
+      const me = await fetchJsonWithRetry('/api/users/me', { onRetry: () => setWakingUp(true) });
+      if (me.ok && me.json.authenticated && me.json.user) {
+        setUser(me.json.user);
+        localStorage.setItem(USER_ID_KEY, me.json.user.id);
+        await fetchMissions(me.json.user.id);
+      } else if (me.status === 401 || me.status === 404) {
         // Session expired or signed out: drop the cached identity.
         localStorage.removeItem(USER_ID_KEY);
       }
@@ -195,6 +228,21 @@ export default function DashboardPage() {
       console.error('Failed to load user profile');
     } finally {
       setLoading(false);
+      setWakingUp(false);
+    }
+  }
+
+  /** Loads every mission the agent runs or has joined (Head Elves are not always enrolled as members). */
+  async function fetchMissions(userId: string) {
+    setMissionsError('');
+    try {
+      const { ok, json } = await fetchJsonWithRetry(`/api/operations?userId=${encodeURIComponent(userId)}`, {
+        onRetry: () => setWakingUp(true),
+      });
+      if (ok && json.success && Array.isArray(json.data)) setMissions(json.data);
+      else setMissionsError(json.error || 'Your missions could not be loaded.');
+    } catch {
+      setMissionsError('Your missions could not be loaded. Check your connection and try again.');
     }
   }
 
@@ -236,10 +284,11 @@ export default function DashboardPage() {
   }
   */
 
-  // Capped Operations (Max 3 most recent active operations)
-  const recentParticipations = user?.participations
-    ? [...user.participations].slice(0, 3)
+  const visibleMissions = user
+    ? filterMissions(missions, user.id, { query: searchQuery, role: roleFilter, status: statusFilter, hide: hidePrefs })
     : [];
+  /** Missions the hide toggles alone are keeping off the list, for the empty-state hint. */
+  const hiddenFinishedCount = missions.filter((m) => isHiddenFinished(m.status, hidePrefs)).length;
 
   // Bell notices derived from the profile: a remote Secret Santa mission needs a shipping address.
   const pinnedNotices: PinnedNotice[] = [];
@@ -348,6 +397,9 @@ export default function DashboardPage() {
           <div className="text-center py-20">
             <div className="text-4xl animate-bounce mb-3">🎁</div>
             <p className="text-sm font-semibold">Loading Operative Profile Data...</p>
+            {wakingUp && (
+              <p className={`text-xs mt-2 ${theme.textSubLabel}`}>Waking up the North Pole servers. This can take up to half a minute.</p>
+            )}
           </div>
         ) : user ? (
           <>
@@ -384,8 +436,8 @@ export default function DashboardPage() {
             {/* Section 1: Active Operations (Exchanges) */}
             <Card variant="section" className="space-y-6">
               <SectionHeader
-                title="🎯 Active Operations (Exchanges)"
-                subtitle="Gift exchanges you are currently organizing or participating in — Showing 3 most recent."
+                title="🎯 Your Missions"
+                subtitle="Every gift exchange you are organizing or have joined."
                 primaryAction={
                   <div className="flex flex-wrap items-center gap-2">
                     <Button onClick={() => setJoinOpModalOpen(true)} variant="secondary">
@@ -396,7 +448,6 @@ export default function DashboardPage() {
                     </Button>
                   </div>
                 }
-                secondaryAction={<Button href="/operations" variant="toggle">⚙️ Manage All Operations →</Button>}
               />
 
               {/* Pending email invitations */}
@@ -430,13 +481,53 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Operations Cards Grid */}
-              {recentParticipations.length === 0 ? (
+              {/* Mission filters */}
+              {missions.length > 0 && (
+                <div className="flex flex-col lg:flex-row lg:items-center gap-3 text-xs font-semibold">
+                  <input
+                    type="search"
+                    placeholder="Search by mission name or code..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="Search missions"
+                    className={`w-full lg:max-w-xs border rounded-xl px-4 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <FilterContainer className="flex-wrap">
+                      <FilterTab active={roleFilter === 'ALL'} onClick={() => setRoleFilter('ALL')}>All Roles</FilterTab>
+                      <FilterTab active={roleFilter === 'HEAD_ELF'} onClick={() => setRoleFilter('HEAD_ELF')}>Head Elf</FilterTab>
+                      <FilterTab active={roleFilter === 'ELF_AGENT'} onClick={() => setRoleFilter('ELF_AGENT')}>Elf Agent</FilterTab>
+                    </FilterContainer>
+                    <FilterContainer className="flex-wrap">
+                      <FilterTab active={statusFilter === 'ALL'} onClick={() => setStatusFilter('ALL')}>All Statuses</FilterTab>
+                      <FilterTab active={statusFilter === 'RECRUITING'} onClick={() => setStatusFilter('RECRUITING')}>Recruiting</FilterTab>
+                      <FilterTab active={statusFilter === 'ASSIGNED'} onClick={() => setStatusFilter('ASSIGNED')}>Assigned</FilterTab>
+                      <FilterTab active={statusFilter === 'COMPLETED'} onClick={() => setStatusFilter('COMPLETED')}>Completed</FilterTab>
+                    </FilterContainer>
+                    <FilterContainer className="flex-wrap">
+                      <FilterTab active={hidePrefs.hideCompleted} onClick={() => toggleHide('hideCompleted')}>Hide Completed</FilterTab>
+                      <FilterTab active={hidePrefs.hideCancelled} onClick={() => toggleHide('hideCancelled')}>Hide Cancelled</FilterTab>
+                    </FilterContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Mission cards */}
+              {missionsError ? (
+                <Card className="text-center py-8">
+                  <div className="text-3xl mb-2">⚠️</div>
+                  <h3 className="text-base font-bold mb-1">Missions Unavailable</h3>
+                  <p className="text-xs text-kk-muted mb-4">{missionsError}</p>
+                  <Button onClick={() => fetchMissions(user.id)} variant="secondary">
+                    Try Again
+                  </Button>
+                </Card>
+              ) : missions.length === 0 ? (
                 <Card className="text-center py-8">
                   <div className="text-3xl mb-2">🎁</div>
-                  <h3 className="text-base font-bold mb-1">No Active Operations</h3>
+                  <h3 className="text-base font-bold mb-1">No Missions Yet</h3>
                   <p className="text-xs text-kk-muted mb-4">
-                    You haven't joined or created any secret santa gift exchanges yet.
+                    You haven&apos;t joined or created any gift exchanges yet.
                   </p>
                   <div className="flex items-center justify-center gap-3">
                     <Button onClick={() => setCreateOpModalOpen(true)} variant="primary">
@@ -447,15 +538,23 @@ export default function DashboardPage() {
                     </Button>
                   </div>
                 </Card>
+              ) : visibleMissions.length === 0 ? (
+                <Card className="text-center py-8">
+                  <div className="text-3xl mb-2">🔍</div>
+                  <h3 className="text-base font-bold mb-1">No Missions Match</h3>
+                  <p className="text-xs text-kk-muted">
+                    {hiddenFinishedCount > 0
+                      ? `${hiddenFinishedCount} finished ${hiddenFinishedCount === 1 ? 'mission is' : 'missions are'} hidden. Turn off Hide Completed or Hide Cancelled, or change the filters.`
+                      : 'No mission matches your search and filters.'}
+                  </p>
+                </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {recentParticipations.map((p) => {
-                    const ex = p.exchange || p.mission;
-                    if (!ex) return null;
+                  {visibleMissions.map((ex) => {
                     const countdown = getNextMilestoneCountdown(ex);
                     return (
                       <Card
-                        key={p.id}
+                        key={ex.id}
                         className="flex flex-col justify-between hover:shadow-xl"
                       >
                         <div>
@@ -466,7 +565,10 @@ export default function DashboardPage() {
                             </span>
                           </div>
 
-                          <h3 className="text-xl font-black mt-2">{ex.title}</h3>
+                          <h3 className="text-xl font-black mt-2">
+                            <span className="mr-1.5" title={ex.isWhiteElephant ? 'White Elephant' : 'Secret Santa'}>{ex.isWhiteElephant ? '🐘' : '🎁'}</span>
+                            {ex.title}
+                          </h3>
                           
                           <Card variant="inner" className="mt-3 space-y-1.5 text-xs">
                             <DataRow
@@ -494,8 +596,8 @@ export default function DashboardPage() {
                         <div className="mt-6 flex items-center justify-between gap-2 pt-3 border-t border-kk-border">
                           <div className="flex items-center gap-1.5 shrink-0">
                             <span className={`text-xs ${theme.textLabel}`}>Role:</span>
-                            <Badge variant={ex?.organizerId === user.id ? 'opsleader' : 'code'}>
-                              {ex?.organizerId === user.id ? '⭐ Head Elf' : '🕵️ Elf Agent'}
+                            <Badge variant={ex.organizerId === user.id ? 'opsleader' : 'code'}>
+                              {ex.organizerId === user.id ? '⭐ Head Elf' : '🕵️ Elf Agent'}
                             </Badge>
                           </div>
 

@@ -26,7 +26,9 @@ export function FilterTab({
 
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={`px-3 py-1.5 rounded-lg transition-all text-xs font-bold cursor-pointer ${
         active
           ? theme.btnPrimary

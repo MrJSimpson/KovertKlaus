@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Hide finished missions.** The dashboard has Hide Completed and Hide Cancelled toggles. Your browser remembers them, and when they hide everything the page says how many missions are hidden.
+
+### Changed
+- **The dashboard is now the one place for your missions.** It lists every mission you run or have joined (it showed only the three most recent), with the search, role and status filters from the Operations Center. The Operations Center and its "Manage All Operations" button are gone; old `/operations` links open the dashboard, and the mission page's back link returns there.
+
+### Fixed
+- **Mission pages wait for a waking database instead of showing "Operation Access Denied".** On the first visit after the database had gone idle, the mission page showed an access error to agents who had access. The API now answers a database that is still waking with a retryable 503. The mission page and the dashboard keep their loading screen and retry for about half a minute, with a "waking up" note. A real failure now reads "Operation Not Found" or "Command Center Unreachable" with a Try Again button, and internal database errors are no longer shown to agents. A slow session check while the database wakes no longer signs agents out of the mission page.
+- **Agent cards in a mission's roster no longer all say "Pending".** The card showed shipping status at every stage, and before the draw every agent's shipping is still pending, so agents who had accepted looked like they had not. Before the draw (and in White Elephant missions) the card now says "Joined"; after a Secret Santa draw it shows Not Shipped Yet, Shipped or Hand Delivery.
+- **Clearer reason when a paused mission is cancelled at its repair deadline.** Instead of "Problems blocking the draw were not fixed before the deadline", agents are told what was left: how many agents still had an empty wishlist or no shipping address, or how many of the agents needed had joined. No agent is named.
+
 ---
 
 ## [0.6.3-alpha] - 2026-10-24
