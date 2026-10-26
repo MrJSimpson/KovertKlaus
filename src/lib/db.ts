@@ -4,6 +4,7 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 import { neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import { dropScopedClient, getScopedClient, inDbScope } from './dbRequestScope';
+import { isDbConnectionError } from './db-errors';
 
 // In Node.js runtimes, configure ws constructor for Neon WebSocket communication
 if (typeof process !== 'undefined' && process.versions?.node) {
@@ -134,23 +135,7 @@ export async function withDbRetry<T>(
       return await fn(client);
     } catch (err: any) {
       attempt++;
-      const isConnError =
-        err?.message?.includes('socket') ||
-        err?.message?.includes('connection') ||
-        err?.message?.includes('Connection terminated') ||
-        err?.message?.includes('closed') ||
-        err?.message?.includes('WebSocket') ||
-        err?.message?.includes('ECONNRESET') ||
-        err?.message?.includes('ETIMEDOUT') ||
-        err?.message?.includes('Connection lost') ||
-        err?.message?.includes('Can\'t reach database server') ||
-        err?.message?.includes('57P01') ||
-        err?.message?.includes('terminating connection') ||
-        err?.name?.includes('PrismaClientInitializationError') ||
-        err?.name?.includes('PrismaClientRustPanicError') ||
-        err?.name?.includes('PrismaClientUnknownRequestError');
-
-      if (isConnError && attempt < maxRetries) {
+      if (isDbConnectionError(err) && attempt < maxRetries) {
         const delay = BACKOFF_DELAYS[attempt - 1] || 1000;
         console.warn(`[DB Retry] Neon cold start / connection drop detected (attempt ${attempt}/${maxRetries}), reconnecting in ${delay}ms...`, err?.message);
         await invalidateCachedDb();

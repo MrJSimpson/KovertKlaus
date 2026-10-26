@@ -8,6 +8,7 @@ import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
 import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
+import { dbUnavailableResponse, isDbConnectionError } from './lib/db-errors';
 import { validateNistPassword } from './lib/adminAuth';
 import {
   sanitizeText,
@@ -2615,6 +2616,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
       await invalidateCachedDb().catch(() => {});
       await invalidateCachedAdminDb().catch(() => {});
       // Details are logged above; never echo internal error text (DB/Prisma messages) to clients.
+      // A waking database is temporary: 503 + retryable lets pages keep loading and try again.
+      if (isDbConnectionError(err)) return dbUnavailableResponse();
       return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { dbUnavailableResponse, isDbConnectionError } from '@/lib/db-errors';
 import { getSessionUserId } from '@/lib/auth';
 import { validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
 import { generateInviteCode } from '@/lib/security';
@@ -110,9 +111,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data: exchanges });
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : 'Failed to fetch exchanges';
     console.error('API Error in GET /api/operations:', err);
-    return NextResponse.json({ error: errorMsg }, { status: 500 });
+    if (isDbConnectionError(err)) return dbUnavailableResponse();
+    // Never echo internal error text (DB/Prisma messages) to clients; it is logged above.
+    return NextResponse.json({ error: 'Failed to load missions' }, { status: 500 });
   }
 }
 
