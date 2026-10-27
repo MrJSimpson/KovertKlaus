@@ -46,6 +46,7 @@ import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
 import { rewriteExchangeShellPath } from './lib/exchange-route';
 import { dispatchNudge } from './lib/nudge';
+import { checkLoginThrottle, clearLoginFailures, clientIp, loginThrottleKeys, purgeLoginThrottle, recordLoginFailure, throttledResponseParts, tripLogMessage, type LoginThrottleKeys, type ThrottleCounts } from './lib/login-throttle';
 import { deleteFeedback, listFeedback, submitFeedback, updateFeedbackStatus } from './lib/feedback';
 import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
@@ -169,6 +170,14 @@ async function requireAdmin(request: Request, adminDb: ReturnType<typeof getAdmi
 }
 
 /** JSON 405 for a known API path called with a method it does not support. */
+/** Counts a failed sign-in and logs one WARN for each limit it trips. */
+async function recordThrottledFailure(adminDb: ReturnType<typeof getAdminDb>, keys: LoginThrottleKeys, counts: ThrottleCounts): Promise<void> {
+  await recordLoginFailure(adminDb, keys, counts, (rule) => {
+    const { message, metadata } = tripLogMessage(keys, rule);
+    logSystemEvent({ level: 'WARN', category: 'AUTH', message, metadata }).catch(() => {});
+  });
+}
+
 function methodNotAllowed(pathname: string, method: string): Response {
   return Response.json({ error: `Method ${method} not allowed on ${pathname}` }, { status: 405 });
 }
@@ -330,6 +339,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           return Response.json({ error: 'Username/email and password are required' }, { status: 400 });
         }
 
+        const throttleKeys = loginThrottleKeys('ADMIN', loginId, clientIp(request.headers));
+        const throttle = await checkLoginThrottle(adminDb, throttleKeys);
+        if (throttle.blocked) {
+          const parts = throttledResponseParts(throttle.retryAfterSec);
+          return Response.json(parts.body, { status: 429, headers: parts.headers });
+        }
+
         const admin = await adminDb.adminUser.findFirst({
           where: {
             OR: [
@@ -341,13 +357,16 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
         if (!admin || !admin.isActive) {
           await verifyDummyPassword(password);
+          await recordThrottledFailure(adminDb, throttleKeys, throttle.counts);
           return Response.json({ error: 'Invalid administrative credentials or account disabled' }, { status: 401 });
         }
 
         const passwordMatch = await comparePassword(password, admin.passwordHash);
         if (!passwordMatch) {
+          await recordThrottledFailure(adminDb, throttleKeys, throttle.counts);
           return Response.json({ error: 'Invalid administrative credentials' }, { status: 401 });
         }
+        await clearLoginFailures(adminDb, throttleKeys);
 
         if (admin.requiresPasswordReset) {
           return Response.json({
@@ -1242,15 +1261,27 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (!isValidEmail(email)) return Response.json({ error: 'Invalid email address format' }, { status: 400 });
 
         const cleanEmail = email.trim().toLowerCase();
+        const throttleKeys = loginThrottleKeys('USER', cleanEmail, clientIp(request.headers));
+        const throttle = await checkLoginThrottle(adminDb, throttleKeys);
+        if (throttle.blocked) {
+          const parts = throttledResponseParts(throttle.retryAfterSec);
+          return Response.json(parts.body, { status: 429, headers: parts.headers });
+        }
+
         const user = await db.user.findUnique({ where: { email: cleanEmail } });
 
         if (!user) {
           await verifyDummyPassword(password);
+          await recordThrottledFailure(adminDb, throttleKeys, throttle.counts);
           return Response.json({ error: 'Invalid email or password' }, { status: 401 });
         }
 
         const match = await comparePassword(password, user.passwordHash);
-        if (!match) return Response.json({ error: 'Invalid email or password' }, { status: 401 });
+        if (!match) {
+          await recordThrottledFailure(adminDb, throttleKeys, throttle.counts);
+          return Response.json({ error: 'Invalid email or password' }, { status: 401 });
+        }
+        await clearLoginFailures(adminDb, throttleKeys);
 
         if (isLegacyBcryptHash(user.passwordHash)) {
           try {
@@ -2743,6 +2774,9 @@ export default {
         // Emails held over yesterday's quota go out first, whether or not a lifecycle sweep is due.
         await flushHeldEmailQueue(await resolveWorkerEmailConfig(env, adminDb)).catch((err: unknown) => {
           console.error('[CRON] Held email flush failed:', err instanceof Error ? err.message : err);
+        });
+        await purgeLoginThrottle(adminDb).catch((err: unknown) => {
+          console.error('[CRON] Sign-in throttle purge failed:', err instanceof Error ? err.message : err);
         });
 
         const config = await adminDb.systemConfig.findUnique({
