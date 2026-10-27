@@ -13,6 +13,8 @@ import {
 } from '@/lib/adminAuth';
 import { issueSessionToken } from '@/lib/session-token';
 import { announceSetupToken } from '@/lib/adminSetup';
+import { logWarn } from '@/lib/logger';
+import { checkLoginThrottle, clearLoginFailures, clientIp, loginThrottleKeys, recordLoginFailure, throttledResponseParts, tripLogMessage } from '@/lib/login-throttle';
 
 export async function POST(request: Request) {
   try {
@@ -40,17 +42,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // Sign-in rate limit (src/lib/login-throttle.ts): checked before any password work.
+    const throttleKeys = loginThrottleKeys('ADMIN', loginId, clientIp(request.headers));
+    const throttle = await checkLoginThrottle(adminDb, throttleKeys);
+    if (throttle.blocked) {
+      const parts = throttledResponseParts(throttle.retryAfterSec);
+      return NextResponse.json(parts.body, { status: 429, headers: parts.headers });
+    }
+    const recordFailure = () =>
+      recordLoginFailure(adminDb, throttleKeys, throttle.counts, (rule) => {
+        const { message, metadata } = tripLogMessage(throttleKeys, rule);
+        logWarn('AUTH', message, { metadata }).catch(() => {});
+      });
+
     const admin = await findAdminByIdentifier(loginId);
 
     if (!admin || !admin.isActive) {
       await verifyDummyPassword(password);
+      await recordFailure();
       return NextResponse.json({ error: 'Invalid administrative credentials or account disabled' }, { status: 401 });
     }
 
     const passwordMatch = await comparePassword(password, admin.passwordHash);
     if (!passwordMatch) {
+      await recordFailure();
       return NextResponse.json({ error: 'Invalid administrative credentials' }, { status: 401 });
     }
+    await clearLoginFailures(adminDb, throttleKeys);
 
     // Mandatory First-Login Password Reset Flow (NIST SP 800-63B)
     if (admin.requiresPasswordReset) {

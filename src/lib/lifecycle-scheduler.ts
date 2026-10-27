@@ -155,6 +155,19 @@ export async function tickHeldEmailFlush(now = Date.now()): Promise<void> {
   await flushHeldEmailQueue();
 }
 
+/** How often the self-hosted scheduler drops old sign-in throttle rows. */
+const LOGIN_THROTTLE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
+let lastLoginThrottlePurgeAt = 0;
+
+/** Deletes sign-in throttle rows older than a day, at most once an hour (`src/lib/login-throttle.ts`). */
+export async function tickLoginThrottlePurge(now = Date.now()): Promise<void> {
+  if (now - lastLoginThrottlePurgeAt < LOGIN_THROTTLE_PURGE_INTERVAL_MS) return;
+  lastLoginThrottlePurgeAt = now;
+  // Imported here so the scheduler's tests stay offline.
+  const [{ purgeLoginThrottle }, { adminDb }] = await Promise.all([import('./login-throttle'), import('./adminDb')]);
+  await purgeLoginThrottle(adminDb, now);
+}
+
 export function stopLifecycleScheduler(): void {
   if (globalThis.__kovertklaus_lifecycle_initial_timeout__) {
     clearTimeout(globalThis.__kovertklaus_lifecycle_initial_timeout__);
@@ -210,6 +223,11 @@ export function initLifecycleScheduler(tickIntervalMs = 60000): void {
       await tickHeldEmailFlush();
     } catch (err) {
       console.error('[Lifecycle Scheduler] Error sending held emails:', err);
+    }
+    try {
+      await tickLoginThrottlePurge();
+    } catch (err) {
+      console.error('[Lifecycle Scheduler] Error purging sign-in throttle rows:', err);
     }
   }, tickIntervalMs);
   ticker.unref?.();

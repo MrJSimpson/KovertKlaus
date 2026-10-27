@@ -624,6 +624,21 @@ model EmailOutbox {
   @@schema("admin")
 }
 
+/// Failed sign-in attempts for rate limiting (src/lib/login-throttle.ts). Accounts and IPs are
+/// HMAC digests, never the email or address. Rows older than a day are purged by the hourly cron.
+model LoginThrottle {
+  id          String   @id @default(uuid())
+  scope       String // "USER" | "ADMIN"
+  accountHash String
+  ipHash      String
+  createdAt   DateTime @default(now())
+
+  @@index([scope, accountHash, createdAt])
+  @@index([scope, ipHash, createdAt])
+  @@index([createdAt])
+  @@schema("admin")
+}
+
 model PreLaunchApproval {
   id         String   @id @default(uuid())
   email      String   @unique

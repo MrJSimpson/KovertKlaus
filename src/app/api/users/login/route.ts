@@ -6,6 +6,9 @@ import {
   hashPassword,
 } from '@/lib/password';
 import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
+import { logWarn } from '@/lib/logger';
+import { checkLoginThrottle, clearLoginFailures, clientIp, loginThrottleKeys, recordLoginFailure, throttledResponseParts, tripLogMessage } from '@/lib/login-throttle';
 import { isValidEmail } from '@/lib/security';
 import { issueSessionToken } from '@/lib/session-token';
 import { setSessionCookie } from '@/lib/auth';
@@ -25,6 +28,19 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Sign-in rate limit (src/lib/login-throttle.ts): checked before any password work.
+    const throttleKeys = loginThrottleKeys('USER', cleanEmail, clientIp(request.headers));
+    const throttle = await checkLoginThrottle(adminDb, throttleKeys);
+    if (throttle.blocked) {
+      const parts = throttledResponseParts(throttle.retryAfterSec);
+      return NextResponse.json(parts.body, { status: 429, headers: parts.headers });
+    }
+    const recordFailure = () =>
+      recordLoginFailure(adminDb, throttleKeys, throttle.counts, (rule) => {
+        const { message, metadata } = tripLogMessage(throttleKeys, rule);
+        logWarn('AUTH', message, { metadata }).catch(() => {});
+      });
+
     // Fetch User from DB
     const user = await db.user.findUnique({
       where: { email: cleanEmail },
@@ -32,14 +48,17 @@ export async function POST(request: Request) {
 
     if (!user) {
       await verifyDummyPassword(password);
+      await recordFailure();
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
     // Verify Password using scrypt (with legacy bcrypt fallback)
     const passwordMatch = await comparePassword(password, user.passwordHash);
     if (!passwordMatch) {
+      await recordFailure();
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
+    await clearLoginFailures(adminDb, throttleKeys);
 
     // Seamlessly upgrade legacy bcrypt hash to native scrypt format
     if (isLegacyBcryptHash(user.passwordHash)) {
