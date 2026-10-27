@@ -60,6 +60,8 @@ export interface MissionCancelledEmail {
   exchangeTitle: string;
   cancelledByLabel: string;
   reason?: string;
+  /** Line meant only for this recipient (e.g. which issue of theirs blocked the draw). */
+  personalNote?: string;
   headElfNote?: string;
   actionUrl: string;
 }
@@ -142,11 +144,19 @@ function headElfDeletionNote(schedule: { manualDeleteFrom: Date | null; purgeOn:
  * @param input.actor - `HEAD_ELF` (must be `actorUserId`'s mission), `ADMIN` (route verified) or `SYSTEM`.
  * @param input.reason - Optional note shown to agents.
  * @param input.code - Reason code for system cancellations; derived from the actor otherwise.
+ * @param input.notes - Private line per user ID, added to that recipient's notice and email only.
  */
 export async function cancelMission(
   db: PrismaClient,
   deps: MissionCancelDeps,
-  input: { exchangeId: unknown; actor: MissionActor; actorUserId?: string; reason?: unknown; code?: MissionFailureReason },
+  input: {
+    exchangeId: unknown;
+    actor: MissionActor;
+    actorUserId?: string;
+    reason?: unknown;
+    code?: MissionFailureReason;
+    notes?: Record<string, string>;
+  },
   nowMs = Date.now()
 ): Promise<MissionCancelResult> {
   if (typeof input.exchangeId !== 'string' || !input.exchangeId) return { status: 400, body: { error: 'operationId is required' } };
@@ -201,12 +211,14 @@ export async function cancelMission(
 
   for (const userId of recipientIds) {
     const isHeadElf = userId === ex.organizerId;
+    const note = input.notes?.[userId];
+    const message = [baseMessage, note, isHeadElf ? headElfNote : null].filter(Boolean).join(' ');
     await notifyOnce(db, {
       userId,
       dedupeKey: `mission-cancelled:${ex.id}`,
       exchangeId: ex.id,
       title: `🛑 Mission Cancelled: ${ex.title}`,
-      message: isHeadElf ? `${baseMessage} ${headElfNote}` : baseMessage,
+      message,
     }).catch((err) => console.error('[MissionCancel] notification failed:', err));
   }
 
@@ -220,6 +232,7 @@ export async function cancelMission(
         exchangeTitle: ex.title,
         cancelledByLabel: by,
         reason: reason || undefined,
+        personalNote: input.notes?.[m.userId],
         headElfNote: m.userId === ex.organizerId ? headElfNote : undefined,
         actionUrl,
       })

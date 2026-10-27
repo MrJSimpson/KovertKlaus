@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Emails over Brevo's daily limit wait instead of being lost.** Brevo's free tier sends 300 emails a day and rejects the rest. KovertKlaus now counts each day's emails (the day starts at midnight Pacific), writes a warning to the North Pole system log at 240, and from 290 holds new emails and sends them, oldest first, after midnight. An email Brevo rejects for quota is held too. **Operators:** run `prisma/sql/2026-10-26_email-outbox.forward.sql` as the database owner before deploying (new table `admin."EmailOutbox"`). `EMAIL_DAILY_QUOTA` sets a different quota.
+- **The Head Elf learns who blocked a mission cancelled at its repair deadline.** The Head Elf's cancel notice and email list each blocking agent with their codename and what they had not fixed, e.g. "Ivy (Quiet Fox): no shipping address, empty wishlist". Each blocking agent is told privately what was left on them. Everyone else still sees counts only, with no names. Cancellations for too few agents or impossible match rules name nobody.
 - **Hide finished missions.** The dashboard has Hide Completed and Hide Cancelled toggles. Your browser remembers them, and when they hide everything the page says how many missions are hidden.
 
 ### Changed

@@ -525,7 +525,7 @@ export function escapeHtml(value: string): string {
  */
 export function getMissionCancelledEmailTemplate(params: MissionCancelledEmailParams): { subject: string; html: string; text: string } {
   const recipientName = params.recipientName || 'Operative';
-  const { exchangeTitle, cancelledByLabel, reason, headElfNote, actionUrl } = params;
+  const { exchangeTitle, cancelledByLabel, reason, personalNote, headElfNote, actionUrl } = params;
   const by = cancelledByLabel.charAt(0).toUpperCase() + cancelledByLabel.slice(1);
 
   const subject = `🛑 Mission cancelled: "${exchangeTitle}"`;
@@ -537,6 +537,7 @@ export function getMissionCancelledEmailTemplate(params: MissionCancelledEmailPa
     <div style="background-color: ${EMAIL_PALETTE.panel}; border-left: 4px solid ${EMAIL_PALETTE.gold}; padding: 14px 18px; margin: 20px 0; border-radius: 6px; font-style: italic; color: ${EMAIL_PALETTE.ink};">
       "${escapeHtml(reason)}"
     </div>` : ''}
+    ${personalNote ? `<p>${escapeHtml(personalNote)}</p>` : ''}
     <p><strong>If there is any data you'd like to save, please save it now.</strong> The mission is read-only and will be deleted.</p>
     ${headElfNote ? `<p style="font-size: 14px; color: ${EMAIL_PALETTE.muted};">${escapeHtml(headElfNote)}</p>` : ''}
   `;
@@ -556,6 +557,7 @@ export function getMissionCancelledEmailTemplate(params: MissionCancelledEmailPa
 
     ${by} cancelled the mission "${exchangeTitle}".
     ${reason ? `Reason: "${reason}"` : ''}
+    ${personalNote ?? ''}
 
     If there is any data you'd like to save, please save it now. The mission is read-only and will be deleted.
     ${headElfNote ?? ''}
