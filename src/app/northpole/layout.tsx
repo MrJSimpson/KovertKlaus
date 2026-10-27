@@ -138,6 +138,7 @@ export default function NorthPoleLayout({ children }: { children: React.ReactNod
     { label: '📊 Dashboard', href: '/northpole' },
     { label: '⚙️ System Config', href: '/northpole/config' },
     { label: '🎟️ Reservations', href: '/northpole/leads' },
+    { label: '📝 Feedback', href: '/northpole/feedback' },
     { label: '👥 User Roster', href: '/northpole/users' },
     { label: '🎯 Operations', href: '/northpole/operations' },
     { label: '📜 System Logs', href: '/northpole/logs' },

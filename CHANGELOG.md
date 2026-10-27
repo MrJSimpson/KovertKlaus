@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Send feedback from any page.** Signed-in agents have a Feedback button in the bottom-right corner. Pick Bug, Idea or Other, write up to 2,000 characters, and it reaches the KovertKlaus team along with the page you were on, the app version and your browser. Up to 10 reports a day per agent. Admins read and triage reports (New, Reviewed, Done) under **North Pole → Feedback**. **Operators:** run `prisma/sql/2026-10-27_feedback.forward.sql` as the database owner before deploying (new table `app."Feedback"`).
 - **Emails over Brevo's daily limit wait instead of being lost.** Brevo's free tier sends 300 emails a day and rejects the rest. KovertKlaus now counts each day's emails (the day starts at midnight Pacific), writes a warning to the North Pole system log at 240, and from 290 holds new emails and sends them, oldest first, after midnight. An email Brevo rejects for quota is held too. **Operators:** run `prisma/sql/2026-10-26_email-outbox.forward.sql` as the database owner before deploying (new table `admin."EmailOutbox"`). `EMAIL_DAILY_QUOTA` sets a different quota.
 - **Hide finished missions.** The dashboard has Hide Completed and Hide Cancelled toggles. Your browser remembers them, and when they hide everything the page says how many missions are hidden.
 
