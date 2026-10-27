@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import {
   agentTodo,
+  cancellationNotes,
   cancellationReasonText,
   drawReadinessIssues,
   failureReasonFor,
@@ -222,4 +223,48 @@ test('Repair sweep - still blocked at the deadline: cancelled by the system with
   assert.strictEqual(f.ex.cancelCode, 'NOT_ENOUGH_AGENTS');
   assert.match(f.ex.cancelReason, /not enough agents to start the mission: 2 of the 4 needed/);
   assert.ok(f.notices.some((n) => n.dedupeKey === 'mission-cancelled:ex1' && n.message.startsWith('KovertKlaus cancelled')));
+});
+
+test('Repair - cancellation notes name blockers to the Head Elf and tell each blocker their own issues', () => {
+  const ex = {
+    organizerId: 'boss',
+    members: [
+      { userId: 'boss', codename: 'Snowy Spider', user: { name: 'Holly' } },
+      { userId: 'a', codename: 'Quiet Fox', user: { name: 'Ivy' } },
+      { userId: 'b', codename: null, user: { name: 'Noel' } },
+      { userId: 'c', codename: 'Bold Owl', user: { name: 'Jo' } },
+    ],
+  };
+  const notes = cancellationNotes(ex, [
+    { type: 'MISSING_ADDRESS', userId: 'a' },
+    { type: 'EMPTY_WISHLIST', userId: 'a' },
+    { type: 'EMPTY_WISHLIST', userId: 'b' },
+  ]);
+  assert.strictEqual(notes.boss, 'Still blocking the draw at the deadline: Ivy (Quiet Fox): no shipping address, empty wishlist; Noel: empty wishlist.');
+  assert.strictEqual(notes.a, 'At the deadline, you had no shipping address and your wishlist for this mission was still empty.');
+  assert.strictEqual(notes.b, 'At the deadline, your wishlist for this mission was still empty.');
+  assert.strictEqual(notes.c, undefined);
+  // A Head Elf who was also blocking gets the full list, which names them.
+  assert.match(cancellationNotes(ex, [{ type: 'EMPTY_WISHLIST', userId: 'boss' }]).boss, /Holly \(Snowy Spider\): empty wishlist/);
+  // Codes that do not come down to individual agents get no notes.
+  assert.deepStrictEqual(cancellationNotes(ex, [{ type: 'NOT_ENOUGH_AGENTS', have: 2, need: 4 }, { type: 'EMPTY_WISHLIST', userId: 'a' }]), {});
+  assert.deepStrictEqual(cancellationNotes(ex, [{ type: 'DRAW_IMPOSSIBLE' }]), {});
+});
+
+test('Repair sweep - deadline cancel: blockers named to the Head Elf only, each blocker told privately', async () => {
+  const f = fakeDb({ status: 'RECRUITING', repairDeadline: new Date(NOW - 1000), repairNoticeAt: new Date(NOW - DAY) });
+  f.ex.members[1].codename = 'Quiet Fox';
+  const d = fakeDeps();
+  assert.strictEqual(await runRepairSweep(f.db, d.deps, f.ex, NOW), 'cancelled');
+  assert.strictEqual(f.ex.cancelCode, 'REPAIR_DEADLINE_MISSED');
+  assert.doesNotMatch(f.ex.cancelReason, /Ivy|Noel/);
+  const notice = (userId: string) => f.notices.find((n) => n.userId === userId && n.dedupeKey === 'mission-cancelled:ex1').message;
+  assert.match(notice('boss'), /Ivy \(Quiet Fox\): no shipping address; Noel: empty wishlist/);
+  assert.match(notice('u2'), /you had no shipping address/);
+  assert.match(notice('u3'), /your wishlist for this mission was still empty/);
+  assert.doesNotMatch(notice('u4'), /Ivy|Noel|At the deadline/);
+  const email = (to: string) => d.cancelEmails.find((e) => e.recipientEmail === to);
+  assert.match(email('boss@x.com').personalNote, /Still blocking the draw/);
+  assert.match(email('ivy@x.com').personalNote, /no shipping address/);
+  assert.strictEqual(email('jo@x.com').personalNote, undefined);
 });

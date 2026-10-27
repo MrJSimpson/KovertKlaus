@@ -176,6 +176,46 @@ export function agentTodo(issues: ReadinessIssue[], userId: string): string | nu
   return tasks.join(' and ');
 }
 
+/** Each agent's unfixed issues, in issue order, keyed by user ID. */
+function issuesByAgent(issues: ReadinessIssue[]): Map<string, Array<'MISSING_ADDRESS' | 'EMPTY_WISHLIST'>> {
+  const byAgent = new Map<string, Array<'MISSING_ADDRESS' | 'EMPTY_WISHLIST'>>();
+  for (const i of issues) {
+    if (i.type !== 'MISSING_ADDRESS' && i.type !== 'EMPTY_WISHLIST') continue;
+    byAgent.set(i.userId, [...(byAgent.get(i.userId) ?? []), i.type]);
+  }
+  return byAgent;
+}
+
+/**
+ * Private lines for a deadline cancellation, keyed by user ID (`cancelMission`'s `notes`).
+ * The Head Elf gets every blocking agent as `Real Name (Codename): issues`; each blocking agent
+ * gets their own issues. Empty unless the code is `REPAIR_DEADLINE_MISSED`: the other codes
+ * (too few agents, impossible rules) do not come down to individual agents.
+ */
+export function cancellationNotes(
+  ex: { organizerId: string; members: Array<{ userId: string; codename?: string | null; user: { name?: string | null } }> },
+  issues: ReadinessIssue[]
+): Record<string, string> {
+  if (failureReasonFor(issues) !== 'REPAIR_DEADLINE_MISSED') return {};
+  const byAgent = issuesByAgent(issues);
+  if (byAgent.size === 0) return {};
+
+  const notes: Record<string, string> = {};
+  const entries: string[] = [];
+  for (const [userId, types] of byAgent) {
+    const m = ex.members.find((x) => x.userId === userId);
+    const name = m?.user.name || 'Unnamed agent';
+    const label = m?.codename ? `${name} (${m.codename})` : name;
+    const headElfIssues = types.map((t) => (t === 'EMPTY_WISHLIST' ? 'empty wishlist' : 'no shipping address'));
+    entries.push(`${label}: ${headElfIssues.join(', ')}`);
+    const own = types.map((t) => (t === 'EMPTY_WISHLIST' ? 'your wishlist for this mission was still empty' : 'you had no shipping address'));
+    notes[userId] = `At the deadline, ${own.join(' and ')}.`;
+  }
+  // The Head Elf's list replaces their own line when they were also blocking: it names them too.
+  notes[ex.organizerId] = `Still blocking the draw at the deadline: ${entries.join('; ')}.`;
+  return notes;
+}
+
 /** Runtime pieces for the sweep: cancellation (with its email) and the repair email. */
 export interface MissionRepairDeps extends MissionCancelDeps {
   sendRepairEmail: (email: {
@@ -310,7 +350,18 @@ export async function runRepairSweep(db: PrismaClient, deps: MissionRepairDeps, 
 
   if (nowMs >= new Date(ex.repairDeadline).getTime()) {
     await clearRepairNotices(db, ex.id).catch(() => {});
-    await cancelMission(db, deps, { exchangeId: ex.id, actor: 'SYSTEM', code: failureReasonFor(issues), reason: cancellationReasonText(issues) }, nowMs);
+    await cancelMission(
+      db,
+      deps,
+      {
+        exchangeId: ex.id,
+        actor: 'SYSTEM',
+        code: failureReasonFor(issues),
+        reason: cancellationReasonText(issues),
+        notes: cancellationNotes(ex, issues),
+      },
+      nowMs
+    );
     return 'cancelled';
   }
 

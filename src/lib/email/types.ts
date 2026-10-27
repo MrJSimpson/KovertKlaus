@@ -137,6 +137,8 @@ export interface MissionCancelledEmailParams {
   /** Who cancelled, as shown to agents: "the Head Elf", "a KovertKlaus admin" or "KovertKlaus". */
   cancelledByLabel: string;
   reason?: string;
+  /** Line meant only for this recipient (e.g. which issue of theirs blocked the draw). */
+  personalNote?: string;
   /** Extra line for the Head Elf (when the mission will be deleted). */
   headElfNote?: string;
   actionUrl: string;
