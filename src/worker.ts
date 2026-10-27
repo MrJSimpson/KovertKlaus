@@ -46,6 +46,7 @@ import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
 import { rewriteExchangeShellPath } from './lib/exchange-route';
 import { dispatchNudge } from './lib/nudge';
+import { deleteFeedback, listFeedback, submitFeedback, updateFeedbackStatus } from './lib/feedback';
 import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { dismissNotifications, listMyNotifications } from './lib/notifications';
@@ -80,6 +81,7 @@ export const WORKER_API_PATHS = new Set([
   '/api/codename',
   '/api/config',
   '/api/demerits/audit',
+  '/api/feedback',
   '/api/invitations',
   '/api/invitations/accept',
   '/api/leads',
@@ -87,6 +89,7 @@ export const WORKER_API_PATHS = new Set([
   '/api/notifications',
   '/api/northpole/config',
   '/api/northpole/email/test',
+  '/api/northpole/feedback',
   '/api/northpole/leads',
   '/api/northpole/login',
   '/api/northpole/logs',
@@ -780,6 +783,26 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           result,
           message: result.success ? `Test email dispatched via ${result.provider}` : `Email failed: ${result.error}`,
         });
+      }
+
+      // /api/northpole/feedback (GET / PATCH / DELETE): feedback triage, shared with the Next route.
+      if (pathname === '/api/northpole/feedback') {
+        const admin = await requireAdmin(request, adminDb);
+        if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        if (request.method === 'GET') {
+          const result = await listFeedback(adminDb, { status: url.searchParams.get('status'), type: url.searchParams.get('type') });
+          return Response.json(result.body, { status: result.status });
+        }
+        if (request.method === 'PATCH') {
+          const body = (await request.json().catch(() => ({}))) as { id?: unknown; status?: unknown };
+          const result = await updateFeedbackStatus(adminDb, { id: body.id, status: body.status });
+          return Response.json(result.body, { status: result.status });
+        }
+        if (request.method === 'DELETE') {
+          const result = await deleteFeedback(adminDb, url.searchParams.get('id'));
+          return Response.json(result.body, { status: result.status });
+        }
+        return methodNotAllowed(pathname, request.method);
       }
 
       // 7b. /api/northpole/leads (GET / DELETE / POST)
@@ -2174,6 +2197,24 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as { invitationId?: unknown; action?: unknown };
           const result = await updateInvitation(db, { invitationId: body.invitationId, userId: activeUserId, action: body.action });
+          return Response.json(result.body, { status: result.status });
+        }
+        return methodNotAllowed(pathname, request.method);
+      }
+
+      // /api/feedback (POST): in-app feedback from signed-in agents, shared with the Next route.
+      if (pathname === '/api/feedback') {
+        const activeUserId = getUserIdFromRequest(request);
+        if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
+        if (request.method === 'POST') {
+          const body = (await request.json().catch(() => ({}))) as { type?: unknown; message?: unknown; pageUrl?: unknown };
+          const result = await submitFeedback(db, {
+            userId: activeUserId,
+            type: body.type,
+            message: body.message,
+            pageUrl: body.pageUrl,
+            userAgent: request.headers.get('user-agent'),
+          });
           return Response.json(result.body, { status: result.status });
         }
         return methodNotAllowed(pathname, request.method);

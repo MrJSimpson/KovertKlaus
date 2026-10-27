@@ -29,6 +29,7 @@ export const viewport: Viewport = {
 };
 
 import { ThemeProvider } from "@/context/ThemeContext";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 /** Reads the stored theme choice (key shared with ThemeContext) and sets `.dark` before React hydrates. */
 const THEME_BOOT_SCRIPT =
@@ -50,7 +51,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <FeedbackButton />
+        </ThemeProvider>
       </body>
     </html>
   );
