@@ -1,5 +1,5 @@
 import fs from 'fs';
-import path from 'path';
+import { AccountStatus, ExchangeStatus, GiftingType, PaymentStatus } from '@prisma/client';
 import { db } from '../src/lib/db';
 
 /**
@@ -97,6 +97,26 @@ function cleanVal(v: string | undefined): string | null {
   return v;
 }
 
+/** Maps one COPY row to `{ column: value }`. Values are raw dump text (`N` for NULL). */
+function rowObject(cols: string[], row: string[]): Record<string, string> {
+  const obj: Record<string, string> = {};
+  cols.forEach((col, idx) => {
+    obj[col] = row[idx];
+  });
+  return obj;
+}
+
+/**
+ * Returns `raw` when it is a member of the Prisma enum `values`, otherwise `fallback`.
+ * Empty and NULL fall back silently; any other unknown value is reported, so a legacy status
+ * the current schema lacks is visible instead of failing the write halfway through the run.
+ */
+function pickEnum<E extends Record<string, string>>(values: E, raw: string | null | undefined, fallback: E[keyof E], label: string): E[keyof E] {
+  if ((Object.values(values) as string[]).includes(raw ?? '')) return raw as E[keyof E];
+  if (raw && raw !== '\\N') console.warn(`⚠️ ${label}: unknown value "${raw}", using ${fallback}`);
+  return fallback;
+}
+
 function parseBool(v: string | undefined, defaultVal = false): boolean {
   if (v === undefined || v === '\\N') return defaultVal;
   return v === 't' || v === 'true' || v === '1';
@@ -118,10 +138,7 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
   }
 
   const legacyUsers: LegacyUser[] = userData.rows.map((row) => {
-    const obj: any = {};
-    userData.cols.forEach((col, idx) => {
-      obj[col] = row[idx];
-    });
+    const obj = rowObject(userData.cols, row);
     return {
       id: obj.id,
       email: obj.email,
@@ -195,7 +212,7 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
       allowOrganizerViewAllergies: u.allowOperatorViewAllergies,
       allowOrganizerViewFavorites: u.allowOperatorViewFavorites,
       penaltyPoints: u.demerits,
-      accountStatus: (u.accountStatus as any) || 'ACTIVE',
+      accountStatus: pickEnum(AccountStatus, u.accountStatus, AccountStatus.ACTIVE, `User ${u.id} accountStatus`),
       emailNotifications: u.emailNotifications,
     };
 
@@ -223,10 +240,7 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
   const legacyStandardLists = new Map<string, LegacyWishlist>();
   if (wishlistData) {
     const legacyWishlists: LegacyWishlist[] = wishlistData.rows.map((row) => {
-      const obj: any = {};
-      wishlistData.cols.forEach((col, idx) => {
-        obj[col] = row[idx];
-      });
+      const obj = rowObject(wishlistData.cols, row);
       return {
         id: obj.id,
         userId: obj.userId,
@@ -249,10 +263,7 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
   let exchangesUpdated = 0;
   if (missionData) {
     const legacyMissions: LegacyMission[] = missionData.rows.map((row) => {
-      const obj: any = {};
-      missionData.cols.forEach((col, idx) => {
-        obj[col] = row[idx];
-      });
+      const obj = rowObject(missionData.cols, row);
       return {
         id: obj.id,
         title: obj.title,
@@ -289,7 +300,7 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
         description: m.description,
         organizerId: m.opsLeaderId,
         maxParticipants: m.maxParticipants,
-        giftingType: (m.giftingType as any) || 'SINGLE',
+        giftingType: pickEnum(GiftingType, m.giftingType, GiftingType.SINGLE, `Mission ${m.code} giftingType`),
         isLocalOnly: m.isLocalOnly,
         eventLocation: m.eventLocation,
         isWhiteElephant: m.isWhiteElephant,
@@ -302,9 +313,9 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
         assignmentDate: m.assignmentDate,
         shippingDate: m.shippingDate,
         executionDate: m.executionDate,
-        status: (m.status as any) || 'RECRUITING',
+        status: pickEnum(ExchangeStatus, m.status, ExchangeStatus.RECRUITING, `Mission ${m.code} status`),
         isFreeAnnualExchange: m.isFreeAnnualOp,
-        paymentStatus: (m.paymentStatus as any) || 'FREE_ANNUAL',
+        paymentStatus: pickEnum(PaymentStatus, m.paymentStatus, PaymentStatus.FREE_ANNUAL, `Mission ${m.code} paymentStatus`),
       };
 
       let exchangeId = m.id;
