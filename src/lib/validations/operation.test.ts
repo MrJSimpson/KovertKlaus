@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { validateOperationConfig, validateOperationSettings, CreateOperationInput } from './operation';
+import { parseOperationConfig, validateOperationConfig, validateOperationSettings, CreateOperationInput } from './operation';
 
 test('Operation Validator - Valid Configuration', () => {
   const input: CreateOperationInput = {
@@ -91,4 +91,43 @@ test('Operation Settings Validator - accepts a valid edit and rejects bad ones',
   assert.strictEqual(validateOperationSettings({ ...valid, maxParticipants: 5 }).isValid, false); // below enrolled 6
   assert.strictEqual(validateOperationSettings({ ...valid, isLocalOnly: true, eventLocation: '' }).isValid, false);
   assert.strictEqual(validateOperationSettings({ ...valid, isWhiteElephant: true }).isValid, false);
+});
+
+test('parseOperationConfig - accepts the create form payload and drops unknown fields', () => {
+  const payload = {
+    title: 'Simpson Family Christmas 2026', description: 'Family swap', budgetMin: 0, budgetMax: 50, currency: 'USD',
+    giftingType: 'SINGLE', isLocalOnly: false, isWhiteElephant: false, enforcePenalties: true,
+    allowWishlistOverBudget: true, maxParticipants: 5, inviteCutoffDate: '2026-12-01', assignmentDate: '2026-12-05',
+    shippingDate: '2026-12-18', executionDate: '2026-12-25', organizerId: 'someone-else',
+  };
+  const parsed = parseOperationConfig(payload);
+  assert.ok(parsed);
+  assert.strictEqual(parsed.title, payload.title);
+  assert.strictEqual(parsed.budgetMax, 50);
+  assert.strictEqual('organizerId' in parsed, false);
+});
+
+test('parseOperationConfig - optional fields may be absent or null; flags default to false', () => {
+  const parsed = parseOperationConfig({
+    title: 'Mission', giftingType: 'SINGLE', budgetMax: 25, description: null,
+    inviteCutoffDate: '2026-12-01', assignmentDate: '2026-12-05', shippingDate: '2026-12-18', executionDate: '2026-12-25',
+  });
+  assert.ok(parsed);
+  assert.strictEqual(parsed.isLocalOnly, false);
+  assert.strictEqual(parsed.isWhiteElephant, false);
+  assert.strictEqual('description' in parsed, false);
+});
+
+test('parseOperationConfig - rejects non-objects and wrongly typed fields', () => {
+  const valid = {
+    title: 'Mission', giftingType: 'SINGLE', budgetMax: 25,
+    inviteCutoffDate: '2026-12-01', assignmentDate: '2026-12-05', shippingDate: '2026-12-18', executionDate: '2026-12-25',
+  };
+  for (const value of [null, undefined, 'config', 7, [valid]]) assert.strictEqual(parseOperationConfig(value), null);
+  assert.strictEqual(parseOperationConfig({ ...valid, title: 123 }), null);
+  assert.strictEqual(parseOperationConfig({ ...valid, budgetMax: '50' }), null);
+  assert.strictEqual(parseOperationConfig({ ...valid, budgetMax: Number.NaN }), null);
+  assert.strictEqual(parseOperationConfig({ ...valid, giftingType: 'BULK' }), null);
+  assert.strictEqual(parseOperationConfig({ ...valid, isLocalOnly: 'yes' }), null);
+  assert.strictEqual(parseOperationConfig({ ...valid, executionDate: undefined }), null);
 });

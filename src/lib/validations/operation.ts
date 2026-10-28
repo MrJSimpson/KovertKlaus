@@ -22,6 +22,64 @@ export interface CreateOperationInput {
   executionDate: string | Date;    // Exchange Execution Date
 }
 
+type FieldCheck = (value: unknown) => boolean;
+const isString: FieldCheck = (v) => typeof v === 'string';
+const isBoolean: FieldCheck = (v) => typeof v === 'boolean';
+const isFiniteNumber: FieldCheck = (v) => typeof v === 'number' && Number.isFinite(v);
+
+/** Fields every create request must send, with the JSON type each must have. */
+const REQUIRED_CONFIG_FIELDS: Record<string, FieldCheck> = {
+  title: isString,
+  giftingType: (v) => v === 'SINGLE' || v === 'MULTIPLE',
+  budgetMax: isFiniteNumber,
+  inviteCutoffDate: isString,
+  assignmentDate: isString,
+  shippingDate: isString,
+  executionDate: isString,
+};
+
+/** Fields a create request may leave out or send as `null`. */
+const OPTIONAL_CONFIG_FIELDS: Record<string, FieldCheck> = {
+  description: isString,
+  maxParticipants: isFiniteNumber,
+  isLocalOnly: isBoolean,
+  eventLocation: isString,
+  isWhiteElephant: isBoolean,
+  enforcePenalties: isBoolean,
+  allowWishlistOverBudget: isBoolean,
+  budgetMin: isFiniteNumber,
+  currency: isString,
+};
+
+/**
+ * Narrows an untrusted `config` request field to {@link CreateOperationInput}.
+ *
+ * Tier 1 (what): Checks the JSON type of each field. Optional fields may be absent or `null`;
+ * `isLocalOnly` and `isWhiteElephant` default to `false`.
+ * Tier 2 (why): `validateOperationConfig` checks values, not types. A numeric title made it throw
+ * and a string budget reached Prisma, so both returned a 500 instead of a 400.
+ * Tier 3 (how): Pure. Returns a new object holding only the known fields, or `null` when the value
+ * is not an object or any field has the wrong type. Run it before `validateOperationConfig`.
+ *
+ * @param value - The request body's `config` field.
+ */
+export function parseOperationConfig(value: unknown): CreateOperationInput | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  const input = value as Record<string, unknown>;
+  const out: Record<string, unknown> = { isLocalOnly: false, isWhiteElephant: false };
+
+  for (const [key, check] of Object.entries(REQUIRED_CONFIG_FIELDS)) {
+    if (!check(input[key])) return null;
+    out[key] = input[key];
+  }
+  for (const [key, check] of Object.entries(OPTIONAL_CONFIG_FIELDS)) {
+    if (input[key] === undefined || input[key] === null) continue;
+    if (!check(input[key])) return null;
+    out[key] = input[key];
+  }
+  return out as unknown as CreateOperationInput;
+}
+
 /**
  * Calculates 25%, 50%, 75% timeline dates automatically if only the execution date is specified.
  * 25% -> Go/No-Go Date (Invite Cutoff)
