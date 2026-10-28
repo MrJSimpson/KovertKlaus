@@ -8,6 +8,10 @@ type Row = Record<string, unknown>;
 interface UpdateArgs { where: { id: string }; data: Row }
 interface CreateArgs { data: Row }
 
+/** The engine takes a PrismaClient; each mock implements only the calls its test makes. */
+type LifecycleDb = Parameters<typeof advanceMissionLifecycle>[0];
+const asDb = (mock: object) => mock as LifecycleDb;
+
 test('Mission Lifecycle Engine - advances RECRUITING to SETUP upon inviteCutoffDate', async () => {
   const pastDate = new Date(Date.now() - 86400000); // Yesterday
   const futureDate = new Date(Date.now() + 86400000 * 7); // Next week
@@ -48,7 +52,7 @@ test('Mission Lifecycle Engine - advances RECRUITING to SETUP upon inviteCutoffD
     },
   };
 
-  const summary = await advanceMissionLifecycle(mockDb);
+  const summary = await advanceMissionLifecycle(asDb(mockDb));
 
   assert.strictEqual(summary.transitionsCount, 1);
   assert.strictEqual(summary.transitions[0].previousStatus, 'RECRUITING');
@@ -115,7 +119,7 @@ test('Mission Lifecycle Engine - advances SETUP to MATCHED upon assignmentDate w
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn(mockDb),
   };
 
-  const summary = await advanceMissionLifecycle(mockDb);
+  const summary = await advanceMissionLifecycle(asDb(mockDb));
 
   assert.strictEqual(summary.transitionsCount, 1);
   assert.strictEqual(summary.transitions[0].previousStatus, 'SETUP');
@@ -168,7 +172,7 @@ test('Mission Lifecycle Engine - advances MATCHED to SHIPPED upon shippingDate',
     },
   };
 
-  const summary = await advanceMissionLifecycle(mockDb);
+  const summary = await advanceMissionLifecycle(asDb(mockDb));
 
   assert.strictEqual(summary.transitionsCount, 1);
   assert.strictEqual(summary.transitions[0].previousStatus, 'MATCHED');
@@ -214,7 +218,7 @@ test('Mission Lifecycle Engine - advances SHIPPED to EXECUTED upon executionDate
     },
   };
 
-  const summary = await advanceMissionLifecycle(mockDb);
+  const summary = await advanceMissionLifecycle(asDb(mockDb));
 
   assert.strictEqual(summary.transitionsCount, 1);
   assert.strictEqual(summary.transitions[0].previousStatus, 'SHIPPED');
@@ -265,7 +269,7 @@ test('Mission Lifecycle Engine - Assignment Day draw waits for every assignment 
   };
 
   const delivered: AssignmentEmailParams[] = [];
-  const summary = await advanceMissionLifecycle(mockDb, {
+  const summary = await advanceMissionLifecycle(asDb(mockDb), {
     baseUrl: 'https://kovertklaus.example/',
     sendEmail: async () => ({ success: true }),
     sendRepairEmail: async () => ({ success: true }),
