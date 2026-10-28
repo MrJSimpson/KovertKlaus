@@ -1,4 +1,7 @@
-import { sanitizeLogMetadata, logError, logWarn, logInfo, logEmailEvent, logScraperEvent } from './logger';
+import { sanitizeLogMetadata, logError, logWarn, logInfo, logEmailEvent, type LogEntryOptions } from './logger';
+
+/** The logger takes a PrismaClient; the mock implements only systemLog.create. */
+const asDbClient = (mock: object) => mock as NonNullable<LogEntryOptions['dbClient']>;
 
 async function runTests() {
   console.log('🧪 Starting Persistent System Logger Test Suite...\n');
@@ -33,7 +36,7 @@ async function runTests() {
     },
   };
 
-  const cleanObject: any = sanitizeLogMetadata(dirtyObject);
+  const cleanObject = sanitizeLogMetadata(dirtyObject) as Record<string, unknown> & { nested: Record<string, unknown> };
 
   assert(cleanObject.userEmail === 'agent@kovertklaus.com', 'Preserves non-sensitive fields');
   assert(cleanObject.password === '[REDACTED]', 'Redacts top-level password');
@@ -52,19 +55,19 @@ async function runTests() {
   const oversizedObj = {
     stackTrace: hugeString,
   };
-  const bounded: any = sanitizeLogMetadata(oversizedObj);
+  const bounded = sanitizeLogMetadata(oversizedObj) as { stackTrace: unknown };
   assert(typeof bounded.stackTrace === 'string', 'Handles oversized string');
-  assert(bounded.stackTrace.length <= 1020, 'Truncates oversized individual string fields');
+  assert(String(bounded.stackTrace).length <= 1020, 'Truncates oversized individual string fields');
 
   // --- Test 3: Log Methods Execution ---
   console.log('\n--- Test 3: Standard Logging Helper Methods ---');
-  await logInfo('ADMIN', 'Admin user opened settings HUD', { adminName: 'Joshua' });
+  await logInfo('ADMIN', 'Admin user opened settings HUD', { metadata: { adminName: 'Joshua' } });
   assert(true, 'logInfo executes without throwing');
 
-  await logWarn('DB', 'Transient query retry occurred', { retryCount: 2 });
+  await logWarn('DB', 'Transient query retry occurred', { metadata: { retryCount: 2 } });
   assert(true, 'logWarn executes without throwing');
 
-  await logError('WORKER', 'Critical worker exception', { errorCode: 500, error: 'Database timeout' });
+  await logError('WORKER', 'Critical worker exception', { metadata: { errorCode: 500, error: 'Database timeout' } });
   assert(true, 'logError executes without throwing');
 
   // --- Test 4: Email Event Logger Helper ---
@@ -88,7 +91,7 @@ async function runTests() {
   let mockDbCreated = false;
   const mockDbClient = {
     systemLog: {
-      create: async (payload: any) => {
+      create: async (payload: { data: Record<string, unknown> }) => {
         mockDbCreated = true;
         return { id: 'mock-uuid', ...payload.data };
       },
@@ -104,14 +107,14 @@ async function runTests() {
   for (const k of dbEnvKeys) delete process.env[k];
   try {
     await logError('EMAIL', 'Failed to dispatch email test', {
-      dbClient: mockDbClient,
+      dbClient: asDbClient(mockDbClient),
       metadata: { recipient: 'test@kovertklaus.com', error: 'Brevo 401' },
     });
   } finally {
     for (const k of dbEnvKeys) if (savedDbEnv[k] !== undefined) process.env[k] = savedDbEnv[k];
   }
 
-  assert(mockDbCreated === true, 'logError triggers systemLog.create on passed dbClient');
+  assert(mockDbCreated, 'logError triggers systemLog.create on passed dbClient');
 
   console.log(`\n📊 Test Summary: ${passed} Passed, ${failed} Failed`);
   if (failed > 0) {

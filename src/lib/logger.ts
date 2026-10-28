@@ -1,4 +1,5 @@
-import { db, getDb } from './db';
+import type { Prisma, PrismaClient } from '@prisma/client';
+import { db } from './db';
 import { adminDb, getAdminDb } from './adminDb';
 
 export type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
@@ -14,8 +15,16 @@ export interface LogEntryOptions {
   statusCode?: number;
   ip?: string;
   userAgent?: string;
-  dbClient?: any;
-  env?: Record<string, any>;
+  dbClient?: PrismaClient;
+  env?: LoggerEnv;
+}
+
+/** The runtime bindings the logger reads (Worker `env` or `process.env`-style records). */
+export interface LoggerEnv {
+  DATABASE_ADMIN_URL?: string;
+  DIRECT_URL?: string;
+  DATABASE_URL?: string;
+  MODE?: string;
 }
 
 // In-memory burst deduplication cache: key -> { count, timestamp }
@@ -94,7 +103,7 @@ function writeToFileLog(entry: {
   try {
     // In Cloudflare Worker or Edge environments, file writing is not supported
     if (
-      typeof (globalThis as any).WebSocketPair !== 'undefined' ||
+      typeof (globalThis as { WebSocketPair?: unknown }).WebSocketPair !== 'undefined' ||
       process.env.CLOUDFLARE_WORKERS === '1' ||
       process.env.CF_PAGES === '1'
     ) {
@@ -186,7 +195,7 @@ export async function logSystemEvent(options: LogEntryOptions): Promise<void> {
 
   // 5. Database Persistence with Deterministic Admin Pool Resolution
   try {
-    let client: any = null;
+    let client: PrismaClient | null | undefined = null;
     if (options.env) {
       const adminConnStr = options.env.DATABASE_ADMIN_URL || options.env.DIRECT_URL || options.env.DATABASE_URL;
       if (adminConnStr) {
@@ -209,7 +218,7 @@ export async function logSystemEvent(options: LogEntryOptions): Promise<void> {
             level,
             category,
             message,
-            metadata: boundedMeta as any,
+            metadata: (boundedMeta ?? undefined) as Prisma.InputJsonValue | undefined,
             path: options.path ? options.path.slice(0, 255) : null,
             method: options.method ? options.method.slice(0, 10) : null,
             statusCode: options.statusCode || null,
@@ -239,12 +248,12 @@ export async function logSystemEvent(options: LogEntryOptions): Promise<void> {
             }
           }).catch(() => {});
         }
-      } catch (dbErr: any) {
-        console.warn('[SystemLog Ingestion Failed]', dbErr?.message || dbErr);
+      } catch (dbErr) {
+        console.warn('[SystemLog Ingestion Failed]', dbErr instanceof Error ? dbErr.message : dbErr);
       }
     }
-  } catch (err: any) {
-    console.warn('[Logger Dispatch Exception]', err?.message || err);
+  } catch (err) {
+    console.warn('[Logger Dispatch Exception]', err instanceof Error ? err.message : err);
   }
 }
 
