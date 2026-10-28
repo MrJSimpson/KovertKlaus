@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { neonConfig } from '@neondatabase/serverless';
@@ -22,6 +22,17 @@ let cachedAdminDb: PrismaClient | null = null;
 let lastAdminConnStr: string = '';
 
 const BACKOFF_DELAYS = [500, 1200, 2500];
+
+/** A Prisma method looked up by name at runtime (model delegate methods and raw-query methods). */
+type DynamicMethod = (...args: unknown[]) => Promise<unknown>;
+type MethodTable = Record<PropertyKey, DynamicMethod | undefined>;
+
+/** Options accepted by the callback form of `$transaction`. */
+interface TransactionOptions {
+  maxWait?: number;
+  timeout?: number;
+  isolationLevel?: Prisma.TransactionIsolationLevel;
+}
 
 /**
  * Tears down active admin database connections and closes underlying connection pools
@@ -88,7 +99,7 @@ function createAdminClient(adminConnectionString: string): { client: PrismaClien
     adminConnectionString.includes('sslmode=require') ||
     (!isLocalOrInternal && !adminConnectionString.includes('sslmode=disable'));
 
-  let adapter: any;
+  let adapter: PrismaNeon | PrismaPg;
   if (isNeon) {
     adapter = new PrismaNeon(
       {
@@ -135,11 +146,11 @@ export async function withAdminDbRetry<T>(
     try {
       const client = getRawAdminDb(overrideConnStr);
       return await fn(client);
-    } catch (err: any) {
+    } catch (err) {
       attempt++;
       if (isDbConnectionError(err) && attempt < maxRetries) {
         const delay = BACKOFF_DELAYS[attempt - 1] || 1000;
-        console.warn(`[AdminDB Retry] Neon cold start / connection drop detected (attempt ${attempt}/${maxRetries}), reconnecting in ${delay}ms...`, err?.message);
+        console.warn(`[AdminDB Retry] Neon cold start / connection drop detected (attempt ${attempt}/${maxRetries}), reconnecting in ${delay}ms...`, err instanceof Error ? err.message : err);
         await invalidateCachedAdminDb();
         await new Promise((r) => setTimeout(r, delay));
         continue;
@@ -153,14 +164,15 @@ export async function withAdminDbRetry<T>(
  * Wraps an administrative Prisma model delegate (e.g. adminDb.systemConfig, adminDb.clearanceLead, adminDb.systemLog)
  * so that all queries automatically execute with transparent cold-start retry protection.
  */
-function wrapAdminModelDelegate(modelName: string, overrideConnStr?: string): any {
+function wrapAdminModelDelegate(modelName: string, overrideConnStr?: string): object {
   return new Proxy({}, {
     get(_target, method) {
-      return async (...args: any[]) => {
+      return async (...args: unknown[]) => {
         return withAdminDbRetry(async (freshClient) => {
-          const delegate = (freshClient as any)[modelName];
-          if (delegate && typeof delegate[method] === 'function') {
-            return delegate[method](...args);
+          const delegate = (freshClient as unknown as Record<string, MethodTable | undefined>)[modelName];
+          const fn = delegate?.[method];
+          if (delegate && typeof fn === 'function') {
+            return fn.apply(delegate, args);
           }
           throw new Error(`Method ${String(method)} not found on admin model delegate ${modelName}`);
         }, 3, overrideConnStr);
@@ -177,23 +189,28 @@ export function getAdminDb(overrideConnStr?: string): PrismaClient {
     get(_target, prop) {
       // Special top-level Prisma methods
       if (prop === '$transaction') {
-        return async (arg: any, options?: any) => {
+        // Callback form only: an array of already-built queries could not be rebuilt on a retry.
+        return async <T>(arg: (tx: Prisma.TransactionClient) => Promise<T>, options?: TransactionOptions) => {
           return withAdminDbRetry(async (freshClient) => {
             return freshClient.$transaction(arg, options);
           }, 3, overrideConnStr);
         };
       }
       if (prop === '$queryRaw' || prop === '$queryRawUnsafe') {
-        return async (...args: any[]) => {
+        return async (...args: unknown[]) => {
           return withAdminDbRetry(async (freshClient) => {
-            return (freshClient as any)[prop](...args);
+            const raw = (freshClient as unknown as MethodTable)[prop];
+            if (!raw) throw new Error(`Method ${prop} not found on the Prisma client`);
+            return raw.apply(freshClient, args);
           }, 3, overrideConnStr);
         };
       }
       if (prop === '$executeRaw' || prop === '$executeRawUnsafe') {
-        return async (...args: any[]) => {
+        return async (...args: unknown[]) => {
           return withAdminDbRetry(async (freshClient) => {
-            return (freshClient as any)[prop](...args);
+            const raw = (freshClient as unknown as MethodTable)[prop];
+            if (!raw) throw new Error(`Method ${prop} not found on the Prisma client`);
+            return raw.apply(freshClient, args);
           }, 3, overrideConnStr);
         };
       }
@@ -212,7 +229,7 @@ export function getAdminDb(overrideConnStr?: string): PrismaClient {
       }
 
       const client = getRawAdminDb(overrideConnStr);
-      const val = (client as any)[prop];
+      const val: unknown = Reflect.get(client, prop);
       if (typeof val === 'function') {
         return val.bind(client);
       }
