@@ -3,12 +3,17 @@ import assert from 'node:assert';
 import { advanceMissionLifecycle } from './mission-lifecycle';
 import type { AssignmentEmailParams } from './email/types';
 
+/** Prisma-style arguments the lifecycle engine passes to the mock db. */
+type Row = Record<string, unknown>;
+interface UpdateArgs { where: { id: string }; data: Row }
+interface CreateArgs { data: Row }
+
 test('Mission Lifecycle Engine - advances RECRUITING to SETUP upon inviteCutoffDate', async () => {
   const pastDate = new Date(Date.now() - 86400000); // Yesterday
   const futureDate = new Date(Date.now() + 86400000 * 7); // Next week
 
-  const updatedExchanges: Array<{ id: string; data: any }> = [];
-  const createdNotifications: Array<{ data: any }> = [];
+  const updatedExchanges: Array<{ id: string; data: Row }> = [];
+  const createdNotifications: Array<{ data: Row }> = [];
 
   const mockDb = {
     exchange: {
@@ -30,13 +35,13 @@ test('Mission Lifecycle Engine - advances RECRUITING to SETUP upon inviteCutoffD
           exclusionRules: [],
         },
       ],
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UpdateArgs) => {
         updatedExchanges.push({ id: where.id, data });
         return { ...where, ...data };
       },
     },
     notification: {
-      create: async ({ data }: any) => {
+      create: async ({ data }: CreateArgs) => {
         createdNotifications.push({ data });
         return { id: 'notif-' + createdNotifications.length, ...data };
       },
@@ -55,16 +60,16 @@ test('Mission Lifecycle Engine - advances RECRUITING to SETUP upon inviteCutoffD
 
   assert.strictEqual(createdNotifications.length, 1);
   assert.strictEqual(createdNotifications[0].data.userId, 'org-1');
-  assert.ok(createdNotifications[0].data.title.includes('Recruitment Closed'));
+  assert.ok(String(createdNotifications[0].data.title).includes('Recruitment Closed'));
 });
 
 test('Mission Lifecycle Engine - advances SETUP to MATCHED upon assignmentDate with automated draw', async () => {
   const pastDate = new Date(Date.now() - 86400000);
   const futureDate = new Date(Date.now() + 86400000 * 7);
 
-  const updatedMembers: Array<{ id: string; data: any }> = [];
-  const updatedExchanges: Array<{ id: string; data: any }> = [];
-  const createdNotifications: Array<{ data: any }> = [];
+  const updatedMembers: Array<{ id: string; data: Row }> = [];
+  const updatedExchanges: Array<{ id: string; data: Row }> = [];
+  const createdNotifications: Array<{ data: Row }> = [];
 
   const mockDb = {
     exchange: {
@@ -89,25 +94,25 @@ test('Mission Lifecycle Engine - advances SETUP to MATCHED upon assignmentDate w
           exclusionRules: [],
         },
       ],
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UpdateArgs) => {
         updatedExchanges.push({ id: where.id, data });
         return { ...where, ...data };
       },
     },
     exchangeMember: {
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UpdateArgs) => {
         updatedMembers.push({ id: where.id, data });
         return { ...where, ...data };
       },
     },
     notification: {
-      create: async ({ data }: any) => {
+      create: async ({ data }: CreateArgs) => {
         createdNotifications.push({ data });
         return { id: 'notif-' + createdNotifications.length, ...data };
       },
     },
     // Callback form only, like the real `db` proxy allows (src/lib/db.ts).
-    $transaction: async (fn: (tx: any) => Promise<unknown>) => fn(mockDb),
+    $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn(mockDb),
   };
 
   const summary = await advanceMissionLifecycle(mockDb);
@@ -131,7 +136,7 @@ test('Mission Lifecycle Engine - advances MATCHED to SHIPPED upon shippingDate',
   const pastDate = new Date(Date.now() - 86400000);
   const futureDate = new Date(Date.now() + 86400000 * 7);
 
-  const updatedExchanges: Array<{ id: string; data: any }> = [];
+  const updatedExchanges: Array<{ id: string; data: Row }> = [];
 
   const mockDb = {
     exchange: {
@@ -153,7 +158,7 @@ test('Mission Lifecycle Engine - advances MATCHED to SHIPPED upon shippingDate',
           exclusionRules: [],
         },
       ],
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UpdateArgs) => {
         updatedExchanges.push({ id: where.id, data });
         return { ...where, ...data };
       },
@@ -177,7 +182,7 @@ test('Mission Lifecycle Engine - advances MATCHED to SHIPPED upon shippingDate',
 test('Mission Lifecycle Engine - advances SHIPPED to EXECUTED upon executionDate', async () => {
   const pastDate = new Date(Date.now() - 86400000);
 
-  const updatedExchanges: Array<{ id: string; data: any }> = [];
+  const updatedExchanges: Array<{ id: string; data: Row }> = [];
 
   const mockDb = {
     exchange: {
@@ -199,7 +204,7 @@ test('Mission Lifecycle Engine - advances SHIPPED to EXECUTED upon executionDate
           exclusionRules: [],
         },
       ],
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UpdateArgs) => {
         updatedExchanges.push({ id: where.id, data });
         return { ...where, ...data };
       },
@@ -276,7 +281,7 @@ test('Mission Lifecycle Engine - Assignment Day draw waits for every assignment 
   assert.deepStrictEqual(delivered.map((e) => e.recipientEmail).sort(), ['a1@test.com', 'a3@test.com']);
   for (const e of delivered) {
     assert.strictEqual(e.exchangeUrl, 'https://kovertklaus.example/exchange/MAIL26');
-    assert.match(e.targetCodename, /^Snowy Spider [1-4]$/);
+    assert.match(e.targetCodename ?? '', /^Snowy Spider [1-4]$/);
     assert.strictEqual(e.shippingDeadline, 'Dec 20, 2026');
   }
 });
