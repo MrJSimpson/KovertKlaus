@@ -1,6 +1,6 @@
 import { comparePassword, hashPassword, verifyDummyPassword, isLegacyBcryptHash } from './lib/password';
 import * as cheerio from 'cheerio';
-import { Prisma, type PrismaClient } from '@prisma/client';
+import { Prisma, type ClearanceLead, type LogLevel, type PreLaunchApproval, type PrismaClient } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { cachedSystemConfigReader, clearSystemConfigCaches, publicConfigCache } from './lib/system-config-cache';
@@ -35,12 +35,10 @@ import {
 } from './lib/email';
 import { getResolvedEmailConfig } from './lib/email/config';
 import { EmailConfig } from './lib/email/types';
-import { evaluateMemberAudit } from './lib/demerits';
 import { processExchangeAudit } from './lib/audit-runner';
 import { advanceMissionLifecycle, type MissionLifecycleDeps } from './lib/mission-lifecycle';
 import { detectCarrier } from './lib/carrier-tracking';
-import { detectProductCategory, getCategorySuggestedKeys, updateCatalogIntelligence, sanitizeItemDetails } from './lib/product-intelligence';
-import { validateAndSanitizeManifestItem } from './lib/validations/manifest';
+import { detectProductCategory, getCategorySuggestedKeys, type ProductCategory } from './lib/product-intelligence';
 import { validateOperationConfig, validateOperationSettings } from './lib/validations/operation';
 import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
@@ -131,6 +129,7 @@ interface Env {
   SMTP_SECURE?: string;
   SMTP_FROM?: string;
   SESSION_SECRET?: string;
+  CRON_SECRET?: string;
 }
 
 function parseCookie(cookieHeader: string | null, name: string): string | null {
@@ -246,7 +245,7 @@ async function markRevokedUserSession(request: Request, db: PrismaClient): Promi
  */
 async function resolveWorkerEmailConfig(
   env: Env,
-  dbClient?: any,
+  dbClient?: PrismaClient,
   explicitOverride?: Partial<EmailConfig>
 ): Promise<EmailConfig> {
   const envMap: Record<string, string | undefined> = {
@@ -269,7 +268,7 @@ async function resolveWorkerEmailConfig(
   const adminConnStr = env.DATABASE_ADMIN_URL || env.DIRECT_URL || env.DATABASE_URL;
   const configDbClient = adminConnStr ? getAdminDb(adminConnStr) : dbClient;
 
-  const resolved = await getResolvedEmailConfig(adminConnStr ? cachedSystemConfigReader(configDbClient) : configDbClient, envMap);
+  const resolved = await getResolvedEmailConfig(adminConnStr && configDbClient ? cachedSystemConfigReader(configDbClient) : configDbClient, envMap);
   return { ...resolved, dbClient: configDbClient || dbClient, env, ...explicitOverride };
 }
 
@@ -582,7 +581,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             });
           }
 
-          const whereClause: any = {};
+          const whereClause: Prisma.UserWhereInput = {};
           if (workshop) whereClause.isWorkshop = true;
           if (q) {
             whereClause.OR = [
@@ -702,7 +701,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           });
         }
 
-        const whereClause: any = {};
+        const whereClause: Prisma.ExchangeWhereInput = {};
         if (q) {
           whereClause.OR = [
             { id: { equals: q } },
@@ -834,7 +833,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const query = (url.searchParams.get('q') || '').trim().toLowerCase();
           const status = (url.searchParams.get('status') || '').trim().toUpperCase();
 
-          const whereClause: any = {};
+          const whereClause: Prisma.ClearanceLeadWhereInput = {};
           if (query) {
             whereClause.OR = [
               { email: { contains: query, mode: 'insensitive' } },
@@ -1040,7 +1039,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const take = Math.min(100, Math.max(1, parseInt(url.searchParams.get('take') || '50', 10)));
           const skip = Math.max(0, parseInt(url.searchParams.get('skip') || '0', 10));
 
-          const whereClause: any = {};
+          const whereClause: Prisma.SystemLogWhereInput = {};
 
           if (query) {
             whereClause.OR = [
@@ -1051,7 +1050,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           }
 
           if (level && ['ERROR', 'WARN', 'INFO', 'DEBUG'].includes(level)) {
-            whereClause.level = level;
+            whereClause.level = level as LogLevel;
           }
 
           if (category) {
@@ -1180,7 +1179,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
 
         let totalLeads = 0;
-        let lead: any = null;
+        let lead: ClearanceLead | null = null;
         try {
           totalLeads = await db.clearanceLead.count();
           lead = await db.clearanceLead.upsert({
@@ -1188,8 +1187,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             update: { updatedAt: new Date(), ...(name ? { name: sanitizeText(name) } : {}) },
             create: { email, name: name ? sanitizeText(name) : undefined, source: sanitizeText(source) },
           });
-        } catch (dbErr: any) {
-          console.warn('[Clearance Lead DB Fallback to Admin]', dbErr?.message);
+        } catch (dbErr) {
+          console.warn('[Clearance Lead DB Fallback to Admin]', dbErr instanceof Error ? dbErr.message : dbErr);
           totalLeads = await adminDb.clearanceLead.count();
           lead = await adminDb.clearanceLead.upsert({
             where: { email },
@@ -1199,7 +1198,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
 
         // Dispatch Confirmation Email via configured Email Dispatcher
-        let emailResult: any = null;
+        let emailResult: Awaited<ReturnType<typeof sendClearanceConfirmationEmail>> | null = null;
         try {
           const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
           emailResult = await sendClearanceConfirmationEmail({
@@ -1226,11 +1225,11 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               env,
             }).catch(() => {});
           }
-        } catch (emailErr: any) {
+        } catch (emailErr) {
           console.error('[Clearance Email Dispatch Error]', emailErr);
-          await logError('EMAIL', `Clearance email exception for ${email}: ${emailErr?.message || emailErr}`, {
+          await logError('EMAIL', `Clearance email exception for ${email}: ${emailErr instanceof Error ? emailErr.message : emailErr}`, {
             dbClient: adminDb,
-            metadata: { email, source, stack: emailErr?.stack },
+            metadata: { email, source, stack: emailErr instanceof Error ? emailErr.stack : undefined },
             path: pathname,
             statusCode: 500,
             env,
@@ -1317,7 +1316,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (!userId) return Response.json({ authenticated: false }, { status: 401 });
 
         if (request.method === 'GET') {
-          let user = await db.user.findUnique({
+          const user = await db.user.findUnique({
             where: { id: userId },
             select: {
               id: true, email: true, name: true, emailNotifications: true,
@@ -1412,8 +1411,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const rawInviteCode = body.inviteCode || body.operationCode || body.exchangeCode || body.code || body.alphaCode;
 
         const cleanEmail = email.trim().toLowerCase();
-        let targetExchange: any = null;
-        let matchedPreLaunchApproval: any = null;
+        let targetExchange: Prisma.ExchangeGetPayload<{ include: { members: true } }> | null = null;
+        let matchedPreLaunchApproval: PreLaunchApproval | null = null;
 
         if (isAlpha) {
           if (!rawInviteCode) {
@@ -1547,8 +1546,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           headers.append('Set-Cookie', sessionCookie('user', signedUserId));
 
           return new Response(JSON.stringify({ success: true, token: signedUserId, data: user }), { status: 200, headers });
-        } catch (err: any) {
-          if (err?.code === 'P2002') {
+        } catch (err) {
+          if ((err as { code?: string } | null)?.code === 'P2002') {
             return Response.json({ error: 'An account with this email already exists.' }, { status: 400 });
           }
           throw err;
@@ -1700,8 +1699,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 }
               });
               return Response.json({ success: true, message: 'Target swap executed successfully', assignments: updatedAssignments });
-            } catch (err: any) {
-              return Response.json({ error: err.message || 'Target swap failed' }, { status: 400 });
+            } catch (err) {
+              return Response.json({ error: (err instanceof Error && err.message) || 'Target swap failed' }, { status: 400 });
             }
           }
 
@@ -2462,7 +2461,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const admin = await requireAdmin(request, adminDb);
         const authHeader = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
         const cronHeader = request.headers.get('x-cron-secret');
-        const expectedCronSecret = (env as any).CRON_SECRET || (typeof process !== 'undefined' ? process.env.CRON_SECRET : undefined);
+        const expectedCronSecret = env.CRON_SECRET || (typeof process !== 'undefined' ? process.env.CRON_SECRET : undefined);
         const isCronAuthorized = Boolean(expectedCronSecret && (authHeader === expectedCronSecret || cronHeader === expectedCronSecret));
 
         if (!admin && !isCronAuthorized) {
@@ -2518,8 +2517,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const isFresh = existingCatalog && (Date.now() - new Date(existingCatalog.scrapedAt).getTime() < TWENTY_FOUR_HOURS_MS);
 
         if (existingCatalog && isFresh) {
-          const category = (existingCatalog.properties as any)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
-          const variables = (existingCatalog.properties as any)?.variables || getCategorySuggestedKeys(category);
+          const category = (existingCatalog.properties as CatalogProperties | null)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
+          const variables = (existingCatalog.properties as CatalogProperties | null)?.variables || getCategorySuggestedKeys(category);
           const properties = existingCatalog.properties || { category, variables, popularOptions: {} };
 
           return Response.json({
@@ -2576,7 +2575,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           const category = detectProductCategory(title, parsedUrl.hostname, cleanDesc);
           const suggestedVariables = getCategorySuggestedKeys(category);
-          const initialProps = (existingCatalog?.properties as any) || {
+          const initialProps = (existingCatalog?.properties as CatalogProperties | null) || {
             category,
             variables: suggestedVariables,
             popularOptions: {},
@@ -2621,8 +2620,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const failure = describeFetchFailure(error);
           await logScraperEvent(normalizedUrl, failure.action, failure.details, { dbClient: db, env }).catch(() => {});
           if (existingCatalog) {
-            const category = (existingCatalog.properties as any)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
-            const variables = (existingCatalog.properties as any)?.variables || getCategorySuggestedKeys(category);
+            const category = (existingCatalog.properties as CatalogProperties | null)?.category || detectProductCategory(existingCatalog.title, existingCatalog.domain || parsedUrl.hostname, existingCatalog.description || '');
+            const variables = (existingCatalog.properties as CatalogProperties | null)?.variables || getCategorySuggestedKeys(category);
             const properties = existingCatalog.properties || { category, variables, popularOptions: {} };
 
             return Response.json({
@@ -2666,14 +2665,14 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         return Response.json(result.body, { status: result.status });
       }
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('[Worker API Error]', err);
       await logSystemEvent({
         level: 'ERROR',
         category: 'WORKER',
-        message: `Unhandled Worker Exception on ${pathname}: ${err?.message || err}`,
+        message: `Unhandled Worker Exception on ${pathname}: ${err instanceof Error ? err.message : err}`,
         metadata: {
-          stack: err?.stack,
+          stack: err instanceof Error ? err.stack : undefined,
           url: request.url,
           pathname,
           method: request.method,
@@ -2723,12 +2722,24 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
     return env.ASSETS.fetch(request);
 }
 
+/** Shape this worker writes to ProductCatalog.properties. */
+interface CatalogProperties {
+  category?: ProductCategory;
+  variables?: string[];
+}
+
 /** Minimal Cloudflare ExecutionContext surface used here. */
 interface WorkerContext {
   waitUntil(promise: Promise<unknown>): void;
 }
 
-export default {
+/** Fields of the Cloudflare ScheduledController this worker reads. */
+interface CronEvent {
+  cron?: string;
+  scheduledTime?: number;
+}
+
+const worker = {
   /**
    * Every request gets its own Prisma/Neon clients (runWithDbScope): Workers bind sockets to the
    * request that opened them, so module-cached pools reused across concurrent requests crashed the
@@ -2747,7 +2758,7 @@ export default {
    * - shippingDate     -> SHIPPED
    * - executionDate    -> EXECUTED
    */
-  async scheduled(event: any, env: Env, ctx: any): Promise<void> {
+  async scheduled(event: CronEvent, env: Env, ctx?: WorkerContext): Promise<void> {
     // Own database scope for the cron run (clients closed when it finishes).
     const lifecyclePromise = runWithDbScope(async () => {
       try {
@@ -2828,10 +2839,11 @@ export default {
           metadata: { summary, cron: event?.cron, scheduledTime: event?.scheduledTime },
           env,
         }).catch(() => {});
-      } catch (err: any) {
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
         console.error('[CRON] Mission lifecycle milestone check failed:', err);
-        await logError('WORKER', `Cron: Mission lifecycle failed: ${err?.message || err}`, {
-          metadata: { cron: event?.cron, scheduledTime: event?.scheduledTime, error: err?.message || String(err) },
+        await logError('WORKER', `Cron: Mission lifecycle failed: ${message}`, {
+          metadata: { cron: event?.cron, scheduledTime: event?.scheduledTime, error: message },
           env,
         }).catch(() => {});
       }
@@ -2844,3 +2856,5 @@ export default {
     }
   },
 };
+
+export default worker;
