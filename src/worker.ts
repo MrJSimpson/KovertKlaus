@@ -1,6 +1,6 @@
 import { comparePassword, hashPassword, verifyDummyPassword, isLegacyBcryptHash } from './lib/password';
 import * as cheerio from 'cheerio';
-import { Prisma, type ClearanceLead, type LogLevel, type PreLaunchApproval, type PrismaClient } from '@prisma/client';
+import { AccountStatus, Prisma, type ClearanceLead, type LogLevel, type PreLaunchApproval, type PrismaClient } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { cachedSystemConfigReader, clearSystemConfigCaches, publicConfigCache } from './lib/system-config-cache';
@@ -39,7 +39,7 @@ import { processExchangeAudit } from './lib/audit-runner';
 import { advanceMissionLifecycle, type MissionLifecycleDeps } from './lib/mission-lifecycle';
 import { detectCarrier } from './lib/carrier-tracking';
 import { detectProductCategory, getCategorySuggestedKeys, type ProductCategory } from './lib/product-intelligence';
-import { validateOperationConfig, validateOperationSettings } from './lib/validations/operation';
+import { parseOperationConfig, validateOperationConfig, validateOperationSettings } from './lib/validations/operation';
 import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
 import { rewriteExchangeShellPath } from './lib/exchange-route';
@@ -54,6 +54,7 @@ import { isRosterLocked, timelineRepairUpdate, visibleRepairIssues } from './lib
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
+import { bodyObject, bodyString, readJsonBody } from './lib/request-body';
 import { assertProductTitle, describeFetchFailure, fetchProductPage, isUsableProductTitle } from './lib/product-fetch';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
@@ -330,9 +331,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 1. /api/northpole/login (POST)
       if (pathname === '/api/northpole/login' && request.method === 'POST') {
-        const body = (await request.json().catch(() => ({}))) as any;
-        const loginId = (body.identifier || body.username || body.email || '').trim().toLowerCase();
-        const password = body.password || '';
+        const body = await readJsonBody(request);
+        const loginId = (bodyString(body.identifier) || bodyString(body.username) || bodyString(body.email)).trim().toLowerCase();
+        const password = bodyString(body.password);
 
         if (!loginId || !password) {
           return Response.json({ error: 'Username/email and password are required' }, { status: 400 });
@@ -428,8 +429,11 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 3. /api/northpole/reset-password (POST)
       if (pathname === '/api/northpole/reset-password' && request.method === 'POST') {
-        const body = (await request.json().catch(() => ({}))) as any;
-        const { adminId, currentPassword, newPassword, confirmPassword } = body;
+        const body = await readJsonBody(request);
+        const adminId = bodyString(body.adminId);
+        const currentPassword = bodyString(body.currentPassword);
+        const newPassword = bodyString(body.newPassword);
+        const confirmPassword = bodyString(body.confirmPassword);
 
         if (!adminId || !currentPassword || !newPassword) {
           return Response.json({ error: 'All fields are required' }, { status: 400 });
@@ -626,9 +630,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           return Response.json({ success: true, users: formatted, totalCount });
         }
         if (request.method === 'PATCH') {
-          const body = (await request.json().catch(() => ({}))) as any;
-          const { userId, penaltyPoints, isWorkshop, accountStatus } = body;
+          const body = await readJsonBody(request);
+          const userId = bodyString(body.userId);
+          const { penaltyPoints, isWorkshop, accountStatus } = body;
           if (!userId) return Response.json({ error: 'userId required' }, { status: 400 });
+          if (accountStatus !== undefined && !(Object.values(AccountStatus) as unknown[]).includes(accountStatus)) {
+            return Response.json({ error: 'accountStatus is not a valid account status' }, { status: 400 });
+          }
           const points = penaltyPoints !== undefined ? Number(penaltyPoints) : undefined;
           if (points !== undefined && (!Number.isInteger(points) || points < 0)) {
             return Response.json({ error: 'penaltyPoints must be a non-negative integer' }, { status: 400 });
@@ -638,7 +646,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             data: {
               ...(points !== undefined ? { penaltyPoints: points } : {}),
               ...(isWorkshop !== undefined ? { isWorkshop: Boolean(isWorkshop) } : {}),
-              ...(accountStatus !== undefined ? { accountStatus } : {}),
+              ...(accountStatus !== undefined ? { accountStatus: accountStatus as AccountStatus } : {}),
             },
             // Never return credential columns (passwordHash) to the browser.
             select: {
@@ -772,10 +780,12 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const admin = await requireAdmin(request, adminDb);
         if (!admin) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const body = (await request.json().catch(() => ({}))) as any;
-        const targetEmail = (body.recipientEmail || admin.email).trim();
+        const body = await readJsonBody(request);
+        const targetEmail = (bodyString(body.recipientEmail) || admin.email).trim();
 
-        const emailConfig = await resolveWorkerEmailConfig(env, adminDb, body.overrideConfig);
+        // Admin-only test dispatch: the North Pole form sends provider settings to try before saving them.
+        const overrideConfig = bodyObject(body.overrideConfig) as Partial<EmailConfig> | null;
+        const emailConfig = await resolveWorkerEmailConfig(env, adminDb, overrideConfig ?? undefined);
 
         const result = await sendEmail(
           {
@@ -879,8 +889,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (request.method === 'DELETE') {
           let id = url.searchParams.get('id');
           if (!id) {
-            const body = (await request.json().catch(() => ({}))) as any;
-            id = body?.id;
+            id = bodyString((await readJsonBody(request)).id) || null;
           }
 
           if (!id) {
@@ -901,8 +910,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
 
         if (request.method === 'POST') {
-          const body = (await request.json().catch(() => ({}))) as any;
-          const { action, id, email } = body;
+          const body = await readJsonBody(request);
+          const action = bodyString(body.action);
+          const id = bodyString(body.id);
+          const email = bodyString(body.email);
 
           if (action === 'resend_confirmation') {
             const lead = id
@@ -1169,10 +1180,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 9. /api/clearance / /api/leads (POST)
       if ((pathname === '/api/clearance' || pathname === '/api/leads') && request.method === 'POST') {
-        const body = (await request.json().catch(() => ({}))) as any;
-        const email = (body.email || '').trim().toLowerCase();
-        const name = (body.name || '').trim();
-        const source = (body.source || 'landing_countdown').trim();
+        const body = await readJsonBody(request);
+        const email = bodyString(body.email).trim().toLowerCase();
+        const name = bodyString(body.name).trim();
+        const source = (bodyString(body.source) || 'landing_countdown').trim();
 
         if (!email || !isValidEmail(email)) {
           return Response.json({ error: 'A valid email address is required for clearance access.' }, { status: 400 });
@@ -1253,8 +1264,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 10. /api/users/login (POST)
       if (pathname === '/api/users/login' && request.method === 'POST') {
-        const body = (await request.json().catch(() => ({}))) as any;
-        const { email, password } = body;
+        const body = await readJsonBody(request);
+        const email = bodyString(body.email);
+        const password = bodyString(body.password);
 
         if (!email || !password) return Response.json({ error: 'Email and password are required' }, { status: 400 });
         if (!isValidEmail(email)) return Response.json({ error: 'Invalid email address format' }, { status: 400 });
@@ -1356,10 +1368,12 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
         // The preferences modal sends PUT; PATCH stays for existing callers.
         if (request.method === 'PATCH' || request.method === 'PUT') {
-          const body = (await request.json().catch(() => ({}))) as any;
-          const { name, emailNotifications, newPassword } = body;
-          const oldPassword = body.currentPassword ?? body.oldPassword;
-          const updateData: Record<string, any> = buildProfileUpdate(body);
+          const body = await readJsonBody(request);
+          const name = bodyString(body.name);
+          const newPassword = bodyString(body.newPassword);
+          const { emailNotifications } = body;
+          const oldPassword = bodyString(body.currentPassword) || bodyString(body.oldPassword);
+          const updateData: Prisma.UserUpdateInput = { ...buildProfileUpdate(body) };
 
           if (name) updateData.name = sanitizeText(name);
           if (emailNotifications !== undefined) updateData.emailNotifications = Boolean(emailNotifications);
@@ -1397,8 +1411,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 12. /api/users (POST - Registration)
       if (pathname === '/api/users' && request.method === 'POST') {
-        const body = (await request.json().catch(() => ({}))) as any;
-        const { name, email, password } = body;
+        const body = await readJsonBody(request);
+        const name = bodyString(body.name);
+        const email = bodyString(body.email);
+        const password = bodyString(body.password);
 
         if (!email || !isValidEmail(email)) return Response.json({ error: 'Valid email required' }, { status: 400 });
         if (!name || !password) return Response.json({ error: 'Name, email, and password required' }, { status: 400 });
@@ -1408,7 +1424,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
         // Alpha Gate: Closed Friend-of-a-Friend Secret Santa Invitation Invariant
         const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
-        const rawInviteCode = body.inviteCode || body.operationCode || body.exchangeCode || body.code || body.alphaCode;
+        const rawInviteCode =
+          bodyString(body.inviteCode) || bodyString(body.operationCode) || bodyString(body.exchangeCode) || bodyString(body.code) || bodyString(body.alphaCode);
 
         const cleanEmail = email.trim().toLowerCase();
         let targetExchange: Prisma.ExchangeGetPayload<{ include: { members: true } }> | null = null;
@@ -1425,7 +1442,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             );
           }
 
-          const cleanCode = String(rawInviteCode).trim().toUpperCase();
+          const cleanCode = rawInviteCode.trim().toUpperCase();
 
           // 1. Check if the code matches an active PreLaunchApproval for this email address
           matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
@@ -1464,7 +1481,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             }
           }
         } else if (rawInviteCode) {
-          const cleanCode = String(rawInviteCode).trim().toUpperCase();
+          const cleanCode = rawInviteCode.trim().toUpperCase();
           matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
             where: {
               email: { equals: cleanEmail, mode: 'insensitive' },
@@ -1610,8 +1627,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
 
         if (request.method === 'POST') {
-          const body = (await request.json().catch(() => ({}))) as any;
-          const { config, action, operationId } = body;
+          const body = await readJsonBody(request);
+          const action = bodyString(body.action);
+          const operationId = bodyString(body.operationId);
           const userId = activeUserId;
 
           if (!userId) return Response.json({ error: 'Authentication required' }, { status: 401 });
@@ -1659,7 +1677,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 2: 2-Way Cascade Target Swap
           if (action === 'swap' && operationId) {
-            const { originatorUserId, newTargetUserId } = body;
+            const originatorUserId = bodyString(body.originatorUserId);
+            const newTargetUserId = bodyString(body.newTargetUserId);
             if (!originatorUserId || !newTargetUserId) {
               return Response.json({ error: 'originatorUserId and newTargetUserId required' }, { status: 400 });
             }
@@ -1706,7 +1725,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 3: Add Exclusion Rule (bidirectional in the draw; both agents must be enrolled here)
           if (action === 'addExclusion' && operationId) {
-            const { agentId: memberId, restrictedAgentId: restrictedMemberId } = body;
+            const memberId = bodyString(body.agentId);
+            const restrictedMemberId = bodyString(body.restrictedAgentId);
             if (!memberId || !restrictedMemberId) {
               return Response.json({ error: 'agentId and restrictedAgentId required' }, { status: 400 });
             }
@@ -1744,7 +1764,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 4: Remove Exclusion Rule
           if (action === 'removeExclusion' && operationId) {
-            const { exclusionId } = body;
+            const exclusionId = bodyString(body.exclusionId);
             if (!exclusionId) return Response.json({ error: 'exclusionId required' }, { status: 400 });
 
             const ex = await db.exchange.findUnique({ where: { id: operationId } });
@@ -1801,8 +1821,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 7: Send Broadcast
           if (action === 'sendOpTeamBroadcast' && operationId) {
-            const { messageText } = body;
-            if (!messageText?.trim()) return Response.json({ error: 'messageText required' }, { status: 400 });
+            const messageText = bodyString(body.messageText);
+            if (!messageText.trim()) return Response.json({ error: 'messageText required' }, { status: 400 });
 
             const ex = await db.exchange.findUnique({
               where: { id: operationId },
@@ -1846,7 +1866,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 8: Create Report (After-Action Report entries are for enrolled agents only)
           if (action === 'createReport' && operationId) {
-            const { thankYouText, photoUrl } = body;
+            const thankYouText = bodyString(body.thankYouText);
+            const photoUrl = bodyString(body.photoUrl);
             const reportError = validateReportInput(thankYouText, photoUrl);
             if (reportError) return Response.json({ error: reportError }, { status: 400 });
             const member = await db.exchangeMember.findUnique({
@@ -1858,7 +1879,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 exchangeId: operationId,
                 userId,
                 thankYouText: thankYouText ? sanitizeText(thankYouText) : null,
-                photoUrl: photoUrl?.trim() || null,
+                photoUrl: photoUrl.trim() || null,
               },
               include: {
                 user: { select: { id: true, name: true } },
@@ -1869,7 +1890,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 9: Create KDM Tokens
           if (action === 'createKdmTokens' && operationId) {
-            const { count = 5, invitedNames = [] } = body;
+            const requestedCount = Number(body.count ?? 5);
+            const count = Number.isFinite(requestedCount) ? Math.floor(requestedCount) : 5;
+            const invitedNames = Array.isArray(body.invitedNames) ? body.invitedNames.map(bodyString) : [];
             const ex = await db.exchange.findUnique({ where: { id: operationId } });
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Organizer only' }, { status: 403 });
@@ -1893,8 +1916,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 10: Join With KDM Token
           if (action === 'joinWithKdmToken') {
-            const { token, propertyWaiverAgreed } = body;
-            if (!token?.trim()) return Response.json({ error: 'Token required' }, { status: 400 });
+            const token = bodyString(body.token);
+            const { propertyWaiverAgreed } = body;
+            if (!token.trim()) return Response.json({ error: 'Token required' }, { status: 400 });
             if (!propertyWaiverAgreed) return Response.json({ error: 'Property accord required' }, { status: 400 });
 
             const cleanToken = token.trim().toUpperCase();
@@ -1940,8 +1964,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 11: Submit Drop Proof
           if (action === 'submitDropProof' && operationId) {
-            const { dropProofPhotoUrl, dropProofNote } = body;
-            if (!dropProofPhotoUrl?.trim()) return Response.json({ error: 'Photo required' }, { status: 400 });
+            const dropProofPhotoUrl = bodyString(body.dropProofPhotoUrl);
+            const dropProofNote = bodyString(body.dropProofNote);
+            if (!dropProofPhotoUrl.trim()) return Response.json({ error: 'Photo required' }, { status: 400 });
 
             const member = await db.exchangeMember.findUnique({
               where: { exchangeId_userId: { exchangeId: operationId, userId } },
@@ -1963,8 +1988,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 12: Submit 1-Guess Identity Challenge
           if (action === 'submitIdentityChallenge' && operationId) {
-            const { guessedName } = body;
-            if (!guessedName?.trim()) return Response.json({ error: 'Name required' }, { status: 400 });
+            const guessedName = bodyString(body.guessedName);
+            if (!guessedName.trim()) return Response.json({ error: 'Name required' }, { status: 400 });
 
             const targetMember = await db.exchangeMember.findUnique({
               where: { exchangeId_userId: { exchangeId: operationId, userId } },
@@ -2004,8 +2029,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
           // Action 13: Submit Busted Evidence
           if (action === 'submitBustedEvidence' && operationId) {
-            const { bustedPhotoUrl, bustedReason } = body;
-            if (!bustedPhotoUrl?.trim()) return Response.json({ error: 'Evidence required' }, { status: 400 });
+            const bustedPhotoUrl = bodyString(body.bustedPhotoUrl);
+            const bustedReason = bodyString(body.bustedReason);
+            if (!bustedPhotoUrl.trim()) return Response.json({ error: 'Evidence required' }, { status: 400 });
 
             const targetMember = await db.exchangeMember.findUnique({
               where: { exchangeId_userId: { exchangeId: operationId, userId } },
@@ -2044,7 +2070,11 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           }
 
           // Create Exchange
-          if (config) {
+          if (body.config) {
+            const config = parseOperationConfig(body.config);
+            if (!config) {
+              return Response.json({ error: 'Validation failed', details: ['Mission settings are missing or have the wrong type.'] }, { status: 400 });
+            }
             const validation = validateOperationConfig(config);
             if (!validation.isValid) {
               return Response.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
@@ -2085,15 +2115,20 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             return Response.json({ success: true, data: newExchange });
           }
 
-          return Response.json({ error: `Unsupported operation action: ${action ?? '(none)'}` }, { status: 400 });
+          return Response.json({ error: `Unsupported operation action: ${action || '(none)'}` }, { status: 400 });
         }
 
         if (request.method === 'PATCH') {
           const activeUserId = getUserIdFromRequest(request);
           if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
-          const body = (await request.json().catch(() => ({}))) as any;
-          const { operationId, action, dates, settings, agentId: memberId, targetUserId } = body;
+          const body = await readJsonBody(request);
+          const operationId = bodyString(body.operationId);
+          const action = bodyString(body.action);
+          const memberId = bodyString(body.agentId);
+          const targetUserId = bodyString(body.targetUserId);
+          const settings = bodyObject(body.settings);
+          const { dates } = body;
 
           if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
 
@@ -2269,12 +2304,12 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 15. /api/invitations/accept (POST)
       if (pathname === '/api/invitations/accept' && request.method === 'POST') {
-        const body = (await request.json().catch(() => ({}))) as any;
+        const body = await readJsonBody(request);
         const activeUserId = getUserIdFromRequest(request);
-        const { operationCode } = body;
+        const operationCode = bodyString(body.operationCode);
 
         if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
-        if (!operationCode || typeof operationCode !== 'string') return Response.json({ error: 'operationCode required' }, { status: 400 });
+        if (!operationCode) return Response.json({ error: 'operationCode required' }, { status: 400 });
 
         const exchange = await db.exchange.findUnique({ where: { code: operationCode.trim().toUpperCase() }, include: { members: true } });
         if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
@@ -2350,8 +2385,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const activeUserId = getUserIdFromRequest(request);
         if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
-        const body = (await request.json().catch(() => ({}))) as any;
-        const { operationId, isLocalDelivery, trackingNumber } = body;
+        const body = await readJsonBody(request);
+        const operationId = bodyString(body.operationId);
+        const trackingNumber = bodyString(body.trackingNumber);
+        const isLocalDelivery = Boolean(body.isLocalDelivery);
 
         if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
         const shippingClosed = await closedMissionGuard(db, operationId);
@@ -2429,8 +2466,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 17. /api/demerits/audit (POST)
       if (pathname === '/api/demerits/audit' && request.method === 'POST') {
-        const body = (await request.json().catch(() => ({}))) as any;
-        const { operationId } = body;
+        const body = await readJsonBody(request);
+        const operationId = bodyString(body.operationId);
 
         if (!operationId) return Response.json({ error: 'operationId required' }, { status: 400 });
 
@@ -2494,10 +2531,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
       // 18. /api/scraper (POST)
       if (pathname === '/api/scraper' && request.method === 'POST') {
-        const body = (await request.json().catch(() => ({}))) as any;
-        const { url } = body;
+        const body = await readJsonBody(request);
+        const url = bodyString(body.url);
 
-        if (!url || typeof url !== 'string') return Response.json({ error: 'Valid product URL required' }, { status: 400 });
+        if (!url) return Response.json({ error: 'Valid product URL required' }, { status: 400 });
 
         const formattedUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
         const ssrfCheck = isSafePublicUrl(formattedUrl);
