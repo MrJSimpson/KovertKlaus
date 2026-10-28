@@ -2,26 +2,31 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { processExchangeAudit } from './audit-runner';
 
+/** Prisma-style arguments the audit runner passes to the mock db. */
+type Row = Record<string, unknown>;
+interface UpdateArgs { where: { id: string }; data: Row }
+interface CreateArgs { data: Row }
+
 test('Audit Runner - processExchangeAudit applies penalties, waivers, and transitions exchange status when enforcePenalties is true', async () => {
-  const updatedUsers: Array<{ id: string; data: any }> = [];
-  const createdNotifications: Array<{ data: any }> = [];
-  const updatedExchanges: Array<{ id: string; data: any }> = [];
+  const updatedUsers: Array<{ id: string; data: Row }> = [];
+  const createdNotifications: Array<{ data: Row }> = [];
+  const updatedExchanges: Array<{ id: string; data: Row }> = [];
 
   const mockDb = {
     user: {
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UpdateArgs) => {
         updatedUsers.push({ id: where.id, data });
         return { ...where, ...data };
       },
     },
     notification: {
-      create: async ({ data }: any) => {
+      create: async ({ data }: CreateArgs) => {
         createdNotifications.push({ data });
         return { id: 'notif-' + createdNotifications.length, ...data };
       },
     },
     exchange: {
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UpdateArgs) => {
         updatedExchanges.push({ id: where.id, data });
         return { ...where, ...data };
       },
@@ -103,9 +108,9 @@ test('Audit Runner - processExchangeAudit applies penalties, waivers, and transi
   // Verify notifications: 1 penalty notification, 1 cleared notification
   assert.strictEqual(createdNotifications.length, 2);
   assert.strictEqual(createdNotifications[0].data.userId, 'user-neglect');
-  assert.strictEqual(createdNotifications[0].data.title.includes('Penalty Issued'), true);
+  assert.strictEqual(String(createdNotifications[0].data.title).includes('Penalty Issued'), true);
   assert.strictEqual(createdNotifications[1].data.userId, 'user-rehabilitated');
-  assert.strictEqual(createdNotifications[1].data.title.includes('Demerit Cleared'), true);
+  assert.strictEqual(String(createdNotifications[1].data.title).includes('Demerit Cleared'), true);
 
   // Verify exchange marked as COMPLETED
   assert.strictEqual(updatedExchanges.length, 1);
@@ -114,25 +119,25 @@ test('Audit Runner - processExchangeAudit applies penalties, waivers, and transi
 });
 
 test('Audit Runner - processExchangeAudit bypasses demerits when enforcePenalties is false', async () => {
-  const updatedUsers: Array<any> = [];
-  const createdNotifications: Array<any> = [];
-  const updatedExchanges: Array<any> = [];
+  const updatedUsers: Array<{ id: string; data: Row }> = [];
+  const createdNotifications: Array<{ data: Row }> = [];
+  const updatedExchanges: Array<{ id: string; data: Row }> = [];
 
   const mockDb = {
     user: {
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UpdateArgs) => {
         updatedUsers.push({ id: where.id, data });
         return { ...where, ...data };
       },
     },
     notification: {
-      create: async ({ data }: any) => {
+      create: async ({ data }: CreateArgs) => {
         createdNotifications.push({ data });
         return { id: 'notif-' + createdNotifications.length, ...data };
       },
     },
     exchange: {
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UpdateArgs) => {
         updatedExchanges.push({ id: where.id, data });
         return { ...where, ...data };
       },
