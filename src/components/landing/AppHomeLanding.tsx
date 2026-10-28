@@ -103,8 +103,8 @@ export function AppHomeLanding() {
         throw new Error(json.error || 'Failed to submit clearance request');
       }
       setClearanceSubmitted(true);
-    } catch (err: any) {
-      setClearanceError(err.message || 'Transmission error. Please try again.');
+    } catch (err) {
+      setClearanceError((err instanceof Error && err.message) || 'Transmission error. Please try again.');
     } finally {
       setClearanceLoading(false);
     }
@@ -132,25 +132,6 @@ export function AppHomeLanding() {
   const [executionDate, setExecutionDate] = useState(`${new Date().getFullYear()}-12-25`);
   const [joinCode, setJoinCode] = useState('');
 
-  useEffect(() => {
-    checkCurrentUser();
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const codeParam = params.get('code') || params.get('alphaCode');
-      const emailParam = params.get('email');
-      if (codeParam) {
-        setAlphaCipher(codeParam.trim().toUpperCase());
-        if (emailParam) setEmail(emailParam.trim());
-        setAuthMode('register');
-        setLoginModalOpen(true);
-      } else if (params.has('signin') || window.location.pathname.replace(/\/+$/, '') === '/signin') {
-        // /signin (and ?signin) opens the operative sign-in form directly.
-        setAuthMode('login');
-        setLoginModalOpen(true);
-      }
-    }
-  }, []);
-
   async function checkCurrentUser() {
     try {
       const savedUserId = localStorage.getItem(USER_ID_KEY);
@@ -168,6 +149,29 @@ export function AppHomeLanding() {
       setCurrentUser(null);
     }
   }
+
+  // Mount-only: reads the session and the URL (?code, ?email, /signin), which exist only in the
+  // browser after hydration. Seeding state from them during render would mismatch the server HTML,
+  // and useSearchParams would client-render the whole landing page.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    checkCurrentUser();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const codeParam = params.get('code') || params.get('alphaCode');
+      const emailParam = params.get('email');
+      if (codeParam) {
+        setAlphaCipher(codeParam.trim().toUpperCase());
+        if (emailParam) setEmail(emailParam.trim());
+        setAuthMode('register');
+        setLoginModalOpen(true);
+      } else if (params.has('signin') || window.location.pathname.replace(/\/+$/, '') === '/signin') {
+        // /signin (and ?signin) opens the operative sign-in form directly.
+        setAuthMode('login');
+        setLoginModalOpen(true);
+      }
+    }
+  }, []);
 
   async function handleLogout() {
     try {
@@ -202,8 +206,8 @@ export function AppHomeLanding() {
       setCurrentUser({ id: json.user.id, name: json.user.name });
       setLoginModalOpen(false);
       router.push('/dashboard');
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Authentication failed');
+    } catch (err) {
+      setErrorMessage((err instanceof Error && err.message) || 'Authentication failed');
     } finally {
       setLoading(false);
     }
@@ -238,8 +242,8 @@ export function AppHomeLanding() {
       setCurrentUser({ id: user.id, name: user.name });
       setLoginModalOpen(false);
       router.push('/dashboard');
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Registration failed');
+    } catch (err) {
+      setErrorMessage((err instanceof Error && err.message) || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -320,8 +324,8 @@ export function AppHomeLanding() {
 
       setCreateModalOpen(false);
       router.push(`/exchange/${opData.data.code}`);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'An unexpected error occurred');
+    } catch (err) {
+      setErrorMessage((err instanceof Error && err.message) || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -396,8 +400,8 @@ export function AppHomeLanding() {
 
       setJoinModalOpen(false);
       router.push(`/exchange/${cleanCode}`);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'An unexpected error occurred');
+    } catch (err) {
+      setErrorMessage((err instanceof Error && err.message) || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
