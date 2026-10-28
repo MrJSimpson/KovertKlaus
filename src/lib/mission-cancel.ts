@@ -142,7 +142,7 @@ function headElfDeletionNote(schedule: { manualDeleteFrom: Date | null; purgeOn:
  * @param deps - Site URL and email sender for this runtime.
  * @param input.exchangeId - Mission to cancel.
  * @param input.actor - `HEAD_ELF` (must be `actorUserId`'s mission), `ADMIN` (route verified) or `SYSTEM`.
- * @param input.reason - Optional note shown to agents.
+ * @param input.reason - Note shown to agents. Required from the Head Elf; optional for admins and the system.
  * @param input.code - Reason code for system cancellations; derived from the actor otherwise.
  * @param input.notes - Private line per user ID, added to that recipient's notice and email only.
  */
@@ -179,6 +179,8 @@ export async function cancelMission(
   if (input.actor === 'HEAD_ELF' && ex.organizerId !== input.actorUserId) {
     return { status: 403, body: { error: 'Only the Head Elf can cancel this mission.' } };
   }
+  // Agents lose a mission they planned around, so the Head Elf owes them an explanation.
+  if (input.actor === 'HEAD_ELF' && !reason) return { status: 400, body: { error: 'Give a reason for cancelling. Every agent sees it.' } };
   if (ex.status === 'COMPLETED') return { status: 409, body: { error: 'Completed missions are a permanent record and cannot be cancelled.' } };
   if (ex.status === 'CANCELLED') return { status: 409, body: { error: 'This mission is already cancelled.' } };
 

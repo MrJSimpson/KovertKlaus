@@ -4,9 +4,9 @@
  * @file MissionCancelModal.tsx
  * @description Confirmation dialog for cancelling or permanently deleting a Holiday Mission.
  *
- * Tier 1 (what): `mode="cancel"` takes an optional reason and cancels the mission; `mode="delete"`
- * asks the user to type the mission code, then deletes it for good. Used by the Head Elf on the
- * mission page and by North Pole admins.
+ * Tier 1 (what): `mode="cancel"` takes a reason and cancels the mission; `mode="delete"` deletes it
+ * for good. Both show a warning banner and stay disabled until the user types the mission title.
+ * Used by the Head Elf on the mission page and by North Pole admins.
  * Tier 2 (why): Both actions affect every agent and deletion cannot be undone, so each needs a
  * deliberate second step with the consequences spelled out.
  * Tier 3 (how): The parent supplies `onConfirm`, which calls the right endpoint and throws with
@@ -20,23 +20,27 @@ import { MAX_CANCEL_REASON_LENGTH } from '@/lib/mission-cancel';
 interface MissionCancelModalProps {
   mode: 'cancel' | 'delete';
   missionTitle: string;
-  missionCode: string;
   /** Before the draw (cancel mode): deletion is possible by hand after 48 hours. */
   cancelledBeforeDraw?: boolean;
   onClose: () => void;
+  /** Admins may cancel without a reason; the Head Elf must give one (the server enforces it too). */
+  reasonRequired?: boolean;
   /** Performs the action; throw an Error with a message to show it. */
   onConfirm: (input: { reason: string }) => Promise<void>;
 }
 
-export function MissionCancelModal({ mode, missionTitle, missionCode, cancelledBeforeDraw = true, onClose, onConfirm }: MissionCancelModalProps) {
+export function MissionCancelModal({ mode, missionTitle, cancelledBeforeDraw = true, reasonRequired = true, onClose, onConfirm }: MissionCancelModalProps) {
   const { theme } = useTheme();
   const [reason, setReason] = useState('');
-  const [typedCode, setTypedCode] = useState('');
+  const [typedTitle, setTypedTitle] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   const isDelete = mode === 'delete';
-  const canConfirm = !busy && (!isDelete || typedCode.trim().toUpperCase() === missionCode.toUpperCase());
+  // Case and surrounding spaces do not matter; the words do.
+  const titleMatches = typedTitle.trim().toLowerCase() === missionTitle.trim().toLowerCase();
+  const reasonOk = isDelete || !reasonRequired || reason.trim().length > 0;
+  const canConfirm = !busy && titleMatches && reasonOk;
 
   async function submit() {
     setBusy(true);
@@ -64,22 +68,15 @@ export function MissionCancelModal({ mode, missionTitle, missionCode, cancelledB
         </div>
 
         <div className="p-5 space-y-4 text-sm">
+          <div role="alert" className="p-4 rounded-2xl border-2 border-kk-danger bg-kk-danger-soft text-kk-on-danger-soft">
+            <p className="text-lg font-black">⚠️ {isDelete ? 'This deletes the mission forever' : 'This ends the mission for everyone'}</p>
+            <p className="mt-1 font-bold">{isDelete ? 'Deleted missions cannot be recovered.' : 'Cancelling cannot be undone.'}</p>
+          </div>
           {isDelete ? (
             <>
               <p className={theme.textLabel}>
                 This permanently deletes <strong>{missionTitle}</strong> and all of its data: agents, wishlists, messages and reports.
               </p>
-              <p className="font-bold text-kk-danger">Deleted missions cannot be recovered.</p>
-              <label className="block">
-                <span className={`text-xs font-bold ${theme.textSubLabel}`}>Type the mission code <span className="font-mono">{missionCode}</span> to confirm</span>
-                <input
-                  value={typedCode}
-                  onChange={(e) => setTypedCode(e.target.value)}
-                  className={`mt-1 w-full px-3 py-2.5 rounded-xl border font-mono text-base ${theme.cardInnerBg}`}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </label>
             </>
           ) : (
             <>
@@ -91,9 +88,8 @@ export function MissionCancelModal({ mode, missionTitle, missionCode, cancelledB
                   ? 'Because the draw has not happened, you can delete it permanently 48 hours after cancelling. Otherwise it is deleted automatically after 90 days.'
                   : 'Because the draw has happened, it cannot be deleted by hand. It is deleted automatically 90 days after cancelling.'}
               </p>
-              <p className="font-bold">Cancelling cannot be undone.</p>
               <label className="block">
-                <span className={`text-xs font-bold ${theme.textSubLabel}`}>Reason (optional, shown to agents)</span>
+                <span className={`text-xs font-bold ${theme.textSubLabel}`}>Reason{reasonRequired ? '' : ' (optional)'}, shown to every agent</span>
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -104,6 +100,19 @@ export function MissionCancelModal({ mode, missionTitle, missionCode, cancelledB
               </label>
             </>
           )}
+
+          <label className="block">
+            <span className={`text-xs font-bold ${theme.textSubLabel}`}>
+              Type the mission name <strong className={theme.textHeading}>{missionTitle}</strong> to confirm
+            </span>
+            <input
+              value={typedTitle}
+              onChange={(e) => setTypedTitle(e.target.value)}
+              className={`mt-1 w-full px-3 py-2.5 rounded-xl border text-base ${theme.cardInnerBg}`}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
 
           {error && <p className="text-xs font-bold text-kk-danger">⚠️ {error}</p>}
 

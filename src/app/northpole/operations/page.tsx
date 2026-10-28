@@ -346,7 +346,7 @@ export default function NorthPoleOperationsPage() {
         <MissionCancelModal
           mode={actionTarget.mode}
           missionTitle={actionTarget.op.title}
-          missionCode={actionTarget.op.code}
+          reasonRequired={false}
           cancelledBeforeDraw={actionTarget.op.status === 'RECRUITING' || actionTarget.op.status === 'SETUP'}
           onClose={() => setActionTarget(null)}
           onConfirm={({ reason }) => handleMissionAction(actionTarget.op, actionTarget.mode, reason)}
