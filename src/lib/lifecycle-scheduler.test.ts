@@ -8,6 +8,18 @@ import {
   stopLifecycleScheduler,
 } from './lifecycle-scheduler';
 
+/** The scheduler's db parameters; each mock implements only the calls its test makes. */
+type ConfigDb = NonNullable<Parameters<typeof evaluateSchedulerState>[0]>;
+type AppDb = NonNullable<Parameters<typeof executeLifecycleSweep>[1]>;
+const asConfigDb = (mock: object) => mock as ConfigDb;
+const asAppDb = (mock: object) => mock as AppDb;
+
+/** The SystemConfig upsert the sweep writes. */
+interface SystemConfigUpsert {
+  where: { id: string };
+  update: { lastLifecycleTransitions?: number; lastLifecycleRunAt?: Date };
+}
+
 test('Lifecycle Scheduler - marks dueForSweep true when never run before (lastLifecycleRunAt is null)', async () => {
   const mockConfigDb = {
     systemConfig: {
@@ -20,7 +32,7 @@ test('Lifecycle Scheduler - marks dueForSweep true when never run before (lastLi
     },
   };
 
-  const state = await evaluateSchedulerState(mockConfigDb as any);
+  const state = await evaluateSchedulerState(asConfigDb(mockConfigDb));
   assert.strictEqual(state.enabled, true);
   assert.strictEqual(state.intervalMinutes, 60);
   assert.strictEqual(state.lastRunAt, null);
@@ -40,7 +52,7 @@ test('Lifecycle Scheduler - marks dueForSweep false when elapsed time is under i
     },
   };
 
-  const state = await evaluateSchedulerState(mockConfigDb as any);
+  const state = await evaluateSchedulerState(asConfigDb(mockConfigDb));
   assert.strictEqual(state.enabled, true);
   assert.strictEqual(state.intervalMinutes, 60);
   assert.strictEqual(state.dueForSweep, false);
@@ -59,7 +71,7 @@ test('Lifecycle Scheduler - marks dueForSweep true when elapsed time exceeds int
     },
   };
 
-  const state = await evaluateSchedulerState(mockConfigDb as any);
+  const state = await evaluateSchedulerState(asConfigDb(mockConfigDb));
   assert.strictEqual(state.enabled, true);
   assert.strictEqual(state.dueForSweep, true);
 });
@@ -76,7 +88,7 @@ test('Lifecycle Scheduler - respects database disabled toggle (lifecycleCronEnab
     },
   };
 
-  const state = await evaluateSchedulerState(mockConfigDb as any);
+  const state = await evaluateSchedulerState(asConfigDb(mockConfigDb));
   assert.strictEqual(state.enabled, false);
   assert.strictEqual(state.dueForSweep, false);
 });
@@ -93,7 +105,7 @@ test('Lifecycle Scheduler - respects hard environment variable killswitch', asyn
     },
   };
 
-  const state = await evaluateSchedulerState(mockConfigDb as any, 'false');
+  const state = await evaluateSchedulerState(asConfigDb(mockConfigDb), 'false');
   assert.strictEqual(state.enabled, false);
   assert.strictEqual(state.dueForSweep, false);
 });
@@ -105,24 +117,25 @@ test('Lifecycle Scheduler - executeLifecycleSweep stamps telemetry into SystemCo
     },
   };
 
-  let upsertPayload: any = null;
+  let upsertPayload: SystemConfigUpsert | null = null;
   const mockConfigDb = {
     systemConfig: {
-      upsert: async (args: any) => {
+      upsert: async (args: SystemConfigUpsert) => {
         upsertPayload = args;
         return args;
       },
     },
   };
 
-  const summary = await executeLifecycleSweep('manual', mockAppDb as any, mockConfigDb as any);
+  const summary = await executeLifecycleSweep('manual', asAppDb(mockAppDb), asConfigDb(mockConfigDb));
   assert.strictEqual(summary.missionsCheckedCount, 0);
   assert.strictEqual(summary.transitionsCount, 0);
 
   assert.ok(upsertPayload !== null);
-  assert.strictEqual(upsertPayload.where.id, 'singleton');
-  assert.strictEqual(upsertPayload.update.lastLifecycleTransitions, 0);
-  assert.ok(upsertPayload.update.lastLifecycleRunAt instanceof Date);
+  const payload: SystemConfigUpsert = upsertPayload;
+  assert.strictEqual(payload.where.id, 'singleton');
+  assert.strictEqual(payload.update.lastLifecycleTransitions, 0);
+  assert.ok(payload.update.lastLifecycleRunAt instanceof Date);
 });
 
 test('Lifecycle Scheduler - tickLifecycleScheduler skips when not due and triggers when due', async () => {
@@ -145,7 +158,7 @@ test('Lifecycle Scheduler - tickLifecycleScheduler skips when not due and trigge
     exchange: { findMany: async () => [] },
   };
 
-  const ran1 = await tickLifecycleScheduler(mockAppDb as any, mockNotDueConfigDb as any);
+  const ran1 = await tickLifecycleScheduler(asAppDb(mockAppDb), asConfigDb(mockNotDueConfigDb));
   assert.strictEqual(ran1, false);
   assert.strictEqual(sweepRan, false);
 
@@ -162,7 +175,7 @@ test('Lifecycle Scheduler - tickLifecycleScheduler skips when not due and trigge
     },
   };
 
-  const ran2 = await tickLifecycleScheduler(mockAppDb as any, mockDueConfigDb as any);
+  const ran2 = await tickLifecycleScheduler(asAppDb(mockAppDb), asConfigDb(mockDueConfigDb));
   assert.strictEqual(ran2, true);
   assert.strictEqual(sweepRan, true);
 });
