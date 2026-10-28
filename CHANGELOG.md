@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hide finished missions.** The dashboard has Hide Completed and Hide Cancelled toggles. Your browser remembers them, and when they hide everything the page says how many missions are hidden.
 
 ### Changed
+- **Cancelling or deleting a mission takes a deliberate confirmation.** The dialog opens with a large warning, and its button stays disabled until you type the mission's name. The Head Elf must now give a reason for cancelling, which every agent sees; North Pole admins may still cancel without one. Deleting a mission now asks for its name instead of its invite code.
 - **The dashboard is now the one place for your missions.** It lists every mission you run or have joined (it showed only the three most recent), with the search, role and status filters from the Operations Center. The Operations Center and its "Manage All Operations" button are gone; old `/operations` links open the dashboard, and the mission page's back link returns there.
 
 ### Fixed

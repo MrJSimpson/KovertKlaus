@@ -2609,7 +2609,6 @@ export default function OperationCommandCenterPage() {
         <MissionCancelModal
           mode={missionActionMode}
           missionTitle={operation.title}
-          missionCode={operation.code}
           cancelledBeforeDraw={operation.status === 'RECRUITING' || operation.status === 'SETUP'}
           onClose={() => setMissionActionMode(null)}
           onConfirm={({ reason }) => handleMissionAction(missionActionMode, reason)}

@@ -126,6 +126,16 @@ test('Mission cancel - refuses other agents, completed and already-cancelled mis
   assert.strictEqual((await cancelMission(fakeDb().db, deps, { exchangeId: 'ex1', actor: 'ADMIN', reason: 5 }, NOW)).status, 400);
 });
 
+test('Mission cancel - the Head Elf must give a reason; admins need not', async () => {
+  const { deps } = fakeDeps();
+  for (const reason of [undefined, '', '   ']) {
+    const { db, exchange } = fakeDb('RECRUITING');
+    assert.strictEqual((await cancelMission(db, deps, { exchangeId: 'ex1', actor: 'HEAD_ELF', actorUserId: 'boss', reason }, NOW)).status, 400);
+    assert.strictEqual(exchange.status, 'RECRUITING');
+  }
+  assert.strictEqual((await cancelMission(fakeDb('RECRUITING').db, deps, { exchangeId: 'ex1', actor: 'ADMIN' }, NOW)).status, 200);
+});
+
 test('Mission delete - needs confirmation, cancellation first, and the 48-hour wait', async () => {
   const cancelled = { cancelledAt: new Date(NOW), cancelledFromStatus: 'RECRUITING', cancelledBy: 'HEAD_ELF', cancelCode: 'HEAD_ELF_CANCELLED' };
   assert.strictEqual((await deleteMission(fakeDb('CANCELLED', cancelled).db, { exchangeId: 'ex1', actor: 'HEAD_ELF', actorUserId: 'boss' }, NOW)).status, 400);
