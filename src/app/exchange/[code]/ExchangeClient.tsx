@@ -626,27 +626,6 @@ export default function OperationCommandCenterPage() {
     }
   }
 
-  // Handle End Operation (OpsLeader Only)
-  async function handleEndOperation() {
-    if (!operation || !userId) return;
-    if (!confirm('Are you sure you want to end this operation now? Execution date will be updated to today and status marked as COMPLETED.')) return;
-
-    try {
-      const res = await fetch('/api/operations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'endOperation', operationId: operation.id, userId }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to end operation');
-      alert('🏁 Operation completed! Status updated to COMPLETED.');
-      fetchExchangeDetails();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Action failed';
-      alert(msg);
-    }
-  }
-
   /** Cancels or deletes the mission (Head Elf); throws the server's message for the dialog. */
   async function handleMissionAction(mode: 'cancel' | 'delete', reason: string) {
     if (!operation) return;
@@ -1638,9 +1617,11 @@ export default function OperationCommandCenterPage() {
                                   >
                                     <div className="flex items-center gap-3 min-w-0">
                                       {item.thumbnail ? (
+                                        // eslint-disable-next-line @next/next/no-img-element -- retailer thumbnails come from any domain; next/image would need a wildcard remotePatterns (open image proxy)
                                         <img
                                           src={item.thumbnail}
                                           alt={item.title}
+                                          referrerPolicy="no-referrer"
                                           className="h-11 w-11 object-cover rounded-lg border border-kk-border flex-shrink-0"
                                         />
                                       ) : (
@@ -1858,7 +1839,8 @@ export default function OperationCommandCenterPage() {
                           <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${theme.cardInnerBg}`}>
                             <div className="flex items-center gap-3 min-w-0">
                               {item.thumbnail ? (
-                                <img src={item.thumbnail} alt={item.title} className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
+                                // eslint-disable-next-line @next/next/no-img-element -- retailer thumbnails come from any domain; next/image would need a wildcard remotePatterns (open image proxy)
+                                <img src={item.thumbnail} alt={item.title} referrerPolicy="no-referrer" className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
                               ) : (
                                 <div className="h-12 w-12 rounded-xl bg-kk-inset flex items-center justify-center text-xl flex-shrink-0">
                                   {isPersonalized ? '✨' : '🛍️'}
