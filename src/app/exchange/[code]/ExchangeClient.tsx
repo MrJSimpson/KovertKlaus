@@ -33,6 +33,21 @@ import { memberCardStatus } from '@/lib/member-status';
 import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
 
+/** A Manifest Item as the wishlist and exchange APIs return it. */
+interface ManifestItem {
+  id: string;
+  title: string;
+  price?: number;
+  url: string;
+  thumbnail?: string;
+  description?: string;
+  properties?: {
+    isPersonalized?: boolean;
+    details?: Array<{ label: string; value: string }>;
+    [key: string]: unknown;
+  };
+}
+
 interface OperationAgent {
   id: string;
   userId: string;
@@ -45,6 +60,8 @@ interface OperationAgent {
   codename?: string;
   /** Present only on the viewer's own membership. */
   codenameAccepted?: boolean;
+  /** The agent confirmed receiving their gift; blocks a Coal Citation. */
+  deliveredConfirmed?: boolean;
   user?: {
     id: string;
     name: string;
@@ -71,19 +88,7 @@ interface OperationAgent {
     favoriteColors?: string;
     allergiesDiet?: string;
     favoriteHobbies?: string;
-    wishlistItems?: Array<{
-      id: string;
-      title: string;
-      price?: number;
-      url: string;
-      thumbnail?: string;
-      description?: string;
-      properties?: {
-        isPersonalized?: boolean;
-        details?: Array<{ label: string; value: string }>;
-        [key: string]: any;
-      };
-    }>;
+    wishlistItems?: ManifestItem[];
   };
 }
 
@@ -245,26 +250,14 @@ export default function OperationCommandCenterPage() {
   const [settingsError, setSettingsError] = useState('');
 
   // Wishlist Manifest state
-  const [userManifest, setUserManifest] = useState<Array<{
-    id: string;
-    title: string;
-    price?: number;
-    url: string;
-    thumbnail?: string;
-    description?: string;
-    properties?: {
-      isPersonalized?: boolean;
-      details?: Array<{ label: string; value: string }>;
-      [key: string]: any;
-    };
-  }>>([]);
+  const [userManifest, setUserManifest] = useState<ManifestItem[]>([]);
   const [validationError, setValidationError] = useState('');
 
   // Item Customization & Review Modal State
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [itemModalMode, setItemModalMode] = useState<'add' | 'edit'>('add');
   const [itemModalKind, setItemModalKind] = useState<'store' | 'personalized'>('store');
-  const [itemModalData, setItemModalData] = useState<any>(null);
+  const [itemModalData, setItemModalData] = useState<ManifestItem | null>(null);
   const [userDossier, setUserDossier] = useState<UserDossierPreferences | undefined>(undefined);
   const [wishlistRules, setWishlistRules] = useState<WishlistRules | null>(null);
   const [codenameBusy, setCodenameBusy] = useState(false);
@@ -470,8 +463,8 @@ export default function OperationCommandCenterPage() {
         setAuthModalOpen(false);
         await fetchExchangeDetails();
       }
-    } catch (err: any) {
-      setAuthError(err.message || 'Authentication error');
+    } catch (err: unknown) {
+      setAuthError((err instanceof Error && err.message) || 'Authentication error');
     } finally {
       setAuthLoading(false);
     }
@@ -496,8 +489,8 @@ export default function OperationCommandCenterPage() {
         }
       }
       await fetchExchangeDetails();
-    } catch (err: any) {
-      setEnlistError(err.message || 'Enlistment failed');
+    } catch (err: unknown) {
+      setEnlistError((err instanceof Error && err.message) || 'Enlistment failed');
     } finally {
       setEnlisting(false);
     }
@@ -539,8 +532,8 @@ export default function OperationCommandCenterPage() {
 
       setEditSettingsModalOpen(false);
       fetchExchangeDetails();
-    } catch (err: any) {
-      setSettingsError(err.message || 'Update failed');
+    } catch (err: unknown) {
+      setSettingsError((err instanceof Error && err.message) || 'Update failed');
     } finally {
       setSavingSettings(false);
     }
@@ -579,8 +572,8 @@ export default function OperationCommandCenterPage() {
 
       setEditDatesModalOpen(false);
       fetchExchangeDetails();
-    } catch (err: any) {
-      setDateError(err.message || 'Update failed');
+    } catch (err: unknown) {
+      setDateError((err instanceof Error && err.message) || 'Update failed');
     } finally {
       setSavingDates(false);
     }
@@ -605,8 +598,8 @@ export default function OperationCommandCenterPage() {
       }
       setDrawSuccessMessage('🎯 Target assignments successfully executed! All agents have been secretly assigned.');
       fetchExchangeDetails();
-    } catch (err: any) {
-      alert(err.message || 'Target draw failed');
+    } catch (err: unknown) {
+      alert((err instanceof Error && err.message) || 'Target draw failed');
     } finally {
       setDrawingTargets(false);
     }
@@ -626,27 +619,6 @@ export default function OperationCommandCenterPage() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Failed to close recruitment');
       alert('🔒 Recruitment closed! Invite cutoff date updated to today.');
-      fetchExchangeDetails();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Action failed';
-      alert(msg);
-    }
-  }
-
-  // Handle End Operation (OpsLeader Only)
-  async function handleEndOperation() {
-    if (!operation || !userId) return;
-    if (!confirm('Are you sure you want to end this operation now? Execution date will be updated to today and status marked as COMPLETED.')) return;
-
-    try {
-      const res = await fetch('/api/operations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'endOperation', operationId: operation.id, userId }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to end operation');
-      alert('🏁 Operation completed! Status updated to COMPLETED.');
       fetchExchangeDetails();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Action failed';
@@ -730,12 +702,12 @@ export default function OperationCommandCenterPage() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) throw new Error(json.error || 'Failed to remove Manifest Item');
       setUserManifest((prev) => prev.filter((i) => i.id !== itemId));
-    } catch (err: any) {
-      setValidationError(err?.message || 'Failed to remove Manifest Item');
+    } catch (err: unknown) {
+      setValidationError((err instanceof Error && err.message) || 'Failed to remove Manifest Item');
     }
   }
 
-  function handleItemSaveSuccess(savedItem: any) {
+  function handleItemSaveSuccess(savedItem: ManifestItem | null) {
     if (!savedItem) return;
     setUserManifest((prev) => {
       const exists = prev.some((i) => i.id === savedItem.id);
@@ -842,7 +814,7 @@ export default function OperationCommandCenterPage() {
   // Handle OpsLeader Agent Management Actions
   async function handleAgentAction(
     actionType: 'remove_agent' | 'issue_demerit' | 'nudge_agent',
-    agent: any
+    agent: OperationAgent
   ) {
     if (!operation || !userId) return;
 
@@ -876,8 +848,8 @@ export default function OperationCommandCenterPage() {
       // A removal can leave the remaining preventative match rules without a gift circle.
       alert(json.warning ? `${json.message}\n\n⚠️ ${json.warning}` : json.message || 'Agent action executed successfully!');
       fetchExchangeDetails();
-    } catch (err: any) {
-      alert(err.message || 'Action failed');
+    } catch (err: unknown) {
+      alert((err instanceof Error && err.message) || 'Action failed');
     }
   }
   // Determine User Role & Target in this Operation
@@ -913,7 +885,6 @@ export default function OperationCommandCenterPage() {
   const assignedTarget = currentAgent?.targetUser;
   // Current timeline stage: colors the status badge and the 4-stage timeline (src/lib/stage-colors.ts).
   const missionPhase = getNextMilestoneCountdown(operation);
-  const todayStr = new Date().toISOString().split('T')[0];
 
   // Timeline edit rules (server: src/lib/validations/timeline.ts): a date you change must be after
   // today and after the stage before it; a date you leave alone may already be in the past.
@@ -1175,7 +1146,7 @@ export default function OperationCommandCenterPage() {
                 
                 {operation.description && (
                   <p className="text-xs mt-1 italic text-kk-on-header/90">
-                    "{operation.description}"
+                    &quot;{operation.description}&quot;
                   </p>
                 )}
 
@@ -1222,7 +1193,7 @@ export default function OperationCommandCenterPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🎄</span>
                           <span className="text-xs font-mono font-bold uppercase tracking-wider text-kk-gold-ink">
-                            You've Been Invited to Join This Mission!
+                            You&apos;ve Been Invited to Join This Mission!
                           </span>
                         </div>
                         <h2 className="text-xl font-black mt-1">
@@ -1646,9 +1617,11 @@ export default function OperationCommandCenterPage() {
                                   >
                                     <div className="flex items-center gap-3 min-w-0">
                                       {item.thumbnail ? (
+                                        // eslint-disable-next-line @next/next/no-img-element -- retailer thumbnails come from any domain; next/image would need a wildcard remotePatterns (open image proxy)
                                         <img
                                           src={item.thumbnail}
                                           alt={item.title}
+                                          referrerPolicy="no-referrer"
                                           className="h-11 w-11 object-cover rounded-lg border border-kk-border flex-shrink-0"
                                         />
                                       ) : (
@@ -1688,7 +1661,7 @@ export default function OperationCommandCenterPage() {
 
                                         {item.description && (
                                           <p className="text-xs text-kk-muted mt-1 italic line-clamp-2">
-                                            "{item.description}"
+                                            &quot;{item.description}&quot;
                                           </p>
                                         )}
 
@@ -1866,7 +1839,8 @@ export default function OperationCommandCenterPage() {
                           <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${theme.cardInnerBg}`}>
                             <div className="flex items-center gap-3 min-w-0">
                               {item.thumbnail ? (
-                                <img src={item.thumbnail} alt={item.title} className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
+                                // eslint-disable-next-line @next/next/no-img-element -- retailer thumbnails come from any domain; next/image would need a wildcard remotePatterns (open image proxy)
+                                <img src={item.thumbnail} alt={item.title} referrerPolicy="no-referrer" className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
                               ) : (
                                 <div className="h-12 w-12 rounded-xl bg-kk-inset flex items-center justify-center text-xl flex-shrink-0">
                                   {isPersonalized ? '✨' : '🛍️'}
@@ -1904,7 +1878,7 @@ export default function OperationCommandCenterPage() {
 
                                 {item.description && (
                                   <p className="text-xs text-kk-muted mt-1 italic line-clamp-2 max-w-xs">
-                                    "{item.description}"
+                                    &quot;{item.description}&quot;
                                   </p>
                                 )}
 
@@ -2677,7 +2651,7 @@ export default function OperationCommandCenterPage() {
         kind={itemModalKind}
         exchangeId={operation?.id}
         itemMax={wishlistRules?.itemMax ?? operation?.budgetMax}
-        initialData={itemModalData}
+        initialData={itemModalData ?? undefined}
         userDossier={userDossier}
       />
 
