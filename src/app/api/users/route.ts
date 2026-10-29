@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { PreLaunchApproval, Prisma } from '@prisma/client';
 import { hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
@@ -9,15 +10,14 @@ import { logInfo } from '@/lib/logger';
 import { markInvitationAccepted } from '@/lib/invitations';
 import { enrollWithCodename } from '@/lib/codename';
 import { memberWishlistCreate } from '@/lib/mission-wishlist';
+import { bodyString, readJsonBody } from '@/lib/request-body';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { name, email, password } = body as {
-      name?: string;
-      email: string;
-      password?: string;
-    };
+    const body = await readJsonBody(request);
+    const name = bodyString(body.name);
+    const email = bodyString(body.email);
+    const password = bodyString(body.password);
 
     if (!email) {
       return NextResponse.json({ error: 'Email address is required' }, { status: 400 });
@@ -43,10 +43,11 @@ export async function POST(request: Request) {
     // Alpha Gate: Closed Friend-of-a-Friend Secret Santa Invitation Invariant
     // -------------------------------------------------------------------------
     const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
-    const rawInviteCode = (body as any).inviteCode || (body as any).operationCode || (body as any).exchangeCode || (body as any).code || (body as any).alphaCode;
+    const rawInviteCode =
+      bodyString(body.inviteCode) || bodyString(body.operationCode) || bodyString(body.exchangeCode) || bodyString(body.code) || bodyString(body.alphaCode);
 
-    let targetExchange: any = null;
-    let matchedPreLaunchApproval: any = null;
+    let targetExchange: Prisma.ExchangeGetPayload<{ include: { members: true } }> | null = null;
+    let matchedPreLaunchApproval: PreLaunchApproval | null = null;
 
     if (isAlpha) {
       if (!rawInviteCode) {
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
         );
       }
 
-      const cleanCode = String(rawInviteCode).trim().toUpperCase();
+      const cleanCode = rawInviteCode.trim().toUpperCase();
 
       // 1. Check if the code matches an active PreLaunchApproval for this email address
       matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
         }
       }
     } else if (rawInviteCode) {
-      const cleanCode = String(rawInviteCode).trim().toUpperCase();
+      const cleanCode = rawInviteCode.trim().toUpperCase();
       matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
         where: {
           email: { equals: cleanEmail, mode: 'insensitive' },
@@ -193,8 +194,8 @@ export async function POST(request: Request) {
         enrolledExchange: targetExchange ? { id: targetExchange.id, code: targetExchange.code, title: targetExchange.title } : null,
       },
     });
-  } catch (error: any) {
-    if (error?.code === 'P2002') {
+  } catch (error) {
+    if ((error as { code?: string } | null)?.code === 'P2002') {
       return NextResponse.json(
         { error: 'An account with this email already exists. Please sign in.' },
         { status: 400 }
