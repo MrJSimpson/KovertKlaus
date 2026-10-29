@@ -2,6 +2,8 @@
  * KovertKlaus Operation Configuration Validator & Automatic Date Calculator
  */
 
+import { PLATFORM_LIMIT_BOUNDS } from '@/lib/platform-limits';
+
 export interface CreateOperationInput {
   title: string;
   description?: string;
@@ -121,7 +123,15 @@ export function calculateAutomaticOperationDates(executionDateInput: string | Da
   };
 }
 
-export function validateOperationConfig(input: CreateOperationInput): { isValid: boolean; errors: string[] } {
+/**
+ * Validates a new Holiday Mission.
+ *
+ * @param maxAgents - The platform's agents-per-mission limit (`PlatformSettings.maxMissionAgents`).
+ */
+export function validateOperationConfig(
+  input: CreateOperationInput,
+  maxAgents: number = PLATFORM_LIMIT_BOUNDS.maxMissionAgents.default
+): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   // Required title
@@ -146,8 +156,8 @@ export function validateOperationConfig(input: CreateOperationInput): { isValid:
     errors.push('White Elephant gifting is restricted to local in-person events only.');
   }
 
-  // Operative capacity (optional; when set it must sit within the supported group size)
-  errors.push(...validateCapacity(input.maxParticipants));
+  // Operative capacity (optional; when set it must sit within the platform's limit)
+  errors.push(...validateCapacity(input.maxParticipants, maxAgents));
 
   // All 4 Dates are Strictly Required
   if (!input.inviteCutoffDate) errors.push('Go/No-Go Date (Invite Cutoff) is required.');
@@ -196,9 +206,8 @@ export function validateOperationConfig(input: CreateOperationInput): { isValid:
   };
 }
 
-/** Operative capacity bounds enforced by the create form and the server (families and groups of 4+). */
+/** Smallest capacity a Head Elf can set (families and groups of 4+). The largest is the platform limit. */
 export const MIN_OPERATIVES = 4;
-export const MAX_OPERATIVES = 25;
 
 /** The editable (non-timeline) settings of an existing Holiday Mission, after merging the patch. */
 export interface OperationSettingsInput {
@@ -221,8 +230,13 @@ export interface OperationSettingsInput {
  * Tier 2 (why): Timeline dates are validated separately by `validateOperationConfig`. Running that
  * here would reject every settings edit once the Go/No-Go date has passed.
  * Tier 3 (how): Pure; returns the same `{ isValid, errors }` shape as `validateOperationConfig`.
+ *
+ * @param maxAgents - The platform's agents-per-mission limit (`PlatformSettings.maxMissionAgents`).
  */
-export function validateOperationSettings(input: OperationSettingsInput): { isValid: boolean; errors: string[] } {
+export function validateOperationSettings(
+  input: OperationSettingsInput,
+  maxAgents: number = PLATFORM_LIMIT_BOUNDS.maxMissionAgents.default
+): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (!input.title || !input.title.trim()) errors.push('Operation title is required.');
@@ -233,7 +247,7 @@ export function validateOperationSettings(input: OperationSettingsInput): { isVa
   if (input.budgetMin != null && input.budgetMin > input.budgetMax) {
     errors.push('Minimum budget cannot exceed maximum budget.');
   }
-  errors.push(...validateCapacity(input.maxParticipants));
+  errors.push(...validateCapacity(input.maxParticipants, maxAgents));
   if (input.maxParticipants != null && input.maxParticipants < input.currentMemberCount) {
     errors.push(`Capacity cannot be lower than the ${input.currentMemberCount} agents already enrolled.`);
   }
@@ -248,15 +262,17 @@ export function validateOperationSettings(input: OperationSettingsInput): { isVa
 }
 
 /**
- * Validates an optional operative capacity against `MIN_OPERATIVES`..`MAX_OPERATIVES`.
+ * Validates an optional operative capacity against `MIN_OPERATIVES`..`maxAgents`. A Head Elf may tighten
+ * the platform limit, never loosen it.
  *
- * @param maxParticipants - Capacity, or null/undefined for "no explicit cap".
+ * @param maxParticipants - Capacity, or null/undefined for "no explicit cap" (the platform limit applies).
+ * @param maxAgents - The platform's agents-per-mission limit.
  * @returns Error messages (empty when valid).
  */
-export function validateCapacity(maxParticipants: number | null | undefined): string[] {
+export function validateCapacity(maxParticipants: number | null | undefined, maxAgents: number): string[] {
   if (maxParticipants == null) return [];
-  if (!Number.isInteger(maxParticipants) || maxParticipants < MIN_OPERATIVES || maxParticipants > MAX_OPERATIVES) {
-    return [`Max Operative capacity must be between ${MIN_OPERATIVES} and ${MAX_OPERATIVES} agents.`];
+  if (!Number.isInteger(maxParticipants) || maxParticipants < MIN_OPERATIVES || maxParticipants > maxAgents) {
+    return [`Max Operative capacity must be between ${MIN_OPERATIVES} and ${maxAgents} agents.`];
   }
   return [];
 }

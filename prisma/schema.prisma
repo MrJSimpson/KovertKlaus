@@ -569,7 +569,13 @@ model SystemConfig {
   freeAnnualJoinAllowance Int     @default(3)
   paidEventPriceUsd       Decimal @default(5.00) @db.Decimal(10, 2)
   maxFreeParticipants     Int     @default(25)
-  maxWishlistItems        Int     @default(50)
+  maxWishlistItems        Int     @default(20)
+  /// Platform limits (src/lib/platform-limits.ts holds their bounds). A Head Elf may only tighten them.
+  maxActiveHostedMissions Int     @default(5)
+  maxMissionAgents        Int     @default(50)
+  maxItemQuantity         Int     @default(25)
+  /// "ALPHA" (registration needs a code) | "BETA". Switched from the North Pole, no redeploy.
+  releaseStage            String  @default("ALPHA")
   defaultBudgetMin        Decimal @default(0.00) @db.Decimal(10, 2)
   defaultBudgetMax        Decimal @default(50.00) @db.Decimal(10, 2)
   defaultCurrency         String  @default("USD")

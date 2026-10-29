@@ -5,7 +5,7 @@ import { adminDb } from '@/lib/adminDb';
 import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
 import { setSessionCookie } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/email';
-import { RELEASE_STAGE } from '@/lib/version';
+import { getPlatformSettings } from '@/lib/platform-limits';
 import { logInfo, logWarn } from '@/lib/logger';
 import { clientIp } from '@/lib/login-throttle';
 import { resolveRegistrationCode } from '@/lib/registration-code';
@@ -49,10 +49,10 @@ export async function POST(request: Request) {
     }
 
     // Alpha gate and invite code (src/lib/registration-code.ts), then the sign-up rate limit.
-    const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
+    const settings = await getPlatformSettings(adminDb);
     const rawInviteCode =
       bodyString(body.inviteCode) || bodyString(body.operationCode) || bodyString(body.exchangeCode) || bodyString(body.code) || bodyString(body.alphaCode);
-    const resolved = await resolveRegistrationCode(db, cleanEmail, rawInviteCode, isAlpha);
+    const resolved = await resolveRegistrationCode(db, cleanEmail, rawInviteCode, settings);
     if (!resolved.ok) {
       return NextResponse.json({ error: resolved.error }, { status: resolved.status });
     }

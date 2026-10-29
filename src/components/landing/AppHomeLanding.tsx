@@ -8,7 +8,8 @@ import Link from 'next/link';
 import { calculateAutomaticOperationDates } from '@/lib/validations/operation';
 import { useTheme } from '@/context/ThemeContext';
 import { SeasonalLightsStrand } from '@/components/ui/SeasonalLightsStrand';
-import { APP_VERSION_LABEL, RELEASE_STAGE } from '@/lib/version';
+import { APP_VERSION_LABEL } from '@/lib/version';
+import { isAlphaStage } from '@/lib/platform-limits';
 import { WhatsNewButton } from '@/components/WhatsNewButton';
 
 
@@ -72,10 +73,11 @@ function CharlieBrownTree() {
 
 export function AppHomeLanding() {
   const router = useRouter();
-  const { isDarkMode, toggleTheme, theme, bannerText, bannerActive, lightsType } = useTheme();
+  const { isDarkMode, toggleTheme, theme, bannerText, bannerActive, lightsType, systemConfig } = useTheme();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
 
-  const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
+  // North Pole setting (SystemConfig.releaseStage), read from /api/config.
+  const isAlpha = isAlphaStage(systemConfig.releaseStage);
 
   // Alpha Clearance Lead Request State
   const [clearanceEmail, setClearanceEmail] = useState('');

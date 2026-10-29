@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/adminDb';
 import { verifyAdminSession } from '@/lib/adminAuth';
 import { buildSystemConfigUpdate } from '@/lib/config/systemConfigUpdate';
+import { validatePlatformSettings } from '@/lib/platform-limits';
 import { IS_SAAS } from '@/lib/config/mode';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +36,7 @@ export async function GET() {
           freeAnnualJoinAllowance: 3,
           paidEventPriceUsd: 5.0,
           maxFreeParticipants: 25,
-          maxWishlistItems: 50,
+          maxWishlistItems: 20,
           defaultBudgetMin: 0.0,
           defaultBudgetMax: 50.0,
           defaultCurrency: 'USD',
@@ -92,6 +93,10 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
+    const invalid = validatePlatformSettings(body);
+    if (invalid.length > 0) {
+      return NextResponse.json({ error: invalid.join(' '), details: invalid }, { status: 400 });
+    }
     const updateData = buildSystemConfigUpdate(body, admin.id);
 
     const updatedConfig = await adminDb.systemConfig.upsert({

@@ -12,6 +12,8 @@
  * for `config` to get the defaults (database empty or unreachable).
  */
 
+import { DEFAULT_PLATFORM_SETTINGS, toPlatformSettings, type PlatformSettingsSource, type ReleaseStage } from '@/lib/platform-limits';
+
 /** Deployment edition reported to clients. */
 export type Edition = 'saas' | 'selfhosted';
 
@@ -31,6 +33,12 @@ export interface PublicSystemConfigResponse {
   paidEventPriceUsd: number;
   maxFreeParticipants: number;
   maxWishlistItems: number;
+  /** Platform limits (src/lib/platform-limits.ts), clamped to their bounds. */
+  maxActiveHostedMissions: number;
+  maxMissionAgents: number;
+  maxItemQuantity: number;
+  /** `ALPHA` closes registration to agents without a code; `BETA` opens it. */
+  releaseStage: ReleaseStage;
   defaultBudgetMin: number;
   defaultBudgetMax: number;
   defaultCurrency: string;
@@ -41,7 +49,7 @@ export interface PublicSystemConfigResponse {
 }
 
 /** Minimal shape of the `SystemConfig` fields this builder reads (secrets intentionally absent). */
-export interface PublicConfigSource {
+export interface PublicConfigSource extends PlatformSettingsSource {
   activeThemeId: string;
   activeSeason: string;
   announcementBannerActive: boolean;
@@ -87,7 +95,7 @@ export const DEFAULT_PUBLIC_CONFIG: Omit<PublicSystemConfigResponse, 'edition'> 
   freeAnnualJoinAllowance: 3,
   paidEventPriceUsd: 5.0,
   maxFreeParticipants: 25,
-  maxWishlistItems: 50,
+  ...DEFAULT_PLATFORM_SETTINGS,
   defaultBudgetMin: 0.0,
   defaultBudgetMax: 50.0,
   defaultCurrency: 'USD',
@@ -122,7 +130,7 @@ export function toPublicConfig(
     freeAnnualJoinAllowance: config.freeAnnualJoinAllowance,
     paidEventPriceUsd: Number(config.paidEventPriceUsd),
     maxFreeParticipants: config.maxFreeParticipants,
-    maxWishlistItems: config.maxWishlistItems,
+    ...toPlatformSettings(config),
     defaultBudgetMin: Number(config.defaultBudgetMin),
     defaultBudgetMax: Number(config.defaultBudgetMax),
     defaultCurrency: config.defaultCurrency,

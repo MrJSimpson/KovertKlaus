@@ -147,7 +147,7 @@ export default function OperationCommandCenterPage() {
   // there; the browser URL carries the real code (src/lib/exchange-route.ts).
   const code = resolveExchangeCode(params?.code, typeof window !== 'undefined' ? window.location.pathname : null);
 
-  const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { isDarkMode, toggleTheme, theme, systemConfig } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   /** HTTP status of a failed load (0 when the server was unreachable); picks the error heading. */
@@ -2363,11 +2363,12 @@ export default function OperationCommandCenterPage() {
               </div>
 
               <div>
-                <label className="block text-kk-muted mb-1">Max Participant Limit (Optional)</label>
+                <label className="block text-kk-muted mb-1">Max Participant Limit (Optional, 4 to {systemConfig.maxMissionAgents})</label>
                 <input
                   type="number"
-                  min={2}
-                  placeholder="Leave empty for unlimited"
+                  min={4}
+                  max={systemConfig.maxMissionAgents}
+                  placeholder={`Leave empty for the platform limit (${systemConfig.maxMissionAgents})`}
                   value={editMaxParticipants || ''}
                   onChange={(e) => setEditMaxParticipants(e.target.value ? Number(e.target.value) : undefined)}
                   className={`w-full border rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none ${theme.inputModalBg}`}

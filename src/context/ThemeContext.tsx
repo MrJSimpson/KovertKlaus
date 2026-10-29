@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { getThemeClasses, ThemeClasses, LightsStrandType } from '@/lib/theme';
 import type { PublicSystemConfigResponse } from '@/lib/config/publicConfig';
+import { DEFAULT_PLATFORM_SETTINGS } from '@/lib/platform-limits';
 
 const THEME_STORAGE_KEY = 'kovertklaus_theme_mode';
 
@@ -25,7 +26,7 @@ const DEFAULT_CONFIG: PublicSystemConfigResponse = {
   freeAnnualJoinAllowance: 3,
   paidEventPriceUsd: 5.0,
   maxFreeParticipants: 25,
-  maxWishlistItems: 50,
+  ...DEFAULT_PLATFORM_SETTINGS,
   defaultBudgetMin: 0.0,
   defaultBudgetMax: 50.0,
   defaultCurrency: 'USD',

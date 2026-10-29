@@ -7,12 +7,14 @@
  * Tier 2 (why): The two runtimes each carried a copy of this logic, and outside alpha both copies skipped the
  * recruiting and capacity checks: a sign-up with the code of a drawn or full mission was enrolled anyway.
  * One function keeps the checks the same in every release stage and runtime.
+ * The stage and the platform agent limit come from the admin's `SystemConfig` (src/lib/platform-limits.ts).
  * Tier 3 (how): During alpha a code is required. In any stage, a code is first matched against the email's
  * `PreLaunchApproval`, then against a mission code; a code that matches neither is refused rather than
  * ignored, because the agent meant to join something. A matched mission must be recruiting and have room.
  */
 
 import type { PreLaunchApproval, Prisma, PrismaClient } from '@prisma/client';
+import { isAlphaStage, missionFullError, type PlatformSettings } from '@/lib/platform-limits';
 
 /** A mission with its members, as enrollment needs it. */
 export type RegistrationMission = Prisma.ExchangeGetPayload<{ include: { members: true } }>;
@@ -28,9 +30,15 @@ export type RegistrationCodeResult =
  * @param db - App-role client.
  * @param email - The new agent's email, trimmed and lower-cased.
  * @param rawCode - The code from the request body, or an empty string.
- * @param isAlpha - Whether registration is closed to agents without a code.
+ * @param settings - Current platform settings: the release stage and the agents-per-mission limit.
  */
-export async function resolveRegistrationCode(db: PrismaClient, email: string, rawCode: string, isAlpha: boolean): Promise<RegistrationCodeResult> {
+export async function resolveRegistrationCode(
+  db: PrismaClient,
+  email: string,
+  rawCode: string,
+  settings: PlatformSettings
+): Promise<RegistrationCodeResult> {
+  const isAlpha = isAlphaStage(settings.releaseStage);
   if (!rawCode) {
     if (!isAlpha) return { ok: true, approval: null, mission: null };
     return {
@@ -57,8 +65,7 @@ export async function resolveRegistrationCode(db: PrismaClient, email: string, r
   if (mission.status !== 'RECRUITING') {
     return { ok: false, status: 400, error: 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.' };
   }
-  if (mission.maxParticipants && mission.members.length >= mission.maxParticipants) {
-    return { ok: false, status: 400, error: 'This exchange has reached its maximum operative capacity.' };
-  }
+  const full = missionFullError(mission.maxParticipants, mission.members.length, settings);
+  if (full) return { ok: false, status: 400, error: full };
   return { ok: true, approval: null, mission };
 }
