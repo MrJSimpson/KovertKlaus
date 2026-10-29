@@ -249,17 +249,17 @@ The caller's Wishlist Manifest for one Holiday Mission. Each mission membership 
       "id": "uuid",
       "type": "STANDARD",
       "items": [
-        { "id": "uuid", "title": "Tactical Coffee Mug", "price": 24.99, "url": "https://shop.example/mug", "thumbnail": "https://shop.example/mug.jpg" }
+        { "id": "uuid", "title": "Tactical Coffee Mug", "price": 24.99, "quantity": 2, "url": "https://shop.example/mug", "thumbnail": "https://shop.example/mug.jpg" }
       ]
     },
-    "rules": { "itemMax": 30, "totalMax": null, "isWhiteElephant": false, "currency": "USD" }
+    "rules": { "itemMax": 30, "totalMax": null, "isWhiteElephant": false, "currency": "USD", "maxItems": 20, "maxQuantity": 25 }
   }
   ```
   `totalMax` is `null` when the Head Elf lets lists total more than the limit (`Exchange.allowWishlistOverBudget`, on by default).
-- **`POST /api/wishlist`** adds an item: `{ "exchangeId", "title", "price", "url"?, "description"?, "thumbnail"?, "properties"?: { "isPersonalized", "details" } }`. Returns `{ "success": true, "item": { … } }`.
+- **`POST /api/wishlist`** adds an item: `{ "exchangeId", "title", "price", "quantity"? (default 1), "url"?, "description"?, "thumbnail"?, "properties"?: { "isPersonalized", "details" } }`. Returns `{ "success": true, "item": { … } }`.
 - **`PATCH /api/wishlist`** edits one: `{ "exchangeId", "itemId", …fields to change }`. Fields left out are kept.
 - **`DELETE /api/wishlist?exchangeId=uuid&itemId=uuid`** removes one.
-- **Rules** (`400` with a message the agent can act on): every item needs a price above zero; no item may cost more than the mission's `budgetMax`; when `totalMax` is set, the list may not total more than it; a personalized gift (no store link) needs a description; a White Elephant list holds exactly one item. An edit is checked with the item's resulting price, so an item left over a lowered limit must be fixed or removed.
+- **Rules** (`400` with a message the agent can act on): every item needs a price above zero; `price` is per unit and no item may cost more than the mission's `budgetMax`; when `totalMax` is set, the list (price × quantity of every item) may not total more than it; a list holds at most `maxItems` different items and each a quantity from 1 to `maxQuantity` (platform limits `maxWishlistItems` and `maxItemQuantity`, 20 and 25 by default); a personalized gift (no store link) needs a description; a White Elephant list holds exactly one item, quantity 1. An edit is checked with the item's resulting price, so an item left over a lowered limit must be fixed or removed.
 
 ---
 

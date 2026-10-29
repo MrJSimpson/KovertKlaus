@@ -38,6 +38,8 @@ interface ManifestItem {
   id: string;
   title: string;
   price?: number;
+  /** How many the agent wants; `price` is per unit. */
+  quantity?: number;
   url: string;
   thumbnail?: string;
   description?: string;
@@ -687,6 +689,10 @@ export default function OperationCommandCenterPage() {
       setValidationError('🐘 A White Elephant list holds exactly 1 gift, the one you are bringing.');
       return;
     }
+    if (wishlistFull) {
+      setValidationError(`A wishlist holds up to ${maxWishlistItems} different items. Remove one, or raise the quantity of an item already on your list.`);
+      return;
+    }
     setItemModalKind(kind);
     setItemModalMode('add');
     setItemModalData(null);
@@ -861,7 +867,10 @@ export default function OperationCommandCenterPage() {
   // Wishlist price rules for display; the server enforces the same rules on every save.
   const itemMax = wishlistRules?.itemMax ?? operation?.budgetMax ?? 0;
   const wishlistTotalMax = wishlistRules ? wishlistRules.totalMax : operation?.allowWishlistOverBudget === false ? operation.budgetMax : null;
-  const wishlistTotal = userManifest.reduce((sum, i) => sum + (i.price || 0), 0);
+  const wishlistTotal = userManifest.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 1), 0);
+  const maxWishlistItems = wishlistRules?.maxItems ?? (operation?.isWhiteElephant ? 1 : systemConfig.maxWishlistItems);
+  const maxItemQuantity = wishlistRules?.maxQuantity ?? (operation?.isWhiteElephant ? 1 : systemConfig.maxItemQuantity);
+  const wishlistFull = userManifest.length >= maxWishlistItems;
   const wishlistOverTotal = wishlistTotalMax !== null && Math.round(wishlistTotal * 100) > Math.round(wishlistTotalMax * 100);
   const organizerCodename = membersList.find((a) => a.userId === organizerIdVal)?.codename;
   const canRerollCodename = Boolean(currentAgent && !currentAgent.codenameAccepted && operation?.status === 'RECRUITING');
@@ -1656,6 +1665,7 @@ export default function OperationCommandCenterPage() {
                                         {item.price && (
                                           <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>
                                             ${item.price}
+                                            {(item.quantity ?? 1) > 1 && <span className="ml-1">× {item.quantity}</span>}
                                           </span>
                                         )}
 
@@ -1785,7 +1795,7 @@ export default function OperationCommandCenterPage() {
                   <p className={`text-xs font-semibold mb-1 ${theme.textAccent}`}>
                     {operation.isWhiteElephant
                       ? `Your gift: up to ${formatMoney(itemMax)}.`
-                      : `Each item: up to ${formatMoney(itemMax)}. ${wishlistTotalMax === null ? 'Your list may total more than that.' : `Whole list: up to ${formatMoney(wishlistTotalMax)}.`}`}
+                      : `Up to ${maxWishlistItems} items, ${maxItemQuantity} of each. Each item: up to ${formatMoney(itemMax)} apiece. ${wishlistTotalMax === null ? 'Your list may total more than that.' : `Whole list: up to ${formatMoney(wishlistTotalMax)}.`}`}
                   </p>
                   <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
                     {operation.isWhiteElephant
@@ -1807,7 +1817,7 @@ export default function OperationCommandCenterPage() {
                     <select
                       id="add-wishlist-item"
                       value=""
-                      disabled={operation.isWhiteElephant && userManifest.length >= 1}
+                      disabled={wishlistFull}
                       onChange={(e) => {
                         const kind = e.target.value;
                         if (kind === 'store' || kind === 'personalized') openAddItem(kind);
@@ -1815,7 +1825,7 @@ export default function OperationCommandCenterPage() {
                       className={`w-full sm:w-auto border rounded-2xl px-4 py-3 text-sm font-bold cursor-pointer focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${theme.inputBg}`}
                     >
                       <option value="">
-                        {operation.isWhiteElephant && userManifest.length >= 1 ? 'Your White Elephant gift is added' : 'Add a gift type…'}
+                        {wishlistFull ? (operation.isWhiteElephant ? 'Your White Elephant gift is added' : `Your list is full (${maxWishlistItems} items)`) : 'Add a gift type…'}
                       </option>
                       <option value="store">🛍️ Store-bought gift</option>
                       <option value="personalized">✨ Personalized gift (handmade or specially crafted)</option>
@@ -1865,7 +1875,12 @@ export default function OperationCommandCenterPage() {
                                   )}
                                 </div>
 
-                                {item.price ? <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>{formatMoney(item.price)}</span> : null}
+                                {item.price ? (
+                                  <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>
+                                    {formatMoney(item.price)}
+                                    {(item.quantity ?? 1) > 1 && <span className="ml-1">× {item.quantity} = {formatMoney(item.price * (item.quantity ?? 1))}</span>}
+                                  </span>
+                                ) : null}
                                 {!item.price ? (
                                   <span className="text-[10px] font-bold mt-1 inline-block px-1.5 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong">
                                     Needs a price: edit to add one
@@ -2651,6 +2666,7 @@ export default function OperationCommandCenterPage() {
         kind={itemModalKind}
         exchangeId={operation?.id}
         itemMax={wishlistRules?.itemMax ?? operation?.budgetMax}
+        maxQuantity={maxItemQuantity}
         initialData={itemModalData ?? undefined}
         userDossier={userDossier}
       />

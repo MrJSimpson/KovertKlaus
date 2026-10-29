@@ -88,7 +88,7 @@ test('Exchange View - only the agent sees whether their codename is accepted', (
 test("Exchange View - a giver sees their target's list for this mission only", () => {
   const view = sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer', memberWishlists });
   assert.deepStrictEqual(view.targetUser?.wishlistItems, [
-    { id: 'i1', title: 'Scarf', price: 20, url: 'https://x.test', thumbnail: undefined, description: undefined, properties: undefined },
+    { id: 'i1', title: 'Scarf', price: 20, quantity: 1, url: 'https://x.test', thumbnail: undefined, description: undefined, properties: undefined },
   ]);
   assert.strictEqual(view.wishlistId, 'w-giver');
   // No list loaded for the target (e.g. an older membership): an empty list, never another mission's.

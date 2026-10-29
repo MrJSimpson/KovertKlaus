@@ -21,6 +21,8 @@ export interface WishlistItemModalProps {
   exchangeId?: string;
   /** The mission's per-item price limit (`budgetMax`), shown and checked before saving. */
   itemMax?: number;
+  /** Highest quantity of one item; 1 (White Elephant) hides the field. */
+  maxQuantity?: number;
   /**
    * What the agent is adding: a store-bought gift (link + Get Data) or a personalized one
    * (handmade or specially crafted; every field filled in by hand). Edits read it from the item.
@@ -31,6 +33,7 @@ export interface WishlistItemModalProps {
     url?: string;
     title?: string;
     price?: number;
+    quantity?: number;
     thumbnail?: string;
     description?: string;
     properties?: {
@@ -50,6 +53,7 @@ export function WishlistItemModal({
   mode,
   exchangeId,
   itemMax,
+  maxQuantity = 1,
   kind = 'store',
   initialData,
   userDossier,
@@ -59,6 +63,7 @@ export function WishlistItemModal({
   // Form State
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState<string>('');
+  const [quantity, setQuantity] = useState<string>('1');
   const [thumbnail, setThumbnail] = useState('');
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
@@ -79,6 +84,7 @@ export function WishlistItemModal({
     const rawTitle = initialData?.title || '';
     setTitle(rawTitle);
     setPrice(initialData?.price !== undefined && initialData?.price !== null ? String(initialData.price) : '');
+    setQuantity(String(initialData?.quantity ?? 1));
     setThumbnail(initialData?.thumbnail || '');
     setDescription(initialData?.description || '');
     setUrl(initialData?.url || '');
@@ -230,6 +236,12 @@ export function WishlistItemModal({
       setSaving(false);
       return;
     }
+    const parsedQuantity = Number(quantity.trim() || '1');
+    if (!Number.isInteger(parsedQuantity) || parsedQuantity < 1 || parsedQuantity > maxQuantity) {
+      setErrorMessage(`Quantity must be a whole number from 1 to ${maxQuantity}.`);
+      setSaving(false);
+      return;
+    }
     const cleanDescription = description.trim() || undefined;
 
     try {
@@ -246,6 +258,7 @@ export function WishlistItemModal({
           url: mode === 'add' ? url.trim() : undefined,
           title: title.trim(),
           price: parsedPrice,
+          quantity: parsedQuantity,
           description: cleanDescription,
           // On edit, an empty string clears the thumbnail server-side.
           thumbnail: mode === 'add' ? thumbnail.trim() || undefined : thumbnail.trim(),
@@ -409,6 +422,24 @@ export function WishlistItemModal({
                     />
                   </div>
                 </div>
+
+                {maxQuantity > 1 && (
+                  <div>
+                    <label htmlFor="wishlist-item-quantity" className="block text-[11px] text-kk-muted mb-0.5">
+                      Quantity <span className="ml-1">(1 to {maxQuantity}; the price above is for one)</span>
+                    </label>
+                    <input
+                      id="wishlist-item-quantity"
+                      type="number"
+                      step="1"
+                      min="1"
+                      max={maxQuantity}
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      className={`w-24 border rounded-xl px-3 py-1.5 text-base sm:text-xs font-mono focus:outline-none ${theme.inputModalBg}`}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
