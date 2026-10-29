@@ -1,3 +1,4 @@
+import type { PrismaClient } from '@prisma/client';
 import { executeLinkedListDraw } from './draw';
 import { sendAssignmentEmail, sendMissionCancelledEmail, sendMissionRepairEmail } from './email';
 import { notifyOnce } from './notifications';
@@ -58,7 +59,7 @@ export function defaultLifecycleDeps(): MissionLifecycleDeps {
   };
 }
 
-export async function advanceMissionLifecycle(db: any, deps: MissionLifecycleDeps = defaultLifecycleDeps()): Promise<LifecycleSummary> {
+export async function advanceMissionLifecycle(db: PrismaClient, deps: MissionLifecycleDeps = defaultLifecycleDeps()): Promise<LifecycleSummary> {
   const now = new Date();
 
   // Find all active uncompleted missions
@@ -178,7 +179,7 @@ export async function advanceMissionLifecycle(db: any, deps: MissionLifecycleDep
         currentStatus = 'MATCHED';
       } else {
         // Secret Santa Draw
-        const alreadyDrawn = ex.members.some((m: any) => m.targetUserId);
+        const alreadyDrawn = ex.members.some((m) => m.targetUserId);
 
         if (alreadyDrawn) {
           await db.exchange.update({
@@ -197,13 +198,13 @@ export async function advanceMissionLifecycle(db: any, deps: MissionLifecycleDep
 
           currentStatus = 'MATCHED';
         } else if (ex.members.length >= 4) {
-          const agentsForDraw = ex.members.map((a: any) => ({
+          const agentsForDraw = ex.members.map((a) => ({
             id: a.userId,
             name: a.user?.name || a.userId,
             hasWishlistAttached: true,
           }));
 
-          const exclusions = (ex.exclusionRules || []).map((r: any) => ({
+          const exclusions = (ex.exclusionRules || []).map((r) => ({
             agentId: r.memberId,
             restrictedAgentId: r.restrictedMemberId,
           }));
@@ -215,9 +216,9 @@ export async function advanceMissionLifecycle(db: any, deps: MissionLifecycleDep
             });
 
             // Callback transaction: `db` model calls run eagerly, so the array form fails (src/lib/db.ts).
-            await db.$transaction(async (tx: any) => {
+            await db.$transaction(async (tx) => {
               for (const assignment of assignments) {
-                const member = ex.members.find((m: any) => m.userId === assignment.agentId);
+                const member = ex.members.find((m) => m.userId === assignment.agentId);
                 if (!member) continue;
                 await tx.exchangeMember.update({
                   where: { id: member.id },
@@ -264,14 +265,14 @@ export async function advanceMissionLifecycle(db: any, deps: MissionLifecycleDep
             });
 
             currentStatus = 'MATCHED';
-          } catch (drawErr: any) {
+          } catch (drawErr) {
             // One notice per mission, refreshed each sweep, instead of a new one every hour.
             await notifyOnce(db, {
               userId: ex.organizerId,
               dedupeKey: `draw-blocked:${ex.id}`,
               exchangeId: ex.id,
               title: `⚠️ Target Draw Pending: ${ex.title}`,
-              message: `Automatic target draw could not be completed on Assignment Day (${drawErr?.message || 'Matching constraint conflict'}). Please verify rules in the Command Center.`,
+              message: `Automatic target draw could not be completed on Assignment Day (${(drawErr instanceof Error && drawErr.message) || 'Matching constraint conflict'}). Please verify rules in the Command Center.`,
             }).catch(() => {});
           }
         } else {
