@@ -9,7 +9,12 @@
  * Tier 3 (how): Every release pull request adds an entry here whose `version` equals `APP_VERSION`
  * (enforced by `src/lib/version.test.ts`; see `docs/VERSIONING.md`). The content is static, so it
  * works in the self-hosted build and the SaaS static export alike. Never put credentials here.
+ * An entry with a `stage` is staged: it ships with a release but is shown only while the platform's
+ * release stage (North Pole setting) is that stage, so the beta announcement appears the moment an
+ * admin flips the switch (owner decision 2026-10-29: no waitlist email, in-app only).
  */
+
+import { DEFAULT_RELEASE_STAGE, type ReleaseStage } from '@/lib/platform-limits';
 
 /** One highlight line in an announcement. */
 export interface AnnouncementHighlight {
@@ -29,10 +34,69 @@ export interface Announcement {
   title: string;
   summary: string;
   highlights: AnnouncementHighlight[];
+  /** Staged entry: shown only while the release stage is this one. Its badge shows the stage. */
+  stage?: ReleaseStage;
 }
 
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
+  {
+    version: '0.7.0-alpha',
+    stage: 'BETA',
+    date: '2026-11-01',
+    title: 'KovertKlaus beta: everyone is welcome',
+    summary: 'Season 1 has begun. Anyone can now create an account and run a Secret Santa or White Elephant mission. No invite code needed.',
+    highlights: [
+      {
+        emoji: '🎄',
+        title: 'Open sign-up',
+        text: 'Sign up from the home page with just your email. Invite your family, friends or coworkers with your mission\'s invite link, and they can join in a minute.',
+      },
+      {
+        emoji: '🎁',
+        title: 'Plan your season',
+        text: 'Each Head Elf can run up to 5 missions at once, with up to 50 agents in each. Finished and cancelled missions do not count.',
+      },
+      {
+        emoji: '💬',
+        title: 'Tell us what you think',
+        text: 'This is a beta, so some things may still be rough. Use the Feedback button in the bottom-right corner to report a problem or share an idea. We read every one.',
+      },
+    ],
+  },
+  {
+    version: '0.7.0-alpha',
+    date: '2026-10-29',
+    title: 'Bigger missions and wishlist quantities',
+    summary: 'Missions hold up to 50 agents, wishlists let you ask for more than one of an item, and KovertKlaus gets ready to open to everyone.',
+    highlights: [
+      {
+        emoji: '🔢',
+        title: 'Ask for more than one',
+        text: 'Each wishlist item has a quantity, from 1 to 25. The price is for one, and if your Head Elf limits the whole list, every one counts toward the total. A wishlist holds up to 20 different items.',
+      },
+      {
+        emoji: '👥',
+        title: 'Missions up to 50 agents',
+        text: 'Head Elves can set a mission\'s size anywhere from 4 to 50 agents, up from 25.',
+      },
+      {
+        emoji: '💬',
+        title: 'Send feedback from any page',
+        text: 'Signed-in agents have a Feedback button in the bottom-right corner. Report a bug or share an idea, and it goes straight to the KovertKlaus team.',
+      },
+      {
+        emoji: '🧹',
+        title: 'Tidier dashboard',
+        text: 'Your dashboard now lists every mission you run or have joined, with search and filters, and you can hide completed or cancelled ones.',
+      },
+      {
+        emoji: '🛡️',
+        title: 'Safer sign-in and sign-up',
+        text: 'Repeated wrong passwords now have to wait, and new accounts are limited per network, so nobody can guess passwords or flood KovertKlaus with fake accounts.',
+      },
+    ],
+  },
   {
     version: '0.6.3-alpha',
     date: '2026-10-24',
@@ -245,13 +309,28 @@ export const ANNOUNCEMENTS: Announcement[] = [
   },
 ];
 
-/** The newest announced version. */
-export const LATEST_ANNOUNCEMENT_VERSION = ANNOUNCEMENTS[0].version;
+/** The newest released version with an announcement (staged entries excluded). */
+export const LATEST_ANNOUNCEMENT_VERSION = ANNOUNCEMENTS.find((a) => !a.stage)!.version;
 
-/** Browser storage key holding the last announcement version the viewer opened. */
+/** The entries shown while the platform is at `stage`, newest first. */
+export function visibleAnnouncements(stage: ReleaseStage = DEFAULT_RELEASE_STAGE): Announcement[] {
+  return ANNOUNCEMENTS.filter((a) => !a.stage || a.stage === stage);
+}
+
+/** Unique key of an entry: its version, plus the stage for a staged one (e.g. `0.7.0-alpha+beta`). */
+export function announcementKey(a: Announcement): string {
+  return a.stage ? `${a.version}+${a.stage.toLowerCase()}` : a.version;
+}
+
+/** Key of the newest entry shown at `stage`; what opening the pop-up records as seen. */
+export function latestAnnouncementKey(stage: ReleaseStage = DEFAULT_RELEASE_STAGE): string {
+  return announcementKey(visibleAnnouncements(stage)[0]);
+}
+
+/** Browser storage key holding the last announcement key the viewer opened. */
 export const ANNOUNCEMENT_SEEN_KEY = 'kovertklaus:lastSeenAnnouncement';
 
-/** True when the viewer has not opened the newest announcement yet. */
-export function hasUnseenAnnouncement(lastSeenVersion: string | null | undefined): boolean {
-  return lastSeenVersion !== LATEST_ANNOUNCEMENT_VERSION;
+/** True when the viewer has not opened the newest announcement shown at `stage` yet. */
+export function hasUnseenAnnouncement(lastSeenKey: string | null | undefined, stage: ReleaseStage = DEFAULT_RELEASE_STAGE): boolean {
+  return lastSeenKey !== latestAnnouncementKey(stage);
 }
