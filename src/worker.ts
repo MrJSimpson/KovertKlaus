@@ -1,6 +1,6 @@
 import { comparePassword, hashPassword, verifyDummyPassword, isLegacyBcryptHash } from './lib/password';
 import * as cheerio from 'cheerio';
-import { AccountStatus, Prisma, type ClearanceLead, type LogLevel, type PreLaunchApproval, type PrismaClient } from '@prisma/client';
+import { AccountStatus, Prisma, type ClearanceLead, type LogLevel, type PrismaClient } from '@prisma/client';
 import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { cachedSystemConfigReader, clearSystemConfigCaches, publicConfigCache } from './lib/system-config-cache';
@@ -59,6 +59,8 @@ import { assertProductTitle, describeFetchFailure, fetchProductPage, isUsablePro
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
 import { RELEASE_STAGE } from './lib/version';
+import { resolveRegistrationCode } from './lib/registration-code';
+import { checkRegistrationThrottle, recordRegistration, registrationThrottledParts, registrationThrottleKeys, registrationTripLogMessage } from './lib/registration-throttle';
 import {
   generateKdmToken,
   verifyGiverIdentityGuess,
@@ -1422,79 +1424,20 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const passCheck = validatePassword(password);
         if (!passCheck.isValid) return Response.json({ error: passCheck.error }, { status: 400 });
 
-        // Alpha Gate: Closed Friend-of-a-Friend Secret Santa Invitation Invariant
+        // Alpha gate and invite code (src/lib/registration-code.ts), then the sign-up rate limit.
         const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
         const rawInviteCode =
           bodyString(body.inviteCode) || bodyString(body.operationCode) || bodyString(body.exchangeCode) || bodyString(body.code) || bodyString(body.alphaCode);
-
         const cleanEmail = email.trim().toLowerCase();
-        let targetExchange: Prisma.ExchangeGetPayload<{ include: { members: true } }> | null = null;
-        let matchedPreLaunchApproval: PreLaunchApproval | null = null;
+        const resolved = await resolveRegistrationCode(db, cleanEmail, rawInviteCode, isAlpha);
+        if (!resolved.ok) return Response.json({ error: resolved.error }, { status: resolved.status });
+        const { approval: matchedPreLaunchApproval, mission: targetExchange } = resolved;
 
-        if (isAlpha) {
-          if (!rawInviteCode) {
-            return Response.json(
-              {
-                error:
-                  'Direct registration is closed during Alpha. You must be invited to a Secret Santa mission, or enter your approved Pre-Launch Alpha activation cipher.',
-              },
-              { status: 403 }
-            );
-          }
-
-          const cleanCode = rawInviteCode.trim().toUpperCase();
-
-          // 1. Check if the code matches an active PreLaunchApproval for this email address
-          matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
-            where: {
-              email: { equals: cleanEmail, mode: 'insensitive' },
-              inviteCode: cleanCode,
-            },
-          });
-
-          // 2. If not a pre-launch clearance cipher, check if it is a valid Exchange invitation code
-          if (!matchedPreLaunchApproval) {
-            targetExchange = await db.exchange.findUnique({
-              where: { code: cleanCode },
-              include: { members: true },
-            });
-
-            if (!targetExchange) {
-              return Response.json(
-                { error: 'Invalid invitation code or pre-launch alpha cipher. Please verify your activation link.' },
-                { status: 404 }
-              );
-            }
-
-            if (targetExchange.status !== 'RECRUITING') {
-              return Response.json(
-                { error: 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.' },
-                { status: 400 }
-              );
-            }
-
-            if (targetExchange.maxParticipants && targetExchange.members.length >= targetExchange.maxParticipants) {
-              return Response.json(
-                { error: 'This exchange has reached its maximum operative capacity.' },
-                { status: 400 }
-              );
-            }
-          }
-        } else if (rawInviteCode) {
-          const cleanCode = rawInviteCode.trim().toUpperCase();
-          matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
-            where: {
-              email: { equals: cleanEmail, mode: 'insensitive' },
-              inviteCode: cleanCode,
-            },
-          });
-
-          if (!matchedPreLaunchApproval) {
-            targetExchange = await db.exchange.findUnique({
-              where: { code: cleanCode },
-              include: { members: true },
-            });
-          }
+        const registerKeys = registrationThrottleKeys(cleanEmail, clientIp(request.headers), Boolean(targetExchange));
+        const registerThrottle = await checkRegistrationThrottle(adminDb, registerKeys);
+        if (registerThrottle.blocked) {
+          const parts = registrationThrottledParts(registerThrottle.rule, registerThrottle.retryAfterSec);
+          return Response.json(parts.body, { status: 429, headers: parts.headers });
         }
 
         const passwordHash = await hashPassword(password);
@@ -1507,6 +1450,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               passwordHash,
             },
             select: { id: true, email: true, name: true, accountStatus: true, penaltyPoints: true },
+          });
+          await recordRegistration(adminDb, registerKeys, registerThrottle.counts, (rule) => {
+            const { message, metadata } = registrationTripLogMessage(registerKeys, rule);
+            logSystemEvent({ level: 'WARN', category: 'AUTH', message, metadata }).catch(() => {});
           });
 
           // If registered via PreLaunchApproval, immediately consume & remove the code to prevent reuse
