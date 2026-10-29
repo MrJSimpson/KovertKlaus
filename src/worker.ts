@@ -2661,7 +2661,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         const userId = getUserIdFromRequest(request);
         if (!userId) return Response.json({ error: 'Authentication required' }, { status: 401 });
         const result = await handleWishlistRequest(db, userId, request.method, url.searchParams,
-          () => request.json().catch(() => ({})));
+          () => request.json().catch(() => ({})), await platformSettings(adminDb));
         return Response.json(result.body, { status: result.status });
       }
 

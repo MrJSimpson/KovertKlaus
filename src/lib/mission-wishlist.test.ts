@@ -16,10 +16,12 @@ import {
 interface FakeItem { id: string; name: string; price: number; url: string; thumbnailUrl: string | null; description: string | null; properties: unknown; createdAt: Date }
 
 /** One member (`u1`) of mission `ex1`, with a list holding `items`. */
-function fakeDb(opts: { items?: Array<[string, number]>; budgetMax?: number; allowOver?: boolean; whiteElephant?: boolean; hasList?: boolean } = {}) {
+function fakeDb(opts: { items?: Array<[string, number, number?]>; budgetMax?: number; allowOver?: boolean; whiteElephant?: boolean; hasList?: boolean } = {}) {
   const items: FakeItem[] = (opts.items ?? []).map(([name, price], i) => ({
     id: `i${i + 1}`, name, price, url: '', thumbnailUrl: null, description: 'Any color', properties: { isPersonalized: true }, createdAt: new Date(i),
   }));
+  /** `WishlistItem.quantity` per item id. */
+  const quantities = new Map<string, number>((opts.items ?? []).map(([, , q], i) => [`i${i + 1}`, q ?? 1]));
   let list = opts.hasList === false ? null : { id: 'w1', type: opts.whiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD' };
   let next = items.length;
   const db = {
@@ -30,7 +32,7 @@ function fakeDb(opts: { items?: Array<[string, number]>; budgetMax?: number; all
         return {
           id: 'm1',
           exchange: { budgetMax: opts.budgetMax ?? 30, allowWishlistOverBudget: opts.allowOver ?? true, isWhiteElephant: Boolean(opts.whiteElephant), currency: 'USD' },
-          wishlist: list && { ...list, wishlistItems: items.map((item) => ({ item })) },
+          wishlist: list && { ...list, wishlistItems: items.map((item) => ({ id: `wi-${item.id}`, item, quantity: quantities.get(item.id) ?? 1 })) },
         };
       },
     },
@@ -41,14 +43,20 @@ function fakeDb(opts: { items?: Array<[string, number]>; budgetMax?: number; all
       },
     },
     item: {
-      create: async ({ data }: { data: { name: string; price: number; url: string; description: string | null; thumbnailUrl: string | null; properties?: unknown } }) => {
+      create: async ({ data }: { data: { name: string; price: number; url: string; description: string | null; thumbnailUrl: string | null; properties?: unknown; wishlistItems: { create: { quantity?: number } } } }) => {
         const item = { id: `i${++next}`, name: data.name, price: data.price, url: data.url, thumbnailUrl: data.thumbnailUrl, description: data.description, properties: data.properties ?? null, createdAt: new Date() };
         items.push(item);
+        quantities.set(item.id, data.wishlistItems.create.quantity ?? 1);
         return item;
       },
-      update: async ({ where, data }: { where: { id: string }; data: Partial<FakeItem> }) => {
+      update: async ({ where, data }: { where: { id: string }; data: Partial<FakeItem> & { wishlistItems?: { update: { where: { id: string }; data: { quantity: number } } } } }) => {
         const item = items.find((i) => i.id === where.id)!;
-        Object.assign(item, data);
+        const { wishlistItems, ...fields } = data;
+        Object.assign(item, fields);
+        if (wishlistItems) {
+          assert.equal(wishlistItems.update.where.id, `wi-${item.id}`);
+          quantities.set(item.id, wishlistItems.update.data.quantity);
+        }
         return item;
       },
       delete: async ({ where }: { where: { id: string } }) => {
@@ -57,7 +65,7 @@ function fakeDb(opts: { items?: Array<[string, number]>; budgetMax?: number; all
     },
     productCatalog: { findUnique: async () => null },
   };
-  return { db: db as unknown as PrismaClient, items, list: () => list };
+  return { db: db as unknown as PrismaClient, items, quantities, list: () => list };
 }
 
 /** A personalized gift as the mission page sends it. */
@@ -91,6 +99,8 @@ test('Mission wishlist rules', async (t) => {
     assert.equal(rules(30, false).totalMax, 30);
     assert.equal(checkWishlistPrice(10.1, [9.9, 10], rules(30, false)), null);
     assert.match(checkWishlistPrice(10.11, [9.9, 10], rules(30, false))!, /\$30\.00 in total.*\$19\.90/);
+    assert.equal(checkWishlistPrice(2, [], rules(50, false), 25), null);
+    assert.match(checkWishlistPrice(2.01, [], rules(50, false), 25)!, /× 25 comes to \$50\.25/);
   });
 
   await t.test('White Elephant: no total limit, the item limit still applies', () => {
@@ -110,7 +120,8 @@ test('Mission wishlist API', async (t) => {
     const res = await getMissionWishlist(db, 'u1', 'ex1');
     assert.equal(res.status, 200);
     assert.deepEqual(res.body.wishlist?.items.map((i) => [i.title, i.price]), [['Cocoa', 12]]);
-    assert.deepEqual(res.body.rules, { itemMax: 30, totalMax: 30, isWhiteElephant: false, currency: 'USD' });
+    assert.deepEqual(res.body.rules, { itemMax: 30, totalMax: 30, isWhiteElephant: false, currency: 'USD', maxItems: 20, maxQuantity: 25 });
+    assert.equal(res.body.wishlist?.items[0].quantity, 1);
     assert.equal((await getMissionWishlist(db, 'stranger', 'ex1')).status, 404);
     assert.equal((await getMissionWishlist(db, 'u1', 'other-mission')).status, 404);
     assert.equal((await getMissionWishlist(db, 'u1', null)).status, 404);
@@ -179,11 +190,63 @@ test('Mission wishlist API', async (t) => {
     assert.equal((await updateWishlistItem(db, 'u1', { exchangeId: 'ex1', itemId: 'i1', title: 'Knit hat (blue)' })).status, 200);
   });
 
+  await t.test('POST: a Secret Santa list holds up to the platform limit of different items', async () => {
+    const full = Array.from({ length: 20 }, (_, i) => [`Item ${i}`, 1] as [string, number]);
+    const { db } = fakeDb({ items: full });
+    const res = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('One more', 1) });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error!, /up to 20 different items.*raise the quantity/);
+    const small = fakeDb({ items: [['Book', 5], ['Tea', 5]] });
+    assert.equal((await addWishlistItem(small.db, 'u1', { exchangeId: 'ex1', ...gift('Socks', 5) }, { maxWishlistItems: 2, maxItemQuantity: 25 })).status, 400);
+    assert.equal((await addWishlistItem(small.db, 'u1', { exchangeId: 'ex1', ...gift('Socks', 5) }, { maxWishlistItems: 3, maxItemQuantity: 25 })).status, 200);
+  });
+
+  await t.test('POST: quantity is 1 to the limit; the price limit is per unit, the total counts every unit', async () => {
+    const { db, quantities } = fakeDb({ budgetMax: 50, allowOver: false });
+    const pencils = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Pencils', 2), quantity: 25 });
+    assert.equal(pencils.status, 200);
+    assert.equal(pencils.body.item?.quantity, 25);
+    assert.equal(quantities.get(pencils.body.item!.id), 25);
+    const over = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Eraser', 1) });
+    assert.equal(over.status, 400);
+    assert.match(over.body.error!, /\$50\.00 in total\. Your other items come to \$50\.00/);
+    for (const bad of [0, 26, 2.5, 'lots', -1]) {
+      const res = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Pens', 1), quantity: bad });
+      assert.equal(res.status, 400, `quantity ${bad}`);
+      assert.match(res.body.error!, /from 1 to 25/);
+    }
+    const capped = fakeDb({ budgetMax: 30, allowOver: false });
+    const tooMany = await addWishlistItem(capped.db, 'u1', { exchangeId: 'ex1', ...gift('Mugs', 8), quantity: '4' });
+    assert.match(tooMany.body.error!, /This item × 4 comes to \$32\.00/);
+  });
+
+  await t.test('White Elephant: quantity stays 1', async () => {
+    const { db } = fakeDb({ whiteElephant: true });
+    const res = await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Singing fish', 20), quantity: 2 });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error!, /single item/);
+    assert.equal((await addWishlistItem(db, 'u1', { exchangeId: 'ex1', ...gift('Singing fish', 20), quantity: 1 })).status, 200);
+  });
+
+  await t.test('PATCH changes the quantity and re-checks the total with it', async () => {
+    const { db, quantities } = fakeDb({ items: [['Book', 10], ['Pencils', 2, 5]], allowOver: false });
+    assert.equal((await updateWishlistItem(db, 'u1', { exchangeId: 'ex1', itemId: 'i2', quantity: 10 })).status, 200);
+    assert.equal(quantities.get('i2'), 10);
+    assert.equal((await updateWishlistItem(db, 'u1', { exchangeId: 'ex1', itemId: 'i2', quantity: 11 })).status, 400);
+    // The stored quantity counts when only the price changes: 10 × $2.01 + $10 > $30.
+    assert.equal((await updateWishlistItem(db, 'u1', { exchangeId: 'ex1', itemId: 'i2', price: 2.01 })).status, 400);
+    const res = await updateWishlistItem(db, 'u1', { exchangeId: 'ex1', itemId: 'i1', price: 10 });
+    assert.equal(res.body.item?.quantity, 1);
+  });
+
   await t.test('handleWishlistRequest routes by method and refuses others', async () => {
     const { db } = fakeDb({ items: [['Book', 20]] });
     const params = new URLSearchParams({ exchangeId: 'ex1', itemId: 'i1' });
     assert.equal((await handleWishlistRequest(db, 'u1', 'GET', params, async () => ({}))).status, 200);
     assert.equal((await handleWishlistRequest(db, 'u1', 'PUT', params, async () => ({}))).status, 405);
     assert.equal((await handleWishlistRequest(db, 'u1', 'DELETE', params, async () => ({}))).status, 200);
+    const limited = await handleWishlistRequest(db, 'u1', 'GET', params, async () => ({}), { maxWishlistItems: 5, maxItemQuantity: 3 });
+    assert.equal(limited.body.rules?.maxItems, 5);
+    assert.equal(limited.body.rules?.maxQuantity, 3);
   });
 });

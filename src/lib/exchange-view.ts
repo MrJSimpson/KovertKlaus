@@ -78,9 +78,9 @@ export function memberCodenameMap(members: { userId: string; codename: string | 
  * @returns Item views by user ID; members without a list map to an empty array.
  */
 export function memberWishlistMap(
-  members: { userId: string; wishlist?: { wishlistItems: { item: Parameters<typeof toWishlistItemView>[0] }[] } | null }[]
+  members: { userId: string; wishlist?: { wishlistItems: { item: Parameters<typeof toWishlistItemView>[0]; quantity?: number }[] } | null }[]
 ): Record<string, WishlistItemView[]> {
-  return Object.fromEntries(members.map((m) => [m.userId, (m.wishlist?.wishlistItems ?? []).map((wi) => toWishlistItemView(wi.item))]));
+  return Object.fromEntries(members.map((m) => [m.userId, (m.wishlist?.wishlistItems ?? []).map((wi) => toWishlistItemView(wi.item, wi.quantity))]));
 }
 
 /**

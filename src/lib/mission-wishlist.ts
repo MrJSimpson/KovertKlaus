@@ -13,9 +13,14 @@
  * total more than `budgetMax` (`Exchange.allowWishlistOverBudget`, on by default). A personalized
  * gift (handmade or specially crafted, no store link) also needs a description, since the Santa
  * has nothing else to go on.
+ * Beta (2026-10-29): a Secret Santa list holds at most `maxWishlistItems` different items (20) and
+ * each item a quantity from 1 to `maxItemQuantity` (25), both platform limits an admin may tune. The
+ * price limit applies to one unit; the whole-list total counts price × quantity, so 25 boxes of $2
+ * pencils are one item worth $50.
  * Tier 3 (how): Prices are compared in whole cents. Rules are checked on every add and edit, so
  * items saved before a Head Elf lowered the budget stay until the agent edits or removes them;
- * the mission page flags them. A White Elephant list holds exactly one item.
+ * the mission page flags them. A White Elephant list holds exactly one item, quantity 1. The
+ * quantity lives on the `WishlistItem` join row.
  */
 
 import { Prisma, type PrismaClient } from '@prisma/client';
@@ -23,6 +28,10 @@ import { sanitizeText, normalizeProductUrl } from '@/lib/security';
 import { sanitizeItemDetails, updateCatalogIntelligence, type ItemDetail } from '@/lib/product-intelligence';
 import { validateAndSanitizeManifestItem } from '@/lib/validations/manifest';
 import { isMissionClosed, MISSION_CLOSED_RESULT } from '@/lib/mission-cancel';
+import { DEFAULT_PLATFORM_SETTINGS, type PlatformSettings } from '@/lib/platform-limits';
+
+/** The platform limits the list rules read. */
+export type WishlistLimits = Pick<PlatformSettings, 'maxWishlistItems' | 'maxItemQuantity'>;
 
 /** Highest price an item may carry, in dollars (matches the manifest validator). */
 const MAX_ITEM_PRICE = 100000;
@@ -36,6 +45,10 @@ export interface WishlistRules {
   /** White Elephant lists hold exactly one item. */
   isWhiteElephant: boolean;
   currency: string;
+  /** Most different items on the list (1 for White Elephant). */
+  maxItems: number;
+  /** Highest quantity of one item (1 for White Elephant). */
+  maxQuantity: number;
 }
 
 /** One Manifest Item as the client sees it. */
@@ -43,6 +56,8 @@ export interface WishlistItemView {
   id: string;
   title: string;
   price: number;
+  /** How many the agent wants; the price is per unit. */
+  quantity: number;
   url: string;
   thumbnail?: string;
   description?: string;
@@ -73,15 +88,18 @@ interface MissionBudget {
  * Builds a mission's list rules.
  *
  * @param exchange - The mission's budget fields.
+ * @param limits - The platform's item and quantity limits.
  * @returns The rules shown to agents and enforced on every write.
  */
-export function wishlistRules(exchange: MissionBudget): WishlistRules {
+export function wishlistRules(exchange: MissionBudget, limits: WishlistLimits = DEFAULT_PLATFORM_SETTINGS): WishlistRules {
   const itemMax = Number(exchange.budgetMax);
   return {
     itemMax,
     totalMax: exchange.isWhiteElephant || exchange.allowWishlistOverBudget ? null : itemMax,
     isWhiteElephant: exchange.isWhiteElephant,
     currency: exchange.currency,
+    maxItems: exchange.isWhiteElephant ? 1 : limits.maxWishlistItems,
+    maxQuantity: exchange.isWhiteElephant ? 1 : limits.maxItemQuantity,
   };
 }
 
@@ -105,26 +123,51 @@ export function parsePrice(raw: unknown): number | null {
 }
 
 /**
+ * Reads a quantity from a request. A missing value means 1.
+ *
+ * @param raw - The submitted value (number or numeric string).
+ * @param max - The mission's `maxQuantity`.
+ * @returns The quantity, or null when it is not a whole number from 1 to `max`.
+ */
+export function parseQuantity(raw: unknown, max: number): number | null {
+  if (raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '')) return 1;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= 1 && value <= max ? value : null;
+}
+
+/** Error for a quantity outside 1..`maxQuantity`. */
+export function quantityError(rules: WishlistRules): string {
+  return rules.maxQuantity === 1
+    ? 'A White Elephant gift is a single item (quantity 1).'
+    : `Quantity must be a whole number from 1 to ${rules.maxQuantity}.`;
+}
+
+/**
  * Checks one item's price against the mission's rules.
  *
- * @param price - The item's price in dollars, already parsed (null when missing).
- * @param otherPrices - Prices of the list's other items (excluding the one being saved).
+ * @param price - The item's price per unit in dollars, already parsed (null when missing).
+ * @param otherTotals - Price × quantity of each of the list's other items (excluding the one being saved).
  * @param rules - The mission's rules.
+ * @param quantity - How many of this item the agent wants.
  * @returns An error message for the agent, or null when the price is allowed.
  */
-export function checkWishlistPrice(price: number | null, otherPrices: number[], rules: WishlistRules): string | null {
+export function checkWishlistPrice(price: number | null, otherTotals: number[], rules: WishlistRules, quantity = 1): string | null {
   if (price === null) return 'Every item needs a price. Enter what it costs (an estimate is fine for handmade gifts).';
   if (cents(price) > cents(rules.itemMax)) {
     return `Each item must cost ${money(rules.itemMax)} or less, the mission's spending limit.`;
   }
   if (rules.totalMax !== null) {
-    const otherTotal = otherPrices.reduce((sum, p) => sum + cents(p), 0);
-    if (otherTotal + cents(price) > cents(rules.totalMax)) {
-      return `The Head Elf limits each wishlist to ${money(rules.totalMax)} in total. Your other items come to ${money(otherTotal / 100)}.`;
+    const otherTotal = otherTotals.reduce((sum, p) => sum + cents(p), 0);
+    if (otherTotal + cents(price) * quantity > cents(rules.totalMax)) {
+      const line = quantity > 1 ? ` This item × ${quantity} comes to ${money((cents(price) * quantity) / 100)}.` : '';
+      return `The Head Elf limits each wishlist to ${money(rules.totalMax)} in total. Your other items come to ${money(otherTotal / 100)}.${line}`;
     }
   }
   return null;
 }
+
+/** Price × quantity of one list line, in dollars. */
+const lineTotal = (line: { item: { price: Prisma.Decimal | number }; quantity: number }) => Number(line.item.price) * line.quantity;
 
 /**
  * The nested `wishlist` create for a new `ExchangeMember`, so every agent starts with an empty list.
@@ -143,7 +186,7 @@ export function memberWishlistCreate(userId: string, isWhiteElephant: boolean) {
   };
 }
 
-/** Maps a stored `Item` to the client shape. */
+/** Maps a stored `Item` (and its list quantity) to the client shape. */
 export function toWishlistItemView(item: {
   id: string;
   name: string;
@@ -152,11 +195,12 @@ export function toWishlistItemView(item: {
   thumbnailUrl: string | null;
   description: string | null;
   properties: unknown;
-}): WishlistItemView {
+}, quantity = 1): WishlistItemView {
   return {
     id: item.id,
     title: item.name,
     price: Number(item.price),
+    quantity,
     url: item.url,
     thumbnail: item.thumbnailUrl || undefined,
     description: item.description || undefined,
@@ -173,7 +217,7 @@ const NOT_A_MEMBER: WishlistResult = { status: 404, body: { error: 'You are not 
  * Loads the caller's membership, the mission's budget and their list (creating the list if an
  * older membership has none).
  */
-async function loadMemberWishlist(db: PrismaClient, userId: string, exchangeId: unknown) {
+async function loadMemberWishlist(db: PrismaClient, userId: string, exchangeId: unknown, limits: WishlistLimits) {
   if (typeof exchangeId !== 'string' || !exchangeId) return null;
   const member = await db.exchangeMember.findUnique({
     where: { exchangeId_userId: { exchangeId, userId } },
@@ -188,7 +232,8 @@ async function loadMemberWishlist(db: PrismaClient, userId: string, exchangeId: 
     data: { ...memberWishlistCreate(userId, member.exchange.isWhiteElephant).create, memberId: member.id },
     select: { id: true, type: true, wishlistItems: { include: { item: true } } },
   });
-  return { rules: wishlistRules(member.exchange), wishlist, items: wishlist.wishlistItems.map((wi) => wi.item), closed: isMissionClosed(member.exchange.status) };
+  const lines = wishlist.wishlistItems.map((wi) => ({ linkId: wi.id, item: wi.item, quantity: wi.quantity }));
+  return { rules: wishlistRules(member.exchange, limits), wishlist, lines, closed: isMissionClosed(member.exchange.status) };
 }
 
 /** Feeds an item's detail rows into the shared product catalog. Failures are logged, never fatal. */
@@ -211,14 +256,14 @@ async function learnCatalogDetails(db: PrismaClient, url: string, details: ItemD
 /**
  * GET /api/wishlist?exchangeId=…: the caller's list for one mission, with the mission's rules.
  */
-export async function getMissionWishlist(db: PrismaClient, userId: string, exchangeId: unknown): Promise<WishlistResult> {
-  const loaded = await loadMemberWishlist(db, userId, exchangeId);
+export async function getMissionWishlist(db: PrismaClient, userId: string, exchangeId: unknown, limits: WishlistLimits = DEFAULT_PLATFORM_SETTINGS): Promise<WishlistResult> {
+  const loaded = await loadMemberWishlist(db, userId, exchangeId, limits);
   if (!loaded) return NOT_A_MEMBER;
   return {
     status: 200,
     body: {
       success: true,
-      wishlist: { id: loaded.wishlist.id, type: loaded.wishlist.type, items: loaded.items.map(toWishlistItemView) },
+      wishlist: { id: loaded.wishlist.id, type: loaded.wishlist.type, items: loaded.lines.map((l) => toWishlistItemView(l.item, l.quantity)) },
       rules: loaded.rules,
     },
   };
@@ -231,6 +276,8 @@ export interface WishlistItemInput {
   title?: string;
   url?: string;
   price?: unknown;
+  /** How many the agent wants (default 1). */
+  quantity?: unknown;
   description?: string;
   thumbnail?: string;
   properties?: { isPersonalized?: boolean; details?: unknown[]; [key: string]: unknown };
@@ -239,14 +286,19 @@ export interface WishlistItemInput {
 /**
  * POST /api/wishlist: adds an item to the caller's list for one mission.
  */
-export async function addWishlistItem(db: PrismaClient, userId: string, input: WishlistItemInput): Promise<WishlistResult> {
-  const loaded = await loadMemberWishlist(db, userId, input.exchangeId);
+export async function addWishlistItem(db: PrismaClient, userId: string, input: WishlistItemInput, limits: WishlistLimits = DEFAULT_PLATFORM_SETTINGS): Promise<WishlistResult> {
+  const loaded = await loadMemberWishlist(db, userId, input.exchangeId, limits);
   if (!loaded) return NOT_A_MEMBER;
   if (loaded.closed) return MISSION_CLOSED_RESULT;
 
-  if (loaded.rules.isWhiteElephant && loaded.items.length >= 1) {
+  if (loaded.rules.isWhiteElephant && loaded.lines.length >= 1) {
     return { status: 400, body: { error: '🐘 A White Elephant list holds exactly 1 gift, the one you are bringing.' } };
   }
+  if (loaded.lines.length >= loaded.rules.maxItems) {
+    return { status: 400, body: { error: `A wishlist holds up to ${loaded.rules.maxItems} different items. Remove one, or raise the quantity of an item already on your list.` } };
+  }
+  const quantity = parseQuantity(input.quantity, loaded.rules.maxQuantity);
+  if (quantity === null) return { status: 400, body: { error: quantityError(loaded.rules) } };
 
   const validation = validateAndSanitizeManifestItem({
     title: input.title,
@@ -262,7 +314,7 @@ export async function addWishlistItem(db: PrismaClient, userId: string, input: W
   }
 
   const price = parsePrice(input.price);
-  const priceError = checkWishlistPrice(price, loaded.items.map((i) => Number(i.price)), loaded.rules);
+  const priceError = checkWishlistPrice(price, loaded.lines.map(lineTotal), loaded.rules, quantity);
   if (priceError) return { status: 400, body: { error: priceError } };
 
   const data = validation.data;
@@ -275,28 +327,31 @@ export async function addWishlistItem(db: PrismaClient, userId: string, input: W
       description: data.description,
       thumbnailUrl: data.thumbnailUrl,
       properties: data.properties ? (data.properties as unknown as Prisma.InputJsonValue) : undefined,
-      wishlistItems: { create: { wishlistId: loaded.wishlist.id } },
+      wishlistItems: { create: { wishlistId: loaded.wishlist.id, quantity } },
     },
   });
   await learnCatalogDetails(db, data.url, data.properties?.details ?? []);
 
-  return { status: 200, body: { success: true, item: toWishlistItemView(item) } };
+  return { status: 200, body: { success: true, item: toWishlistItemView(item, quantity) } };
 }
 
 /**
  * PATCH /api/wishlist: edits one item on the caller's list for one mission. Fields left out are
  * kept; the resulting price must still satisfy the mission's rules.
  */
-export async function updateWishlistItem(db: PrismaClient, userId: string, input: WishlistItemInput): Promise<WishlistResult> {
-  const loaded = await loadMemberWishlist(db, userId, input.exchangeId);
+export async function updateWishlistItem(db: PrismaClient, userId: string, input: WishlistItemInput, limits: WishlistLimits = DEFAULT_PLATFORM_SETTINGS): Promise<WishlistResult> {
+  const loaded = await loadMemberWishlist(db, userId, input.exchangeId, limits);
   if (!loaded) return NOT_A_MEMBER;
   if (loaded.closed) return MISSION_CLOSED_RESULT;
-  const existing = loaded.items.find((i) => i.id === input.itemId);
-  if (!existing) return { status: 404, body: { error: 'That item is not on your list for this mission.' } };
+  const line = loaded.lines.find((l) => l.item.id === input.itemId);
+  if (!line) return { status: 404, body: { error: 'That item is not on your list for this mission.' } };
+  const existing = line.item;
 
+  const quantity = parseQuantity(input.quantity !== undefined ? input.quantity : line.quantity, loaded.rules.maxQuantity);
+  if (quantity === null) return { status: 400, body: { error: quantityError(loaded.rules) } };
   const price = input.price !== undefined ? parsePrice(input.price) : parsePrice(Number(existing.price));
-  const others = loaded.items.filter((i) => i.id !== existing.id).map((i) => Number(i.price));
-  const priceError = checkWishlistPrice(price, others, loaded.rules);
+  const others = loaded.lines.filter((l) => l !== line).map(lineTotal);
+  const priceError = checkWishlistPrice(price, others, loaded.rules, quantity);
   if (priceError) return { status: 400, body: { error: priceError } };
 
   const existingProps = existing.properties && typeof existing.properties === 'object'
@@ -308,6 +363,7 @@ export async function updateWishlistItem(db: PrismaClient, userId: string, input
   const details = Array.isArray(input.properties?.details) ? sanitizeItemDetails(input.properties.details) : undefined;
 
   const data: Prisma.ItemUpdateInput = { price: price as number };
+  if (quantity !== line.quantity) data.wishlistItems = { update: { where: { id: line.linkId }, data: { quantity } } };
   if (input.title !== undefined) {
     const title = sanitizeText(input.title).trim().substring(0, 100);
     if (!title) return { status: 400, body: { error: 'Item title is required.' } };
@@ -333,17 +389,17 @@ export async function updateWishlistItem(db: PrismaClient, userId: string, input
   const updated = await db.item.update({ where: { id: existing.id }, data });
   await learnCatalogDetails(db, existing.url, details ?? []);
 
-  return { status: 200, body: { success: true, item: toWishlistItemView(updated) } };
+  return { status: 200, body: { success: true, item: toWishlistItemView(updated, quantity) } };
 }
 
 /**
  * DELETE /api/wishlist?exchangeId=…&itemId=…: removes one item from the caller's list.
  */
 export async function removeWishlistItem(db: PrismaClient, userId: string, exchangeId: unknown, itemId: unknown): Promise<WishlistResult> {
-  const loaded = await loadMemberWishlist(db, userId, exchangeId);
+  const loaded = await loadMemberWishlist(db, userId, exchangeId, DEFAULT_PLATFORM_SETTINGS);
   if (!loaded) return NOT_A_MEMBER;
   if (loaded.closed) return MISSION_CLOSED_RESULT;
-  if (!loaded.items.some((i) => i.id === itemId)) {
+  if (!loaded.lines.some((l) => l.item.id === itemId)) {
     return { status: 404, body: { error: 'That item is not on your list for this mission.' } };
   }
   await db.item.delete({ where: { id: itemId as string } });
@@ -370,6 +426,7 @@ export async function deleteMemberWishlistItems(db: PrismaClient, memberId: stri
  * @param method - HTTP method.
  * @param searchParams - The request's query string (GET and DELETE).
  * @param readBody - Reads the JSON body (POST and PATCH).
+ * @param limits - The platform's item and quantity limits (`getPlatformSettings`).
  * @returns The handler's result, or 405 for any other method.
  */
 export async function handleWishlistRequest(
@@ -377,15 +434,16 @@ export async function handleWishlistRequest(
   userId: string,
   method: string,
   searchParams: URLSearchParams,
-  readBody: () => Promise<unknown>
+  readBody: () => Promise<unknown>,
+  limits: WishlistLimits = DEFAULT_PLATFORM_SETTINGS
 ): Promise<WishlistResult> {
   switch (method) {
     case 'GET':
-      return getMissionWishlist(db, userId, searchParams.get('exchangeId'));
+      return getMissionWishlist(db, userId, searchParams.get('exchangeId'), limits);
     case 'POST':
-      return addWishlistItem(db, userId, ((await readBody()) ?? {}) as WishlistItemInput);
+      return addWishlistItem(db, userId, ((await readBody()) ?? {}) as WishlistItemInput, limits);
     case 'PATCH':
-      return updateWishlistItem(db, userId, ((await readBody()) ?? {}) as WishlistItemInput);
+      return updateWishlistItem(db, userId, ((await readBody()) ?? {}) as WishlistItemInput, limits);
     case 'DELETE':
       return removeWishlistItem(db, userId, searchParams.get('exchangeId'), searchParams.get('itemId'));
     default:
