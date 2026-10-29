@@ -9,7 +9,9 @@
  * Next.js route (self-hosted) and the edge worker (SaaS) both use this builder, so they accept
  * exactly the same fields.
  * Tier 3 (how): `buildSystemConfigUpdate(body, adminId)` is pure and unit-tested. `appMode` is
- * deliberately absent: the edition is an environment invariant, never a database setting.
+ * deliberately absent: the edition is an environment invariant, never a database setting. Callers run
+ * `validatePlatformSettings` (src/lib/platform-limits.ts) first and refuse the PATCH on any error, so a
+ * platform limit or the release stage is never saved outside its bounds.
  */
 
 const STRING_FIELDS = [
@@ -29,6 +31,7 @@ const STRING_FIELDS = [
   'smtpFrom',
   'resendApiKey',
   'defaultCurrency',
+  'releaseStage',
 ] as const;
 
 const BOOLEAN_FIELDS = ['announcementBannerActive', 'maintenanceMode', 'smtpSecure', 'lifecycleCronEnabled'] as const;
@@ -39,6 +42,9 @@ const NUMBER_FIELDS = [
   'paidEventPriceUsd',
   'maxFreeParticipants',
   'maxWishlistItems',
+  'maxActiveHostedMissions',
+  'maxMissionAgents',
+  'maxItemQuantity',
   'defaultBudgetMin',
   'defaultBudgetMax',
 ] as const;

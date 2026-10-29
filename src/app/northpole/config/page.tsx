@@ -1,6 +1,17 @@
 'use client';
 
 import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
+import {
+  DEFAULT_PLATFORM_SETTINGS,
+  isReleaseStage,
+  PLATFORM_LIMIT_BOUNDS,
+  RELEASE_STAGES,
+  toPlatformSettings,
+  type PlatformLimitKey,
+  type PlatformSettings,
+} from '@/lib/platform-limits';
+
+const PLATFORM_LIMIT_KEYS = Object.keys(PLATFORM_LIMIT_BOUNDS) as PlatformLimitKey[];
 
 import { useState, useEffect } from 'react';
 
@@ -47,7 +58,8 @@ export default function NorthPoleConfigPage() {
   const [freeAnnualJoinAllowance, setFreeAnnualJoinAllowance] = useState(3);
   const [paidEventPriceUsd, setPaidEventPriceUsd] = useState(5.0);
   const [maxFreeParticipants, setMaxFreeParticipants] = useState(25);
-  const [maxWishlistItems, setMaxWishlistItems] = useState(50);
+  // Platform limits & release stage (bounds in src/lib/platform-limits.ts; the server refuses values outside them)
+  const [platform, setPlatform] = useState<PlatformSettings>(DEFAULT_PLATFORM_SETTINGS);
   const [defaultBudgetMin, setDefaultBudgetMin] = useState(0);
   const [defaultBudgetMax, setDefaultBudgetMax] = useState(50);
   const [defaultCurrency, setDefaultCurrency] = useState('USD');
@@ -103,7 +115,7 @@ export default function NorthPoleConfigPage() {
           setFreeAnnualJoinAllowance(cfg.freeAnnualJoinAllowance ?? 3);
           setPaidEventPriceUsd(Number(cfg.paidEventPriceUsd ?? 5.0));
           setMaxFreeParticipants(cfg.maxFreeParticipants ?? 25);
-          setMaxWishlistItems(cfg.maxWishlistItems ?? 50);
+          setPlatform(toPlatformSettings(cfg));
           setDefaultBudgetMin(Number(cfg.defaultBudgetMin ?? 0));
           setDefaultBudgetMax(Number(cfg.defaultBudgetMax ?? 50));
           setDefaultCurrency(cfg.defaultCurrency || 'USD');
@@ -174,7 +186,7 @@ export default function NorthPoleConfigPage() {
           freeAnnualJoinAllowance,
           paidEventPriceUsd,
           maxFreeParticipants,
-          maxWishlistItems,
+          ...platform,
           defaultBudgetMin,
           defaultBudgetMax,
           defaultCurrency,
@@ -677,11 +689,56 @@ export default function NorthPoleConfigPage() {
         </div>
       </div>
 
+      {/* Section 3b: Release Stage & Platform Limits */}
+      <div className="p-6 rounded-2xl bg-kk-surface border border-kk-border space-y-6">
+        <h2 className="text-base font-bold text-kk-heading flex items-center gap-2 border-b border-kk-border pb-3">
+          <span>🚦 Release Stage & Platform Limits</span>
+        </h2>
+
+        <div className="text-xs font-mono">
+          <label className="block text-kk-ink font-bold mb-1">RELEASE STAGE</label>
+          <select
+            value={platform.releaseStage}
+            onChange={(e) => setPlatform({ ...platform, releaseStage: isReleaseStage(e.target.value) ? e.target.value : platform.releaseStage })}
+            className="w-full sm:w-64 bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
+          >
+            {RELEASE_STAGES.map((stage) => (
+              <option key={stage} value={stage}>{stage}</option>
+            ))}
+          </select>
+          <p className="text-kk-muted mt-1">
+            ALPHA: registration needs an activation or mission invite code. BETA: anyone can register. Takes effect within a minute of saving, no redeploy.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
+          {PLATFORM_LIMIT_KEYS.map((key) => {
+            const bounds = PLATFORM_LIMIT_BOUNDS[key];
+            return (
+              <div key={key}>
+                <label className="block text-kk-ink font-bold mb-1">{bounds.label.toUpperCase()}</label>
+                <input
+                  type="number"
+                  min={bounds.min}
+                  max={bounds.max}
+                  step={1}
+                  value={platform[key]}
+                  onChange={(e) => setPlatform({ ...platform, [key]: Number(e.target.value) })}
+                  className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none"
+                />
+                <p className="text-kk-muted mt-1">{bounds.min} to {bounds.max} (default {bounds.default})</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Section 4: Public Quotas, Allowances & Pricing */}
       <div className="p-6 rounded-2xl bg-kk-surface border border-kk-border space-y-6">
         <h2 className="text-base font-bold text-kk-heading flex items-center gap-2 border-b border-kk-border pb-3">
           <span>📊 Public Limits, Fair-Use Quotas & Defaults</span>
         </h2>
+        <p className="text-xs text-kk-muted">The annual allowances and paid-event price are not enforced during beta.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
           <div>

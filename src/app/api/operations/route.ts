@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
 import { dbUnavailableResponse, isDbConnectionError } from '@/lib/db-errors';
 import { getSessionUserId } from '@/lib/auth';
-import { validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
+import { validateCapacity, validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
+import { getPlatformSettings, hostedMissionLimitError, missionFullError } from '@/lib/platform-limits';
 import { generateInviteCode } from '@/lib/security';
 import { executeTargetSwap } from '@/lib/draw';
 import { runManualDraw } from '@/lib/manual-draw';
@@ -518,6 +520,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'You are already enrolled in this mission', exchangeCode: inviteToken.exchange.code }, { status: 409 });
       }
 
+      const memberCount = await db.exchangeMember.count({ where: { exchangeId: inviteToken.exchangeId } });
+      const full = missionFullError(inviteToken.exchange.maxParticipants, memberCount, await getPlatformSettings(adminDb));
+      if (full) return NextResponse.json({ error: full }, { status: 400 });
+
       // Enroll member and consume single-use token in transaction
       const [newMember] = await enrollWithCodename(db, inviteToken.exchangeId, (codename) =>
         db.$transaction(async (tx) => [
@@ -737,10 +743,13 @@ export async function POST(request: Request) {
     }
 
     // Validate Configuration
-    const validation = validateOperationConfig(config);
+    const platform = await getPlatformSettings(adminDb);
+    const validation = validateOperationConfig(config, platform.maxMissionAgents);
     if (!validation.isValid) {
       return NextResponse.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
     }
+    const hostedLimit = await hostedMissionLimitError(db, activeUserId, platform);
+    if (hostedLimit) return NextResponse.json({ error: hostedLimit }, { status: 403 });
 
     // Hardening S2: SaaS Quota Server Environment Variable Check
     const isSaasMode = IS_SAAS;
@@ -987,6 +996,12 @@ export async function PATCH(request: Request) {
         return NextResponse.json({
           error: 'Local events require an in-person event location address.',
         }, { status: 400 });
+      }
+
+      // Capacity: a Head Elf may tighten the platform's agents-per-mission limit, never loosen it.
+      if (settings.maxParticipants) {
+        const capacityErrors = validateCapacity(Number(settings.maxParticipants), (await getPlatformSettings(adminDb)).maxMissionAgents);
+        if (capacityErrors.length > 0) return NextResponse.json({ error: capacityErrors[0] }, { status: 400 });
       }
 
       // Budget Validation

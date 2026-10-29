@@ -21,7 +21,8 @@ export function CreateOperationModal({
   onSuccess,
 }: CreateOperationModalProps) {
   const router = useRouter();
-  const { isDarkMode, theme } = useTheme();
+  const { isDarkMode, theme, systemConfig } = useTheme();
+  const maxAgents = systemConfig.maxMissionAgents;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -59,8 +60,8 @@ export function CreateOperationModal({
         throw new Error('Operation title is required.');
       }
 
-      if (maxParticipants < 4 || maxParticipants > 25) {
-        throw new Error('Max Operative capacity must be between 4 and 25 agents. (KovertKlaus is optimized for families and groups of 4 or more!)');
+      if (maxParticipants < 4 || maxParticipants > maxAgents) {
+        throw new Error(`Max Operative capacity must be between 4 and ${maxAgents} agents. (KovertKlaus is optimized for families and groups of 4 or more!)`);
       }
 
       if (isLocalOnly && !eventLocation.trim()) {
@@ -300,12 +301,12 @@ export function CreateOperationModal({
 
             {/* Max Participants */}
             <div>
-              <label className="block text-kk-muted mb-1">Max Operatives * (Min 4, Max 25 — Ideal for squads &amp; families of 4+)</label>
+              <label className="block text-kk-muted mb-1">Max Operatives * (Min 4, Max {maxAgents} — Ideal for squads &amp; families of 4+)</label>
               <input
                 type="number"
                 required
                 min={4}
-                max={25}
+                max={maxAgents}
                 value={maxParticipants}
                 onChange={(e) => setMaxParticipants(Number(e.target.value))}
                 className={`w-full border rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none ${theme.inputModalBg}`}

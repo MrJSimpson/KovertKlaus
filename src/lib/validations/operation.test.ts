@@ -56,7 +56,7 @@ test('Operation Validator - Enforces Date Sequence', () => {
   assert.ok(result.errors.includes('Go/No-Go Date (Invite Cutoff) cannot be set after Target Assignment Date.'));
 });
 
-test('Operation Validator - Rejects capacity outside 4..25', () => {
+test('Operation Validator - Rejects capacity outside 4..the platform limit', () => {
   const base: CreateOperationInput = {
     title: 'Capacity Check',
     giftingType: 'SINGLE',
@@ -69,8 +69,11 @@ test('Operation Validator - Rejects capacity outside 4..25', () => {
     executionDate: '2026-12-25',
   };
   assert.strictEqual(validateOperationConfig({ ...base, maxParticipants: 3 }).isValid, false);
-  assert.strictEqual(validateOperationConfig({ ...base, maxParticipants: 26 }).isValid, false);
+  assert.strictEqual(validateOperationConfig({ ...base, maxParticipants: 50 }).isValid, true); // platform default
+  assert.strictEqual(validateOperationConfig({ ...base, maxParticipants: 51 }).isValid, false);
   assert.strictEqual(validateOperationConfig({ ...base, maxParticipants: 12 }).isValid, true);
+  // An admin's lower platform limit applies.
+  assert.strictEqual(validateOperationConfig({ ...base, maxParticipants: 12 }, 10).isValid, false);
 });
 
 test('Operation Settings Validator - accepts a valid edit and rejects bad ones', () => {

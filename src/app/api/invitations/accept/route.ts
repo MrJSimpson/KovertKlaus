@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
+import { getPlatformSettings, missionFullError } from '@/lib/platform-limits';
 import { getSessionUserId } from '@/lib/auth';
 import { markInvitationAccepted } from '@/lib/invitations';
 import { enrollWithCodename } from '@/lib/codename';
@@ -38,12 +40,8 @@ export async function POST(request: Request) {
     }
 
     // 3. Check Participant Limit
-    if (exchange.maxParticipants && exchange.members.length >= exchange.maxParticipants) {
-      return NextResponse.json(
-        { error: 'Exchange participant capacity has been reached.' },
-        { status: 400 }
-      );
-    }
+    const full = missionFullError(exchange.maxParticipants, exchange.members.length, await getPlatformSettings(adminDb));
+    if (full) return NextResponse.json({ error: full }, { status: 400 });
 
     // 3. Verify user is not already enrolled
     const existingMember = exchange.members.find((a: { userId: string }) => a.userId === activeUserId);

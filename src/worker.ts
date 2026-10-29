@@ -5,6 +5,7 @@ import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { cachedSystemConfigReader, clearSystemConfigCaches, publicConfigCache } from './lib/system-config-cache';
 import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
+import { getPlatformSettings, hostedMissionLimitError, missionFullError, validatePlatformSettings, type PlatformSettings } from './lib/platform-limits';
 import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
@@ -58,7 +59,6 @@ import { bodyObject, bodyString, readJsonBody } from './lib/request-body';
 import { assertProductTitle, describeFetchFailure, fetchProductPage, isUsableProductTitle } from './lib/product-fetch';
 import { ADMIN_SESSION_COOKIE_NAME } from './lib/adminAuth';
 import { SESSION_COOKIE_NAME } from './lib/auth';
-import { RELEASE_STAGE } from './lib/version';
 import { resolveRegistrationCode } from './lib/registration-code';
 import { checkRegistrationThrottle, recordRegistration, registrationThrottledParts, registrationThrottleKeys, registrationTripLogMessage } from './lib/registration-throttle';
 import {
@@ -172,6 +172,11 @@ async function requireAdmin(request: Request, adminDb: ReturnType<typeof getAdmi
 }
 
 /** JSON 405 for a known API path called with a method it does not support. */
+/** Platform limits and release stage, read through this isolate's `SystemConfig` cache. */
+function platformSettings(adminDb: ReturnType<typeof getAdminDb>): Promise<PlatformSettings> {
+  return getPlatformSettings(cachedSystemConfigReader(adminDb));
+}
+
 /** Counts a failed sign-in and logs one WARN for each limit it trips. */
 async function recordThrottledFailure(adminDb: ReturnType<typeof getAdminDb>, keys: LoginThrottleKeys, counts: ThrottleCounts): Promise<void> {
   await recordLoginFailure(adminDb, keys, counts, (rule) => {
@@ -508,6 +513,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+          const invalid = validatePlatformSettings(body);
+          if (invalid.length > 0) return Response.json({ error: invalid.join(' '), details: invalid }, { status: 400 });
           const updateData = buildSystemConfigUpdate(body, admin.id);
           const updated = await adminDb.systemConfig.upsert({
             where: { id: 'singleton' },
@@ -1425,11 +1432,11 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (!passCheck.isValid) return Response.json({ error: passCheck.error }, { status: 400 });
 
         // Alpha gate and invite code (src/lib/registration-code.ts), then the sign-up rate limit.
-        const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
+        const settings = await platformSettings(adminDb);
         const rawInviteCode =
           bodyString(body.inviteCode) || bodyString(body.operationCode) || bodyString(body.exchangeCode) || bodyString(body.code) || bodyString(body.alphaCode);
         const cleanEmail = email.trim().toLowerCase();
-        const resolved = await resolveRegistrationCode(db, cleanEmail, rawInviteCode, isAlpha);
+        const resolved = await resolveRegistrationCode(db, cleanEmail, rawInviteCode, settings);
         if (!resolved.ok) return Response.json({ error: resolved.error }, { status: resolved.status });
         const { approval: matchedPreLaunchApproval, mission: targetExchange } = resolved;
 
@@ -1883,6 +1890,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             });
             if (existingMember) return Response.json({ error: 'Already enrolled', exchangeCode: inviteToken.exchange.code }, { status: 409 });
 
+            const kdmMemberCount = await db.exchangeMember.count({ where: { exchangeId: inviteToken.exchangeId } });
+            const kdmFull = missionFullError(inviteToken.exchange.maxParticipants, kdmMemberCount, await platformSettings(adminDb));
+            if (kdmFull) return Response.json({ error: kdmFull }, { status: 400 });
+
             const [newMember] = await enrollWithCodename(db, inviteToken.exchangeId, (codename) =>
               db.$transaction(async (tx) => [
                 await tx.exchangeMember.create({
@@ -2022,10 +2033,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (!config) {
               return Response.json({ error: 'Validation failed', details: ['Mission settings are missing or have the wrong type.'] }, { status: 400 });
             }
-            const validation = validateOperationConfig(config);
+            const platform = await platformSettings(adminDb);
+            const validation = validateOperationConfig(config, platform.maxMissionAgents);
             if (!validation.isValid) {
               return Response.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
             }
+            const hostedLimit = await hostedMissionLimitError(db, userId, platform);
+            if (hostedLimit) return Response.json({ error: hostedLimit }, { status: 403 });
 
             // Invite codes are random; retry on the (rare) collision instead of failing the create.
             let inviteCode = generateInviteCode();
@@ -2155,7 +2169,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               enforcePenalties: settings.enforcePenalties !== undefined ? Boolean(settings.enforcePenalties) : ex.enforcePenalties,
               allowWishlistOverBudget: settings.allowWishlistOverBudget !== undefined ? Boolean(settings.allowWishlistOverBudget) : ex.allowWishlistOverBudget,
             };
-            const validation = validateOperationSettings({ ...merged, isWhiteElephant: ex.isWhiteElephant, currentMemberCount: memberCount });
+            const validation = validateOperationSettings(
+              { ...merged, isWhiteElephant: ex.isWhiteElephant, currentMemberCount: memberCount },
+              (await platformSettings(adminDb)).maxMissionAgents
+            );
             if (!validation.isValid) {
               return Response.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
             }
@@ -2266,9 +2283,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
         const existing = exchange.members.find((m) => m.userId === activeUserId);
         if (existing) return Response.json({ error: 'You are already enrolled in this exchange.', exchangeCode: exchange.code }, { status: 409 });
-        if (exchange.maxParticipants && exchange.members.length >= exchange.maxParticipants) {
-          return Response.json({ error: 'This exchange has reached its maximum operative capacity.' }, { status: 400 });
-        }
+        const full = missionFullError(exchange.maxParticipants, exchange.members.length, await platformSettings(adminDb));
+        if (full) return Response.json({ error: full }, { status: 400 });
 
         // Codename drawn for this mission; the agent can reroll it until they accept (parity with the Next.js route).
         const user = await db.user.findUnique({ where: { id: activeUserId }, select: { email: true } });
