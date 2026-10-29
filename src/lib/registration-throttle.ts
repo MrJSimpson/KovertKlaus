@@ -7,8 +7,9 @@
  * Tier 2 (why): Beta opens registration to anyone. Each account is a database row and a welcome email
  * against Brevo's 300/day quota, so a script must not be able to create them without limit. Owner
  * decisions (2026-10-29): per IP 3 an hour and 10 a day; a site-wide ceiling of 200 a day as an emergency
- * brake; a sign-up that joins a real mission skips the ceiling, so a family is never turned away because
- * a bot filled it; one WARN per tripped limit in the system log.
+ * brake; a sign-up that joins a real mission skips the ceiling and the hourly IP rule, so a family signing
+ * up together on one home network, or after a bot filled the ceiling, is not turned away; one WARN per
+ * tripped limit in the system log.
  * Tier 3 (how): Successful sign-ups are rows in `admin."LoginThrottle"` with scope `REGISTER` (the scope
  * is a plain string, so no schema change). The IP is stored only as an HMAC digest. The windows are at
  * most 24 hours, which matches the hourly purge in `purgeLoginThrottle`. An unknown IP (no proxy header,
@@ -42,7 +43,7 @@ export interface RegistrationThrottleKeys {
   ipHash: string;
   /** False when the client IP is unknown: the IP rules are skipped. */
   ipKnown: boolean;
-  /** True when the sign-up joins a recruiting mission: the site-wide ceiling is skipped. */
+  /** True when the sign-up joins a recruiting mission: the site-wide ceiling and the hourly IP rule are skipped. */
   joinsMission: boolean;
 }
 
@@ -68,8 +69,12 @@ export function registrationThrottleKeys(email: string, ip: string, joinsMission
   };
 }
 
+/** Rules a mission invite skips. The daily IP rule still applies, so invite links cannot be farmed. */
+const INVITE_SKIPS: RegistrationRule[] = ['SITE_DAY', 'IP_HOUR'];
+
 function skipped(keys: RegistrationThrottleKeys, rule: RegistrationRule): boolean {
-  return rule === 'SITE_DAY' ? keys.joinsMission : !keys.ipKnown;
+  if (keys.joinsMission && INVITE_SKIPS.includes(rule)) return true;
+  return rule !== 'SITE_DAY' && !keys.ipKnown;
 }
 
 function ruleWhere(keys: RegistrationThrottleKeys, rule: RegistrationRule, nowMs: number) {
@@ -107,8 +112,8 @@ export async function checkRegistrationThrottle(
 
 /**
  * Counts one successful sign-up. Calls `onTrip` once for each rule this sign-up brings to its limit, so
- * the system log gets one entry per tripped limit. A sign-up that skipped the site ceiling still counts
- * toward it, and may be the one that trips it.
+ * the system log gets one entry per tripped limit. A sign-up that skipped a rule still counts toward
+ * it.
  */
 export async function recordRegistration(
   db: PrismaClient,
@@ -123,8 +128,7 @@ export async function recordRegistration(
     return;
   }
   for (const rule of RULES) {
-    if (rule !== 'SITE_DAY' && !keys.ipKnown) continue;
-    if (rule === 'SITE_DAY' && keys.joinsMission) continue; // not counted at check time, so +1 is unknown
+    if (skipped(keys, rule)) continue; // not counted at check time, so +1 is unknown
     if (counts[rule] + 1 === REGISTRATION_LIMITS[rule]) onTrip?.(rule);
   }
 }

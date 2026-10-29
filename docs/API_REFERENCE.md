@@ -71,7 +71,7 @@ Performs pre-flight email availability checks or registers a new operative accou
   > [!NOTE]
   > During Public Alpha (`RELEASE_STAGE=ALPHA`), an `inviteCode` is mandatory. It must either be a single-use pre-launch approval cipher (`ALPHA-XXXXXXXXXXXXXXXX`) granted by the North Pole, or an active exchange invitation code.
   > In every stage, a code that is sent must match: an unknown code is `404`, and a mission that is no longer recruiting or is full is `400`.
-  > Sign-ups are rate limited: 3 per IP per hour, 10 per IP per day, and 200 a day site-wide (a sign-up with a valid mission code skips the site-wide limit). A limited sign-up gets `429` with a `Retry-After` header.
+  > Sign-ups are rate limited: 3 per IP per hour, 10 per IP per day, and 200 a day site-wide (a sign-up with a valid mission code skips the site-wide and hourly limits). A limited sign-up gets `429` with a `Retry-After` header.
 
   **Response `201 Created`**: Returns user profile and signed session token.
 

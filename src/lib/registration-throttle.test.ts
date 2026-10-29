@@ -79,9 +79,11 @@ test('Registration throttle - the site-wide ceiling blocks walk-in sign-ups but 
   assert.strictEqual(invited.blocked, false);
 });
 
-test('Registration throttle - a mission invite still respects the per-IP limits', async () => {
-  const result = await checkRegistrationThrottle(fakeDb(signups(IP, 3, MIN)).db, registrationThrottleKeys('new@x.com', IP, true), NOW);
-  assert.strictEqual(result.blocked && result.rule, 'IP_HOUR');
+test('Registration throttle - a mission invite skips the hourly IP rule (one home network) but not the daily one', async () => {
+  const family = await checkRegistrationThrottle(fakeDb(signups(IP, 3, MIN)).db, registrationThrottleKeys('new@x.com', IP, true), NOW);
+  assert.strictEqual(family.blocked, false);
+  const farmed = await checkRegistrationThrottle(fakeDb(signups(IP, REGISTRATION_LIMITS.IP_DAY, MIN)).db, registrationThrottleKeys('new@x.com', IP, true), NOW);
+  assert.strictEqual(farmed.blocked && farmed.rule, 'IP_DAY');
 });
 
 test('Registration throttle - sign-in failures do not count; an unknown IP skips the IP rules', async () => {
