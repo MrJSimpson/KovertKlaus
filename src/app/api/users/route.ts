@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
-import type { PreLaunchApproval, Prisma } from '@prisma/client';
 import { hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
+import { adminDb } from '@/lib/adminDb';
 import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
 import { setSessionCookie } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/email';
 import { RELEASE_STAGE } from '@/lib/version';
-import { logInfo } from '@/lib/logger';
+import { logInfo, logWarn } from '@/lib/logger';
+import { clientIp } from '@/lib/login-throttle';
+import { resolveRegistrationCode } from '@/lib/registration-code';
+import {
+  checkRegistrationThrottle,
+  recordRegistration,
+  registrationThrottledParts,
+  registrationThrottleKeys,
+  registrationTripLogMessage,
+} from '@/lib/registration-throttle';
 import { markInvitationAccepted } from '@/lib/invitations';
 import { enrollWithCodename } from '@/lib/codename';
 import { memberWishlistCreate } from '@/lib/mission-wishlist';
@@ -39,80 +48,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: passCheck.error }, { status: 400 });
     }
 
-    // -------------------------------------------------------------------------
-    // Alpha Gate: Closed Friend-of-a-Friend Secret Santa Invitation Invariant
-    // -------------------------------------------------------------------------
+    // Alpha gate and invite code (src/lib/registration-code.ts), then the sign-up rate limit.
     const isAlpha = RELEASE_STAGE === 'ALPHA' || RELEASE_STAGE === 'PRE_ALPHA';
     const rawInviteCode =
       bodyString(body.inviteCode) || bodyString(body.operationCode) || bodyString(body.exchangeCode) || bodyString(body.code) || bodyString(body.alphaCode);
+    const resolved = await resolveRegistrationCode(db, cleanEmail, rawInviteCode, isAlpha);
+    if (!resolved.ok) {
+      return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+    }
+    const { approval: matchedPreLaunchApproval, mission: targetExchange } = resolved;
 
-    let targetExchange: Prisma.ExchangeGetPayload<{ include: { members: true } }> | null = null;
-    let matchedPreLaunchApproval: PreLaunchApproval | null = null;
-
-    if (isAlpha) {
-      if (!rawInviteCode) {
-        return NextResponse.json(
-          {
-            error:
-              'Direct registration is closed during Alpha. You must be invited to a Secret Santa mission, or enter your approved Pre-Launch Alpha activation cipher.',
-          },
-          { status: 403 }
-        );
-      }
-
-      const cleanCode = rawInviteCode.trim().toUpperCase();
-
-      // 1. Check if the code matches an active PreLaunchApproval for this email address
-      matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
-        where: {
-          email: { equals: cleanEmail, mode: 'insensitive' },
-          inviteCode: cleanCode,
-        },
-      });
-
-      // 2. If not a pre-launch clearance cipher, check if it is a valid Exchange invitation code
-      if (!matchedPreLaunchApproval) {
-        targetExchange = await db.exchange.findUnique({
-          where: { code: cleanCode },
-          include: { members: true },
-        });
-
-        if (!targetExchange) {
-          return NextResponse.json(
-            { error: 'Invalid invitation code or pre-launch alpha cipher. Please verify your activation link.' },
-            { status: 404 }
-          );
-        }
-
-        if (targetExchange.status !== 'RECRUITING') {
-          return NextResponse.json(
-            { error: 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.' },
-            { status: 400 }
-          );
-        }
-
-        if (targetExchange.maxParticipants && targetExchange.members.length >= targetExchange.maxParticipants) {
-          return NextResponse.json(
-            { error: 'This exchange has reached its maximum operative capacity.' },
-            { status: 400 }
-          );
-        }
-      }
-    } else if (rawInviteCode) {
-      const cleanCode = rawInviteCode.trim().toUpperCase();
-      matchedPreLaunchApproval = await db.preLaunchApproval.findFirst({
-        where: {
-          email: { equals: cleanEmail, mode: 'insensitive' },
-          inviteCode: cleanCode,
-        },
-      });
-
-      if (!matchedPreLaunchApproval) {
-        targetExchange = await db.exchange.findUnique({
-          where: { code: cleanCode },
-          include: { members: true },
-        });
-      }
+    const throttleKeys = registrationThrottleKeys(cleanEmail, clientIp(request.headers), Boolean(targetExchange));
+    const throttle = await checkRegistrationThrottle(adminDb, throttleKeys);
+    if (throttle.blocked) {
+      const parts = registrationThrottledParts(throttle.rule, throttle.retryAfterSec);
+      return NextResponse.json(parts.body, { status: 429, headers: parts.headers });
     }
 
     const cleanName = sanitizeText(name);
@@ -134,6 +84,10 @@ export async function POST(request: Request) {
         accountStatus: true,
         penaltyPoints: true,
       },
+    });
+    await recordRegistration(adminDb, throttleKeys, throttle.counts, (rule) => {
+      const { message, metadata } = registrationTripLogMessage(throttleKeys, rule);
+      logWarn('AUTH', message, { metadata }).catch(() => {});
     });
 
     // If registered via PreLaunchApproval, immediately consume & remove the code to prevent reuse
