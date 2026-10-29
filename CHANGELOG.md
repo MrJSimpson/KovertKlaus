@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.7.0-alpha] - 2026-10-29
+
+Dev #51–#75. Readies beta: open sign-ups are switched on from the North Pole (Release Stage → BETA), with no redeploy. The What's New pop-up holds a beta announcement that appears only once the stage is BETA.
+
 ### Security
 - **New accounts are rate limited.** One network can create 3 accounts an hour and 10 a day, and KovertKlaus as a whole accepts 200 new accounts a day, so a script cannot fill the database or use up the day's email quota with welcome emails. Someone joining a mission with its invite link is never stopped by the daily site limit or the hourly limit, so a family can sign up together on one home network (the 10 a day still applies). A blocked sign-up is told to try again later, and each limit reached writes one warning to the North Pole system log. The counts use the existing `admin."LoginThrottle"` table; no database change.
 - **Sign-in is rate limited.** Repeated wrong passwords now make the agent sign-in and the North Pole sign-in wait instead of letting anyone guess without limit. An agent sign-in waits after 5 failures for one account from one address in 15 minutes, 20 failures from one address across accounts in 15 minutes, or 50 failures on one account from anywhere in an hour (the North Pole allows 3, 10 and 20). The wait is never a hard lockout: someone guessing from elsewhere cannot keep an agent out of their own account. Accounts and addresses are stored only as keyed hashes, failures older than a day are deleted hourly, and each limit reached writes one warning to the North Pole system log. **Operators:** run `prisma/sql/2026-10-27_login-throttle.forward.sql` as the database owner before deploying (new table `admin."LoginThrottle"`).
@@ -17,11 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admins switch the release stage and set platform limits in the North Pole.** North Pole → Config has a new Release Stage & Platform Limits section. **Release stage** ALPHA keeps registration invite-only; BETA opens it to everyone, takes effect within a minute, and needs no redeploy. **Limits**, each with a safe range the server enforces (an admin cannot save a value that would break the app):
   - **Missions a Head Elf can run at once:** 5 (1–20). Completed and cancelled missions do not count. Creating one more is refused with a message saying why.
   - **Agents per mission:** 50 (4–100). A Head Elf can set a lower cap for a mission, never a higher one; a mission with no cap of its own fills at this limit. Every way of joining checks it.
-  - **Items per Secret Santa wishlist:** 20 (1–50), down from 50. **Quantity per item:** 25 (1–99). Enforcement follows in the wishlist update.
+  - **Items per Secret Santa wishlist:** 20 (1–50), down from 50. **Quantity per item:** 25 (1–99).
   The annual free allowances and the paid-event price are not enforced during beta. **Operators:** run `prisma/sql/2026-10-29_platform-limits.forward.sql` as the database owner before deploying (four new `admin."SystemConfig"` columns; `maxWishlistItems` 50 → 20).
 - **Send feedback from any page.** Signed-in agents have a Feedback button in the bottom-right corner. Pick Bug, Idea or Other, write up to 2,000 characters, and it reaches the KovertKlaus team along with the page you were on, the app version and your browser. Up to 10 reports a day per agent. Admins read and triage reports (New, Reviewed, Done) under **North Pole → Feedback**. **Operators:** run `prisma/sql/2026-10-27_feedback.forward.sql` as the database owner before deploying (new table `app."Feedback"`).
 - **Emails over Brevo's daily limit wait instead of being lost.** Brevo's free tier sends 300 emails a day and rejects the rest. KovertKlaus now counts each day's emails (the day starts at midnight Pacific), writes a warning to the North Pole system log at 240, and from 290 holds new emails and sends them, oldest first, after midnight. An email Brevo rejects for quota is held too. **Operators:** run `prisma/sql/2026-10-26_email-outbox.forward.sql` as the database owner before deploying (new table `admin."EmailOutbox"`). `EMAIL_DAILY_QUOTA` sets a different quota.
 - **The Head Elf learns who blocked a mission cancelled at its repair deadline.** The Head Elf's cancel notice and email list each blocking agent with their codename and what they had not fixed, e.g. "Ivy (Quiet Fox): no shipping address, empty wishlist". Each blocking agent is told privately what was left on them. Everyone else still sees counts only, with no names. Cancellations for too few agents or impossible match rules name nobody.
+- **A beta announcement waits for the switch.** What's New entries can be tied to a release stage. The Season 1 beta announcement is shipped now and appears, with the What's New dot, only once an admin sets the release stage to BETA.
 - **Hide finished missions.** The dashboard has Hide Completed and Hide Cancelled toggles. Your browser remembers them, and when they hide everything the page says how many missions are hidden.
 
 ### Changed

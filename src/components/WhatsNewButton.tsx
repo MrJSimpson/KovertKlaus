@@ -9,8 +9,9 @@
  * `src/lib/announcements.ts`, newest first, over the current page.
  * Tier 2 (why): Release notes are a quick read, so they open in place instead of sending the agent
  * to a separate page and back.
- * Tier 3 (how): Opening records the newest version in browser storage (a per-viewer convenience
- * only), which clears the dot. Storage can be unavailable (private windows), so every access is
+ * Tier 3 (how): Only entries for the current release stage are shown (`visibleAnnouncements`), so a
+ * staged announcement and its dot appear when an admin flips the stage. Opening records the newest
+ * entry's key in browser storage (a per-viewer convenience only), which clears the dot. Storage can be unavailable (private windows), so every access is
  * guarded and the pop-up still works without the dot. Escape, ✕ or a click outside closes it. The
  * pop-up is portaled to `<body>` because headers use `backdrop-blur`, which would trap it.
  */
@@ -18,7 +19,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '@/context/ThemeContext';
-import { ANNOUNCEMENTS, ANNOUNCEMENT_SEEN_KEY, LATEST_ANNOUNCEMENT_VERSION, hasUnseenAnnouncement } from '@/lib/announcements';
+import { ANNOUNCEMENT_SEEN_KEY, announcementKey, hasUnseenAnnouncement, latestAnnouncementKey, visibleAnnouncements } from '@/lib/announcements';
 
 interface WhatsNewButtonProps {
   className?: string;
@@ -33,7 +34,8 @@ function formatDate(isoDate: string): string {
 }
 
 export function WhatsNewButton({ className = '', compact = false }: WhatsNewButtonProps) {
-  const { theme } = useTheme();
+  const { theme, systemConfig } = useTheme();
+  const stage = systemConfig.releaseStage;
   const [unseen, setUnseen] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -45,9 +47,9 @@ export function WhatsNewButton({ className = '', compact = false }: WhatsNewButt
       // Storage unavailable: show no dot
       return;
     }
-    const timer = window.setTimeout(() => setUnseen(hasUnseenAnnouncement(lastSeen)), 0);
+    const timer = window.setTimeout(() => setUnseen(hasUnseenAnnouncement(lastSeen, stage)), 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [stage]);
 
   useEffect(() => {
     if (!open) return;
@@ -62,7 +64,7 @@ export function WhatsNewButton({ className = '', compact = false }: WhatsNewButt
     setOpen(true);
     setUnseen(false);
     try {
-      window.localStorage.setItem(ANNOUNCEMENT_SEEN_KEY, LATEST_ANNOUNCEMENT_VERSION);
+      window.localStorage.setItem(ANNOUNCEMENT_SEEN_KEY, latestAnnouncementKey(stage));
     } catch {
       // Storage unavailable: nothing to remember
     }
@@ -106,10 +108,10 @@ export function WhatsNewButton({ className = '', compact = false }: WhatsNewButt
             </div>
 
             <div className="overflow-y-auto p-4 sm:p-5 space-y-6">
-              {ANNOUNCEMENTS.map((a, i) => (
-                <article key={a.version}>
+              {visibleAnnouncements(stage).map((a, i) => (
+                <article key={announcementKey(a)}>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${theme.badgeCode}`}>v{a.version}</span>
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${theme.badgeCode}`}>{a.stage ? a.stage.charAt(0) + a.stage.slice(1).toLowerCase() : `v${a.version}`}</span>
                     <span className={`text-xs font-semibold ${theme.textSubLabel}`}>{formatDate(a.date)}</span>
                     {i === 0 && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40">Latest</span>}
                   </div>
