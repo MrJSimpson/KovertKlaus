@@ -65,6 +65,24 @@ export const ANNOUNCEMENTS: Announcement[] = [
     ],
   },
   {
+    version: '0.7.1-alpha',
+    date: '2026-10-29',
+    title: 'Joining and mission settings fixes',
+    summary: 'Invitation keys now work only while a mission is recruiting, and mission settings tell you exactly what needs fixing.',
+    highlights: [
+      {
+        emoji: '🔒',
+        title: 'No late arrivals',
+        text: 'An unused invitation key could let someone join a mission after targets were drawn, or after it ended. Now every way of joining works only while the mission is still recruiting and has room.',
+      },
+      {
+        emoji: '📝',
+        title: 'Clearer settings errors',
+        text: 'If a Head Elf\'s settings change can\'t be saved, the message now says which rule it broke instead of just "Validation failed". A mission can\'t be switched between Secret Santa and White Elephant after it is created.',
+      },
+    ],
+  },
+  {
     version: '0.7.0-alpha',
     date: '2026-10-29',
     title: 'Bigger missions and wishlist quantities',
