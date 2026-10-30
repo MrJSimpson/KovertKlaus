@@ -8,6 +8,8 @@ import {
   isAlphaStage,
   missionCapacity,
   missionFullError,
+  missionJoinError,
+  RECRUITMENT_CLOSED_ERROR,
   PLATFORM_LIMIT_BOUNDS,
   RUNNING_MISSION_STATUSES,
   toPlatformSettings,
@@ -71,4 +73,13 @@ test('Platform limits - mission capacity: the Head Elf may tighten, never loosen
   assert.strictEqual(missionFullError(null, 49, s), null);
   assert.match(missionFullError(null, 50, s) ?? '', /maximum operative capacity/);
   assert.ok(missionFullError(12, 12, s));
+});
+
+test('Platform limits - joining needs a recruiting mission with room', () => {
+  const s = DEFAULT_PLATFORM_SETTINGS;
+  assert.strictEqual(missionJoinError({ status: 'RECRUITING', maxParticipants: 10 }, 9, s), null);
+  assert.match(missionJoinError({ status: 'RECRUITING', maxParticipants: 10 }, 10, s) ?? '', /maximum operative capacity/);
+  for (const status of ['SETUP', 'MATCHED', 'SHIPPED', 'EXECUTED', 'COMPLETED', 'CANCELLED']) {
+    assert.strictEqual(missionJoinError({ status, maxParticipants: null }, 0, s), RECRUITMENT_CLOSED_ERROR, status);
+  }
 });

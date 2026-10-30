@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { parseOperationConfig, validateOperationConfig, validateOperationSettings, CreateOperationInput } from './operation';
+import { parseOperationConfig, resolveSettingsUpdate, validateOperationConfig, validateOperationSettings, CreateOperationInput } from './operation';
 
 test('Operation Validator - Valid Configuration', () => {
   const input: CreateOperationInput = {
@@ -94,6 +94,30 @@ test('Operation Settings Validator - accepts a valid edit and rejects bad ones',
   assert.strictEqual(validateOperationSettings({ ...valid, maxParticipants: 5 }).isValid, false); // below enrolled 6
   assert.strictEqual(validateOperationSettings({ ...valid, isLocalOnly: true, eventLocation: '' }).isValid, false);
   assert.strictEqual(validateOperationSettings({ ...valid, isWhiteElephant: true }).isValid, false);
+});
+
+test('resolveSettingsUpdate - merges the patch, keeps the rest, and applies every settings rule', () => {
+  const stored = {
+    title: 'Family Mission', description: null, budgetMin: null, budgetMax: { toString: () => '50' }, maxParticipants: 10,
+    isLocalOnly: false, eventLocation: null, enforcePenalties: true, allowWishlistOverBudget: true, isWhiteElephant: false,
+  };
+  const ok = resolveSettingsUpdate(stored, { title: '  <b>Office</b> swap ', budgetMax: '40' }, 6, 50);
+  assert.ok(ok.ok);
+  assert.strictEqual(ok.data.budgetMax, 40);
+  assert.strictEqual(ok.data.maxParticipants, 10);
+  assert.ok(!ok.data.title.includes('<'));
+  const fail = (patch: Record<string, unknown>, members = 6) => {
+    const r = resolveSettingsUpdate(stored, patch, members, 50);
+    assert.ok(!r.ok, JSON.stringify(patch));
+    return r.errors;
+  };
+  assert.match(fail({ title: '   ' })[0], /title is required/);
+  assert.match(fail({ maxParticipants: 5 })[0], /lower than the 6 agents/);
+  assert.match(fail({ maxParticipants: 51 })[0], /between 4 and 50/);
+  assert.match(fail({ isLocalOnly: true })[0], /event location/);
+  assert.match(fail({ budgetMin: 60 })[0], /cannot exceed/);
+  assert.match(fail({ isWhiteElephant: true })[0], /fixed upon creation/);
+  assert.ok(resolveSettingsUpdate(stored, { isWhiteElephant: false }, 6, 50).ok);
 });
 
 test('parseOperationConfig - accepts the create form payload and drops unknown fields', () => {

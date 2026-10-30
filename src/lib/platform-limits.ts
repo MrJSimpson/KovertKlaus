@@ -140,6 +140,22 @@ export function missionCapacity(maxParticipants: number | null | undefined, sett
   return maxParticipants ? Math.min(maxParticipants, settings.maxMissionAgents) : settings.maxMissionAgents;
 }
 
+/** Error for joining a mission that has left recruiting (drawn, finished or cancelled). */
+export const RECRUITMENT_CLOSED_ERROR = 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.';
+
+/**
+ * Why an agent may not join `mission` now, or `null` when they may: it must still be recruiting and
+ * have room. Used by sign-up with an invite code and by KDM token joins; emailed invitations check the same two rules.
+ */
+export function missionJoinError(
+  mission: { status: string; maxParticipants: number | null | undefined },
+  memberCount: number,
+  settings: PlatformSettings
+): string | null {
+  if (mission.status !== 'RECRUITING') return RECRUITMENT_CLOSED_ERROR;
+  return missionFullError(mission.maxParticipants, memberCount, settings);
+}
+
 /** Why another agent may not join, or `null` when there is room. */
 export function missionFullError(maxParticipants: number | null | undefined, memberCount: number, settings: PlatformSettings): string | null {
   return memberCount >= missionCapacity(maxParticipants, settings) ? 'This exchange has reached its maximum operative capacity.' : null;

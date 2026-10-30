@@ -14,7 +14,7 @@
  */
 
 import type { PreLaunchApproval, Prisma, PrismaClient } from '@prisma/client';
-import { isAlphaStage, missionFullError, type PlatformSettings } from '@/lib/platform-limits';
+import { isAlphaStage, missionJoinError, type PlatformSettings } from '@/lib/platform-limits';
 
 /** A mission with its members, as enrollment needs it. */
 export type RegistrationMission = Prisma.ExchangeGetPayload<{ include: { members: true } }>;
@@ -62,10 +62,7 @@ export async function resolveRegistrationCode(
         : 'Invalid mission invite code. Please check your invite link, or register without a code.',
     };
   }
-  if (mission.status !== 'RECRUITING') {
-    return { ok: false, status: 400, error: 'Recruitment for this mission has closed. Operatives cannot join active or completed missions.' };
-  }
-  const full = missionFullError(mission.maxParticipants, mission.members.length, settings);
-  if (full) return { ok: false, status: 400, error: full };
+  const joinError = missionJoinError(mission, mission.members.length, settings);
+  if (joinError) return { ok: false, status: 400, error: joinError };
   return { ok: true, approval: null, mission };
 }
