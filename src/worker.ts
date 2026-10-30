@@ -5,7 +5,7 @@ import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { cachedSystemConfigReader, clearSystemConfigCaches, publicConfigCache } from './lib/system-config-cache';
 import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
-import { getPlatformSettings, hostedMissionLimitError, missionFullError, validatePlatformSettings, type PlatformSettings } from './lib/platform-limits';
+import { getPlatformSettings, hostedMissionLimitError, missionFullError, missionJoinError, validatePlatformSettings, type PlatformSettings } from './lib/platform-limits';
 import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
@@ -40,7 +40,7 @@ import { processExchangeAudit } from './lib/audit-runner';
 import { advanceMissionLifecycle, type MissionLifecycleDeps } from './lib/mission-lifecycle';
 import { detectCarrier } from './lib/carrier-tracking';
 import { detectProductCategory, getCategorySuggestedKeys, type ProductCategory } from './lib/product-intelligence';
-import { parseOperationConfig, validateOperationConfig, validateOperationSettings } from './lib/validations/operation';
+import { parseOperationConfig, resolveSettingsUpdate, validateOperationConfig } from './lib/validations/operation';
 import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
 import { rewriteExchangeShellPath } from './lib/exchange-route';
@@ -1891,8 +1891,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (existingMember) return Response.json({ error: 'Already enrolled', exchangeCode: inviteToken.exchange.code }, { status: 409 });
 
             const kdmMemberCount = await db.exchangeMember.count({ where: { exchangeId: inviteToken.exchangeId } });
-            const kdmFull = missionFullError(inviteToken.exchange.maxParticipants, kdmMemberCount, await platformSettings(adminDb));
-            if (kdmFull) return Response.json({ error: kdmFull }, { status: 400 });
+            const kdmJoinError = missionJoinError(inviteToken.exchange, kdmMemberCount, await platformSettings(adminDb));
+            if (kdmJoinError) return Response.json({ error: kdmJoinError }, { status: 400 });
 
             const [newMember] = await enrollWithCodename(db, inviteToken.exchangeId, (codename) =>
               db.$transaction(async (tx) => [
@@ -2158,25 +2158,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           if (action === 'update_settings' || settings) {
             if (!settings) return Response.json({ error: 'Settings payload required' }, { status: 400 });
             const memberCount = await db.exchangeMember.count({ where: { exchangeId: operationId } });
-            const merged = {
-              title: settings.title !== undefined ? sanitizeText(String(settings.title)).trim() : ex.title,
-              description: settings.description !== undefined ? sanitizeText(String(settings.description)).trim() : ex.description,
-              budgetMin: settings.budgetMin !== undefined && settings.budgetMin !== null ? Number(settings.budgetMin) : (ex.budgetMin == null ? null : Number(ex.budgetMin)),
-              budgetMax: settings.budgetMax !== undefined ? Number(settings.budgetMax) : Number(ex.budgetMax),
-              maxParticipants: settings.maxParticipants !== undefined ? (settings.maxParticipants ? Number(settings.maxParticipants) : null) : ex.maxParticipants,
-              isLocalOnly: settings.isLocalOnly !== undefined ? Boolean(settings.isLocalOnly) : ex.isLocalOnly,
-              eventLocation: settings.eventLocation !== undefined ? sanitizeText(String(settings.eventLocation)).trim() : ex.eventLocation,
-              enforcePenalties: settings.enforcePenalties !== undefined ? Boolean(settings.enforcePenalties) : ex.enforcePenalties,
-              allowWishlistOverBudget: settings.allowWishlistOverBudget !== undefined ? Boolean(settings.allowWishlistOverBudget) : ex.allowWishlistOverBudget,
-            };
-            const validation = validateOperationSettings(
-              { ...merged, isWhiteElephant: ex.isWhiteElephant, currentMemberCount: memberCount },
-              (await platformSettings(adminDb)).maxMissionAgents
-            );
-            if (!validation.isValid) {
-              return Response.json({ error: 'Validation failed', details: validation.errors }, { status: 400 });
-            }
-            const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: merged });
+            const update = resolveSettingsUpdate(ex, settings, memberCount, (await platformSettings(adminDb)).maxMissionAgents);
+            if (!update.ok) return Response.json({ error: update.errors[0], details: update.errors }, { status: 400 });
+            const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: update.data });
             return Response.json({ success: true, data: updatedExchange });
           }
 

@@ -3,6 +3,7 @@
  */
 
 import { PLATFORM_LIMIT_BOUNDS } from '@/lib/platform-limits';
+import { sanitizeText } from '@/lib/security';
 
 export interface CreateOperationInput {
   title: string;
@@ -259,6 +260,73 @@ export function validateOperationSettings(
   }
 
   return { isValid: errors.length === 0, errors };
+}
+
+/** Settings fields of a stored mission that `resolveSettingsUpdate` reads. */
+export interface StoredOperationSettings {
+  title: string;
+  description: string | null;
+  budgetMin: number | { toString(): string } | null;
+  budgetMax: number | { toString(): string };
+  maxParticipants: number | null;
+  isLocalOnly: boolean;
+  eventLocation: string | null;
+  enforcePenalties: boolean;
+  allowWishlistOverBudget: boolean;
+  isWhiteElephant: boolean;
+}
+
+/** The columns a settings edit writes. */
+export interface OperationSettingsData {
+  title: string;
+  description: string | null;
+  budgetMin: number | null;
+  budgetMax: number;
+  maxParticipants: number | null;
+  isLocalOnly: boolean;
+  eventLocation: string | null;
+  enforcePenalties: boolean;
+  allowWishlistOverBudget: boolean;
+}
+
+/**
+ * Merges a Head Elf's settings patch onto the stored mission and validates the result.
+ *
+ * Tier 1 (what): Returns the columns to write, or every rule the merged settings break.
+ * Tier 2 (why): The edge worker and the Next route used to merge and check settings separately, and
+ * the Next route skipped most checks (title, capacity below the current roster, White Elephant must
+ * be local). One function keeps both runtimes identical.
+ * Tier 3 (how): Fields left out keep their stored value; text is sanitized; the gifting type is fixed
+ * at creation, so a patch that changes it is refused. Pure, no database access.
+ *
+ * @param ex - The stored mission.
+ * @param patch - The untrusted `settings` object from the request.
+ * @param currentMemberCount - Agents already enrolled.
+ * @param maxAgents - The platform's agents-per-mission limit.
+ */
+export function resolveSettingsUpdate(
+  ex: StoredOperationSettings,
+  patch: Record<string, unknown>,
+  currentMemberCount: number,
+  maxAgents: number
+): { ok: true; data: OperationSettingsData } | { ok: false; errors: string[] } {
+  if (patch.isWhiteElephant !== undefined && Boolean(patch.isWhiteElephant) !== ex.isWhiteElephant) {
+    return { ok: false, errors: ['Exchange Gifting Type (Secret Santa vs White Elephant) is fixed upon creation and cannot be changed.'] };
+  }
+  const has = (k: string) => patch[k] !== undefined;
+  const data: OperationSettingsData = {
+    title: has('title') ? sanitizeText(String(patch.title)).trim() : ex.title,
+    description: has('description') ? sanitizeText(String(patch.description ?? '')).trim() : ex.description,
+    budgetMin: has('budgetMin') ? (patch.budgetMin === null || patch.budgetMin === '' ? null : Number(patch.budgetMin)) : (ex.budgetMin == null ? null : Number(ex.budgetMin)),
+    budgetMax: has('budgetMax') ? Number(patch.budgetMax) : Number(ex.budgetMax),
+    maxParticipants: has('maxParticipants') ? (patch.maxParticipants ? Number(patch.maxParticipants) : null) : ex.maxParticipants,
+    isLocalOnly: has('isLocalOnly') ? Boolean(patch.isLocalOnly) : ex.isLocalOnly,
+    eventLocation: has('eventLocation') ? sanitizeText(String(patch.eventLocation ?? '')).trim() : ex.eventLocation,
+    enforcePenalties: has('enforcePenalties') ? Boolean(patch.enforcePenalties) : ex.enforcePenalties,
+    allowWishlistOverBudget: has('allowWishlistOverBudget') ? Boolean(patch.allowWishlistOverBudget) : ex.allowWishlistOverBudget,
+  };
+  const validation = validateOperationSettings({ ...data, isWhiteElephant: ex.isWhiteElephant, currentMemberCount }, maxAgents);
+  return validation.isValid ? { ok: true, data } : { ok: false, errors: validation.errors };
 }
 
 /**

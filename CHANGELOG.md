@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **A KDM invitation key no longer lets an agent join a mission that has stopped recruiting.** Joining with a key checked that the mission had room but not that it was still recruiting, so an agent could join after the draw (with no target) or a finished or cancelled mission. Every way of joining (invite code at sign-up, emailed invitation, KDM key) now checks both: the mission must be recruiting and have room.
+- **Self-hosted: a Head Elf's settings edit gets the same checks as on kovertklaus.com.** The Node.js route checked only some settings, so on a self-hosted server a Head Elf could save an empty title, a capacity below the agents already enrolled, or a White Elephant mission that is not local. Both servers now merge and validate a settings edit with one shared function, and text fields are sanitized on both. An error now names the rule that failed on both servers (the edge worker used to answer "Validation failed").
+
 ---
 
 ## [0.7.0-alpha] - 2026-10-29

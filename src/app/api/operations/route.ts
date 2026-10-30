@@ -3,8 +3,8 @@ import { db } from '@/lib/db';
 import { adminDb } from '@/lib/adminDb';
 import { dbUnavailableResponse, isDbConnectionError } from '@/lib/db-errors';
 import { getSessionUserId } from '@/lib/auth';
-import { validateCapacity, validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
-import { getPlatformSettings, hostedMissionLimitError, missionFullError } from '@/lib/platform-limits';
+import { resolveSettingsUpdate, validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
+import { getPlatformSettings, hostedMissionLimitError, missionJoinError } from '@/lib/platform-limits';
 import { generateInviteCode } from '@/lib/security';
 import { executeTargetSwap } from '@/lib/draw';
 import { runManualDraw } from '@/lib/manual-draw';
@@ -521,7 +521,7 @@ export async function POST(request: Request) {
       }
 
       const memberCount = await db.exchangeMember.count({ where: { exchangeId: inviteToken.exchangeId } });
-      const full = missionFullError(inviteToken.exchange.maxParticipants, memberCount, await getPlatformSettings(adminDb));
+      const full = missionJoinError(inviteToken.exchange, memberCount, await getPlatformSettings(adminDb));
       if (full) return NextResponse.json({ error: full }, { status: 400 });
 
       // Enroll member and consume single-use token in transaction
@@ -984,48 +984,12 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: 'Settings payload is required' }, { status: 400 });
       }
 
-      // IMMUTABILITY GUARD: Gifting Type cannot be changed after creation
-      if (settings.isWhiteElephant !== undefined && settings.isWhiteElephant !== ex.isWhiteElephant) {
-        return NextResponse.json({
-          error: 'Exchange Gifting Type (Secret Santa vs White Elephant) is fixed upon creation and cannot be changed.',
-        }, { status: 400 });
-      }
+      // Same merge and rules as the edge worker (src/lib/validations/operation.ts).
+      const memberCount = await db.exchangeMember.count({ where: { exchangeId: operationId } });
+      const update = resolveSettingsUpdate(ex, settings, memberCount, (await getPlatformSettings(adminDb)).maxMissionAgents);
+      if (!update.ok) return NextResponse.json({ error: update.errors[0], details: update.errors }, { status: 400 });
 
-      // Local Event Rule: Location required when isLocalOnly is true
-      if (settings.isLocalOnly && (!settings.eventLocation || !settings.eventLocation.trim())) {
-        return NextResponse.json({
-          error: 'Local events require an in-person event location address.',
-        }, { status: 400 });
-      }
-
-      // Capacity: a Head Elf may tighten the platform's agents-per-mission limit, never loosen it.
-      if (settings.maxParticipants) {
-        const capacityErrors = validateCapacity(Number(settings.maxParticipants), (await getPlatformSettings(adminDb)).maxMissionAgents);
-        if (capacityErrors.length > 0) return NextResponse.json({ error: capacityErrors[0] }, { status: 400 });
-      }
-
-      // Budget Validation
-      if (settings.budgetMax !== undefined && settings.budgetMax <= 0) {
-        return NextResponse.json({ error: 'Maximum budget must be greater than $0' }, { status: 400 });
-      }
-      if (settings.budgetMin !== undefined && settings.budgetMax !== undefined && settings.budgetMin > settings.budgetMax) {
-        return NextResponse.json({ error: 'Minimum budget cannot exceed maximum budget' }, { status: 400 });
-      }
-
-      const updatedExchange = await db.exchange.update({
-        where: { id: operationId },
-        data: {
-          title: settings.title !== undefined ? settings.title.trim() : ex.title,
-          description: settings.description !== undefined ? settings.description.trim() : ex.description,
-          budgetMin: settings.budgetMin !== undefined ? Number(settings.budgetMin) : ex.budgetMin,
-          budgetMax: settings.budgetMax !== undefined ? Number(settings.budgetMax) : ex.budgetMax,
-          maxParticipants: settings.maxParticipants !== undefined ? (settings.maxParticipants ? Number(settings.maxParticipants) : null) : ex.maxParticipants,
-          isLocalOnly: settings.isLocalOnly !== undefined ? settings.isLocalOnly : ex.isLocalOnly,
-          eventLocation: settings.eventLocation !== undefined ? settings.eventLocation.trim() : ex.eventLocation,
-          enforcePenalties: settings.enforcePenalties !== undefined ? settings.enforcePenalties : ex.enforcePenalties,
-          allowWishlistOverBudget: settings.allowWishlistOverBudget !== undefined ? Boolean(settings.allowWishlistOverBudget) : ex.allowWishlistOverBudget,
-        },
-      });
+      const updatedExchange = await db.exchange.update({ where: { id: operationId }, data: update.data });
 
       return NextResponse.json({ success: true, data: updatedExchange });
     }
