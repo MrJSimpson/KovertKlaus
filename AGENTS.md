@@ -99,8 +99,9 @@ Every change (from maintainers, contributors, or AI agents) must meet:
 1. **Zero Direct-to-Main Changes**: NEVER make edits or commit directly to `main` in this repository. Contributors work on a fork or feature branch and open a pull request.
 2. **Branch Creation**: Always create a descriptive feature/fix branch before modifying code:
    `git checkout -b <type>/<short-description>` (e.g., `feat/wishlist-sharing`, `sec/rbac-guards`).
-3. **Verification**: Complete and test all changes on the branch (`npm run build`, unit tests).
-4. **Review & Merge**: Open a pull request. The owner and team review it; only maintainers merge to `main`.
+3. **Release Branches**: Cut work branches from the open release branch (`release/vX.Y.Z-stage`) and open pull requests **against that release branch**, not `main`. Merge the latest release branch into your branch before review so the release merges cleanly. Only `hotfix/<name>` branches start from and target `main` (`docs/VERSIONING.md` §4).
+4. **Verification**: Complete and test all changes on the branch (`npm run build`, unit tests).
+5. **Review & Merge**: Open a pull request. The owner and team review it; only maintainers merge, and a release branch reaches `main` once per release.
 
 ---
 
