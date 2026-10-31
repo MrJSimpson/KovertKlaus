@@ -2000,8 +2000,14 @@ export default function OperationCommandCenterPage() {
                             <span className={`font-mono text-xs ${theme.textSubLabel}`}>#{i + 1}</span>
                             <div>
                               <span className={`font-bold block text-sm ${theme.textLabel}`}>
-                                {formatCodename(agent.user?.codename, agent.user?.name)}
+                                {formatCodename(agent.user?.codename)}
                               </span>
+                              {/* Real names reach only the Head Elf (server-side rule), so they can confirm who joined. */}
+                              {isOpsLeader && agent.user?.name && (
+                                <span className={`block text-xs ${theme.textSubLabel}`}>
+                                  <span className="sr-only">Real name: </span>{agent.user.name}
+                                </span>
+                              )}
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                                   agent.userId === organizerIdVal ? theme.badgeAmber : theme.badgeSecretSanta

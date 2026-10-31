@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { memberCodenameMap, memberWishlistMap, sanitizeExchangeMember } from './exchange-view';
+import { canSeeRealName, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember, sanitizeMissionReports } from './exchange-view';
 
 const listOf = (id: string, name: string, price: number) => ({
   wishlistItems: [{ item: { id, name, price, url: 'https://x.test', thumbnailUrl: null, description: null, properties: null } }],
@@ -94,4 +94,51 @@ test("Exchange View - a giver sees their target's list for this mission only", (
   // No list loaded for the target (e.g. an older membership): an empty list, never another mission's.
   const bare = sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer' });
   assert.deepStrictEqual(bare.targetUser?.wishlistItems, []);
+});
+
+test("Exchange View - real names: the Head Elf sees every agent's name", () => {
+  const view = sanitizeExchangeMember(member, { activeUserId: 'organizer', isOrganizer: true, organizerId: 'organizer' });
+  assert.strictEqual(view.user.name, 'Gina');
+  assert.strictEqual(view.user.codename, 'Snowy Spider');
+});
+
+test('Exchange View - real names: another agent gets the codename only', () => {
+  const view = sanitizeExchangeMember(member, { activeUserId: 'someone', isOrganizer: false, organizerId: 'organizer' });
+  assert.strictEqual(view.user.name, null);
+  assert.strictEqual(view.user.codename, 'Snowy Spider');
+});
+
+test("Exchange View - real names: an agent sees their own name and the Head Elf's", () => {
+  const self = sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer' });
+  assert.strictEqual(self.user.name, 'Gina');
+  const headElf = { ...member, userId: 'organizer', user: { ...member.user, id: 'organizer', name: 'Holly' } };
+  const view = sanitizeExchangeMember(headElf, { activeUserId: 'someone', isOrganizer: false, organizerId: 'organizer' });
+  assert.strictEqual(view.user.name, 'Holly');
+});
+
+test("Exchange View - real names: the giver keeps the target's name for the shipping label", () => {
+  const view = sanitizeExchangeMember(member, { activeUserId: 'giver', isOrganizer: false, organizerId: 'organizer' });
+  assert.strictEqual(view.targetUser?.name, 'Tom');
+});
+
+test("Exchange View - canSeeRealName covers exactly the Head Elf, self and the Head Elf's own name", () => {
+  const agent = { activeUserId: 'a', isOrganizer: false, organizerId: 'boss' };
+  assert.strictEqual(canSeeRealName(agent, 'b'), false);
+  assert.strictEqual(canSeeRealName(agent, 'a'), true);
+  assert.strictEqual(canSeeRealName(agent, 'boss'), true);
+  assert.strictEqual(canSeeRealName({ activeUserId: null, isOrganizer: false, organizerId: 'boss' }, 'b'), false);
+  assert.strictEqual(canSeeRealName({ activeUserId: 'boss', isOrganizer: true, organizerId: 'boss' }, 'b'), true);
+});
+
+test('Exchange View - After-Action Reports name authors only where allowed', () => {
+  const reports = [
+    { id: 'r1', userId: 'b', user: { id: 'b', name: 'Bea' } },
+    { id: 'r2', userId: 'a', user: { id: 'a', name: 'Al' } },
+  ];
+  const memberCodenames = { a: 'Frosted Owl', b: 'Tinsel Fox' };
+  const asAgent = sanitizeMissionReports(reports, { activeUserId: 'a', isOrganizer: false, organizerId: 'boss', memberCodenames });
+  assert.deepStrictEqual(asAgent.map((r) => r.user.name), [null, 'Al']);
+  assert.deepStrictEqual(asAgent.map((r) => r.user.codename), ['Tinsel Fox', 'Frosted Owl']);
+  const asHeadElf = sanitizeMissionReports(reports, { activeUserId: 'boss', isOrganizer: true, organizerId: 'boss', memberCodenames });
+  assert.deepStrictEqual(asHeadElf.map((r) => r.user.name), ['Bea', 'Al']);
 });

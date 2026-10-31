@@ -162,13 +162,13 @@ async function resolveContext(db: PrismaClient, exchangeId: string, userId: stri
   };
 }
 
-/** Mission codename (`ExchangeMember.codename`, else the agent's name) by user ID. */
+/** Mission codename (`ExchangeMember.codename`) by user ID. Never the real name: messages reach other agents. */
 async function loadCodenames(db: PrismaClient, exchangeId: string): Promise<Map<string, string>> {
   const members = await db.exchangeMember.findMany({
     where: { exchangeId },
-    select: { userId: true, codename: true, user: { select: { name: true } } },
+    select: { userId: true, codename: true },
   });
-  return new Map(members.map((m) => [m.userId, m.codename || m.user.name]));
+  return new Map(members.map((m) => [m.userId, m.codename || 'Unassigned Agent']));
 }
 
 /**
