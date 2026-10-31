@@ -65,6 +65,24 @@ export const ANNOUNCEMENTS: Announcement[] = [
     ],
   },
   {
+    version: '0.8.0-alpha',
+    date: '2026-10-30',
+    title: 'Password reset, and Head Elves see who joined',
+    summary: 'You can now reset a forgotten password by email, and a Head Elf can see the real name behind each codename in their mission.',
+    highlights: [
+      {
+        emoji: '🔑',
+        title: 'Forgot your password?',
+        text: 'Use "Forgot your password?" on the sign-in form. We email you a link that works once and lasts 30 minutes. Choosing a new password signs you out on your other devices.',
+      },
+      {
+        emoji: '🕵️',
+        title: 'Head Elves know who joined',
+        text: 'A Head Elf now sees each agent\'s real name under their codename, so they can check everyone who joined is someone they invited. Other agents still see only codenames.',
+      },
+    ],
+  },
+  {
     version: '0.7.1-alpha',
     date: '2026-10-29',
     title: 'Joining and mission settings fixes',
