@@ -6,6 +6,8 @@ import { getSessionUserId } from '@/lib/auth';
 import { resolveSettingsUpdate, validateOperationConfig, CreateOperationInput } from '@/lib/validations/operation';
 import { getPlatformSettings, hostedMissionLimitError, missionJoinError } from '@/lib/platform-limits';
 import { generateInviteCode } from '@/lib/security';
+import { openJoinGate } from '@/lib/join-throttle';
+import { isMissionInsider, missionPreview } from '@/lib/mission-preview';
 import { executeTargetSwap } from '@/lib/draw';
 import { runManualDraw } from '@/lib/manual-draw';
 import { sendAssignmentEmail, sendMissionCancelledEmail, sendNudgeEmail } from '@/lib/email';
@@ -40,6 +42,9 @@ export async function GET(request: Request) {
 
     // Case 1: Fetch single exchange by unique invite code (e.g. KOVERT-87WZ)
     if (code) {
+      // Codes travel in invite links and can be guessed: wrong codes are rate-limited.
+      const gate = await openJoinGate(adminDb, activeUserId, request.headers);
+      if (gate.blocked) return gate.blocked;
       const exchange = await db.exchange.findUnique({
         where: { code: code.trim().toUpperCase() },
         include: {
@@ -64,8 +69,11 @@ export async function GET(request: Request) {
       });
 
       if (!exchange) {
+        await gate.wrongCode();
         return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
       }
+      // Outsiders holding the code (signed out, or not enrolled) get a preview only.
+      if (!isMissionInsider(exchange, activeUserId)) return NextResponse.json({ success: true, data: missionPreview(exchange) });
 
       // Security Invariant (Finding 2.1): Sanitize targetUser and physical addresses server-side.
       // Only the exchange organizer or the specific assigned giver may view a member's target details and shipping address.
