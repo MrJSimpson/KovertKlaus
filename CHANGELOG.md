@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Only the Head Elf sees agents' real names.** The mission page sent every agent's real name to every member; the page showed codenames, but the names were in the data any member's browser received. Now the Head Elf sees each agent's real name under their codename on the roster, so they can confirm who joined. An agent sees their own name and the Head Elf's, and everyone else by codename. A giver still sees their target's real name with the shipping address, because the package needs it. After-Action Reports and Mission Comms label other agents by codename.
+
 ---
 
 ## [0.7.1-alpha] - 2026-10-29
