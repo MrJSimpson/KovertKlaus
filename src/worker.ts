@@ -46,6 +46,8 @@ import { validateReportInput } from './lib/validations/report';
 import { resolveTimelineUpdate } from './lib/validations/timeline';
 import { rewriteExchangeShellPath } from './lib/exchange-route';
 import { dispatchNudge } from './lib/nudge';
+import { openJoinGate } from './lib/join-throttle';
+import { isMissionInsider, missionPreview } from './lib/mission-preview';
 import { checkLoginThrottle, clearLoginFailures, clientIp, loginThrottleKeys, purgeLoginThrottle, recordLoginFailure, throttledResponseParts, tripLogMessage, type LoginThrottleKeys, type ThrottleCounts } from './lib/login-throttle';
 import { deleteFeedback, listFeedback, submitFeedback, updateFeedbackStatus } from './lib/feedback';
 import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
@@ -1563,6 +1565,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (request.method === 'GET') {
           const code = url.searchParams.get('code');
           if (code) {
+            // Codes travel in invite links and can be guessed: wrong codes are rate-limited.
+            const gate = await openJoinGate(adminDb, activeUserId, request.headers);
+            if (gate.blocked) return gate.blocked;
             const exchange = await db.exchange.findUnique({
               where: { code: code.trim().toUpperCase() },
               include: {
@@ -1577,7 +1582,12 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 reports: { include: { user: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' } },
               },
             });
-            if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+            if (!exchange) {
+              await gate.wrongCode();
+              return Response.json({ error: 'Exchange not found' }, { status: 404 });
+            }
+            // Outsiders holding the code (signed out, or not enrolled) get a preview only.
+            if (!isMissionInsider(exchange, activeUserId)) return Response.json({ success: true, data: missionPreview(exchange) });
 
             // Sanitize targetUser and physical addresses server-side
             const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
@@ -2292,8 +2302,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
         if (!operationCode) return Response.json({ error: 'operationCode required' }, { status: 400 });
 
+        const gate = await openJoinGate(adminDb, activeUserId, request.headers);
+        if (gate.blocked) return gate.blocked;
         const exchange = await db.exchange.findUnique({ where: { code: operationCode.trim().toUpperCase() }, include: { members: true } });
-        if (!exchange) return Response.json({ error: 'Exchange not found' }, { status: 404 });
+        if (!exchange) {
+          await gate.wrongCode();
+          return Response.json({ error: 'Exchange not found' }, { status: 404 });
+        }
         if (exchange.status !== 'RECRUITING') {
           return Response.json({ error: 'Recruitment for this mission has closed. Operatives cannot join active or completed operations.' }, { status: 400 });
         }

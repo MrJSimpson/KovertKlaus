@@ -6,6 +6,7 @@ import { getSessionUserId } from '@/lib/auth';
 import { markInvitationAccepted } from '@/lib/invitations';
 import { enrollWithCodename } from '@/lib/codename';
 import { memberWishlistCreate } from '@/lib/mission-wishlist';
+import { openJoinGate } from '@/lib/join-throttle';
 
 export async function POST(request: Request) {
   try {
@@ -21,13 +22,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Verify Exchange
+    // 1. Verify Exchange. Codes can be guessed: wrong codes are rate-limited.
+    const gate = await openJoinGate(adminDb, activeUserId, request.headers);
+    if (gate.blocked) return gate.blocked;
     const exchange = await db.exchange.findUnique({
       where: { code: operationCode.trim().toUpperCase() },
       include: { members: true },
     });
 
     if (!exchange) {
+      await gate.wrongCode();
       return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
     }
 

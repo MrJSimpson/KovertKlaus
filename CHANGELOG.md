@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Mission codes can't be guessed in bulk.** Mission codes appear in invite links, so a script could try codes until one matched. Codes that match no mission now count against limits: 10 an hour per agent and 30 per 15 minutes per network, signed in or not. Past a limit, lookups and joins wait (`429` with `Retry-After`), and the North Pole system log gets one warning. Opening a real mission never counts. Rows use the existing `admin."LoginThrottle"` table (scope `JOIN`), so there is no database change.
+- **Only a mission's agents see its details.** Anyone holding a mission code, even signed out, received the roster's codenames, After-Action Reports and the event location. Someone outside the mission now gets a preview: title, dates, budget, status, mission type, the number of agents and the Head Elf's codename. That is enough to join; everything else is for the Head Elf and enrolled agents.
+
 ---
 
 ## [0.8.0-alpha] - 2026-10-30
