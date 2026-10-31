@@ -35,8 +35,8 @@ This guide provides instructions for deploying KovertKlaus in a self-hosted envi
    ```
 
 4. **Access the Application**:
-   - **Main Web Application**: [http://localhost:3000](http://localhost:3000)
-   - **North Pole Super Admin Console**: [http://localhost:3000/northpole](http://localhost:3000/northpole)
+   - **Main Web Application**: [http://localhost:2425](http://localhost:2425)
+   - **North Pole Super Admin Console**: [http://localhost:2425/northpole](http://localhost:2425/northpole)
      - *First-Run Setup*: no default password ships. Read the one-time setup token from the server console (`docker logs kovertklaus-app`) and open `/northpole/setup` to create your administrator.
 
 ---
@@ -67,7 +67,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-kovertklaus}:${POSTGRES_PASSWORD:-kovertsecret}@kovertklaus-db:5432/${POSTGRES_DB:-kovertklaus}?schema=public
       SESSION_SECRET: ${SESSION_SECRET}
     ports:
-      - "3000:3000"
+      - "2425:2425"
     depends_on:
       kovertklaus-db:
         condition: service_healthy
