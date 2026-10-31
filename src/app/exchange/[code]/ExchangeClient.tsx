@@ -30,6 +30,7 @@ import { UserDossierPreferences } from '@/lib/product-intelligence';
 import { resolveExchangeCode } from '@/lib/exchange-route';
 import { fetchJsonWithRetry } from '@/lib/load-retry';
 import { memberCardStatus } from '@/lib/member-status';
+import { LegalAgreement } from '@/components/LegalAgreement';
 import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
 
@@ -2773,6 +2774,7 @@ export default function OperationCommandCenterPage() {
                 />
               </div>
 
+              {authMode === 'register' && <LegalAgreement />}
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
