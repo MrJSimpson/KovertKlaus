@@ -9,8 +9,9 @@
  * Tier 2 (why): Alpha and beta testers had no in-app way to report problems (owner decisions
  * 2026-10-27: signed-in agents only, floating button on every page, no screenshot).
  * Tier 3 (how): Rendered once in the root layout. It shows only when browser storage holds a
- * signed-in user ID (`USER_ID_KEY`) and the page is not the North Pole, sign-in, registration or
- * workshop; the server still checks the session. The page path is sent with the report; the
+ * signed-in user ID (`USER_ID_KEY`) and the page is a signed-in app page (`showsFeedbackButton`:
+ * an allowlist, so the home page and other public pages never show it, owner decision
+ * 2026-10-31); the server still checks the session. The page path is sent with the report; the
  * server adds the app version and browser. The pop-up is portaled to `<body>` so headers with
  * `backdrop-blur` cannot trap it.
  */
@@ -20,10 +21,7 @@ import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { USER_ID_KEY } from '@/lib/constants/auth';
-import { FEEDBACK_TYPES, MAX_FEEDBACK_LENGTH, type FeedbackType } from '@/lib/feedback';
-
-/** Pages where the button never shows (admin, auth flows, QA benches). */
-const HIDDEN_PREFIXES = ['/northpole', '/signin', '/register', '/workshop'];
+import { FEEDBACK_TYPES, MAX_FEEDBACK_LENGTH, showsFeedbackButton, type FeedbackType } from '@/lib/feedback';
 
 const TYPE_LABEL: Record<FeedbackType, string> = { BUG: '🐞 Bug', IDEA: '💡 Idea', OTHER: '💬 Other' };
 
@@ -68,7 +66,7 @@ export function FeedbackButton() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  if (!signedIn || HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
+  if (!signedIn || !showsFeedbackButton(pathname)) return null;
 
   function openForm() {
     setSent(false);
