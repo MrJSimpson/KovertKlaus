@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Privacy Policy and Terms of Service.** New pages at `/privacy` and `/terms`, in plain language: what KovertKlaus collects and why, who can see what inside a mission, the providers that handle data (Cloudflare, Neon, Brevo), how long things are kept, how to ask for a copy or deletion (privacy@kovertklaus.com), the minimum age (13), and fair-use rules. Both say up front that KovertKlaus is free and not a commercial product yet, and that the terms will change before it becomes one. Every sign-up form now links them ("By continuing, you agree to..."), and both footers link them. Adapted from the Basecamp open-source policies (CC BY 4.0). The coming-soon page footer no longer says "KovertKlaus Inc." (there is no company).
+
 ### Changed
 - **The Features & Specs page is rewritten in plain language and brought up to date.** It now covers the fair draw (one gift circle, two-way exclusion rules, pause and repair), codenames and who sees real names, wishlists (store links, 20 items, quantities), shipping and Coal Citations, Head Elf tools, Kovert Delivery, White Elephant, and security. It also corrects two errors: tracking from DHL also protects against Coal Citations (the page listed only USPS, FedEx and UPS), and the license has no January 1, 2030 conversion date (it converts to GPLv3 only on the events listed in `LICENSE.md`). The page's numbers are checked against the code by tests, so they stay accurate.
 
