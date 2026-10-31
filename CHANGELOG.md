@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Privacy Policy and Terms of Service.** New pages at `/privacy` and `/terms`, in plain language: what KovertKlaus collects and why, who can see what inside a mission, the providers that handle data (Cloudflare, Neon, Brevo), how long things are kept, how to ask for a copy or deletion (privacy@kovertklaus.com), the minimum age (13), and fair-use rules. Both say up front that KovertKlaus is free and not a commercial product yet, and that the terms will change before it becomes one. Every sign-up form now links them ("By continuing, you agree to..."), and both footers link them. Adapted from the Basecamp open-source policies (CC BY 4.0). The coming-soon page footer no longer says "KovertKlaus Inc." (there is no company).
+
 ### Fixed
 - **The Feedback button stays off public pages.** A signed-in agent saw the floating Feedback button on the home page (and on other public pages such as `/features` and `/reset-password`). It now appears only on signed-in app pages (the dashboard and mission pages), and any page added later stays free of it unless it is listed (`showsFeedbackButton` in `src/lib/feedback.ts`).
 

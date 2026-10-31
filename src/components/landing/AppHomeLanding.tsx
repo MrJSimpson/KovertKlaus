@@ -11,6 +11,7 @@ import { SeasonalLightsStrand } from '@/components/ui/SeasonalLightsStrand';
 import { APP_VERSION_LABEL } from '@/lib/version';
 import { isAlphaStage } from '@/lib/platform-limits';
 import { WhatsNewButton } from '@/components/WhatsNewButton';
+import { LegalAgreement } from '@/components/LegalAgreement';
 
 
 
@@ -1059,6 +1060,7 @@ export function AppHomeLanding() {
                   </div>
                 )}
 
+                <LegalAgreement />
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
@@ -1236,6 +1238,7 @@ export function AppHomeLanding() {
                 </div>
               </div>
 
+              <LegalAgreement />
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -1347,6 +1350,7 @@ export function AppHomeLanding() {
                 )}
               </div>
 
+              <LegalAgreement />
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -1377,8 +1381,10 @@ export function AppHomeLanding() {
               {APP_VERSION_LABEL}
             </span>
           </div>
-          <div className="flex gap-6 font-semibold items-center">
+          <div className="flex flex-wrap justify-center gap-x-6 font-semibold items-center">
             <Link href="/features" className="inline-flex items-center min-h-11 transition-colors hover:underline">Features &amp; Specs</Link>
+            <Link href="/privacy" className="inline-flex items-center min-h-11 transition-colors hover:underline">Privacy</Link>
+            <Link href="/terms" className="inline-flex items-center min-h-11 transition-colors hover:underline">Terms</Link>
             <WhatsNewButton className="inline-flex items-center min-h-11 transition-colors hover:underline" />            <a href="https://github.com/MrJSimpson/KovertKlaus" target="_blank" rel="noreferrer" className="inline-flex items-center min-h-11 transition-colors hover:underline">GitHub</a>
           </div>
         </div>
