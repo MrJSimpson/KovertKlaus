@@ -18,7 +18,7 @@ graph TD
     end
 
     subgraph Topology B: Docker Compose Self-Hosted (Home / Family)
-        DockerApp[Next.js Node.js Container :3000] -->|TCP Connection| PostgresContainer[(PostgreSQL 16 Container :5432)]
+        DockerApp[Next.js Node.js Container :2425] -->|TCP Connection| PostgresContainer[(PostgreSQL 16 Container :5432)]
         DockerApp -->|Direct SMTP / Nodemailer| Postfix[Self-Hosted Mail / SMTP]
     end
 ```
@@ -123,7 +123,7 @@ docker compose up -d
 docker compose exec app npx prisma db push
 ```
 
-Access your instance at: `http://localhost:3000`
+Access your instance at: `http://localhost:2425`
 
 ---
 

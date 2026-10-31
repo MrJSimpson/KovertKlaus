@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Self-hosted KovertKlaus now runs on port 2425** (Christmas Eve and Christmas Day) instead of 3000: `npm run dev`, `npm start`, the Docker image (`EXPOSE`/`PORT`), `docker-compose.yml` (`2425:2425`), the start and stop scripts and the docs. After upgrading, open `http://localhost:2425`. If you put a reverse proxy or bookmark in front of port 3000, point it at 2425. Port 2425 has an IANA registration (Fujitsu App Manager) that is rarely used; to keep 3000, set `PORT=3000` and map `3000:3000` in your compose file.
+
 ### Fixed
 - **The Feedback button stays off public pages.** A signed-in agent saw the floating Feedback button on the home page (and on other public pages such as `/features` and `/reset-password`). It now appears only on signed-in app pages (the dashboard and mission pages), and any page added later stays free of it unless it is listed (`showsFeedbackButton` in `src/lib/feedback.ts`).
 
