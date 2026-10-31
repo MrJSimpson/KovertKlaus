@@ -6,7 +6,7 @@ import { toPublicConfig } from './lib/config/publicConfig';
 import { cachedSystemConfigReader, clearSystemConfigCaches, publicConfigCache } from './lib/system-config-cache';
 import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
 import { getPlatformSettings, hostedMissionLimitError, missionFullError, missionJoinError, validatePlatformSettings, type PlatformSettings } from './lib/platform-limits';
-import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember } from './lib/exchange-view';
+import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember, sanitizeMissionReports } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { dbUnavailableResponse, isDbConnectionError } from './lib/db-errors';
@@ -1552,13 +1552,15 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
             const memberCodenames = memberCodenameMap(exchange.members);
             const memberWishlists = memberWishlistMap(exchange.members);
-            const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames, memberWishlists }));
+            const viewer = { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames, memberWishlists };
+            const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, viewer));
 
             return Response.json({
               success: true,
               data: {
                 ...exchange,
                 members: sanitizedMembers,
+                reports: sanitizeMissionReports(exchange.reports, viewer),
                 exclusionRules: isOrganizer ? exchange.exclusionRules : [],
                 repairIssues: visibleRepairIssues(exchange.repairIssues, activeUserId, isOrganizer),
               },

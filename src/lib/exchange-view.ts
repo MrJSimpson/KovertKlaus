@@ -11,7 +11,10 @@
  * Covert Delivery fields, so SaaS givers saw an empty target card. One builder keeps both
  * editions identical and keeps the privacy rules in one reviewed place.
  * Tier 3 (how): `role` comes from `Exchange.organizerId` (one Head Elf per mission). Addresses, tracking and target details are visible only to the Head Elf and to
- * the member themselves (the giver viewing their own assignment). Dossier fields are further
+ * the member themselves (the giver viewing their own assignment). Real names follow `canSeeRealName`:
+ * the Head Elf sees every agent's name (to confirm who joined), an agent sees their own and the
+ * Head Elf's, and everyone else is known by codename. A giver still gets their target's name in
+ * the target dossier, because the package needs a recipient name. Dossier fields are further
  * gated by the target's `allowOrganizerView*` toggles unless the viewer is that target's giver.
  */
 
@@ -84,6 +87,35 @@ export function memberWishlistMap(
 }
 
 /**
+ * Whether `viewer` may see the real name of the agent with `userId`. Only the Head Elf sees every
+ * agent's name; an agent sees their own and the Head Elf's (owner decision 2026-10-30).
+ */
+export function canSeeRealName(viewer: ExchangeViewer, userId: string): boolean {
+  return viewer.isOrganizer || userId === viewer.activeUserId || userId === viewer.organizerId;
+}
+
+/** After-Action Report as loaded with `include: { user: { select: { id, name } } }`. */
+interface LoadedReport {
+  userId: string;
+  user: { id: string; name: string };
+}
+
+/**
+ * Reduces a mission's After-Action Reports to what `viewer` may see: each author is labelled by
+ * codename, and the real name is kept only where `canSeeRealName` allows.
+ */
+export function sanitizeMissionReports<R extends LoadedReport>(reports: R[], viewer: ExchangeViewer) {
+  return reports.map((r) => ({
+    ...r,
+    user: {
+      id: r.user.id,
+      name: canSeeRealName(viewer, r.userId) ? r.user.name : null,
+      codename: viewer.memberCodenames?.[r.userId] ?? null,
+    },
+  }));
+}
+
+/**
  * Reduces one loaded member (see `EXCHANGE_MEMBERS_INCLUDE`) to what `viewer` may see.
  *
  * @param m - Member row with `user` and `targetUser` included.
@@ -124,7 +156,7 @@ export function sanitizeExchangeMember(m: any, viewer: ExchangeViewer) {
     badgeAwarded: m.badgeAwarded,
     user: {
       id: m.user.id,
-      name: m.user.name,
+      name: canSeeRealName(viewer, m.userId) ? m.user.name : null,
       codename: m.codename,
       streetAddress: canViewDetails ? m.user.streetAddress : null,
       city: canViewDetails ? m.user.city : null,

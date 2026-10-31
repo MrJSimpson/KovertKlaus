@@ -20,7 +20,7 @@ import {
   BADGE_VIGILANT_ELF,
 } from '@/lib/covertDelivery';
 import { processExchangeAudit } from '@/lib/audit-runner';
-import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember } from '@/lib/exchange-view';
+import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember, sanitizeMissionReports } from '@/lib/exchange-view';
 import { validateReportInput } from '@/lib/validations/report';
 import { resolveTimelineUpdate } from '@/lib/validations/timeline';
 import { dispatchNudge } from '@/lib/nudge';
@@ -74,11 +74,13 @@ export async function GET(request: Request) {
       const memberCodenames = memberCodenameMap(exchange.members);
       const memberWishlists = memberWishlistMap(exchange.members);
 
-      const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames, memberWishlists }));
+      const viewer = { activeUserId, isOrganizer, organizerId: exchange.organizerId, memberCodenames, memberWishlists };
+      const sanitizedMembers = exchange.members.map((m) => sanitizeExchangeMember(m, viewer));
 
       const sanitizedData = {
         ...exchange,
         members: sanitizedMembers,
+        reports: sanitizeMissionReports(exchange.reports, viewer),
         // Preventative exclusion rules and invite tokens are strictly visible only to the Head Elf
         exclusionRules: isOrganizer ? exchange.exclusionRules : [],
         repairIssues: visibleRepairIssues(exchange.repairIssues, activeUserId, isOrganizer),
