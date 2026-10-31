@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- the fake Prisma client is deliberately untyped */
 import test from 'node:test';
 import assert from 'node:assert';
-import { deleteFeedback, listFeedback, MAX_FEEDBACK_LENGTH, MAX_FEEDBACK_PER_DAY, pagePath, submitFeedback, updateFeedbackStatus } from './feedback';
+import { deleteFeedback, listFeedback, MAX_FEEDBACK_LENGTH, MAX_FEEDBACK_PER_DAY, pagePath, showsFeedbackButton, submitFeedback, updateFeedbackStatus } from './feedback';
 import { APP_VERSION } from './version';
 
 const NOW = Date.parse('2026-10-27T18:00:00.000Z');
@@ -106,4 +106,13 @@ test('Feedback - triage status changes and deletes check their input', async () 
   assert.strictEqual((await deleteFeedback(f.db, 'zzz')).status, 404);
   assert.strictEqual((await deleteFeedback(f.db, 'a')).status, 200);
   assert.strictEqual(f.rows.length, 0);
+});
+
+test('showsFeedbackButton: only signed-in app pages, never the home page or other public pages', () => {
+  for (const path of ['/dashboard', '/dashboard/', '/exchange/ABC123', '/exchange/ABC123/comms']) {
+    assert.strictEqual(showsFeedbackButton(path), true, path);
+  }
+  for (const path of ['/', '/features', '/signin', '/register', '/reset-password', '/northpole', '/northpole/feedback', '/workshop/qa', '/opkits', '/operations', '/dashboardx', '/exchanges']) {
+    assert.strictEqual(showsFeedbackButton(path), false, path);
+  }
 });

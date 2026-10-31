@@ -57,6 +57,26 @@ export function pagePath(pageUrl: unknown): string | null {
 }
 
 /**
+ * Signed-in app pages where the floating Feedback button may appear.
+ *
+ * An allowlist, not a blocklist: public pages (home, features, sign-in, registration, password
+ * reset) and any page added later stay free of the button unless they are listed here
+ * (owner decision 2026-10-31: registered agents only, never on the home page).
+ */
+export const FEEDBACK_PAGE_PREFIXES = ['/dashboard', '/exchange'] as const;
+
+/**
+ * Whether the Feedback button belongs on a page.
+ *
+ * @param pathname - The page path, e.g. `/exchange/ABC123`.
+ * @returns `true` only for a listed prefix itself or a path below it (`/dashboard`,
+ *   `/dashboard/…`), never for a look-alike such as `/dashboardx`.
+ */
+export function showsFeedbackButton(pathname: string): boolean {
+  return FEEDBACK_PAGE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/**
  * Stores one piece of feedback from a signed-in agent.
  *
  * @param input.userId - The signed-in agent (the route has verified the session).
