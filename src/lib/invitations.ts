@@ -258,11 +258,32 @@ export async function resendMissionInvitation(
 }
 
 /**
- * The signed-in user's open invitations, for Active Operations and the mission page.
+ * Whether an account may see and decline invitations sent to its email address.
+ *
+ * Tier 1 (what): The default for `listMyInvitations` and `updateInvitation` (`decline`).
+ * Tier 2 (why): Email addresses are not verified yet, and BETA opens sign-up to everyone, so anyone
+ * could register with an invitee's address, see their invitation and its mission code, and join as
+ * them, later receiving a target's shipping address (owner decision 2026-10-31).
+ * Tier 3 (how): Off until email verification ships (planned for 1.0.0-beta.2). Invitees join through
+ * the link in their invitation email, which carries the mission code and reaches only their inbox.
+ * Enrollment still marks the invitation accepted (`markInvitationAccepted`).
  */
-export async function listMyInvitations(db: PrismaClient, userId: string, nowMs = Date.now()): Promise<InvitationResult> {
+export const MATCH_INVITATIONS_BY_EMAIL = false;
+
+/** Options for the invitee-side invitation functions. */
+export interface InviteeOptions {
+  /** Match invitations to the account's email address (default `MATCH_INVITATIONS_BY_EMAIL`). */
+  matchByEmail?: boolean;
+}
+
+/**
+ * The signed-in user's open invitations, for Active Operations and the mission page.
+ * Empty while invitations are not matched by email (`MATCH_INVITATIONS_BY_EMAIL`).
+ */
+export async function listMyInvitations(db: PrismaClient, userId: string, nowMs = Date.now(), options: InviteeOptions = {}): Promise<InvitationResult> {
   const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
   if (!user) return { status: 401, body: { error: 'Authentication required' } };
+  if (!(options.matchByEmail ?? MATCH_INVITATIONS_BY_EMAIL)) return { status: 200, body: { success: true, invitations: [] } };
 
   const rows = await db.missionInvitation.findMany({
     where: { email: normalizeEmail(user.email), status: 'PENDING' },
@@ -334,7 +355,8 @@ export async function listMissionInvitations(db: PrismaClient, exchangeId: strin
 export async function updateInvitation(
   db: PrismaClient,
   input: { invitationId: unknown; userId: string; action: unknown },
-  nowMs = Date.now()
+  nowMs = Date.now(),
+  options: InviteeOptions = {}
 ): Promise<InvitationResult> {
   if (typeof input.invitationId !== 'string' || !input.invitationId) return { status: 400, body: { error: 'invitationId is required' } };
   if (input.action !== 'decline' && input.action !== 'revoke') {
@@ -350,6 +372,8 @@ export async function updateInvitation(
   if (input.action === 'revoke') {
     if (invitation.exchange.organizerId !== input.userId) return { status: 403, body: { error: 'Only the Head Elf can revoke invitations.' } };
   } else {
+    // Declining is matched by email, so it is off while email addresses are unverified.
+    if (!(options.matchByEmail ?? MATCH_INVITATIONS_BY_EMAIL)) return { status: 404, body: { error: 'Invitation not found' } };
     const user = await db.user.findUnique({ where: { id: input.userId }, select: { email: true } });
     if (!user || normalizeEmail(user.email) !== invitation.email) return { status: 404, body: { error: 'Invitation not found' } };
   }
