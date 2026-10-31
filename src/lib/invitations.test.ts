@@ -8,6 +8,7 @@ import {
   resendMissionInvitation,
   RESEND_COOLDOWN_MS,
   listMyInvitations,
+  MATCH_INVITATIONS_BY_EMAIL,
   updateInvitation,
   markInvitationAccepted,
   type InvitationEmail,
@@ -153,19 +154,39 @@ test('Invitations - Kovert Delivery invites carry a KDM token', async () => {
   assert.match(sent[0].joinUrl, /\/exchange\/ABCD-1234\?kdm=/);
 });
 
-test('Invitations - the invitee sees, declines; the Head Elf revokes; enrollment accepts', async () => {
+test('Invitations - unverified email: an account sees no invitations and cannot decline one', async () => {
+  assert.strictEqual(MATCH_INVITATIONS_BY_EMAIL, false);
   const users = [{ id: 'boss', email: 'boss@x.com', name: 'Holly' }, { id: 'u2', email: 'pal@x.com', name: 'Pal' }];
   const fake = fakeDb({ users });
   const sent: InvitationEmail[] = [];
   await invite(fake.db, sent, 'pal@x.com');
+  // Someone registered as pal@x.com cannot learn the mission code from the app...
   const mine = await listMyInvitations(fake.db, 'u2', NOW);
+  assert.strictEqual(mine.status, 200);
+  assert.deepStrictEqual(mine.body.invitations, []);
+  assert.ok(!JSON.stringify(mine.body).includes('ABCD-1234'));
+  // ...and cannot decline it on the real invitee's behalf.
+  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'u2', action: 'decline' })).status, 404);
+  assert.strictEqual(fake.invitations[0].status, 'PENDING');
+  // The emailed link still carries the code, and the Head Elf can still revoke.
+  assert.match(sent[0].joinUrl, /ABCD-1234/);
+  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'boss', action: 'revoke' })).status, 200);
+});
+
+test('Invitations - with email matching on: the invitee sees, declines; the Head Elf revokes; enrollment accepts', async () => {
+  const on = { matchByEmail: true };
+  const users = [{ id: 'boss', email: 'boss@x.com', name: 'Holly' }, { id: 'u2', email: 'pal@x.com', name: 'Pal' }];
+  const fake = fakeDb({ users });
+  const sent: InvitationEmail[] = [];
+  await invite(fake.db, sent, 'pal@x.com');
+  const mine = await listMyInvitations(fake.db, 'u2', NOW, on);
   assert.strictEqual((mine.body.invitations as any[]).length, 1);
 
-  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'boss', action: 'decline' })).status, 404);
-  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'u2', action: 'revoke' })).status, 403);
-  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'u2', action: 'decline' })).status, 200);
+  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'boss', action: 'decline' }, NOW, on)).status, 404);
+  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'u2', action: 'revoke' }, NOW, on)).status, 403);
+  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'u2', action: 'decline' }, NOW, on)).status, 200);
   assert.strictEqual(fake.invitations[0].status, 'DECLINED');
-  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'u2', action: 'decline' })).status, 409);
+  assert.strictEqual((await updateInvitation(fake.db, { invitationId: 'inv1', userId: 'u2', action: 'decline' }, NOW, on)).status, 409);
 
   await invite(fake.db, sent, 'pal@x.com');
   await markInvitationAccepted(fake.db, 'ex1', 'PAL@x.com', 'u2', NOW);
