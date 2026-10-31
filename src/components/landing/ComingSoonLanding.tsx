@@ -275,9 +275,11 @@ export function ComingSoonLanding() {
       <footer className="relative z-10 py-6 px-6 max-w-7xl mx-auto w-full border-t border-kk-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-kk-muted font-mono">
         <div className="flex items-center gap-2">
           <span>🎄</span>
-          <span>© 2026 KovertKlaus Inc. All Rights Reserved.</span>
+          <span>© 2026 KovertKlaus by Joshua Simpson.</span>
         </div>
         <div className="flex items-center gap-6">
+          <a href="/privacy" className="hover:underline">Privacy</a>
+          <a href="/terms" className="hover:underline">Terms</a>
           <span className="text-kk-muted">North Pole Logistics Sector</span>
           <span className="text-kk-brand font-semibold">Self-Hostable Open-Core</span>
         </div>
