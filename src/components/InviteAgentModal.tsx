@@ -9,8 +9,9 @@
  * Tier 2 (why): The modal only sends. Sent invitations, with their status, Resend and Revoke, live
  * on the mission's Elf Agents roster (`InvitedAgentsList`), so the whole team is managed in one
  * place. After the cutoff the API offers a Late Pass for registered users.
- * Tier 3 (how): New users receive a Join Exchange link to registration; existing users accept or
- * decline from the mission page or their dashboard (see `src/lib/invitations.ts`). `onSuccess`
+ * Tier 3 (how): New users receive a Join Exchange link to registration; existing users join from the
+ * link in their invitation email (in-app invitations wait for email verification, see
+ * `MATCH_INVITATIONS_BY_EMAIL` in `src/lib/invitations.ts`). `onSuccess`
  * lets the roster reload its invited list.
  */
 
@@ -186,7 +187,7 @@ export function InviteAgentModal({
               className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
             />
             <p className="text-[10px] text-kk-muted mt-1">
-              New operatives get a Join Exchange link that creates their profile (clearing them for the alpha) and enrolls them. Existing operatives can accept or decline from this mission page or their dashboard. Track, resend or revoke invitations under Elf Agents on the mission page.
+              New operatives get a Join Exchange link that creates their profile and enrolls them. Existing operatives join from the link in their invitation email. Track, resend or revoke invitations under Elf Agents on the mission page.
             </p>
           </div>
 
