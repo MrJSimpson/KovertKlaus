@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The Feedback button stays off public pages.** A signed-in agent saw the floating Feedback button on the home page (and on other public pages such as `/features` and `/reset-password`). It now appears only on signed-in app pages (the dashboard and mission pages), and any page added later stays free of it unless it is listed (`showsFeedbackButton` in `src/lib/feedback.ts`).
+
 ---
 
 ## [0.8.0-alpha] - 2026-10-30
