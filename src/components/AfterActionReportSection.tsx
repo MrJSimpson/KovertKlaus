@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useTheme } from '@/context/ThemeContext';
+import { formatCodename } from '@/lib/security';
 import {
   compressImageToWebP,
   formatFileSize,
@@ -18,7 +19,9 @@ export interface AARReportEntry {
   detectionStatus?: string | null;
   user: {
     id: string;
-    name: string;
+    /** Present only for the Head Elf, the author and the Head Elf's own reports (see `canSeeRealName`). */
+    name: string | null;
+    codename?: string | null;
   };
 }
 
@@ -386,7 +389,7 @@ export function AfterActionReportSection({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {reports.map((report) => {
-              const displayName = report.user.name;
+              const displayName = report.user.name || formatCodename(report.user.codename);
               return (
                 <div
                   key={report.id}
