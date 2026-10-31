@@ -65,6 +65,40 @@ export const ANNOUNCEMENTS: Announcement[] = [
     ],
   },
   {
+    version: '1.0.0-beta.1',
+    date: '2026-10-31',
+    title: 'Ready for the beta: privacy, safer missions, clearer pages',
+    summary: 'Mission details stay inside the mission, invitations come by email, and new pages explain what KovertKlaus keeps and why.',
+    highlights: [
+      {
+        emoji: '🔒',
+        title: 'Mission details stay inside the mission',
+        text: 'Someone who has a mission\'s code but is not in it now sees only the title, dates, budget and the Head Elf\'s codename. Anyone trying lots of codes is stopped quickly.',
+      },
+      {
+        emoji: '✉️',
+        title: 'Join from your invitation email',
+        text: 'If a Head Elf invites you by email, use the link in that email to join. Invitations no longer appear on your dashboard until we can confirm email addresses.',
+      },
+      {
+        emoji: '📜',
+        title: 'Privacy Policy and Terms',
+        text: 'Two short, plain pages explain what we keep, who can see what, and how to get a copy of your data or delete your account (privacy@kovertklaus.com). Links are at the bottom of every page.',
+      },
+      {
+        emoji: '📖',
+        title: 'A clearer Features & Specs page',
+        text: 'Everything KovertKlaus does, from the fair draw to Coal Citations, explained without jargon.',
+      },
+      {
+        emoji: '🎄',
+        title: 'Now on port 2425',
+        text: 'Self-hosted KovertKlaus now runs on port 2425 (Christmas Eve and Christmas Day). Open http://localhost:2425 after updating.',
+        selfHostedOnly: true,
+      },
+    ],
+  },
+  {
     version: '0.8.0-alpha',
     date: '2026-10-30',
     title: 'Password reset, and Head Elves see who joined',
