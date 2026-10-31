@@ -23,7 +23,8 @@ import { executeTargetSwap } from './lib/draw';
 import { runManualDraw } from './lib/manual-draw';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
 import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
-import { flushHeldEmailQueue, sendEmail } from './lib/email/dispatcher';
+import { flushHeldEmailQueue, isDailyEmailQuotaReached, sendEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
+import { confirmPasswordReset, requestPasswordReset } from './lib/password-reset';
 import {
   sendWelcomeEmail,
   sendInvitationEmail,
@@ -107,6 +108,8 @@ export const WORKER_API_PATHS = new Set([
   '/api/users',
   '/api/users/login',
   '/api/users/me',
+  '/api/users/password-reset',
+  '/api/users/password-reset/confirm',
   '/api/users/profile',
   '/api/wishlist',
   '/api/workshop/auth',
@@ -1322,6 +1325,34 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           message: 'Authentication successful',
           user: { id: user.id, name: user.name, email: user.email, isWorkshop: user.isWorkshop },
         }), { status: 200, headers });
+      }
+
+      // 10b. /api/users/password-reset (POST): email a reset link (src/lib/password-reset.ts)
+      if (pathname === '/api/users/password-reset' && request.method === 'POST') {
+        const body = await readJsonBody(request);
+        const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+        const result = await requestPasswordReset(
+          {
+            db,
+            adminDb,
+            // Cloudflare only routes this zone's hostnames here, so the origin is trustworthy.
+            baseUrl: url.origin || 'https://kovertklaus.com',
+            isQuotaReached: () => isDailyEmailQuotaReached(emailConfig),
+            sendEmail: (email) => sendPasswordResetEmail({ ...email, overrideConfig: emailConfig }),
+            onTrip: (message, metadata) => {
+              logSystemEvent({ level: 'WARN', category: 'AUTH', message, metadata }).catch(() => {});
+            },
+          },
+          { email: body.email, ip: clientIp(request.headers) }
+        );
+        return Response.json(result.body, { status: result.status, headers: result.headers });
+      }
+
+      // 10c. /api/users/password-reset/confirm (POST): set the new password from the link
+      if (pathname === '/api/users/password-reset/confirm' && request.method === 'POST') {
+        const body = await readJsonBody(request);
+        const result = await confirmPasswordReset(db, { token: body.token, password: body.password });
+        return Response.json(result.body, { status: result.status, headers: result.headers });
       }
 
       // 11. /api/users/me / /api/users/profile (GET / PATCH / DELETE)

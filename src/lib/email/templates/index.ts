@@ -7,6 +7,7 @@ import {
   MissionCancelledEmailParams,
   MissionRepairEmailParams,
   NudgeEmailParams,
+  PasswordResetEmailParams,
   WelcomeEmailParams,
 } from '../types';
 
@@ -518,6 +519,45 @@ export function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+/**
+ * Generates the password reset email. Plain wording: this one is about account access, so no covert flavour.
+ */
+export function getPasswordResetEmailTemplate(params: PasswordResetEmailParams): { subject: string; html: string; text: string } {
+  const { name, resetUrl, expiresText } = params;
+  const subject = 'Reset your KovertKlaus password';
+
+  const bodyHtml = `
+    <p>Hi <strong>${escapeHtml(name)}</strong>,</p>
+    <p>We received a request to reset the password for your KovertKlaus account. Use the button below to choose a new one.</p>
+    <p>The link works once and expires <strong>${escapeHtml(expiresText)}</strong>. Resetting your password signs you out on every device.</p>
+    <p style="font-size: 14px; color: ${EMAIL_PALETTE.muted};">If you didn't ask for this, you can ignore this email. Your password stays the same.</p>
+  `;
+
+  const html = renderBaseEmail({
+    title: 'Reset your password',
+    preheader: `Your password reset link expires ${expiresText}.`,
+    bodyHtml,
+    actionText: 'Choose a new password',
+    actionUrl: resetUrl,
+  });
+
+  const text = stripHtml(`
+    KOVERT KLAUS // PASSWORD RESET
+    --------------------------------------------------
+    Hi ${name},
+
+    We received a request to reset the password for your KovertKlaus account.
+    Choose a new password here (works once, expires ${expiresText}):
+    ${resetUrl}
+
+    Resetting your password signs you out on every device.
+    If you didn't ask for this, ignore this email. Your password stays the same.
+    --------------------------------------------------
+  `);
+
+  return { subject, html, text };
 }
 
 /**

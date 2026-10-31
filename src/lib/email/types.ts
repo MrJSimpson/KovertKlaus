@@ -129,6 +129,16 @@ export interface ClearanceApprovalParams {
 }
 
 
+/** Password reset link email (`src/lib/password-reset.ts`). */
+export interface PasswordResetEmailParams {
+  to: string;
+  name: string;
+  resetUrl: string;
+  /** When the link stops working, as a phrase: "in 30 minutes" or "at noon Pacific time today". */
+  expiresText: string;
+  overrideConfig?: Partial<EmailConfig>;
+}
+
 export interface MissionCancelledEmailParams {
   recipientEmail?: string;
   to?: string;

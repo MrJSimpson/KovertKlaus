@@ -25,6 +25,7 @@ import {
   getMissionCancelledEmailTemplate,
   getMissionRepairEmailTemplate,
   getNudgeEmailTemplate,
+  getPasswordResetEmailTemplate,
   getWelcomeEmailTemplate,
 } from './templates';
 import {
@@ -39,6 +40,7 @@ import {
   MissionCancelledEmailParams,
   MissionRepairEmailParams,
   NudgeEmailParams,
+  PasswordResetEmailParams,
   WelcomeEmailParams,
 } from './types';
 
@@ -408,6 +410,40 @@ export async function sendClearanceApprovalEmail(params: ClearanceApprovalParams
   );
 }
 
+
+/**
+ * Dispatches a password reset link email.
+ */
+export async function sendPasswordResetEmail(params: PasswordResetEmailParams): Promise<EmailResult> {
+  const { subject, html, text } = getPasswordResetEmailTemplate(params);
+  return sendEmail(
+    {
+      to: { email: params.to, name: params.name },
+      subject,
+      html,
+      text,
+      tags: ['account', 'password-reset'],
+    },
+    params.overrideConfig
+  );
+}
+
+/**
+ * True when one more email today would be held until midnight Pacific (Brevo only). Lets a caller
+ * tell the user before sending; a ledger outage reads as "not reached", matching `sendEmail`.
+ */
+export async function isDailyEmailQuotaReached(overrideConfig?: Partial<EmailConfig>): Promise<boolean> {
+  const baseConfig = await getResolvedEmailConfig();
+  const config: EmailConfig = { ...baseConfig, ...overrideConfig };
+  const store = config.provider === 'brevo' ? quotaStoreFor(config) : null;
+  if (!store) return false;
+  try {
+    const decision = await checkQuota(store, 1, quotaSettings(quotaEnv(config)));
+    return !decision.send;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Dispatches the "mission cancelled" email to one agent.
