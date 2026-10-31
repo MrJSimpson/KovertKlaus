@@ -35,13 +35,13 @@ if [ -f .kovertklaus.pid ]; then
   rm -f .kovertklaus.pid
 fi
 
-# 2. Terminate any remaining process running on port 3000
+# 2. Terminate any remaining process running on port 2425
 if command -v fuser >/dev/null 2>&1; then
-  fuser -k 3000/tcp >/dev/null 2>&1 || true
+  fuser -k 2425/tcp >/dev/null 2>&1 || true
 elif command -v lsof >/dev/null 2>&1; then
-  LSOF_PID=$(lsof -ti:3000 || true)
+  LSOF_PID=$(lsof -ti:2425 || true)
   if [ -n "$LSOF_PID" ]; then
-    echo -e "${YELLOW}[-] Terminating process on port 3000 (PID: ${LSOF_PID})...${NC}"
+    echo -e "${YELLOW}[-] Terminating process on port 2425 (PID: ${LSOF_PID})...${NC}"
     kill -9 $LSOF_PID 2>/dev/null || true
   fi
 fi

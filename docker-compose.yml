@@ -24,7 +24,7 @@ services:
     container_name: kovertklaus-app
     restart: always
     ports:
-      - "3000:3000"
+      - "2425:2425"
     environment:
       - DATABASE_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
       - DATABASE_ADMIN_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable

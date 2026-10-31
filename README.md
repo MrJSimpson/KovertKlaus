@@ -61,7 +61,7 @@ All system documentation is maintained in both standard repository Markdown and 
 
 # Options:
 ./start.sh --detach     # Run dev server in background (logs to kovertklaus.log)
-./start.sh --open       # Automatically open http://localhost:3000 in browser
+./start.sh --open       # Automatically open http://localhost:2425 in browser
 ./start.sh --prod       # Run full stack in production Docker mode
 
 # Stop all KovertKlaus services (Dev server + Docker containers)
@@ -81,12 +81,12 @@ docker compose up -d
 npm run demo:load
 
 # 4. Open browser
-http://localhost:3000
+http://localhost:2425
 ```
 
 ### 🎅 North Pole Command Center & Developer Workshop
-- **Admin HUD**: Navigate to [`/northpole`](http://localhost:3000/northpole)
-- **First-Run Setup**: No default password ships. On first launch the server prints a one-time setup token to its console (`docker logs kovertklaus-app`); open [`/northpole/setup`](http://localhost:3000/northpole/setup) to create your administrator.
+- **Admin HUD**: Navigate to [`/northpole`](http://localhost:2425/northpole)
+- **First-Run Setup**: No default password ships. On first launch the server prints a one-time setup token to its console (`docker logs kovertklaus-app`); open [`/northpole/setup`](http://localhost:2425/northpole/setup) to create your administrator.
 - **NIST SP 800-63B Compliance**: Administrator passphrases require 12+ characters and can never be a known default.
 - **Developer Workshop (`/workshop`)**: This self-hosted repository includes all internal QA test benches (`/workshop/draw`, `/workshop/lifecycle`, `/workshop/scraper`, `/workshop/theme`, `/workshop/manifest`, `/workshop/party`, `/workshop/aar`).
 - **Clean Database**: Production seeds contain zero dummy users or mock exchanges. Demo data is strictly opt-in (`npm run demo:load`) and removable.
@@ -97,8 +97,8 @@ http://localhost:3000
 
 | Action | Command / Double-Click Script | Description |
 | :--- | :--- | :--- |
-| **Launch Server** | [`run-kovertklaus.bat`](./run-kovertklaus.bat) | Checks port 3000 and starts `npm run dev` in a dedicated background window. |
-| **Stop Server** | [`stop-kovertklaus.bat`](./stop-kovertklaus.bat) | Gracefully terminates any process listening on port 3000. |
+| **Launch Server** | [`run-kovertklaus.bat`](./run-kovertklaus.bat) | Checks port 2425 and starts `npm run dev` in a dedicated background window. |
+| **Stop Server** | [`stop-kovertklaus.bat`](./stop-kovertklaus.bat) | Gracefully terminates any process listening on port 2425. |
 | **Back Up DB** | [`export-db.bat`](./export-db.bat) | Dumps the PostgreSQL container database to `backups/kovertklaus-backup.dump` (gitignored: real data) and keeps the previous backup as `kovertklaus-backup.prev.dump`. |
 | **Restore DB** | [`restore-db.bat`](./restore-db.bat) | Replaces the container database with `backups/kovertklaus-backup.dump` (an older `kovertklaus-backup.sql` also works). |
 | **Try the Demo** | `npm run demo:load` / `npm run demo:remove` | Loads or removes demo agents and missions ([`docs/DEMO_DATABASE.md`](./docs/DEMO_DATABASE.md)). |

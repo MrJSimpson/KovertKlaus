@@ -47,7 +47,7 @@ You need the self-hosted stack running with an **empty or throwaway** database (
 
    A chosen password must meet the normal rules: 10+ characters with upper and lower case, a number and a symbol.
 
-5. Open `http://localhost:3000/signin` and sign in as `holly@demo.invalid`.
+5. Open `http://localhost:2425/signin` and sign in as `holly@demo.invalid`.
 
 Running `npm run demo:load` again **replaces** the previous demo data with a fresh copy (and a new password).
 

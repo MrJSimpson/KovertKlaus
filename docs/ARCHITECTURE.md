@@ -17,7 +17,7 @@ flowchart TD
     end
 
     subgraph Self-Hosted Container Stack [Docker Compose]
-        App_Container[KovertKlaus Next.js App Container<br/>Node.js 24 Standalone Server :3000]
+        App_Container[KovertKlaus Next.js App Container<br/>Node.js 24 Standalone Server :2425]
         DB_Container[(Local PostgreSQL 17 Container<br/>Persistent Volume :5432)]
         Prisma_ORM[Prisma Client v7<br/><code>@prisma/client</code> via Prisma Driver]
     end
@@ -27,7 +27,7 @@ flowchart TD
         Scraper_Engine[OpenGraph Product Metadata Scraper<br/>Anti-SSRF Protected]
     end
 
-    Browser -->|HTTP / HTTPS Traffic :3000| App_Container
+    Browser -->|HTTP / HTTPS Traffic :2425| App_Container
     App_Container --> Prisma_ORM
     Prisma_ORM -->|TCP Connection :5432| DB_Container
     App_Container --> Email_Gateway
@@ -59,7 +59,7 @@ KovertKlaus is packaged as a high-performance, single-command Docker deployment:
 sequenceDiagram
     autonumber
     actor Operative as Browser Client
-    participant App as Next.js Node.js Server (:3000)
+    participant App as Next.js Node.js Server (:2425)
     participant Auth as HMAC Session Gate
     participant DB as PostgreSQL Database (:5432)
     participant Email as Email Gateway (SMTP / Brevo)

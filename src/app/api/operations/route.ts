@@ -178,7 +178,7 @@ export async function POST(request: Request) {
 
     // Action: Trigger Target Draw (shared with the worker: src/lib/manual-draw.ts)
     if (action === 'draw' && operationId) {
-      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:2425';
       const result = await runManualDraw(
         db,
         { exchangeUrl: (code) => `${baseUrl}/exchange/${code}`, sendAssignmentEmail: (email) => sendAssignmentEmail(email) },
@@ -412,7 +412,7 @@ export async function POST(request: Request) {
             organizerName: ex.organizer.name,
             exchangeTitle: ex.title,
             message: messageText.trim(),
-            actionUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/exchange/${ex.code}`,
+            actionUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:2425'}/exchange/${ex.code}`,
           }).catch((e) => console.warn('[EMAIL WARNING] Broadcast email error:', e));
         }
       }
@@ -982,7 +982,7 @@ export async function PATCH(request: Request) {
       }
 
       const result = await dispatchNudge(db, {
-        baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:2425',
         sendEmail: (email) => sendNudgeEmail(email),
       }, memberToNudge);
       return NextResponse.json(result.body, { status: result.status });

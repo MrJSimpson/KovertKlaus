@@ -10,7 +10,7 @@
 #   --dev        Start DB container & run Next.js dev server (Default)
 #   --prod       Start full stack (DB + App) via Docker Compose
 #   --detach,-d  Run dev server in background (logs to kovertklaus.log)
-#   --open,-o    Open http://localhost:3000 in default browser upon startup
+#   --open,-o    Open http://localhost:2425 in default browser upon startup
 #   --help,-h    Show help message
 # ==============================================================================
 
@@ -60,7 +60,7 @@ for arg in "$@"; do
       echo -e "  --dev        Start DB container & run Next.js dev server (Default)"
       echo -e "  --prod       Start full stack (DB + App) via Docker Compose"
       echo -e "  --detach, -d Run dev server in background"
-      echo -e "  --open, -o   Open http://localhost:3000 in default browser"
+      echo -e "  --open, -o   Open http://localhost:2425 in default browser"
       exit 0
       ;;
   esac
@@ -87,9 +87,9 @@ if [ "$MODE" = "prod" ]; then
   echo -e "${GREEN}[+] Launching full KovertKlaus stack in Production Docker mode...${NC}"
   docker compose up -d --build
   echo -e "${GREEN}[✔] Container stack operational!${NC}"
-  echo -e "${CYAN}📍 Application URL: ${BOLD}http://localhost:3000${NC}"
+  echo -e "${CYAN}📍 Application URL: ${BOLD}http://localhost:2425${NC}"
   if [ "$OPEN_BROWSER" = true ]; then
-    xdg-open "http://localhost:3000" >/dev/null 2>&1 || true
+    xdg-open "http://localhost:2425" >/dev/null 2>&1 || true
   fi
   exit 0
 fi
@@ -124,20 +124,20 @@ if [ "$DETACH" = true ]; then
   DEV_PID=$!
   echo $DEV_PID > .kovertklaus.pid
   echo -e "${GREEN}[✔] Next.js dev server started (PID: ${DEV_PID})${NC}"
-  echo -e "${CYAN}📍 Application URL: ${BOLD}http://localhost:3000${NC}"
+  echo -e "${CYAN}📍 Application URL: ${BOLD}http://localhost:2425${NC}"
   echo -e "${CYAN}📄 View logs: ${BOLD}tail -f kovertklaus.log${NC}"
   echo -e "${CYAN}🛑 Stop service: ${BOLD}./stop-kovertklaus.sh${NC}"
 
   if [ "$OPEN_BROWSER" = true ]; then
     sleep 2
-    xdg-open "http://localhost:3000" >/dev/null 2>&1 || true
+    xdg-open "http://localhost:2425" >/dev/null 2>&1 || true
   fi
 else
-  echo -e "${CYAN}📍 Application URL: ${BOLD}http://localhost:3000${NC}"
+  echo -e "${CYAN}📍 Application URL: ${BOLD}http://localhost:2425${NC}"
   echo -e "${CYAN}🛑 Press Ctrl+C to stop dev server (or run ./stop-kovertklaus.sh in another terminal)${NC}\n"
   
   if [ "$OPEN_BROWSER" = true ]; then
-    (sleep 2 && xdg-open "http://localhost:3000" >/dev/null 2>&1) &
+    (sleep 2 && xdg-open "http://localhost:2425" >/dev/null 2>&1) &
   fi
 
   npx next dev
