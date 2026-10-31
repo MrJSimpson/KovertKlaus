@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **The Features & Specs page is rewritten in plain language and brought up to date.** It now covers the fair draw (one gift circle, two-way exclusion rules, pause and repair), codenames and who sees real names, wishlists (store links, 20 items, quantities), shipping and Coal Citations, Head Elf tools, Kovert Delivery, White Elephant, and security. It also corrects two errors: tracking from DHL also protects against Coal Citations (the page listed only USPS, FedEx and UPS), and the license has no January 1, 2030 conversion date (it converts to GPLv3 only on the events listed in `LICENSE.md`). The page's numbers are checked against the code by tests, so they stay accurate.
+
 ### Fixed
 - **The Feedback button stays off public pages.** A signed-in agent saw the floating Feedback button on the home page (and on other public pages such as `/features` and `/reset-password`). It now appears only on signed-in app pages (the dashboard and mission pages), and any page added later stays free of it unless it is listed (`showsFeedbackButton` in `src/lib/feedback.ts`).
 
