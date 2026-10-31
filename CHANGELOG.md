@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Agents can reset a forgotten password by email.** "Forgot your password?" on the sign-in form opens `/reset-password`, which emails a link to choose a new password. The link works once and expires in 30 minutes, and using it signs the agent out on every device. The reply is the same whether or not the email has an account. To limit abuse and email use, one address gets at most one reset email every 5 minutes and 3 an hour, and one network can ask 10 times an hour; each limit reached writes one warning to the North Pole system log. When the day's email quota is used up, the email is queued, the agent is told it arrives the next morning, and the link lasts until noon Pacific that day. Links are signed tokens tied to the current password, so there is no new table and no database change (requests are counted in the existing `admin."LoginThrottle"` table).
+
 ---
 
 ## [0.7.1-alpha] - 2026-10-29

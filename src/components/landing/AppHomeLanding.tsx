@@ -922,6 +922,11 @@ export function AppHomeLanding() {
                     onChange={(e) => setPassword(e.target.value)}
                     className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
                   />
+                  <div className="mt-1.5 text-right">
+                    <a href="/reset-password" className="text-[11px] font-bold text-kk-accent hover:underline">
+                      Forgot your password?
+                    </a>
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-2">
