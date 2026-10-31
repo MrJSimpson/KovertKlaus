@@ -44,24 +44,46 @@ During **beta**, every release increments `N` (`1.0.0-beta.N`); the changelog st
 
 ---
 
-## 4. Release checklist (the release pull request)
+## 4. Release branches
+
+Every release is built on its own branch, so all of its changes reach `main` (and production) at once, and conflicts are settled before the release, not during it (owner decision 2026-10-31).
+
+```text
+main ──────────────●─────────────────────────●  (one merge per release → one sync, one deploy, one tag)
+                   │                         │
+release/vX.Y.Z ────●──●──────●──────●────────●  (open while the release is in progress)
+                      │      │      │
+feat/… fix/… docs/… ──●      ●      ●           (work branches: cut from the release branch, PR back into it)
+```
+
+1. **Open the release branch** when the next release is known: `git checkout main && git pull && git checkout -b release/vX.Y.Z-stage && git push -u origin release/vX.Y.Z-stage`. Only one release branch is open at a time.
+2. **Work branches** (`feat/`, `fix/`, `docs/`, `refactor/`, `test/`, `sec/`) are cut **from the release branch**, and their pull requests **target the release branch** (`gh pr create --base release/vX.Y.Z-stage`), never `main`. Git cannot nest a branch under another branch's name (`release/v1.0.0-beta.1/fix-x` is not possible while `release/v1.0.0-beta.1` exists), so the base branch, not the name, makes a work branch part of a release.
+3. **No conflicts at release time:** before a work branch's pull request is merged, merge the current release branch into it and resolve any conflicts there. The release branch itself is never edited directly; it only receives merged pull requests.
+4. **Verify the release branch as a whole** on the test server before releasing: `npm test`, `npm run build`, and the checks listed in each merged pull request.
+5. **Release:** the release checklist (§5) is the last pull request into the release branch (`release: vX.Y.Z-stage`). Then one pull request merges the release branch into `main`. That merge starts the SaaS sync and the production deploy once, and its merge commit is tagged.
+6. **Hotfixes** for production problems that cannot wait: `hotfix/<name>` from `main`, pull request into `main`, released as a patch (§2). Then merge `main` into the open release branch so it stays current and the later release merge stays conflict-free.
+7. **Close:** after the release is deployed and tagged, delete the release branch and its merged work branches (§6).
+
+---
+
+## 5. Release checklist (the release pull request)
 
 1. Bump `package.json` (+ `package-lock.json`) and `src/lib/version.ts`.
 2. Move `[Unreleased]` into `## [X.Y.Z-stage] - YYYY-MM-DD` in `CHANGELOG.md`.
 3. Add a **user-friendly** entry at the top of `src/lib/announcements.ts`: plain language, what changed for agents and Head Elves, no internal jargon. It appears in the What's New pop-up.
 4. `npm test` and `npm run build` pass.
 5. After merge: confirm the production deploy, then tag the dev repository's merge commit: `git tag -a vX.Y.Z-stage -m "KovertKlaus vX.Y.Z-stage"` and push the tag.
-6. **Minor releases only:** prune branches in both repositories (§5).
+6. Prune branches (§6).
 
 ---
 
-## 5. Branch pruning (every minor release)
+## 6. Branch pruning
 
-After a minor release is merged and deployed, delete every **merged** branch except `main`, local and remote, in **both** repositories (`kovertklaus` and `kovertklaus-saas`). Branches that are not fully merged are listed for the owner to decide; they are never deleted automatically. Release history lives in the changelog, announcements and tags, so nothing is lost when branches go.
+After **every** release is merged and deployed, delete the release branch and its merged work branches. After a **minor** release, also delete every other **merged** branch except `main`, local and remote, in **both** repositories (`kovertklaus` and `kovertklaus-saas`). Branches that are not fully merged are listed for the owner to decide; they are never deleted automatically. Release history lives in the changelog, announcements and tags, so nothing is lost when branches go.
 
 ---
 
-## 6. Where history is recorded
+## 7. Where history is recorded
 
 Release history is kept **outside the git log**, in three places with different audiences:
 
@@ -73,6 +95,6 @@ Release history is kept **outside the git log**, in three places with different 
 
 ---
 
-## 7. Credentials
+## 8. Credentials
 
 Release notes, changelog entries, announcements, tags, commit messages and pull requests never contain credentials of any kind (passwords, including retired defaults, keys, tokens or connection strings with secrets). Refer to a secret by its variable name only.

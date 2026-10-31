@@ -9,10 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.0.0-beta.1] - 2026-10-31
+
+Dev #82–#88. First beta release: public sign-up readiness (mission-code limits and previews, invitations no longer matched to unverified email, Privacy Policy and Terms), the Features & Specs rewrite, and self-hosted KovertKlaus on port 2425.
+
+### Added
+- **Privacy Policy and Terms of Service.** New pages at `/privacy` and `/terms`, in plain language: what KovertKlaus collects and why, who can see what inside a mission, the providers that handle data (Cloudflare, Neon, Brevo), how long things are kept, how to ask for a copy or deletion (privacy@kovertklaus.com), the minimum age (13), and fair-use rules. Both say up front that KovertKlaus is free and not a commercial product yet, and that the terms will change before it becomes one. Every sign-up form now links them ("By continuing, you agree to..."), and both footers link them. Adapted from the Basecamp open-source policies (CC BY 4.0). The coming-soon page footer no longer says "KovertKlaus Inc." (there is no company).
+
+### Changed
+- **Self-hosted KovertKlaus now runs on port 2425** (Christmas Eve and Christmas Day) instead of 3000: `npm run dev`, `npm start`, the Docker image (`EXPOSE`/`PORT`), `docker-compose.yml` (`2425:2425`), the start and stop scripts and the docs. After upgrading, open `http://localhost:2425`. If you put a reverse proxy or bookmark in front of port 3000, point it at 2425. Port 2425 has an IANA registration (Fujitsu App Manager) that is rarely used; to keep 3000, set `PORT=3000` and map `3000:3000` in your compose file.
+- **The Features & Specs page is rewritten in plain language and brought up to date.** It now covers the fair draw (one gift circle, two-way exclusion rules, pause and repair), codenames and who sees real names, wishlists (store links, 20 items, quantities), shipping and Coal Citations, Head Elf tools, Kovert Delivery, White Elephant, and security. It also corrects two errors: tracking from DHL also protects against Coal Citations (the page listed only USPS, FedEx and UPS), and the license has no January 1, 2030 conversion date (it converts to GPLv3 only on the events listed in `LICENSE.md`). The page's numbers are checked against the code by tests, so they stay accurate.
+
 ### Fixed
 - **The Feedback button stays off public pages.** A signed-in agent saw the floating Feedback button on the home page (and on other public pages such as `/features` and `/reset-password`). It now appears only on signed-in app pages (the dashboard and mission pages), and any page added later stays free of it unless it is listed (`showsFeedbackButton` in `src/lib/feedback.ts`).
 
 ### Security
+- **Invitations are no longer matched to unverified email addresses.** Sign-up opens to everyone in beta, and email addresses are not verified yet, so someone could register with an invitee's address, see the invitation and its mission code in the app, and join as that person. Until email verification arrives, the app no longer lists or declines invitations by email address: invitees join through the link in their invitation email, which only their inbox receives. The Head Elf can still see, resend and revoke invitations, and joining still marks an invitation accepted. The invitation email and the invite dialog now say to join from the link.
 - **Mission codes can't be guessed in bulk.** Mission codes appear in invite links, so a script could try codes until one matched. Codes that match no mission now count against limits: 10 an hour per agent and 30 per 15 minutes per network, signed in or not. Past a limit, lookups and joins wait (`429` with `Retry-After`), and the North Pole system log gets one warning. Opening a real mission never counts. Rows use the existing `admin."LoginThrottle"` table (scope `JOIN`), so there is no database change.
 - **Only a mission's agents see its details.** Anyone holding a mission code, even signed out, received the roster's codenames, After-Action Reports and the event location. Someone outside the mission now gets a preview: title, dates, budget, status, mission type, the number of agents and the Head Elf's codename. That is enough to join; everything else is for the Head Elf and enrolled agents.
 

@@ -33,6 +33,9 @@ We enforce a strict **pre-flight feature branching policy**:
 > **ZERO Direct Commits to `main`**:
 > Direct commits to the `main` branch are strictly prohibited across all repositories.
 
+### Release Branches
+Work is collected on a release branch, `release/vX.Y.Z-stage`, and reaches `main` once per release ([`docs/VERSIONING.md`](docs/VERSIONING.md) §4). **Cut your branch from the open release branch and target your pull request at it, not at `main`.** Before your pull request is merged, merge the latest release branch into your branch and resolve any conflicts there. Only urgent production fixes (`hotfix/<name>`) start from and target `main`.
+
 ### Branch Naming Conventions
 Always create an isolated, descriptive branch before making any code modifications:
 - **Features**: `feat/<feature-name>` (e.g., `feat/white-elephant-steals`, `feat/export-csv`)
@@ -47,9 +50,10 @@ Always create an isolated, descriptive branch before making any code modificatio
    git clone https://github.com/MrJSimpson/KovertKlaus.git
    cd KovertKlaus
    ```
-2. **Create Feature Branch**:
+2. **Create Feature Branch** from the open release branch:
    ```bash
-   git checkout -b feat/your-feature-name
+   git fetch origin
+   git checkout -b feat/your-feature-name origin/release/vX.Y.Z-stage
    ```
 3. **Install Dependencies**:
    ```bash

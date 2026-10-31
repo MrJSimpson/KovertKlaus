@@ -186,8 +186,8 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
       ${kdmToken
         ? 'Click the button below to review the Property Access Accord and accept your classified mission.'
         : isExistingUser
-        ? 'Open the mission to accept or decline. You can also answer from Active Operations on your dashboard.'
-        : 'Click Join Exchange to create your operative profile. Your invitation clears you for the KovertKlaus alpha and enrolls you in this mission.'}
+        ? 'Open the mission to join it. If you can\'t take part, you can ignore this email.'
+        : 'Click Join Exchange to create your operative profile and join this mission.'}
     </p>
   `;
 
@@ -209,7 +209,7 @@ export function getInvitationEmailTemplate(params: InvitationEmailParams): { sub
     ${isLatePass ? '\n[LATE PASS AUTHORIZATION ACTIVE] The standard RSVP cutoff has passed; emergency clearance granted.\n' : ''}
     Your Invite Code: ${inviteCode}
 
-    ${isExistingUser ? 'Accept or decline here:' : 'Join here (creates your profile and enrolls you):'}
+    ${isExistingUser ? 'Join here:' : 'Join here (creates your profile and enrolls you):'}
     ${joinUrl}
 
     --------------------------------------------------
