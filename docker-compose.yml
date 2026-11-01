@@ -9,7 +9,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env - run npm run db:password}
       POSTGRES_DB: kovertklaus
     ports:
-      - "5433:5432"
+      # Local access only (dev tools, prisma db push); the app container uses the internal network.
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
