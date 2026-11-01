@@ -90,6 +90,8 @@ model User {
   passwordHash                   String
   /// User session tokens issued before this instant are rejected (set on password change).
   sessionsRevokedAt              DateTime?
+  /// When the agent proved they own `email` (src/lib/email-verification.ts). Null = not yet verified.
+  emailVerifiedAt                DateTime?
   streetAddress                  String?
   addressLine2                   String?
   city                           String?

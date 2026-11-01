@@ -183,9 +183,39 @@ test('Session Revocation - every password change revokes other sessions, and bot
   }
 
   const worker = read('worker.ts');
-  assert.match(worker, /const db = getDb\(appConnStr\);\s*\n\s*\/\/.*\n\s*await markRevokedUserSession\(request, db\);/);
+  assert.match(worker, /const db = getDb\(appConnStr\);\s*\n(?:\s*\/\/.*\n)+\s*await markRevokedUserSession\(request, db, adminDb, env, pathname\);/);
   assert.match(worker, /function getUserIdFromRequest\(request: Request\): string \| null \{\s*\n\s*if \(revokedSessionRequests\.has\(request\)\) return null;/);
   assert.match(read('lib', 'auth.ts'), /isSessionRevoked\(claims, user\.sessionsRevokedAt\)/);
+});
+
+test('Email Verification - unverified agents are gated in both runtimes, with only /me and verify routes exempt', () => {
+  const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), 'src', ...p), 'utf-8');
+  const worker = read('worker.ts');
+  // The Worker's one-per-request lookup marks unverified sessions and signs them out off the allow-list.
+  assert.match(worker, /unverifiedSessionRequests\.add\(request\);\s*\n\s*if \(!UNVERIFIED_ALLOWED_PATHS\.has\(pathname\)\) revokedSessionRequests\.add\(request\);/);
+  assert.match(worker, /request\.method === 'GET' && unverifiedSessionRequests\.has\(request\)/);
+  // Self-hosted: getSessionUserId refuses unverified sessions unless the caller opts in.
+  assert.match(read('lib', 'auth.ts'), /if \(session\.unverified && !options\.allowUnverified\) return null;/);
+
+  // Only the verify routes opt in (the /me route reads the full session state instead).
+  const apiDir = path.join(process.cwd(), 'src', 'app', 'api');
+  const optIns: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name === 'route.ts' && fs.readFileSync(full, 'utf-8').includes('allowUnverified: true')) {
+        optIns.push(path.relative(apiDir, full).split(path.sep).join('/'));
+      }
+    }
+  };
+  walk(apiDir);
+  assert.deepStrictEqual(optIns, ['users/verify-email/route.ts']);
+
+  // Both sign-up paths decide verification at creation.
+  for (const source of [worker, read('app', 'api', 'users', 'route.ts')]) {
+    assert.match(source, /emailVerifiedAt: mustVerify \? null : new Date\(\),/);
+  }
 });
 
 test('Nudge - both runtimes use the shared deadline nudge', () => {

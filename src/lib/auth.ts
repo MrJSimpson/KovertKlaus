@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { isSessionRevoked, issueSessionToken, readSessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims } from '@/lib/session-token';
 import { db } from '@/lib/db';
 import { IS_SAAS } from '@/lib/config/mode';
+import { isUnverified, isVerificationRequired } from '@/lib/email-verification';
 
 /**
  * Cookie identifier key for authenticated session persistence.
@@ -41,17 +42,49 @@ export async function setSessionCookie(userId: string): Promise<void> {
 /**
  * Reads and cryptographically verifies the current active user ID from the incoming session cookie
  * or fallback x-session-token authorization header.
- * 
- * A token issued before the user's last password change (`User.sessionsRevokedAt`) is rejected.
  *
- * @returns The authenticated operative's `userId`, or `null` if unauthenticated, tampered, expired, or revoked.
+ * A token issued before the user's last password change (`User.sessionsRevokedAt`) is rejected.
+ * An agent who has not verified their email reads as signed out too, unless the caller passes
+ * `allowUnverified` (only `/api/users/me` and the verify-email routes do; see
+ * `src/lib/email-verification.ts`). Verification is only required when a real email provider is set up.
+ *
+ * @param options.allowUnverified - Return the ID even if the agent's email is not verified yet.
+ * @returns The authenticated operative's `userId`, or `null` if unauthenticated, tampered, expired, revoked or unverified.
  */
-export async function getSessionUserId(): Promise<string | null> {
+export async function getSessionUserId(options: { allowUnverified?: boolean } = {}): Promise<string | null> {
+  const session = await getSessionUserState();
+  if (!session) return null;
+  if (session.unverified && !options.allowUnverified) return null;
+  return session.userId;
+}
+
+/**
+ * The signed-in agent and whether they still have to verify their email, or `null` when signed out.
+ * The email provider is only looked up for an unverified agent, so verified agents pay nothing extra.
+ */
+export async function getSessionUserState(): Promise<{ userId: string; unverified: boolean } | null> {
   const claims = await readRequestUserClaims();
   if (!claims) return null;
-  const user = await db.user.findUnique({ where: { id: claims.subjectId }, select: { sessionsRevokedAt: true } });
+  const user = await db.user.findUnique({
+    where: { id: claims.subjectId },
+    select: { sessionsRevokedAt: true, emailVerifiedAt: true, isWorkshop: true },
+  });
   if (!user || isSessionRevoked(claims, user.sessionsRevokedAt)) return null;
-  return claims.subjectId;
+  if (!isUnverified(user)) return { userId: claims.subjectId, unverified: false };
+  return { userId: claims.subjectId, unverified: await emailVerificationRequired() };
+}
+
+/** True when this install can deliver email, so unverified agents are gated (self-hosted runtime). */
+export async function emailVerificationRequired(): Promise<boolean> {
+  try {
+    // Imported lazily: the email module loads system settings, which auth.ts must not pull in eagerly.
+    const { getResolvedEmailConfig } = await import('@/lib/email/config');
+    return isVerificationRequired((await getResolvedEmailConfig()).provider);
+  } catch (err) {
+    // Fail closed only when we know email works; an unreadable config is treated as "no email".
+    console.warn('[Auth] could not resolve the email provider; not requiring verification:', err);
+    return false;
+  }
 }
 
 /** Verified user-token claims from the session cookie, or else the x-session-token / Bearer header. */

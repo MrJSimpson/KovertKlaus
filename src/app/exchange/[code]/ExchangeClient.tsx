@@ -1,6 +1,6 @@
 'use client';
 
-import { USER_ID_KEY } from '@/lib/constants/auth';
+import { EMAIL_UNVERIFIED_CODE, USER_ID_KEY } from '@/lib/constants/auth';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -321,6 +321,10 @@ export default function OperationCommandCenterPage() {
             favoriteHobbies: json.user.favoriteHobbies,
           });
 
+        } else if (status === 403 && json.code === EMAIL_UNVERIFIED_CODE) {
+          // Signed in but the email is not verified yet: verify first, then come back here.
+          window.location.replace(`/verify-email?next=${encodeURIComponent(`/exchange/${code}`)}`);
+          return;
         } else if (status === 401 || status === 404) {
           // The server says the session is gone (expired or signed out): forget the cached
           // identity so the page offers sign-in instead of acting on a dead session. A server

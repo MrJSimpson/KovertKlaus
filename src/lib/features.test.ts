@@ -6,6 +6,7 @@ import { PRODUCT_FETCH_TIMEOUT_MS } from './product-fetch';
 import { resolveAccountStatus } from './demerits';
 import { PURGE_AFTER_MS } from './mission-cancel';
 import { RESET_LINK_TTL_MS } from './password-reset';
+import { VERIFY_LINK_TTL_MS } from './email-verification';
 import { JOIN_LIMITS } from './join-throttle';
 import { getCarrierTrackingUrl } from './carrier-tracking';
 
@@ -17,6 +18,7 @@ test('Features page facts match the code that enforces them', () => {
   assert.strictEqual(FEATURE_FACTS.productFetchSeconds * 1000, PRODUCT_FETCH_TIMEOUT_MS);
   assert.strictEqual(FEATURE_FACTS.cancelledPurgeDays * DAY_MS, PURGE_AFTER_MS);
   assert.strictEqual(FEATURE_FACTS.resetLinkMinutes * 60_000, RESET_LINK_TTL_MS);
+  assert.strictEqual(FEATURE_FACTS.verifyLinkHours * 3_600_000, VERIFY_LINK_TTL_MS);
   assert.strictEqual(FEATURE_FACTS.wrongCodesPerHour, JOIN_LIMITS.ACCOUNT);
 });
 

@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **New accounts verify their email before using KovertKlaus.** After signing up, an agent gets a verification email and sees a "Check your email" page (`/verify-email`) with a resend button until they open the link; the dashboard, mission pages and every other signed-in API wait until then. Links last 24 hours (48 when today's email quota is used up and the email goes out tomorrow), work once, and verify only the address they were sent to. Resends are limited to one every 2 minutes and 5 an hour. The welcome email now arrives after verification. An agent who has not verified blocks the Secret Santa draw (shown to the Head Elf in the readiness list, like an empty wishlist), so a fake or mistyped account never receives a target or shipping address. Accounts that existed before this release are treated as verified. Self-hosted installs without an email provider (console only) skip verification. **Operators:** add the `User.emailVerifiedAt` column with `prisma/sql/2026-11-01_email-verification.forward.sql` **before** deploying (it also marks existing accounts verified); running only `prisma db push` would leave every existing account unverified.
+
 ### Changed
+- The Privacy Policy says the email address is used to confirm it is yours at sign-up, and that verification emails are always sent.
 - Versions now use `MAJOR.MINOR.PATCH-stage` by feature area (Missions, Wishlists, Accounts, Notifications & Email, North Pole, Shipping) instead of `1.0.0-beta.N`, and releases ship when their scope is verified rather than on dates (`docs/VERSIONING.md` §1–§3). The next release is `1.1.0-beta`. Removed the unused `RELEASE_TIMELINE` constant.
 
 ---
