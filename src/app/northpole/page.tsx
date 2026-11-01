@@ -20,7 +20,6 @@ interface SystemConfigData {
   announcementBannerActive: boolean;
   maintenanceMode: boolean;
   maintenanceMessage?: string;
-  altHome?: string;
   appMode: string;
   emailProvider: string;
   emailFrom: string;

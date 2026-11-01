@@ -18,7 +18,6 @@ const STRING_FIELDS = [
   'activeThemeId',
   'activeSeason',
   'maintenanceMessage',
-  'altHome',
   'emailProvider',
   'emailFrom',
   'emailFromName',

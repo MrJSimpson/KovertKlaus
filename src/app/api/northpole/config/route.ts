@@ -42,7 +42,6 @@ export async function GET() {
           defaultBudgetMax: 50.0,
           defaultCurrency: 'USD',
           appMode: IS_SAAS ? 'saas' : 'selfhosted',
-          altHome: '',
           emailProvider: 'auto',
           emailFrom: 'admin@kovertklaus.com',
           emailFromName: 'KovertKlaus HQ',

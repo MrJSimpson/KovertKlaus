@@ -269,7 +269,6 @@ export default function NorthPoleKnowledgeBasePage() {
               <div className="p-4 rounded-xl bg-kk-inset border border-kk-border text-[11px] space-y-1.5 text-kk-muted">
                 <div>• <strong className="text-kk-brand">MODE</strong>: <code className="text-kk-ink">&quot;SELFHOSTED&quot;</code> (enables local flexible config &amp; santa bootstrap) | <code className="text-kk-ink">&quot;SAAS&quot;</code> (bypasses local bootstrap for cloud provisioning)</div>
                 <div>• <strong className="text-kk-ink">activeThemeId</strong>: winter_holiday, spring_egg_hunt, tropic_klaus, spooky_autumn</div>
-                <div>• <strong className="text-kk-ink">altHome</strong>: &quot;&quot; (App Home) | &quot;coming_soon&quot; (Waitlist)</div>
                 <div>• <strong className="text-kk-ink">emailProvider</strong>: auto | brevo | smtp | resend | console</div>
                 <div>• <strong className="text-kk-ink">freeAnnualHostAllowance</strong>: 1</div>
                 <div>• <strong className="text-kk-ink">freeAnnualJoinAllowance</strong>: 3</div>
