@@ -50,7 +50,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
       {
         emoji: '🎄',
         title: 'Open sign-up',
-        text: 'Sign up from the home page with just your email. Invite your family, friends or coworkers with your mission\'s invite link, and they can join in a minute.',
+        text: 'Sign up from the home page with just your email. Invite your family, friends or coworkers by email and they can join in a minute; anyone who uses your mission code waits for your approval.',
       },
       {
         emoji: '🎁',
@@ -61,6 +61,45 @@ export const ANNOUNCEMENTS: Announcement[] = [
         emoji: '💬',
         title: 'Tell us what you think',
         text: 'This is a beta, so some things may still be rough. Use the Feedback button in the bottom-right corner to report a problem or share an idea. We read every one.',
+      },
+    ],
+  },
+  {
+    version: '1.1.0-beta',
+    date: '2026-11-01',
+    title: 'Safer accounts: confirm your email, delete your account, approve who joins',
+    summary: 'New accounts confirm their email, you can delete your account and keep a copy of your data, passwords are easier, and Head Elves approve anyone who joins with the mission code.',
+    highlights: [
+      {
+        emoji: '✉️',
+        title: 'Confirm your email',
+        text: 'New accounts confirm their email address before opening the dashboard. If you already have an account, there is nothing to do.',
+      },
+      {
+        emoji: '🙋',
+        title: 'Head Elves approve who joins',
+        text: 'Anyone who joins with your mission code now waits for your approval on the mission page. People you invite by email still join right away.',
+      },
+      {
+        emoji: '🔑',
+        title: 'Easier passwords',
+        text: 'New passwords need 10 or more characters and no special symbols, so a short phrase works well. Passwords that have leaked in data breaches are refused. Your current password keeps working.',
+      },
+      {
+        emoji: '🗑️',
+        title: 'Delete your account any time',
+        text: 'Account Preferences, then Security, then Delete my account. We email you a link to download a copy of your data, kept for 30 days.',
+      },
+      {
+        emoji: '🏠',
+        title: 'One front page',
+        text: 'Sign up or sign in right from the home page.',
+      },
+      {
+        emoji: '🔐',
+        title: 'Database password in .env',
+        text: 'Before your next docker compose up, run npm run db:password once. It keeps your current database password; nothing else changes. The email allowance is now set in the North Pole.',
+        selfHostedOnly: true,
       },
     ],
   },

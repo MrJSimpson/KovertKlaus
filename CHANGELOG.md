@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.1.0-beta] - 2026-11-01
+
+Dev #91–#98. Security & trust: email verification, Head Elf approval for code joins, self-service account deletion with a 30-day copy of your data, simpler passwords with a breach check, the email allowance as a North Pole setting (per day or per month), one front page with open sign-up, and the versioning change to `MAJOR.MINOR.PATCH-stage`. **Operators:** three SQL files run before deploy (`prisma/sql/2026-11-01_*.forward.sql`); SaaS needs the `USER_EXPORTS` R2 binding; self-hosted runs `npm run db:password` once.
+
 ### Added
 - **Simpler, safer passwords.** Agent passwords now need **10 or more characters** and nothing else: the uppercase, number and symbol rules are gone, so a short phrase works (NIST SP 800-63B, except that NIST asks for 15 characters without two-factor sign-in). In exchange, KovertKlaus refuses passwords that are common, built from "KovertKlaus" or the agent's own name or email, or found in known data breaches (checked with Have I Been Pwned's range API, which receives only the first five characters of a hash, never the password; if it is unreachable the password is allowed). Passwords can be up to 128 characters and are Unicode-normalized, so the same password typed on another keyboard still works. Applies to sign-up, password reset and password change; existing passwords keep working. Every password form now shows the same checklist.
 - **The email allowance is a North Pole setting, per day or per month.** Configuration → Brevo Sending Allowance sets the period (per day, resetting at midnight Pacific, or per month, resetting on a chosen day 1–28), the number of emails, and in monthly mode an optional daily cap so one busy day can't spend the month. It replaces the `EMAIL_DAILY_QUOTA` environment variable (removed). The 10-email reserve, the 80% warning (now per period) and holding overflow until the allowance resets all follow the setting. Password reset and verification emails held until a monthly reset say the date they will arrive, and their links last until then. A quota rejection from Brevo no longer counts as a failed attempt, so held mail is never given up on because of the quota; the send ledger is kept 35 days. **Operators:** run `prisma/sql/2026-11-01_email-quota-setting.forward.sql` before deploying (defaults keep today's 300 a day).
