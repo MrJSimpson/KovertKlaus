@@ -1,5 +1,5 @@
 # KovertKlaus Background & One-Click Dev Server Launcher
-$projectDir = "C:\Users\Joshua\projects\kovertklaus"
+$projectDir = $PSScriptRoot  # the folder this script lives in
 Set-Location $projectDir
 
 # Check if port 2425 is already listening
@@ -11,6 +11,9 @@ if ($port2425) {
     Write-Host "👉 Local URL: http://localhost:2425" -ForegroundColor Yellow
     Write-Host ""
 } else {
+    # The local database password lives in .env, never in the repo (scripts/ensure-db-password.mjs).
+    node scripts/ensure-db-password.mjs
+    if ($LASTEXITCODE -ne 0) { exit 1 }
     Write-Host ""
     Write-Host "🚀 Launching KovertKlaus Development Server..." -ForegroundColor Cyan
     Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$projectDir'; Write-Host '🎁 KovertKlaus Dev Server Active' -ForegroundColor Green; npm run dev" -WindowStyle Normal

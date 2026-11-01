@@ -74,7 +74,8 @@ All system documentation is maintained in both standard repository Markdown and 
 git clone https://github.com/MrJSimpson/KovertKlaus.git
 cd KovertKlaus
 
-# 2. Launch PostgreSQL database and App container
+# 2. Create a local database password in .env (never committed), then launch PostgreSQL and the app
+npm run db:password
 docker compose up -d
 
 # 3. Load demo agents and missions to try it out (optional; see docs/DEMO_DATABASE.md)

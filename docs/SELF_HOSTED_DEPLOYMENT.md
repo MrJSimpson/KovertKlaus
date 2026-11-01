@@ -29,8 +29,10 @@ This guide provides instructions for deploying KovertKlaus in a self-hosted envi
    openssl rand -hex 32
    ```
 
-3. **Start the Stack**:
+3. **Start the Stack** (the first command creates a random database password in `.env`; upgrading from an
+   install made before 1.1.0, it reuses the password in your `.env` `DATABASE_URL` or tells you to add it):
    ```bash
+   npm run db:password
    docker compose up -d
    ```
 
@@ -51,7 +53,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-kovertklaus}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kovertsecret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-kovertklaus}
     ports:
       - "5432:5432"
@@ -64,7 +66,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-kovertklaus}:${POSTGRES_PASSWORD:-kovertsecret}@kovertklaus-db:5432/${POSTGRES_DB:-kovertklaus}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kovertklaus}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@kovertklaus-db:5432/${POSTGRES_DB:-kovertklaus}?schema=public
       SESSION_SECRET: ${SESSION_SECRET}
     ports:
       - "2425:2425"
