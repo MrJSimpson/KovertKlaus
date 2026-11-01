@@ -1,3 +1,4 @@
+import { validatePasswordRules } from '@/lib/password-check';
 import crypto from 'crypto';
 
 /**
@@ -325,22 +326,10 @@ export function getNextMilestoneCountdown(mission?: {
  * - Must contain at least 1 special character (!@#$%^&*()_+-=[]{}|;:,.<>?).
  */
 export function validatePassword(password: string): { isValid: boolean; error?: string } {
-  if (!password || password.length < 10) {
-    return { isValid: false, error: 'Password must be at least 10 characters long.' };
-  }
-  if (!/[A-Z]/.test(password)) {
-    return { isValid: false, error: 'Password must contain at least 1 uppercase letter (A-Z).' };
-  }
-  if (!/[a-z]/.test(password)) {
-    return { isValid: false, error: 'Password must contain at least 1 lowercase letter (a-z).' };
-  }
-  if (!/[0-9]/.test(password)) {
-    return { isValid: false, error: 'Password must contain at least 1 number (0-9).' };
-  }
-  if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) {
-    return { isValid: false, error: 'Password must contain at least 1 special character (e.g. !@#$%^&*).' };
-  }
-  return { isValid: true };
+  // Rules moved to src/lib/password-check.ts (owner decision 2026-11-01): 10+ characters, no
+  // composition rules, common and contextual passwords refused. Routes call `checkNewPassword`,
+  // which also checks known breaches; this synchronous form remains for older callers.
+  return validatePasswordRules(password);
 }
 
 /**

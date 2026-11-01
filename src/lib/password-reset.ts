@@ -20,7 +20,8 @@
 
 import crypto from 'crypto';
 import type { PrismaClient } from '@prisma/client';
-import { getSessionSecret, isValidEmail, signToken, validatePassword, verifyToken } from '@/lib/security';
+import { getSessionSecret, isValidEmail, signToken, verifyToken } from '@/lib/security';
+import { checkNewPassword } from '@/lib/password-check';
 import { UNKNOWN_IP } from '@/lib/login-throttle';
 import { quotaDayStart } from '@/lib/email/daily-limit';
 import { hashPassword } from '@/lib/password';
@@ -271,19 +272,27 @@ export async function requestPasswordReset(deps: ResetRequestDeps, input: { emai
  *
  * @param db - App-schema client.
  */
-export async function confirmPasswordReset(db: PrismaClient, input: { token: unknown; password: unknown }, nowMs = Date.now()): Promise<ResetResult> {
+export async function confirmPasswordReset(
+  db: PrismaClient,
+  input: { token: unknown; password: unknown },
+  nowMs = Date.now(),
+  deps: { checkPassword?: typeof checkNewPassword } = {}
+): Promise<ResetResult> {
   const token = typeof input.token === 'string' ? input.token.trim() : '';
   const password = typeof input.password === 'string' ? input.password : '';
   const claims = token ? readResetToken(token, nowMs) : null;
   if (!claims) return { status: 400, body: { error: RESET_INVALID_LINK_MESSAGE } };
 
-  const check = validatePassword(password);
-  if (!check.isValid) return { status: 400, body: { error: check.error } };
-
-  const user = await db.user.findUnique({ where: { id: claims.userId }, select: { id: true, passwordHash: true, accountStatus: true } });
+  const user = await db.user.findUnique({
+    where: { id: claims.userId },
+    select: { id: true, email: true, name: true, passwordHash: true, accountStatus: true },
+  });
   if (!user || user.accountStatus === 'DISABLED' || hashFingerprint(user.passwordHash) !== claims.fingerprint) {
     return { status: 400, body: { error: RESET_INVALID_LINK_MESSAGE } };
   }
+
+  const check = await (deps.checkPassword ?? checkNewPassword)(password, { email: user.email, name: user.name });
+  if (!check.isValid) return { status: 400, body: { error: check.error } };
 
   const passwordHash = await hashPassword(password);
   // Conditional on the old hash: two tabs submitting the same link cannot both succeed.

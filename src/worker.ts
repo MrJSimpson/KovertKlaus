@@ -11,14 +11,7 @@ import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { dbUnavailableResponse, isDbConnectionError } from './lib/db-errors';
 import { validateNistPassword } from './lib/adminAuth';
-import {
-  sanitizeText,
-  isValidEmail,
-  validatePassword,
-  generateInviteCode,
-  isSafePublicUrl,
-  normalizeProductUrl,
-} from './lib/security';
+import { sanitizeText, isValidEmail, generateInviteCode, isSafePublicUrl, normalizeProductUrl } from './lib/security';
 import { executeTargetSwap } from './lib/draw';
 import { runManualDraw } from './lib/manual-draw';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
@@ -35,6 +28,7 @@ import {
   UNVERIFIED_ALLOWED_PATHS,
 } from './lib/email-verification';
 import { deleteAccount, deletionPreview } from './lib/account-deletion';
+import { checkNewPassword } from './lib/password-check';
 import { validateEmailQuotaSettings } from './lib/email/quota-config';
 import { decideJoinRequest, joinMission, joinWithInviteAtSignup, myJoinRequests, pendingJoinRequests, requestToJoinAtSignup, viewerJoinRequest } from './lib/join-requests';
 import { downloadAccountExport, EXPORT_GONE_MESSAGE } from './lib/account-export';
@@ -1559,7 +1553,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
             const match = await comparePassword(oldPassword, user.passwordHash);
             if (!match) return Response.json({ error: 'Incorrect current password' }, { status: 400 });
-            const passCheck = validatePassword(newPassword);
+            const passCheck = await checkNewPassword(newPassword, { email: user.email, name: user.name });
             if (!passCheck.isValid) return Response.json({ error: passCheck.error }, { status: 400 });
             updateData.passwordHash = await hashPassword(newPassword);
             // Sign out every other device; this one gets a fresh token below.
@@ -1594,7 +1588,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (!email || !isValidEmail(email)) return Response.json({ error: 'Valid email required' }, { status: 400 });
         if (!name || !password) return Response.json({ error: 'Name, email, and password required' }, { status: 400 });
 
-        const passCheck = validatePassword(password);
+        // Password rules: 10+ characters, not common, contextual or breached (src/lib/password-check.ts)
+        const passCheck = await checkNewPassword(password, { email, name });
         if (!passCheck.isValid) return Response.json({ error: passCheck.error }, { status: 400 });
 
         // Alpha gate and invite code (src/lib/registration-code.ts), then the sign-up rate limit.

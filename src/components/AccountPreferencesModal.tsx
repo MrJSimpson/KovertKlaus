@@ -587,7 +587,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated, ini
                       />
                     </div>
                     <div>
-                      <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>New Password (Min 10 characters)</label>
+                      <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>New Password (10+ characters; a short phrase works well)</label>
                       <input
                         type="password"
                         placeholder="••••••••"

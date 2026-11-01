@@ -66,7 +66,7 @@ Every change (from maintainers, contributors, or AI agents) must meet:
 
 ## 🔒 5. Cybersecurity & Privacy Requirements (OWASP Aligned)
 
-* **Password Security:** Minimum **10-character complex passwords** for users; administrative passphrases require **12+ characters** conforming to NIST SP 800-63B.
+* **Password Security:** User passwords follow NIST SP 800-63B except the length (owner decision 2026-11-01): **10+ characters** (NIST asks 15 without MFA), **no composition rules**, up to 128 characters, NFC-normalized, and common, contextual and known-breached passwords refused (`src/lib/password-check.ts`, Have I Been Pwned range API). Administrative passphrases require **12+ characters**.
 * **Password Hashing:** Passwords MUST be hashed using modern **scrypt** modular crypt format (`$scrypt$N$r$p$salt$hash`), with automatic backward-compatible legacy bcrypt upgrade upon login. Never store or log plaintext passwords.
 * **First-Run Admin Setup:** No default administrator password ships. With no `AdminUser` and no `INITIAL_ADMIN_PASSWORD`, the server prints a one-time setup token to its console and `/northpole/setup` creates the first administrator (`src/lib/adminSetup.ts`). Never add a default password to code, seeds, dumps, or docs.
 * **Session Management:** Single HTTP-Only, `SameSite=Lax`, `Secure` cookie (`kovertklaus_session`) with a **24-hour expiration time**, renewed while the agent stays active. Admin sessions expire after **8 hours** and are never renewed. The expiry and session kind are signed into the token (`src/lib/session-token.ts`), so an expired or wrong-kind token is rejected even if a client keeps it.

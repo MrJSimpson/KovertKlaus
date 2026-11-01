@@ -2870,7 +2870,7 @@ export default function OperationCommandCenterPage() {
                   type="password"
                   required
                   minLength={authMode === 'register' ? 10 : 1}
-                  placeholder={authMode === 'register' ? 'Min 10 characters (letters, numbers, symbols)' : 'Enter password'}
+                  placeholder={authMode === 'register' ? '10+ characters, a short phrase works well' : 'Enter password'}
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
                   className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none ${theme.inputModalBg}`}

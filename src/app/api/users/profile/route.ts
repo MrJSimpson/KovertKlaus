@@ -1,8 +1,9 @@
+import { checkNewPassword } from '@/lib/password-check';
 import { NextResponse } from 'next/server';
 import { comparePassword, hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { getSessionUserId, setSessionCookie } from '@/lib/auth';
-import { validatePassword, sanitizeText } from '@/lib/security';
+import { sanitizeText } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
@@ -163,7 +164,7 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });
       }
 
-      const passVal = validatePassword(newPassword);
+      const passVal = await checkNewPassword(newPassword, { email: dbUser.email, name: dbUser.name });
       if (!passVal.isValid) {
         return NextResponse.json({ error: passVal.error }, { status: 400 });
       }
