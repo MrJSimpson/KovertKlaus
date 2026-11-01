@@ -134,7 +134,7 @@ export const PRIVACY_POLICY: LegalDocument = {
           'Your account and dossier stay until you delete your account (Account Preferences → Security) or ask us to.',
           'A cancelled mission is deleted 90 days after it was cancelled. We keep only an anonymous record of its outcome and the reason, with no names.',
           'A completed mission stays as a read-only record for the agents who took part.',
-          'Deleting your account is immediate and permanent: we remove your profile, dossier, Wishlist Manifests, messages, reports, notifications and Coal Citations, and keep nothing else about you. Finished missions you ran are deleted with it. If you run a mission that is still open, or names have been drawn in a mission you are in, you can delete your account once that mission is cancelled or finished. Leaving before the draw just removes you from the mission.',
+          'Deleting your account is immediate and permanent: we remove your profile, dossier, Wishlist Manifests, messages, reports, notifications and Coal Citations. So that you have a copy, we keep an encrypted file of your own data for 30 days and email you a link to download it; then it is deleted. It contains nothing about other agents beyond their codenames. Finished missions you ran are deleted with it. If you run a mission that is still open, or names have been drawn in a mission you are in, you can delete your account once that mission is cancelled or finished. Leaving before the draw just removes you from the mission.',
           'Security records are deleted after about a day. Copies in our encrypted database backups are gone within 30 days.'
         ),
       ],

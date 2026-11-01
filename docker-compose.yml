@@ -32,9 +32,14 @@ services:
       - NODE_ENV=production
       - LIFECYCLE_CRON_ENABLED=true
       - LIFECYCLE_CRON_INTERVAL_MINUTES=60
+      # Copies of deleted accounts' data, kept 30 days (src/lib/export-store-disk.ts).
+      - EXPORT_DIR=/app/data/exports
+    volumes:
+      - kovertklaus_exports:/app/data/exports
     depends_on:
       kovertklaus-db:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  kovertklaus_exports:

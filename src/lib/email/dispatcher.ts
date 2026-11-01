@@ -27,6 +27,7 @@ import {
   getNudgeEmailTemplate,
   getPasswordResetEmailTemplate,
   getEmailVerificationEmailTemplate,
+  getAccountExportEmailTemplate,
   getWelcomeEmailTemplate,
 } from './templates';
 import {
@@ -43,6 +44,7 @@ import {
   NudgeEmailParams,
   PasswordResetEmailParams,
   EmailVerificationEmailParams,
+  AccountExportEmailParams,
   WelcomeEmailParams,
 } from './types';
 
@@ -442,6 +444,23 @@ export async function sendEmailVerificationEmail(params: EmailVerificationEmailP
       html,
       text,
       tags: ['account', 'email-verification'],
+    },
+    params.overrideConfig
+  );
+}
+
+/**
+ * Dispatches the "account deleted" email with the data download link.
+ */
+export async function sendAccountExportEmail(params: AccountExportEmailParams): Promise<EmailResult> {
+  const { subject, html, text } = getAccountExportEmailTemplate(params);
+  return sendEmail(
+    {
+      to: { email: params.to, name: params.name },
+      subject,
+      html,
+      text,
+      tags: ['account', 'account-deleted'],
     },
     params.overrideConfig
   );

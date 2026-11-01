@@ -218,6 +218,17 @@ test('Email Verification - unverified agents are gated in both runtimes, with on
   }
 });
 
+test('Account Export - Worker serves downloads from the USER_EXPORTS binding declared in wrangler.json', () => {
+  const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), ...p), 'utf-8');
+  const worker = read('src', 'worker.ts');
+  assert.match(worker, /pathname === '\/api\/users\/data-export' && request\.method === 'GET'/);
+  assert.match(worker, /exportStore: env\.USER_EXPORTS \? r2ExportStore\(env\.USER_EXPORTS\) : undefined,/);
+  const wrangler = JSON.parse(read('wrangler.json')) as { r2_buckets?: Array<{ binding: string; bucket_name: string }> };
+  assert.deepStrictEqual(wrangler.r2_buckets, [{ binding: 'USER_EXPORTS', bucket_name: 'kovertklaus' }]);
+  // The disk store (Node fs) must never be bundled into the Worker.
+  assert.doesNotMatch(worker, /export-store-disk/);
+});
+
 test('Nudge - both runtimes use the shared deadline nudge', () => {
   const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), 'src', ...p), 'utf-8');
   for (const source of [read('worker.ts'), read('app', 'api', 'operations', 'route.ts')]) {

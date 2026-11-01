@@ -7,7 +7,8 @@
  * input or password), 409 (blocked, with the missions to close first), 429 (too many wrong passwords).
  * Tier 2 (why): Self-hosted counterpart of the Worker route; both call `src/lib/account-deletion.ts`.
  * An agent who has not verified their email may delete too (a mistyped address is a good reason to).
- * Tier 3 (how): The session cookie is cleared after a successful delete; the account no longer
+ * Tier 3 (how): Self-hosted keeps the copy of the agent's data on local disk (`EXPORT_DIR`); the link
+ * is emailed after the delete. The session cookie is cleared after a successful delete; the account no longer
  * exists, so any other device's session stops working on its next request.
  */
 
@@ -17,6 +18,8 @@ import { adminDb } from '@/lib/adminDb';
 import { clearSessionCookie, getSessionUserId } from '@/lib/auth';
 import { deleteAccount, deletionPreview } from '@/lib/account-deletion';
 import { logInfo } from '@/lib/logger';
+import { diskExportStore } from '@/lib/export-store-disk';
+import { sendAccountExportEmail } from '@/lib/email/dispatcher';
 import { readJsonBody } from '@/lib/request-body';
 import { dbUnavailableResponse, isDbConnectionError } from '@/lib/db-errors';
 
@@ -43,6 +46,9 @@ export async function POST(request: Request) {
       {
         db,
         adminDb,
+        exportStore: diskExportStore(),
+        baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin,
+        sendExportEmail: (email) => sendAccountExportEmail(email),
         onDeleted: (message, metadata) => {
           logInfo('AUTH', message, { metadata }).catch(() => {});
         },

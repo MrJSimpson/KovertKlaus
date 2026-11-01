@@ -149,6 +149,17 @@ export interface EmailVerificationEmailParams {
   overrideConfig?: Partial<EmailConfig>;
 }
 
+/** "Your account was deleted, here is your data" email (`src/lib/account-deletion.ts`). */
+export interface AccountExportEmailParams {
+  to: string;
+  name: string;
+  /** Download link for the sealed copy of their data; empty when no copy was made. */
+  downloadUrl: string;
+  /** When the link stops working, as a date phrase, e.g. "December 1, 2026". */
+  expiresText: string;
+  overrideConfig?: Partial<EmailConfig>;
+}
+
 export interface MissionCancelledEmailParams {
   recipientEmail?: string;
   to?: string;

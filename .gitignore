@@ -53,3 +53,6 @@ next-env.d.ts
 
 # Local database backups (export-db) hold real data: never commit them
 /backups/
+
+# Account-deletion exports (self-hosted EXPORT_DIR default)
+/data/exports/

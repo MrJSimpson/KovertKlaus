@@ -31,6 +31,7 @@ interface Preview {
   leavingMissions: MissionRef[];
   closedMissionsRun: number;
   canDelete: boolean;
+  willExport: boolean;
 }
 
 type Phase = 'loading' | 'signed-out' | 'ready' | 'deleted';
@@ -58,6 +59,7 @@ export default function DeleteAccountPage() {
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [download, setDownload] = useState<{ url: string; until: string } | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -92,8 +94,9 @@ export default function DeleteAccountPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password, confirm: confirm.trim() }),
       });
-      const json = (await res.json().catch(() => ({}))) as Partial<Preview> & { error?: string };
+      const json = (await res.json().catch(() => ({}))) as Partial<Preview> & { error?: string; downloadUrl?: string; downloadUntil?: string };
       if (res.ok) {
+        if (json.downloadUrl) setDownload({ url: json.downloadUrl, until: json.downloadUntil || '' });
         localStorage.removeItem(USER_ID_KEY);
         localStorage.removeItem('kovertklaus_user_name');
         setPhase('deleted');
@@ -119,6 +122,7 @@ export default function DeleteAccountPage() {
           {phase === 'deleted' && (
             <p className={`text-sm ${theme.textSubLabel}`}>
               Your account and its data have been deleted. Thanks for being part of KovertKlaus. You can sign up again any time.
+              {download && ` We've also emailed you the download link below. It works until ${download.until}.`}
             </p>
           )}
           {phase === 'signed-out' && <p className={`text-sm ${theme.textSubLabel}`}>Sign in to delete your account.</p>}
@@ -128,6 +132,12 @@ export default function DeleteAccountPage() {
           <div role="alert" className={`p-3 rounded-xl text-sm font-semibold ${theme.alertError}`}>
             {error}
           </div>
+        )}
+
+        {phase === 'deleted' && download && (
+          <a href={download.url} className={`block w-full text-center py-3 rounded-2xl text-sm ${theme.btnPrimary}`}>
+            Download my data
+          </a>
         )}
 
         {phase === 'ready' && preview && blocked && (
@@ -172,7 +182,11 @@ export default function DeleteAccountPage() {
                   deleted too, and their agents are told.
                 </p>
               )}
-              <p className={theme.textSubLabel}>Copies in our encrypted backups are gone within 30 days.</p>
+              {preview.willExport && <p>
+                We&apos;ll email you a link to download a copy of your data (profile, dossier, missions, wishlists and the messages you
+                sent). The copy is encrypted and kept for 30 days, then deleted.
+              </p>}
+              <p className={theme.textSubLabel}>Copies in our encrypted database backups are gone within 30 days too.</p>
             </div>
             <div>
               <label htmlFor="delete-password" className={`block text-sm mb-1 ${theme.textLabel}`}>Your password</label>

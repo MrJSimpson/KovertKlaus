@@ -2,7 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import type { PrismaClient } from '@prisma/client';
-import { deleteAccount, deletionPreview, DELETE_PASSWORD_ATTEMPTS } from './account-deletion';
+import { deleteAccount, deletionPreview, DELETE_PASSWORD_ATTEMPTS, EXPORT_FAILED_MESSAGE } from './account-deletion';
+import type { ExportStore } from './export-store';
 import { hashPassword } from './password';
 
 const PASSWORD = ['Snow', 'Globe', '#2026'].join('');
@@ -12,11 +13,11 @@ type Mission = { id: string; code: string; title: string; status: string; organi
 type Member = { id: string; exchangeId: string; userId: string; targetUserId: string | null };
 
 /** A small in-memory world with just what account-deletion reads and writes. */
-async function world(missions: Mission[], members: Member[]) {
-  const users = [
-    { id: 'me', email: 'me@example.com', passwordHash: await hashPassword(PASSWORD) },
-    { id: 'boss', email: 'boss@example.com', passwordHash: 'x' },
-    { id: 'pal', email: 'pal@example.com', passwordHash: 'x' },
+async function world(missions: Mission[], members: Member[], opts: { verified?: boolean; storeFails?: boolean } = {}) {
+  const users: any[] = [
+    { id: 'me', email: 'me@example.com', name: 'Holly', passwordHash: await hashPassword(PASSWORD), emailVerifiedAt: opts.verified === false ? null : new Date(0), isWorkshop: false },
+    { id: 'boss', email: 'boss@example.com', name: 'Boss', passwordHash: 'x', emailVerifiedAt: new Date(0), isWorkshop: false },
+    { id: 'pal', email: 'pal@example.com', name: 'Pal', passwordHash: 'x', emailVerifiedAt: new Date(0), isWorkshop: false },
   ];
   const throttle: Array<{ scope: string; accountHash: string; createdAt: Date }> = [];
   const notices: Array<{ userId: string; dedupeKey: string; title: string }> = [];
@@ -66,7 +67,8 @@ async function world(missions: Mission[], members: Member[]) {
             if (where.exchange?.organizerId?.not && ex.organizerId === where.exchange.organizerId.not) return false;
             return true;
           })
-          .map((x) => ({ exchange: pick(byId(x.exchangeId)) })),
+          .map((x) => ({ ...x, exchange: pick(byId(x.exchangeId)) })),
+      findFirst: async () => null,
       updateMany: async ({ where, data }: any) => {
         let count = 0;
         for (const x of members) if (x.targetUserId === where.targetUserId) { x.targetUserId = data.targetUserId; count++; }
@@ -74,9 +76,13 @@ async function world(missions: Mission[], members: Member[]) {
       },
     },
     missionHistory: { create: async ({ data }: any) => history.push(data) },
-    item: { deleteMany: async () => ({ count: 0 }) },
+    exchangeMessage: { findMany: async () => [] },
+    exchangeReport: { findMany: async () => [] },
+    feedback: { findMany: async () => [] },
+    item: { deleteMany: async () => ({ count: 0 }), findMany: async () => [] },
     notification: {
       deleteMany: async () => ({ count: 0 }),
+      findMany: async () => [],
       upsert: async ({ create }: any) => notices.push(create),
     },
     $transaction: async (fn: (tx: any) => Promise<unknown>) => fn(db),
@@ -96,8 +102,24 @@ async function world(missions: Mission[], members: Member[]) {
     },
   };
   const logs: string[] = [];
-  const deps = { db: db as PrismaClient, adminDb: adminDb as PrismaClient, onDeleted: (m: string) => logs.push(m) };
-  return { deps, db: db as PrismaClient, users, missions, members, history, notices, outbox, throttle, logs, now: () => clock, advance: (ms: number) => (clock += ms) };
+  const stored = new Map<string, Uint8Array>();
+  const exportStore: ExportStore = {
+    put: async (k, d) => {
+      if (opts.storeFails) throw new Error('bucket unavailable');
+      stored.set(k, d);
+    },
+    get: async (k) => stored.get(k) ?? null,
+  };
+  const emails: Array<{ to: string; downloadUrl: string; expiresText: string }> = [];
+  const deps = {
+    db: db as PrismaClient,
+    adminDb: adminDb as PrismaClient,
+    onDeleted: (m: string) => logs.push(m),
+    exportStore,
+    baseUrl: 'https://kovertklaus.test',
+    sendExportEmail: async (e: { to: string; name: string; downloadUrl: string; expiresText: string }) => emails.push(e),
+  };
+  return { deps, db: db as PrismaClient, users, missions, members, history, notices, outbox, throttle, logs, stored, emails, now: () => clock, advance: (ms: number) => (clock += ms) };
 }
 
 test('Account deletion - preview sorts missions into run, locked, leaving and closed', async () => {
@@ -206,4 +228,48 @@ test('Account deletion - deletes the account, its closed missions, and clears li
   assert.ok(!w.notices.some((n) => n.userId === 'me'));
   assert.deepStrictEqual(w.logs, ['An agent deleted their account.']);
   assert.doesNotMatch(JSON.stringify(w.notices), /me@example\.com/, 'notices carry no email');
+});
+
+test('Account deletion - saves a copy first and emails the link after the delete', async () => {
+  const w = await world([], []);
+  const r = await deleteAccount(w.deps, 'me', { password: PASSWORD, confirm: 'DELETE' }, w.now());
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(w.stored.size, 1);
+  assert.ok([...w.stored.keys()][0].startsWith('user_backups/'));
+  assert.strictEqual(w.emails.length, 1);
+  assert.strictEqual(w.emails[0].to, 'me@example.com');
+  assert.ok(w.emails[0].downloadUrl.startsWith('https://kovertklaus.test/api/users/data-export?token='));
+  assert.match(w.emails[0].expiresText, /^December \d+, 2026$/);
+  assert.strictEqual(r.body.downloadUrl, w.emails[0].downloadUrl, 'the deleted page gets the same link');
+});
+
+test('Account deletion - if the copy cannot be saved, nothing is deleted', async () => {
+  const w = await world([], [], { storeFails: true });
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    const r = await deleteAccount(w.deps, 'me', { password: PASSWORD, confirm: 'DELETE' }, w.now());
+    assert.deepStrictEqual([r.status, r.body.error], [503, EXPORT_FAILED_MESSAGE]);
+    const noStore = await deleteAccount({ ...w.deps, exportStore: undefined }, 'me', { password: PASSWORD, confirm: 'DELETE' }, w.now());
+    assert.strictEqual(noStore.status, 503);
+  } finally {
+    console.error = quiet;
+  }
+  assert.ok(w.users.some((u) => u.id === 'me'), 'account kept');
+  assert.strictEqual(w.emails.length, 0);
+});
+
+test('Account deletion - unverified accounts get no copy and no email', async () => {
+  const w = await world([], [], { verified: false });
+  assert.strictEqual((await deletionPreview(w.db, 'me')).willExport, false);
+  const r = await deleteAccount({ ...w.deps, exportStore: undefined }, 'me', { password: PASSWORD, confirm: 'DELETE' }, w.now());
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.body.downloadUrl, undefined);
+  assert.strictEqual(w.emails.length, 0);
+  assert.ok(!w.users.some((u) => u.id === 'me'));
+});
+
+test('Account deletion - preview says a copy will be kept for verified accounts', async () => {
+  const w = await world([], []);
+  assert.strictEqual((await deletionPreview(w.db, 'me')).willExport, true);
 });

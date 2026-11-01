@@ -15,6 +15,12 @@
       "/exchange/*"
     ]
   },
+  "r2_buckets": [
+    {
+      "binding": "USER_EXPORTS",
+      "bucket_name": "kovertklaus"
+    }
+  ],
   "triggers": {
     "crons": [
       "0 * * * *"

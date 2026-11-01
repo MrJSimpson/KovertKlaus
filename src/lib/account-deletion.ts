@@ -10,7 +10,9 @@
  * deletion is immediate and permanent (password plus typing DELETE); it is refused while the agent
  * runs an open mission (they cancel or finish it first) or is in a mission after its draw (so no gift
  * circle breaks mid-season); before a draw, deleting simply removes them from the mission; missions
- * they ran that are closed are deleted with the account; Coal Citations are deleted too (nothing kept).
+ * they ran that are closed are deleted with the account; Coal Citations are deleted too. Before the
+ * delete, a sealed copy of the agent's own data is stored for 30 days (`account-export.ts`) and the
+ * link is emailed after it (owner request, 2026-11-01); if the copy cannot be stored, nothing is deleted.
  * Tier 3 (how): Most data cascades from `User` (memberships, wishlists, items, messages, reports,
  * notifications, feedback, invitations sent). Two foreign keys do not: `Exchange.organizer` (closed
  * missions they ran are erased first, as `mission-cancel.ts` erases a cancelled mission, with a
@@ -25,6 +27,9 @@ import { getSessionSecret } from '@/lib/security';
 import { comparePassword } from '@/lib/password';
 import { isRosterLocked } from '@/lib/mission-repair';
 import { notifyOnce } from '@/lib/notifications';
+import { createAccountExport } from '@/lib/account-export';
+import { isUnverified } from '@/lib/email-verification';
+import type { ExportStore } from '@/lib/export-store';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -57,6 +62,8 @@ export interface DeletionPreview {
   closedMissionsRun: number;
   /** True when nothing blocks the deletion. */
   canDelete: boolean;
+  /** True when a copy of the agent's data will be kept and emailed (verified accounts only). */
+  willExport: boolean;
 }
 
 /** What a route returns. */
@@ -74,6 +81,20 @@ export interface DeletionDeps {
   adminDb: PrismaClient;
   /** One INFO line for the system log, without personal data (optional). */
   onDeleted?: (message: string, metadata: Record<string, unknown>) => void;
+  /** Where the copy of the agent's data is kept; required for verified accounts. */
+  exportStore?: ExportStore;
+  /** Site origin for the download link, e.g. `https://kovertklaus.com`. */
+  baseUrl: string;
+  /** Sends the "account deleted" email with the download link (best effort). */
+  sendExportEmail?: (email: { to: string; name: string; downloadUrl: string; expiresText: string }) => Promise<unknown>;
+}
+
+/** Reply when the copy of the agent's data could not be stored, so nothing was deleted. */
+export const EXPORT_FAILED_MESSAGE = "We couldn't save a copy of your data, so nothing was deleted. Please try again in a few minutes.";
+
+/** "December 1, 2026" on the Pacific calendar. */
+function longDate(ms: number): string {
+  return new Date(ms).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' });
 }
 
 const MISSION_SELECT = { id: true, code: true, title: true, status: true, organizerId: true } as const;
@@ -96,9 +117,10 @@ function ref(m: { id: string; code: string; title: string; status: string }): Mi
  * @param db - App-schema client.
  */
 export async function deletionPreview(db: PrismaClient, userId: string): Promise<DeletionPreview> {
-  const [run, memberships] = await Promise.all([
+  const [run, memberships, user] = await Promise.all([
     db.exchange.findMany({ where: { organizerId: userId }, select: MISSION_SELECT }),
     db.exchangeMember.findMany({ where: { userId }, select: { exchange: { select: MISSION_SELECT } } }),
+    db.user.findUnique({ where: { id: userId }, select: { emailVerifiedAt: true, isWorkshop: true } }),
   ]);
   const runningMissions = run.filter((m) => !isMissionFinished(m.status)).map(ref);
   const joined = memberships.map((m) => m.exchange).filter((m) => m.organizerId !== userId);
@@ -110,6 +132,7 @@ export async function deletionPreview(db: PrismaClient, userId: string): Promise
     leavingMissions,
     closedMissionsRun: run.length - runningMissions.length,
     canDelete: runningMissions.length === 0 && lockedMissions.length === 0,
+    willExport: Boolean(user) && !isUnverified(user!),
   };
 }
 
@@ -148,7 +171,10 @@ export async function deleteAccount(
   if (!password) return { status: 400, body: { error: 'Enter your password to confirm.' } };
 
   const { db, adminDb } = deps;
-  const user = await db.user.findUnique({ where: { id: userId }, select: { id: true, email: true, passwordHash: true } });
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, passwordHash: true, emailVerifiedAt: true, isWorkshop: true },
+  });
   if (!user) return { status: 401, body: { error: 'Please sign in again.' } };
 
   const accountHash = throttleKey(user.id);
@@ -166,6 +192,22 @@ export async function deleteAccount(
       status: 409,
       body: { error: 'Your account cannot be deleted yet. Close or finish the missions listed first.', ...preview },
     };
+  }
+
+  // A copy of the agent's own data, stored before anything is deleted. Unverified accounts never used
+  // the app and their address is unproven, so they get no copy (and no email to that address).
+  let exported: { url: string; expiresAtMs: number } | null = null;
+  if (!isUnverified(user)) {
+    if (!deps.exportStore) {
+      console.error('[AccountDeletion] no export store configured; refusing to delete without the copy');
+      return { status: 503, body: { error: EXPORT_FAILED_MESSAGE } };
+    }
+    try {
+      exported = await createAccountExport(db, deps.exportStore, user.id, deps.baseUrl, nowMs);
+    } catch (err) {
+      console.error('[AccountDeletion] could not store the export; nothing deleted:', err);
+      return { status: 503, body: { error: EXPORT_FAILED_MESSAGE } };
+    }
   }
 
   // Who to tell afterwards: Head Elves of missions the agent is leaving, and agents of closed missions they ran.
@@ -240,9 +282,27 @@ export async function deleteAccount(
     await notifyOnce(db, { ...n, exchangeId: null }).catch((err: unknown) => console.warn('[AccountDeletion] notice failed:', err));
   }
 
+  if (exported && deps.sendExportEmail) {
+    try {
+      await deps.sendExportEmail({ to: user.email, name: user.name, downloadUrl: exported.url, expiresText: longDate(exported.expiresAtMs) });
+    } catch (err) {
+      console.warn('[AccountDeletion] export email failed:', err);
+    }
+  }
+
   deps.onDeleted?.('An agent deleted their account.', {
     leftMissions: leaving.length,
     deletedMissions: closedRun.length,
+    exported: Boolean(exported),
   });
-  return { status: 200, body: { success: true, message: 'Your account and its data have been deleted.' } };
+  return {
+    status: 200,
+    body: {
+      success: true,
+      message: exported
+        ? "Your account and its data have been deleted. We've emailed you a link to download a copy of your data."
+        : 'Your account and its data have been deleted.',
+      ...(exported ? { downloadUrl: exported.url, downloadUntil: longDate(exported.expiresAtMs) } : {}),
+    },
+  };
 }

@@ -168,6 +168,20 @@ export async function tickLoginThrottlePurge(now = Date.now()): Promise<void> {
   await purgeLoginThrottle(adminDb, now);
 }
 
+/** How often the self-hosted scheduler deletes account-deletion exports older than 30 days. */
+const EXPORT_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
+let lastExportSweepAt = 0;
+
+/** Deletes exports in `EXPORT_DIR` older than 30 days, at most once an hour (`src/lib/export-store-disk.ts`). */
+export async function tickExportSweep(now = Date.now()): Promise<void> {
+  if (now - lastExportSweepAt < EXPORT_SWEEP_INTERVAL_MS) return;
+  lastExportSweepAt = now;
+  // Imported here so the scheduler's tests stay offline.
+  const { sweepDiskExports } = await import('./export-store-disk');
+  const removed = await sweepDiskExports(undefined, now);
+  if (removed > 0) console.log(`[Lifecycle Scheduler] Deleted ${removed} account export(s) older than 30 days.`);
+}
+
 export function stopLifecycleScheduler(): void {
   if (globalThis.__kovertklaus_lifecycle_initial_timeout__) {
     clearTimeout(globalThis.__kovertklaus_lifecycle_initial_timeout__);
@@ -228,6 +242,11 @@ export function initLifecycleScheduler(tickIntervalMs = 60000): void {
       await tickLoginThrottlePurge();
     } catch (err) {
       console.error('[Lifecycle Scheduler] Error purging sign-in throttle rows:', err);
+    }
+    try {
+      await tickExportSweep();
+    } catch (err) {
+      console.error('[Lifecycle Scheduler] Error deleting old account exports:', err);
     }
   }, tickIntervalMs);
   ticker.unref?.();
