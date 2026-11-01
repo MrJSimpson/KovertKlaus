@@ -1,5 +1,5 @@
 # KovertKlaus Dev Server Shutdown Script
-$projectDir = "C:\Users\Joshua\projects\kovertklaus"
+$projectDir = $PSScriptRoot  # the folder this script lives in
 Set-Location $projectDir
 
 # Find processes listening on port 2425

@@ -17,7 +17,8 @@
     "demo:load": "tsx --env-file=.env scripts/demo-db.ts",
     "demo:remove": "tsx --env-file=.env scripts/demo-db.ts --remove",
     "test": "tsx --test src/worker.test.ts src/lib/*.test.ts src/lib/**/*.test.ts src/app/**/*.test.ts scripts/*.test.ts",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:password": "node scripts/ensure-db-password.mjs"
   },
   "prisma": {
     "seed": "tsx --env-file=.env prisma/seed.ts"

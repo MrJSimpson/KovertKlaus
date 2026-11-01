@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Privacy Policy and Terms describe self-service deletion (what is removed, what has to happen first, backups gone within 30 days) instead of "coming soon"; the Features page mentions it.
 - Versions now use `MAJOR.MINOR.PATCH-stage` by feature area (Missions, Wishlists, Accounts, Notifications & Email, North Pole, Shipping) instead of `1.0.0-beta.N`, and releases ship when their scope is verified rather than on dates (`docs/VERSIONING.md` §1–§3). The next release is `1.1.0-beta`. Removed the unused `RELEASE_TIMELINE` constant.
 
+### Security
+- **No database password in the repository.** The local Docker database used a fixed password written into `docker-compose.yml`, `.env.example`, `prisma.config.ts` and the self-hosted guide. `docker-compose.yml` now reads `POSTGRES_PASSWORD` from `.env` and refuses to start without it, and `npm run db:password` (also run by the start scripts) creates a random one on a fresh install. **Upgrading a self-hosted install:** run `npm run db:password` once before `docker compose up`; it reuses the password from your local `DATABASE_URL` in `.env`, or tells you to add the password your database was created with. Postgres keeps the password it was created with, so nothing else changes.
+
+### Fixed
+- The Windows launchers (`run-kovertklaus.bat`/`.ps1`, `stop-kovertklaus.bat`/`.ps1`) no longer contain one developer's home folder; they run from wherever the repository is.
+
 ---
 
 ## [1.0.0-beta.1] - 2026-10-31
