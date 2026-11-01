@@ -6,13 +6,18 @@ This protocol says **when** the version changes, **what** each release must incl
 
 ## 1. Version format
 
-KovertKlaus uses [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html) with a release-stage suffix:
+KovertKlaus uses [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html) in the form **`MAJOR.MINOR.PATCH-stage`** (owner decision 2026-10-31):
 
-| Stage | Format | Window | Example |
-| :--- | :--- | :--- | :--- |
-| Alpha | `0.MINOR.PATCH-alpha` | now → Oct 31, 2026 | `0.3.0-alpha`, `0.3.1-alpha` |
-| Beta (Season 1) | `1.0.0-beta.N` | Nov 1, 2026 → GA | `1.0.0-beta.1`, `1.0.0-beta.2` |
-| General Availability | `MAJOR.MINOR.PATCH` | from Jan 31, 2027 | `1.0.0`, `1.1.0`, `1.1.1` |
+| Part | Meaning |
+| :--- | :--- |
+| `MAJOR` | A change to the whole app, or a new feature area (§2) |
+| `MINOR` | Changes inside an existing feature area |
+| `PATCH` | The hotfix number: fixes to what is already released |
+| `-stage` | `-alpha` or `-beta` while the product is in that stage. Dropped at general release, when one version covers SaaS and self-hosted. |
+
+Examples: `1.1.0-beta`, `1.1.1-beta`, `2.0.0-beta`, and later `3.0.0`.
+
+**History:** alpha releases used `0.MINOR.PATCH-alpha` (`0.2.0-alpha` to `0.8.0-alpha`). The first beta was published as `1.0.0-beta.1`, the only release in the old `1.0.0-beta.N` form; it keeps that number because its tag is public.
 
 The single source of truth is `version` in `package.json`. `src/lib/version.ts` (`APP_VERSION`), the newest `CHANGELOG.md` section and the newest entry in `src/lib/announcements.ts` must match it. A unit test (`src/lib/version.test.ts`) fails the build when they drift.
 
@@ -20,26 +25,27 @@ The single source of truth is `version` in `package.json`. `src/lib/version.ts` 
 
 ## 2. When to bump
 
-Decide by the **highest-impact change** going into the release.
+Versions follow **feature areas**, not files. The areas are:
+
+**Missions** · **Wishlists** · **Accounts** · **Notifications & Email** · **North Pole** · **Shipping**
 
 | Bump | Trigger (any one is enough) | Examples |
 | :--- | :--- | :--- |
-| **MINOR** (alpha: `0.x.0`; GA: `x.y.0`) | • A new capability users can see or use<br>• Any database schema change (operators must run `prisma db push`)<br>• A change operators must act on (new required env var, changed deploy step)<br>• A breaking change to an API, URL or workflow | Mission Comms channels, email invitations, session revocation (new column) |
-| **PATCH** (`x.y.z`) | • Bug or security fix<br>• Small UX or copy change to an existing feature<br>• Performance or reliability fix | Worker email config fix, dead link removal |
+| **MAJOR** (`x.0.0`) | • A change that affects the whole app<br>• A new feature area | Installable mobile app (PWA), full visual refresh |
+| **MINOR** (`x.y.0`) | • New or changed behaviour inside an existing area, even when it adds files<br>• A database schema change inside an area (operators must run `prisma db push`)<br>• A change operators must act on (new required env var, changed deploy step) | Head Elf approval for code joins (Missions), email verification (Accounts) |
+| **PATCH** (`x.y.z`) | • Bug or security fix to released behaviour<br>• Small copy or UX correction | Worker email config fix, dead link removal |
 | **No release** | Docs-only, tests-only or CI-only changes | Runner pin, README typo |
 
-During **beta**, every release increments `N` (`1.0.0-beta.N`); the changelog still labels each change as a feature or a fix.
-
-**MAJOR** changes only at GA (`1.0.0`) and afterwards for breaking changes to self-hosted operators (removed env vars, incompatible schema, removed API).
+A release takes the **largest** bump among its changes: one MAJOR item makes the whole release MAJOR. Bumping a part resets the parts to its right (`1.1.2-beta` → `1.2.0-beta`). The changelog still labels each change as added, changed, fixed, security or removed.
 
 ---
 
 ## 3. Release cadence
 
+There is **no scheduled release cycle** (owner decision 2026-10-31): a release ships when its scope is done and verified, not on a date.
+
 - **Every pull request** with a user-visible or operator-visible change adds a line under `## [Unreleased]` in `CHANGELOG.md` (`Added`, `Changed`, `Fixed`, `Security`, `Removed`).
-- **Cut a release**
-  - **minor:** as soon as the minor-triggering work is merged **and verified in production**;
-  - **patch:** the same day a fix reaches production, or at the latest at the Monday retrospective if `[Unreleased]` has patch-level items.
+- **Cut a release** when the release branch's planned scope is merged and the branch is verified as a whole (§4). Urgent fixes ship as a hotfix PATCH (§4.6) as soon as they are verified.
 - One release = **one release pull request** named `release: vX.Y.Z-stage`.
 
 ---
@@ -57,7 +63,7 @@ feat/… fix/… docs/… ──●      ●      ●           (work branches: 
 ```
 
 1. **Open the release branch** when the next release is known: `git checkout main && git pull && git checkout -b release/vX.Y.Z-stage && git push -u origin release/vX.Y.Z-stage`. Only one release branch is open at a time.
-2. **Work branches** (`feat/`, `fix/`, `docs/`, `refactor/`, `test/`, `sec/`) are cut **from the release branch**, and their pull requests **target the release branch** (`gh pr create --base release/vX.Y.Z-stage`), never `main`. Git cannot nest a branch under another branch's name (`release/v1.0.0-beta.1/fix-x` is not possible while `release/v1.0.0-beta.1` exists), so the base branch, not the name, makes a work branch part of a release.
+2. **Work branches** (`feat/`, `fix/`, `docs/`, `refactor/`, `test/`, `sec/`) are cut **from the release branch**, and their pull requests **target the release branch** (`gh pr create --base release/vX.Y.Z-stage`), never `main`. Git cannot nest a branch under another branch's name (`release/v1.1.0-beta/fix-x` is not possible while `release/v1.1.0-beta` exists), so the base branch, not the name, makes a work branch part of a release.
 3. **No conflicts at release time:** before a work branch's pull request is merged, merge the current release branch into it and resolve any conflicts there. The release branch itself is never edited directly; it only receives merged pull requests.
 4. **Verify the release branch as a whole** on the test server before releasing: `npm test`, `npm run build`, and the checks listed in each merged pull request.
 5. **Release:** the release checklist (§5) is the last pull request into the release branch (`release: vX.Y.Z-stage`). Then one pull request merges the release branch into `main`. That merge starts the SaaS sync and the production deploy once, and its merge commit is tagged.
@@ -79,7 +85,7 @@ feat/… fix/… docs/… ──●      ●      ●           (work branches: 
 
 ## 6. Branch pruning
 
-After **every** release is merged and deployed, delete the release branch and its merged work branches. After a **minor** release, also delete every other **merged** branch except `main`, local and remote, in **both** repositories (`kovertklaus` and `kovertklaus-saas`). Branches that are not fully merged are listed for the owner to decide; they are never deleted automatically. Release history lives in the changelog, announcements and tags, so nothing is lost when branches go.
+After **every** release is merged and deployed, delete the release branch and its merged work branches. After a **MAJOR or MINOR** release, also delete every other **merged** branch except `main`, local and remote, in **both** repositories (`kovertklaus` and `kovertklaus-saas`). Branches that are not fully merged are listed for the owner to decide; they are never deleted automatically. Release history lives in the changelog, announcements and tags, so nothing is lost when branches go.
 
 ---
 
