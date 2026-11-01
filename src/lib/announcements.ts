@@ -65,6 +65,19 @@ export const ANNOUNCEMENTS: Announcement[] = [
     ],
   },
   {
+    version: '1.1.1-beta',
+    date: '2026-11-01',
+    title: 'Fix: the home page opens straight to sign-up',
+    summary: 'For a moment while it loaded, the home page could show an old alpha "clearance request" form. It now shows sign-up and sign-in right away.',
+    highlights: [
+      {
+        emoji: '🏠',
+        title: 'Sign up without waiting',
+        text: 'The home page no longer flashes the old early-access request form. Anyone can sign up directly; no approval needed.',
+      },
+    ],
+  },
+  {
     version: '1.1.0-beta',
     date: '2026-11-01',
     title: 'Safer accounts: confirm your email, delete your account, approve who joins',
