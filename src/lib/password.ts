@@ -1,3 +1,4 @@
+import { normalizePassword } from '@/lib/password-policy';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 
@@ -34,7 +35,8 @@ export const DUMMY_PASSWORD_HASH =
  */
 export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.randomBytes(16);
-  const hash = crypto.scryptSync(password, salt, SCRYPT_KEYLEN, {
+  // NFC-normalized (src/lib/password-policy.ts), so the same password typed on another keyboard matches.
+  const hash = crypto.scryptSync(normalizePassword(password), salt, SCRYPT_KEYLEN, {
     N: SCRYPT_N,
     r: SCRYPT_R,
     p: SCRYPT_P,
@@ -58,6 +60,14 @@ export async function comparePassword(password: string, storedHash: string): Pro
   if (typeof storedHash !== 'string' || !storedHash || typeof password !== 'string') {
     return false;
   }
+  // New hashes use the NFC form; hashes made before 2026-11-01 used the password exactly as typed.
+  const normalized = normalizePassword(password);
+  if (await compareExact(normalized, storedHash)) return true;
+  return normalized !== password && compareExact(password, storedHash);
+}
+
+/** Compares one exact candidate against a stored hash (scrypt, or legacy bcrypt). */
+async function compareExact(password: string, storedHash: string): Promise<boolean> {
 
   // Fast path: Native scrypt
   if (storedHash.startsWith('$scrypt$')) {

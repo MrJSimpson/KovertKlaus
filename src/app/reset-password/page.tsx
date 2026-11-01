@@ -17,14 +17,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
+import { PasswordChecklist } from '@/components/PasswordChecklist';
 
-const PASSWORD_RULES: { label: string; test: (p: string) => boolean }[] = [
-  { label: 'At least 10 characters', test: (p) => p.length >= 10 },
-  { label: 'An uppercase letter (A-Z)', test: (p) => /[A-Z]/.test(p) },
-  { label: 'A lowercase letter (a-z)', test: (p) => /[a-z]/.test(p) },
-  { label: 'A number (0-9)', test: (p) => /[0-9]/.test(p) },
-  { label: 'A special character (!@#$%^&*)', test: (p) => /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(p) },
-];
 
 type Notice = { kind: 'success' | 'warning' | 'error'; text: string } | null;
 
@@ -150,16 +144,7 @@ export default function ResetPasswordPage() {
                 aria-describedby="reset-rules"
                 className={inputClass}
               />
-              <ul id="reset-rules" className="mt-2 space-y-0.5 text-xs">
-                {PASSWORD_RULES.map((rule) => {
-                  const met = rule.test(password);
-                  return (
-                    <li key={rule.label} className={met ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
-                      {met ? '✓' : '○'} {rule.label}
-                    </li>
-                  );
-                })}
-              </ul>
+              <PasswordChecklist password={password} id="reset-rules" />
             </div>
             <div>
               <label htmlFor="reset-confirm" className={`block text-sm mb-1 ${theme.textLabel}`}>Confirm new password</label>

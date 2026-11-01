@@ -12,6 +12,7 @@ import { APP_VERSION_LABEL } from '@/lib/version';
 import { isAlphaStage } from '@/lib/platform-limits';
 import { WhatsNewButton } from '@/components/WhatsNewButton';
 import { LegalAgreement } from '@/components/LegalAgreement';
+import { PasswordChecklist } from '@/components/PasswordChecklist';
 
 
 
@@ -1038,33 +1039,14 @@ export function AppHomeLanding() {
                     type="password"
                     required
                     minLength={10}
-                    placeholder="Enter new strong password"
+                    placeholder="10+ characters, a short phrase works well"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none ${theme.inputModalBg}`}
                   />
                 </div>
 
-                {password.length > 0 && (
-                  <div className="p-3.5 rounded-2xl bg-kk-inset border border-kk-border text-[11px] space-y-1.5 font-mono">
-                    <div className="font-bold mb-1 text-kk-muted">Password Security Requirements:</div>
-                    <div className={password.length >= 10 ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
-                      {password.length >= 10 ? '✓' : '○'} Minimum 10 characters long
-                    </div>
-                    <div className={/[A-Z]/.test(password) ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
-                      {/[A-Z]/.test(password) ? '✓' : '○'} At least 1 uppercase letter (A-Z)
-                    </div>
-                    <div className={/[a-z]/.test(password) ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
-                      {/[a-z]/.test(password) ? '✓' : '○'} At least 1 lowercase letter (a-z)
-                    </div>
-                    <div className={/[0-9]/.test(password) ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
-                      {/[0-9]/.test(password) ? '✓' : '○'} At least 1 number (0-9)
-                    </div>
-                    <div className={/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? 'text-kk-brand font-bold' : 'text-kk-muted'}>
-                      {/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? '✓' : '○'} At least 1 special character (!@#$%^&*)
-                    </div>
-                  </div>
-                )}
+                {password.length > 0 && <PasswordChecklist password={password} />}
 
                 <LegalAgreement />
                 <div className="flex gap-3 pt-2">

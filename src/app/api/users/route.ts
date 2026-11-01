@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { adminDb } from '@/lib/adminDb';
-import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
+import { sanitizeText, isValidEmail } from '@/lib/security';
 import { emailVerificationRequired, setSessionCookie } from '@/lib/auth';
 import { emailQuotaResumesAt, isEmailQuotaReached, sendEmailVerificationEmail, sendWelcomeEmail } from '@/lib/email';
 import { sendVerificationEmail } from '@/lib/email-verification';
+import { checkNewPassword } from '@/lib/password-check';
 import { getPlatformSettings } from '@/lib/platform-limits';
 import { logInfo, logWarn } from '@/lib/logger';
 import { clientIp } from '@/lib/login-throttle';
@@ -41,8 +42,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
     }
 
-    // Validate 10-Character Complex Password Policy
-    const passCheck = validatePassword(password);
+    // Password rules: 10+ characters, not common, contextual or breached (src/lib/password-check.ts)
+    const passCheck = await checkNewPassword(password, { email, name });
     if (!passCheck.isValid) {
       return NextResponse.json({ error: passCheck.error }, { status: 400 });
     }

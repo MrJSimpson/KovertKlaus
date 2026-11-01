@@ -142,7 +142,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     heading: 'Built to be safe',
     lead: 'Protections that work quietly in the background.',
     points: [
-      'Passwords are stored as salted one-way hashes; sessions use a secure, HTTP-only cookie.',
+      'Passwords need 10+ characters (a short phrase works well), with no symbol rules; common and leaked passwords are refused. They are stored as salted one-way hashes; sessions use a secure, HTTP-only cookie.',
       `New accounts confirm their email address before opening the dashboard (the link lasts ${f.verifyLinkHours} hours), and an unverified agent can't be drawn in a Secret Santa.`,
       `Forgot your password? A single-use reset link by email, valid for ${f.resetLinkMinutes} minutes.`,
       `Sign-in, sign-up, password resets and mission codes are rate-limited; after ${f.wrongCodesPerHour} wrong mission codes in an hour, you wait.`,

@@ -3,7 +3,8 @@ import { comparePassword, hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { getSessionUserId, getSessionUserState, clearSessionCookie, renewSessionCookieIfStale, setSessionCookie } from '@/lib/auth';
 import { EMAIL_UNVERIFIED_CODE } from '@/lib/email-verification';
-import { sanitizeText, validatePassword } from '@/lib/security';
+import { checkNewPassword } from '@/lib/password-check';
+import { sanitizeText } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
@@ -152,8 +153,8 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: 'Incorrect current password' }, { status: 400 });
       }
 
-      // Validate 10-char complexity
-      const passCheck = validatePassword(newPassword);
+      // Password rules: 10+ characters, not common, contextual or breached (src/lib/password-check.ts)
+      const passCheck = await checkNewPassword(newPassword, { email: user.email, name: user.name });
       if (!passCheck.isValid) {
         return NextResponse.json({ error: passCheck.error }, { status: 400 });
       }
