@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { adminDb } from '@/lib/adminDb';
 import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
 import { emailVerificationRequired, setSessionCookie } from '@/lib/auth';
-import { isDailyEmailQuotaReached, sendEmailVerificationEmail, sendWelcomeEmail } from '@/lib/email';
+import { emailQuotaResumesAt, isEmailQuotaReached, sendEmailVerificationEmail, sendWelcomeEmail } from '@/lib/email';
 import { sendVerificationEmail } from '@/lib/email-verification';
 import { getPlatformSettings } from '@/lib/platform-limits';
 import { logInfo, logWarn } from '@/lib/logger';
@@ -133,7 +133,8 @@ export async function POST(request: Request) {
       ({ queued: verificationQueued } = await sendVerificationEmail(
         {
           baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin,
-          isQuotaReached: () => isDailyEmailQuotaReached(),
+          isQuotaReached: () => isEmailQuotaReached(),
+          quotaResumesAt: () => emailQuotaResumesAt(),
           sendEmail: (email) => sendEmailVerificationEmail(email),
         },
         user

@@ -1,45 +1,62 @@
 /**
  * @file daily-limit.ts
- * @description Keeps Brevo sends under the free tier's daily quota and holds the overflow.
+ * @description Keeps Brevo sends under the sending allowance (per day or per month) and holds the overflow.
  *
- * Tier 1 (what): Counts today's Brevo recipients, holds any email that would pass the sending cap
- * in the `EmailOutbox` table, and sends held mail oldest first once the quota day resets
- * (midnight Pacific). Logs one warning per day at 80% of the quota.
+ * Tier 1 (what): Counts the current period's Brevo recipients, holds any email that would pass the
+ * sending cap in the `EmailOutbox` table, and sends held mail oldest first once the period (or, in
+ * monthly mode, the day's cap) resets. Logs one warning per period at 80% of the quota.
  * Tier 2 (why): Brevo's free tier allows 300 transactional emails a day and rejects the rest; its
  * requeue covers campaigns only, so an over-quota send was lost (owner decision 2026-10-26: hold
  * the overflow, one cap for every email, oldest first, warning in the North Pole log only).
  * The cap sits 10 below the quota to cover sends the ledger misses (two sends racing at the cap,
- * a ledger write that fails after a send).
+ * a ledger write that fails after a send). Since 2026-11-01 the allowance is a North Pole setting
+ * (`quota-config.ts`): DAY (midnight Pacific) or MONTH (from a reset day), with an optional daily
+ * cap in monthly mode. A quota rejection from Brevo no longer counts as a failed attempt, so mail
+ * held for weeks in monthly mode is not given up on.
  * Tier 3 (how): Pure helpers plus an `EmailQuotaStore` interface; `prismaQuotaStore` is the
  * database implementation and tests use an in-memory one. The dispatcher calls these; the hourly
  * cron (Worker) and the 60-second scheduler tick (self-hosted) call `flushHeldEmails`.
  */
 
 import type { EmailMessage, EmailResult } from './types';
+import { DEFAULT_QUOTA_CONFIG, type EmailQuotaPeriod, type QuotaConfig } from './quota-config';
 
-/** Brevo's daily quota, the sending cap below it and the warning point. */
+/** The allowance, the sending cap below it, the warning point, and how the period is counted. */
 export interface QuotaSettings {
+  period: EmailQuotaPeriod;
   quota: number;
   cap: number;
   warnAt: number;
+  /** Day of the month a MONTH period starts (1-28). */
+  resetDay: number;
+  /** Per-day cap in MONTH mode; 0 means none. Always 0 in DAY mode. */
+  dailyCap: number;
 }
 
 /** Brevo free tier: 300 a day, reset at midnight Pacific (per the owner). */
 export const DEFAULT_DAILY_QUOTA = 300;
 /** Sends kept spare below the quota for anything the ledger misses. */
 export const QUOTA_RESERVE = 10;
-/** A held email is marked failed after this many failed flush attempts. */
+/** A held email is marked failed after this many failed flush attempts (real errors, not quota). */
 export const MAX_FLUSH_ATTEMPTS = 5;
-/** Sent and failed ledger rows are deleted after this many days. */
-export const LEDGER_RETENTION_DAYS = 30;
+/** Sent and failed ledger rows are deleted after this many days (longer than any monthly period). */
+export const LEDGER_RETENTION_DAYS = 35;
 
 const QUOTA_TIME_ZONE = 'America/Los_Angeles';
 
-/** Settings for a quota; `EMAIL_DAILY_QUOTA` overrides 300 (for example after a plan upgrade). */
-export function quotaSettings(env?: Record<string, string | undefined>): QuotaSettings {
-  const parsed = parseInt(env?.EMAIL_DAILY_QUOTA || '', 10);
-  const quota = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_DAILY_QUOTA;
-  return { quota, cap: Math.max(1, quota - QUOTA_RESERVE), warnAt: Math.floor(quota * 0.8) };
+/** Settings for the North Pole allowance (`quota-config.ts`); defaults to 300 a day. */
+export function quotaSettings(config: Partial<QuotaConfig> = {}): QuotaSettings {
+  const c = { ...DEFAULT_QUOTA_CONFIG, ...config };
+  const period: EmailQuotaPeriod = c.period === 'MONTH' ? 'MONTH' : 'DAY';
+  const quota = c.quota > 0 ? c.quota : DEFAULT_DAILY_QUOTA;
+  return {
+    period,
+    quota,
+    cap: Math.max(1, quota - QUOTA_RESERVE),
+    warnAt: Math.floor(quota * 0.8),
+    resetDay: Math.min(28, Math.max(1, Math.round(c.resetDay))),
+    dailyCap: period === 'MONTH' && c.dailyCap > 0 ? c.dailyCap : 0,
+  };
 }
 
 /** Milliseconds the Pacific wall clock is ahead of UTC at `at` (negative: behind). */
@@ -53,6 +70,34 @@ function pacificOffsetMs(at: Date): number {
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   const wall = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
   return wall - Math.floor(at.getTime() / 1000) * 1000;
+}
+
+/** The Pacific wall-clock date (year, 0-based month, day) at `at`. */
+function pacificDate(at: Date): { y: number; m: number; d: number } {
+  const wall = new Date(at.getTime() + pacificOffsetMs(at));
+  return { y: wall.getUTCFullYear(), m: wall.getUTCMonth(), d: wall.getUTCDate() };
+}
+
+/** The instant of midnight Pacific on a wall-clock date (month and day may overflow; Date.UTC normalises). */
+function pacificMidnight(y: number, m: number, d: number): Date {
+  const wallMidnight = Date.UTC(y, m, d);
+  // The offset at midnight can differ from noon's on a daylight-saving change day, so refine once.
+  const guess = new Date(wallMidnight - pacificOffsetMs(new Date(wallMidnight)));
+  return new Date(wallMidnight - pacificOffsetMs(guess));
+}
+
+/** When the current quota period began: midnight Pacific today (DAY) or on the latest reset day (MONTH). */
+export function periodStart(settings: Pick<QuotaSettings, 'period' | 'resetDay'>, now: Date = new Date()): Date {
+  if (settings.period !== 'MONTH') return quotaDayStart(now);
+  const { y, m, d } = pacificDate(now);
+  return d >= settings.resetDay ? pacificMidnight(y, m, settings.resetDay) : pacificMidnight(y, m - 1, settings.resetDay);
+}
+
+/** When the next quota period begins. */
+export function nextPeriodStart(settings: Pick<QuotaSettings, 'period' | 'resetDay'>, now: Date = new Date()): Date {
+  const start = periodStart(settings, now);
+  const { y, m, d } = pacificDate(new Date(start.getTime() + 12 * 60 * 60 * 1000));
+  return settings.period === 'MONTH' ? pacificMidnight(y, m + 1, settings.resetDay) : pacificMidnight(y, m, d + 1);
 }
 
 /** The instant the current quota day began: the most recent midnight in Pacific time. */
@@ -109,13 +154,31 @@ export interface QuotaDecision {
   usedBefore: number;
 }
 
-/** Decides whether an email of `recipients` fits under today's cap. */
+/** Decides whether an email of `recipients` fits under the period's cap (and the day's, in monthly mode). */
 export async function checkQuota(store: EmailQuotaStore, recipients: number, settings: QuotaSettings, now: Date = new Date()): Promise<QuotaDecision> {
-  const usedBefore = await store.sentSince(quotaDayStart(now));
-  return { send: usedBefore + recipients <= settings.cap, usedBefore };
+  const usedBefore = await store.sentSince(periodStart(settings, now));
+  if (usedBefore + recipients > settings.cap) return { send: false, usedBefore };
+  if (settings.dailyCap > 0) {
+    const usedToday = await store.sentSince(quotaDayStart(now));
+    if (usedToday + recipients > settings.dailyCap) return { send: false, usedBefore };
+  }
+  return { send: true, usedBefore };
 }
 
-/** True when a send moved today's count from below the warning point to at or above it. */
+/**
+ * When held mail can go out again, or `null` when one more email would send now: the next period
+ * when the period's cap is reached, otherwise the next day when only the daily cap is.
+ */
+export async function quotaResumesAt(store: EmailQuotaStore, settings: QuotaSettings, now: Date = new Date()): Promise<Date | null> {
+  const usedPeriod = await store.sentSince(periodStart(settings, now));
+  if (usedPeriod + 1 > settings.cap) return nextPeriodStart(settings, now);
+  if (settings.dailyCap > 0 && (await store.sentSince(quotaDayStart(now))) + 1 > settings.dailyCap) {
+    return nextPeriodStart({ period: 'DAY', resetDay: 1 }, now);
+  }
+  return null;
+}
+
+/** True when a send moved the period's count from below the warning point to at or above it. */
 export function crossedWarning(usedBefore: number, recipients: number, settings: QuotaSettings): boolean {
   return usedBefore < settings.warnAt && usedBefore + recipients >= settings.warnAt;
 }
@@ -141,21 +204,28 @@ export async function flushHeldEmails(
   const summary: FlushSummary = { sent: 0, failed: 0, gaveUp: 0, remaining: 0 };
   await store.prune(new Date(now.getTime() - LEDGER_RETENTION_DAYS * 24 * 60 * 60 * 1000));
 
-  let used = await store.sentSince(quotaDayStart(now));
-  const held = await store.listHeld(Math.max(0, settings.cap - used));
+  let used = await store.sentSince(periodStart(settings, now));
+  let usedToday = settings.dailyCap > 0 ? await store.sentSince(quotaDayStart(now)) : 0;
+  const room = Math.max(0, Math.min(settings.cap - used, settings.dailyCap > 0 ? settings.dailyCap - usedToday : Infinity));
+  const held = await store.listHeld(room);
   for (const email of held) {
     if (used + email.recipients > settings.cap) break;
+    if (settings.dailyCap > 0 && usedToday + email.recipients > settings.dailyCap) break;
     const result = await deliver(email.message);
     if (result.success) {
       await store.markSent(email.id);
       used += email.recipients;
+      usedToday += email.recipients;
       summary.sent++;
+    } else if (isQuotaRejection(result.error)) {
+      // Still over quota at the provider: wait for the next run. Not an attempt, so mail held for
+      // weeks in monthly mode is never given up on because of the quota.
+      summary.failed++;
+      break;
     } else {
       const { gaveUp } = await store.markAttemptFailed(email.id, result.error || 'unknown error');
       summary.failed++;
       if (gaveUp) summary.gaveUp++;
-      // Still over quota at the provider: wait for the next run instead of burning attempts.
-      if (isQuotaRejection(result.error)) break;
     }
   }
   summary.remaining = await store.heldCount();

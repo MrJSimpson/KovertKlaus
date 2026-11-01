@@ -580,6 +580,13 @@ model SystemConfig {
   maxItemQuantity         Int     @default(25)
   /// "ALPHA" (registration needs a code) | "BETA". Switched from the North Pole, no redeploy.
   releaseStage            String  @default("ALPHA")
+  /// Brevo sending allowance (src/lib/email/quota-config.ts). DAY = per Pacific day; MONTH = per
+  /// period starting at midnight Pacific on emailQuotaResetDay. Edited in the North Pole.
+  emailQuotaPeriod        String  @default("DAY")
+  emailQuota              Int     @default(300)
+  emailQuotaResetDay      Int     @default(1)
+  /// Extra cap per Pacific day in MONTH mode (0 = none), so one busy day cannot spend the month.
+  emailDailyCap           Int     @default(0)
   defaultBudgetMin        Decimal @default(0.00) @db.Decimal(10, 2)
   defaultBudgetMax        Decimal @default(50.00) @db.Decimal(10, 2)
   defaultCurrency         String  @default("USD")

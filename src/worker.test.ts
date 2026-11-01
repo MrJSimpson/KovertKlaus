@@ -244,6 +244,16 @@ test('Head Elf Approval - joining by code and signing up with a code go through 
   }
 });
 
+test('Email Quota - both North Pole saves validate the quota setting, and the env var is retired', () => {
+  const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), 'src', ...p), 'utf-8');
+  for (const source of [read('worker.ts'), read('app', 'api', 'northpole', 'config', 'route.ts')]) {
+    assert.match(source, /const invalid = \[\.\.\.validatePlatformSettings\(body\), \.\.\.validateEmailQuotaSettings\(body\)\];/);
+  }
+  for (const file of [['lib', 'email', 'daily-limit.ts'], ['lib', 'email', 'dispatcher.ts'], ['lib', 'email', 'config.ts']]) {
+    assert.doesNotMatch(read(...file), /env\??\.EMAIL_DAILY_QUOTA|\[['"]EMAIL_DAILY_QUOTA['"]\]/, file.join('/'));
+  }
+});
+
 test('Nudge - both runtimes use the shared deadline nudge', () => {
   const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), 'src', ...p), 'utf-8');
   for (const source of [read('worker.ts'), read('app', 'api', 'operations', 'route.ts')]) {

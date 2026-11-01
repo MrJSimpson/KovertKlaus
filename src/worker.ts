@@ -23,7 +23,7 @@ import { executeTargetSwap } from './lib/draw';
 import { runManualDraw } from './lib/manual-draw';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
 import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
-import { flushHeldEmailQueue, isDailyEmailQuotaReached, sendAccountExportEmail, sendEmail, sendEmailVerificationEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
+import { flushHeldEmailQueue, emailQuotaResumesAt, isEmailQuotaReached, sendAccountExportEmail, sendEmail, sendEmailVerificationEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
 import { confirmPasswordReset, requestPasswordReset } from './lib/password-reset';
 import {
   confirmEmailVerification,
@@ -35,6 +35,7 @@ import {
   UNVERIFIED_ALLOWED_PATHS,
 } from './lib/email-verification';
 import { deleteAccount, deletionPreview } from './lib/account-deletion';
+import { validateEmailQuotaSettings } from './lib/email/quota-config';
 import { decideJoinRequest, joinMission, joinWithInviteAtSignup, myJoinRequests, pendingJoinRequests, requestToJoinAtSignup, viewerJoinRequest } from './lib/join-requests';
 import { downloadAccountExport, EXPORT_GONE_MESSAGE } from './lib/account-export';
 import { r2ExportStore, type R2BucketLike } from './lib/export-store';
@@ -562,7 +563,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-          const invalid = validatePlatformSettings(body);
+          const invalid = [...validatePlatformSettings(body), ...validateEmailQuotaSettings(body)];
           if (invalid.length > 0) return Response.json({ error: invalid.join(' '), details: invalid }, { status: 400 });
           const updateData = buildSystemConfigUpdate(body, admin.id);
           const updated = await adminDb.systemConfig.upsert({
@@ -1383,7 +1384,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             adminDb,
             // Cloudflare only routes this zone's hostnames here, so the origin is trustworthy.
             baseUrl: url.origin || 'https://kovertklaus.com',
-            isQuotaReached: () => isDailyEmailQuotaReached(emailConfig),
+            isQuotaReached: () => isEmailQuotaReached(emailConfig),
+            quotaResumesAt: () => emailQuotaResumesAt(emailConfig),
             sendEmail: (email) => sendPasswordResetEmail({ ...email, overrideConfig: emailConfig }),
             onTrip: (message, metadata) => {
               logSystemEvent({ level: 'WARN', category: 'AUTH', message, metadata }).catch(() => {});
@@ -1412,7 +1414,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             adminDb,
             // Cloudflare only routes this zone's hostnames here, so the origin is trustworthy.
             baseUrl: url.origin || 'https://kovertklaus.com',
-            isQuotaReached: () => isDailyEmailQuotaReached(emailConfig),
+            isQuotaReached: () => isEmailQuotaReached(emailConfig),
+            quotaResumesAt: () => emailQuotaResumesAt(emailConfig),
             sendEmail: (email) => sendEmailVerificationEmail({ ...email, overrideConfig: emailConfig }),
           },
           userId
@@ -1666,7 +1669,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             ({ queued: verificationQueued } = await sendVerificationEmail(
               {
                 baseUrl: url.origin || 'https://kovertklaus.com',
-                isQuotaReached: () => isDailyEmailQuotaReached(signupEmailConfig),
+                isQuotaReached: () => isEmailQuotaReached(signupEmailConfig),
+                quotaResumesAt: () => emailQuotaResumesAt(signupEmailConfig),
                 sendEmail: (email) => sendEmailVerificationEmail({ ...email, overrideConfig: signupEmailConfig }),
               },
               user

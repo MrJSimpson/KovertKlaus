@@ -13,7 +13,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { adminDb } from '@/lib/adminDb';
 import { getSessionUserId } from '@/lib/auth';
-import { isDailyEmailQuotaReached, sendEmailVerificationEmail } from '@/lib/email/dispatcher';
+import { emailQuotaResumesAt, isEmailQuotaReached, sendEmailVerificationEmail } from '@/lib/email/dispatcher';
 import { requestVerificationResend } from '@/lib/email-verification';
 import { dbUnavailableResponse, isDbConnectionError } from '@/lib/db-errors';
 
@@ -26,7 +26,8 @@ export async function POST(request: Request) {
         db,
         adminDb,
         baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin,
-        isQuotaReached: () => isDailyEmailQuotaReached(),
+        isQuotaReached: () => isEmailQuotaReached(),
+        quotaResumesAt: () => emailQuotaResumesAt(),
         sendEmail: (email) => sendEmailVerificationEmail(email),
       },
       userId

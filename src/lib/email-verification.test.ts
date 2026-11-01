@@ -146,7 +146,7 @@ test('Verification - a failing send never throws (the agent can resend)', async 
   const originalError = console.error;
   console.error = () => {};
   try {
-    assert.deepStrictEqual(await sendVerificationEmail(t.deps, t.user, t.now()), { queued: false });
+    assert.deepStrictEqual(await sendVerificationEmail(t.deps, t.user, t.now()), { queued: false, resumesAt: null });
   } finally {
     console.error = originalError;
   }
@@ -241,4 +241,15 @@ test('Verification - confirm refuses a disabled account', async () => {
   const token = issueVerifyToken('u1', t.user.email, t.now() + VERIFY_LINK_TTL_MS);
   assert.strictEqual((await confirmEmailVerification({ db: t.db }, { token }, t.now())).status, 400);
   assert.strictEqual(t.user.emailVerifiedAt, null);
+});
+
+test('Verification - monthly allowance used up: the message names the reset date and the link outlasts it', async () => {
+  const t = setup({ quotaReached: true });
+  const resumesAt = new Date('2026-12-01T08:00:00Z');
+  t.deps.quotaResumesAt = async () => resumesAt;
+  const r = await requestVerificationResend(t.deps, 'u1', t.now());
+  assert.match(String(r.body.message), /will reach you on December 1\./);
+  const token = decodeURIComponent(new URL(t.sent[0].verifyUrl).searchParams.get('token')!);
+  assert.ok(readVerifyToken(token, resumesAt.getTime() + 23 * 60 * 60 * 1000), 'works for a day after it arrives');
+  assert.strictEqual(t.sent[0].expiresText, 'on December 2');
 });

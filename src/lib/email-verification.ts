@@ -24,6 +24,7 @@ import crypto from 'crypto';
 import type { PrismaClient } from '@prisma/client';
 import { getSessionSecret, signToken, verifyToken } from '@/lib/security';
 import type { EmailResult } from '@/lib/email/types';
+import { heldUntilLater, monthDay } from '@/lib/password-reset';
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -142,8 +143,10 @@ export interface VerifyEmailDeps {
   adminDb: PrismaClient;
   /** Site origin for the link, e.g. `https://kovertklaus.com`. */
   baseUrl: string;
-  /** True when today's email quota is used up, so a new email would be held until tomorrow. */
+  /** True when the email allowance is used up, so a new email would be held. */
   isQuotaReached: () => Promise<boolean>;
+  /** When held mail goes out again (monthly mode can be weeks away); optional, defaults to tomorrow. */
+  quotaResumesAt?: () => Promise<Date | null>;
   /** Sends the verification email. */
   sendEmail: (email: { to: string; name: string; verifyUrl: string; expiresText: string }) => Promise<EmailResult>;
 }
@@ -154,25 +157,28 @@ export interface VerifyEmailDeps {
  * @returns Whether the email was held for tomorrow because today's quota is used up.
  */
 export async function sendVerificationEmail(
-  deps: Pick<VerifyEmailDeps, 'baseUrl' | 'isQuotaReached' | 'sendEmail'>,
+  deps: Pick<VerifyEmailDeps, 'baseUrl' | 'isQuotaReached' | 'sendEmail' | 'quotaResumesAt'>,
   user: { id: string; email: string; name: string },
   nowMs = Date.now()
-): Promise<{ queued: boolean }> {
+): Promise<{ queued: boolean; resumesAt: Date | null }> {
   let queued = false;
   try {
     queued = await deps.isQuotaReached();
   } catch {
     queued = false;
   }
-  const expiresAtMs = nowMs + (queued ? VERIFY_QUEUED_LINK_TTL_MS : VERIFY_LINK_TTL_MS);
+  // In monthly mode held mail can wait until the reset day: the link then lasts a day past that.
+  const later = queued ? await heldUntilLater(deps, nowMs) : null;
+  const expiresAtMs = later ? later.getTime() + VERIFY_LINK_TTL_MS : nowMs + (queued ? VERIFY_QUEUED_LINK_TTL_MS : VERIFY_LINK_TTL_MS);
+  const expiresText = later ? `on ${monthDay(new Date(expiresAtMs))}` : queued ? 'in 48 hours' : 'in 24 hours';
   const verifyUrl = verifyLinkUrl(deps.baseUrl, issueVerifyToken(user.id, user.email, expiresAtMs));
   try {
-    const result = await deps.sendEmail({ to: user.email, name: user.name, verifyUrl, expiresText: queued ? 'in 48 hours' : 'in 24 hours' });
+    const result = await deps.sendEmail({ to: user.email, name: user.name, verifyUrl, expiresText });
     if (!result.success) console.error('[EmailVerification] verification email failed:', result.error);
   } catch (err) {
     console.error('[EmailVerification] verification email failed:', err);
   }
-  return { queued };
+  return { queued, resumesAt: later };
 }
 
 // --- resend limits -------------------------------------------------------------
@@ -243,8 +249,13 @@ export async function requestVerificationResend(deps: VerifyEmailDeps, userId: s
     console.error('[EmailVerification] could not record a resend:', err);
   }
 
-  const { queued } = await sendVerificationEmail(deps, user, nowMs);
-  return { status: 200, body: { success: true, queued, message: queued ? VERIFY_QUEUED_MESSAGE : VERIFY_SENT_MESSAGE } };
+  const { queued, resumesAt } = await sendVerificationEmail(deps, user, nowMs);
+  const message = resumesAt
+    ? `Due to email limitations during beta, we are unable to send email currently. Your verification email will reach you on ${monthDay(resumesAt)}.`
+    : queued
+      ? VERIFY_QUEUED_MESSAGE
+      : VERIFY_SENT_MESSAGE;
+  return { status: 200, body: { success: true, queued, message } };
 }
 
 /**

@@ -65,7 +65,7 @@ Brevo's free tier sends 300 transactional emails a day and rejects the rest; its
 - Past **290** (10 below the quota, for sends the count misses), every new email is **held** in the same table, oldest first. A Brevo 429/402 quota rejection is held too, instead of being lost. A held email returns `success: true, held: true`.
 - Held emails go out after the day resets: the Worker's hourly cron and the self-hosted scheduler (every 10 minutes) send them in order while the cap allows. An email that fails 5 flushes is marked `FAILED` and logged as an error. Held content is cleared once sent; sent and failed rows are deleted after 30 days.
 - If the table cannot be read, email is sent anyway (logged as a warning).
-- `EMAIL_DAILY_QUOTA` changes the quota (for example after a plan upgrade); the cap and warning follow it. SMTP, Resend and console sends are not limited.
+- The allowance is a North Pole setting (`SystemConfig`: `emailQuotaPeriod` DAY or MONTH, `emailQuota`, `emailQuotaResetDay`, `emailDailyCap`; bounds in `src/lib/email/quota-config.ts`). DAY resets at midnight Pacific; MONTH resets at midnight Pacific on the reset day, with an optional per-day cap. The cap (10 below the quota) and the 80% warning follow it, per period. A quota rejection from Brevo is not counted as a failed attempt, so held mail is never given up on because of the quota. SMTP, Resend and console sends are not counted.
 
 ---
 
