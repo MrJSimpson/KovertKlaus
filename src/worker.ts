@@ -23,7 +23,7 @@ import { executeTargetSwap } from './lib/draw';
 import { runManualDraw } from './lib/manual-draw';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
 import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
-import { flushHeldEmailQueue, isDailyEmailQuotaReached, sendEmail, sendEmailVerificationEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
+import { flushHeldEmailQueue, isDailyEmailQuotaReached, sendAccountExportEmail, sendEmail, sendEmailVerificationEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
 import { confirmPasswordReset, requestPasswordReset } from './lib/password-reset';
 import {
   confirmEmailVerification,
@@ -34,6 +34,9 @@ import {
   sendVerificationEmail,
   UNVERIFIED_ALLOWED_PATHS,
 } from './lib/email-verification';
+import { deleteAccount, deletionPreview } from './lib/account-deletion';
+import { downloadAccountExport, EXPORT_GONE_MESSAGE } from './lib/account-export';
+import { r2ExportStore, type R2BucketLike } from './lib/export-store';
 import {
   sendWelcomeEmail,
   sendInvitationEmail,
@@ -117,6 +120,8 @@ export const WORKER_API_PATHS = new Set([
   '/api/scraper',
   '/api/shipping',
   '/api/users',
+  '/api/users/data-export',
+  '/api/users/delete-account',
   '/api/users/login',
   '/api/users/me',
   '/api/users/password-reset',
@@ -130,6 +135,8 @@ export const WORKER_API_PATHS = new Set([
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
+  /** R2 bucket `kovertklaus` (wrangler.json `r2_buckets`): account-deletion exports under `user_backups/`. */
+  USER_EXPORTS?: R2BucketLike;
   DATABASE_URL?: string;
   DATABASE_ADMIN_URL?: string;
   DIRECT_URL?: string;
@@ -1425,6 +1432,45 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           },
           { token: body.token }
         );
+        return Response.json(result.body, { status: result.status, headers: result.headers });
+      }
+
+      // 10f. /api/users/delete-account (GET preview / POST delete): self-service account deletion
+      if (pathname === '/api/users/delete-account' && (request.method === 'GET' || request.method === 'POST')) {
+        const userId = getUserIdFromRequest(request);
+        if (!userId) return Response.json({ error: 'Please sign in again.' }, { status: 401 });
+        if (request.method === 'GET') return Response.json({ success: true, ...(await deletionPreview(db, userId)) });
+        const body = await readJsonBody(request);
+        const exportEmailConfig = await resolveWorkerEmailConfig(env, adminDb);
+        const result = await deleteAccount(
+          {
+            db,
+            adminDb,
+            // Without the binding there is nowhere to keep the copy, so deletion refuses (503) instead.
+            exportStore: env.USER_EXPORTS ? r2ExportStore(env.USER_EXPORTS) : undefined,
+            // Cloudflare only routes this zone's hostnames here, so the origin is trustworthy.
+            baseUrl: url.origin || 'https://kovertklaus.com',
+            sendExportEmail: (email) => sendAccountExportEmail({ ...email, overrideConfig: exportEmailConfig }),
+            onDeleted: (message, metadata) => {
+              logSystemEvent({ level: 'INFO', category: 'AUTH', message, metadata }).catch(() => {});
+            },
+          },
+          userId,
+          { password: body.password, confirm: body.confirm }
+        );
+        const headers = new Headers(result.headers);
+        if (result.status === 200) headers.append('Set-Cookie', `${USER_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`);
+        return Response.json(result.body, { status: result.status, headers });
+      }
+
+      // 10g. /api/users/data-export (GET): download the copy of a deleted account's data (token, no session)
+      if (pathname === '/api/users/data-export' && request.method === 'GET') {
+        if (!env.USER_EXPORTS) return Response.json({ error: EXPORT_GONE_MESSAGE }, { status: 410 });
+        const result = await downloadAccountExport(
+          { adminDb, store: r2ExportStore(env.USER_EXPORTS) },
+          { token: url.searchParams.get('token'), ip: clientIp(request.headers) }
+        );
+        if (result.status === 200) return new Response(result.body as string, { status: 200, headers: result.headers });
         return Response.json(result.body, { status: result.status, headers: result.headers });
       }
 

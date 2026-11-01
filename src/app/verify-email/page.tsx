@@ -172,7 +172,10 @@ export default function VerifyEmailPage() {
         <div className="pt-2 border-t border-kk-border text-sm flex flex-wrap justify-between gap-2">
           {phase === 'waiting' ? (
             <>
-              <span className="text-kk-muted">Wrong address? Sign out and create a new account.</span>
+              <span className="text-kk-muted">
+                Wrong address?{' '}
+                <a href="/delete-account" className="font-bold text-kk-accent hover:underline">Delete this account</a> and sign up again.
+              </span>
               <button type="button" onClick={handleSignOut} className="font-bold text-kk-accent hover:underline">
                 Sign out
               </button>

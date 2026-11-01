@@ -197,7 +197,7 @@ test('Email Verification - unverified agents are gated in both runtimes, with on
   // Self-hosted: getSessionUserId refuses unverified sessions unless the caller opts in.
   assert.match(read('lib', 'auth.ts'), /if \(session\.unverified && !options\.allowUnverified\) return null;/);
 
-  // Only the verify routes opt in (the /me route reads the full session state instead).
+  // Only resend and account deletion opt in (the /me route reads the full session state instead).
   const apiDir = path.join(process.cwd(), 'src', 'app', 'api');
   const optIns: string[] = [];
   const walk = (dir: string) => {
@@ -210,12 +210,23 @@ test('Email Verification - unverified agents are gated in both runtimes, with on
     }
   };
   walk(apiDir);
-  assert.deepStrictEqual(optIns, ['users/verify-email/route.ts']);
+  assert.deepStrictEqual(optIns.sort(), ['users/delete-account/route.ts', 'users/verify-email/route.ts']);
 
   // Both sign-up paths decide verification at creation.
   for (const source of [worker, read('app', 'api', 'users', 'route.ts')]) {
     assert.match(source, /emailVerifiedAt: mustVerify \? null : new Date\(\),/);
   }
+});
+
+test('Account Export - Worker serves downloads from the USER_EXPORTS binding declared in wrangler.json', () => {
+  const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), ...p), 'utf-8');
+  const worker = read('src', 'worker.ts');
+  assert.match(worker, /pathname === '\/api\/users\/data-export' && request\.method === 'GET'/);
+  assert.match(worker, /exportStore: env\.USER_EXPORTS \? r2ExportStore\(env\.USER_EXPORTS\) : undefined,/);
+  const wrangler = JSON.parse(read('wrangler.json')) as { r2_buckets?: Array<{ binding: string; bucket_name: string }> };
+  assert.deepStrictEqual(wrangler.r2_buckets, [{ binding: 'USER_EXPORTS', bucket_name: 'kovertklaus' }]);
+  // The disk store (Node fs) must never be bundled into the Worker.
+  assert.doesNotMatch(worker, /export-store-disk/);
 });
 
 test('Nudge - both runtimes use the shared deadline nudge', () => {

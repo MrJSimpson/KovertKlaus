@@ -9,6 +9,7 @@ import {
   NudgeEmailParams,
   PasswordResetEmailParams,
   EmailVerificationEmailParams,
+  AccountExportEmailParams,
   WelcomeEmailParams,
 } from '../types';
 
@@ -595,6 +596,45 @@ export function getEmailVerificationEmailTemplate(params: EmailVerificationEmail
     ${verifyUrl}
 
     If you didn't create a KovertKlaus account, ignore this email.
+    --------------------------------------------------
+  `);
+
+  return { subject, html, text };
+}
+
+/**
+ * Generates the "your account was deleted" email with the link to download a copy of the agent's data.
+ */
+export function getAccountExportEmailTemplate(params: AccountExportEmailParams): { subject: string; html: string; text: string } {
+  const { name, downloadUrl, expiresText } = params;
+  const subject = 'Your KovertKlaus account was deleted';
+
+  const bodyHtml = `
+    <p>Hi <strong>${escapeHtml(name)}</strong>,</p>
+    <p>Your KovertKlaus account and its data have been deleted, as you asked. Thanks for being part of KovertKlaus.</p>
+    <p>We kept an encrypted copy of your data so you can download it: your profile, gift dossier, missions, wishlists and the messages you sent. It's available until <strong>${escapeHtml(expiresText)}</strong>, then it's deleted for good.</p>
+    <p style="font-size: 14px; color: ${EMAIL_PALETTE.muted};">Anyone with this link can download the file, so don't forward this email. If you didn't delete your account, reply to this email right away.</p>
+  `;
+
+  const html = renderBaseEmail({
+    title: 'Account deleted',
+    preheader: `Download a copy of your data until ${expiresText}.`,
+    bodyHtml,
+    actionText: 'Download my data',
+    actionUrl: downloadUrl,
+  });
+
+  const text = stripHtml(`
+    KOVERT KLAUS // ACCOUNT DELETED
+    --------------------------------------------------
+    Hi ${name},
+
+    Your KovertKlaus account and its data have been deleted, as you asked.
+    Download a copy of your data (available until ${expiresText}):
+    ${downloadUrl}
+
+    Anyone with this link can download the file, so don't forward this email.
+    If you didn't delete your account, reply to this email right away.
     --------------------------------------------------
   `);
 

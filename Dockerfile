@@ -37,6 +37,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
+# Account-deletion exports (EXPORT_DIR); a named volume mounted here inherits this ownership.
+RUN mkdir -p /app/data/exports && chown -R nextjs:nodejs /app/data
+
 USER nextjs
 
 EXPOSE 2425
