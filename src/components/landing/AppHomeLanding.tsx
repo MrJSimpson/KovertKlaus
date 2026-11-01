@@ -78,8 +78,13 @@ export function AppHomeLanding() {
   const { isDarkMode, toggleTheme, theme, bannerText, bannerActive, lightsType, systemConfig } = useTheme();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
 
-  // North Pole setting (SystemConfig.releaseStage), read from /api/config.
-  const isAlpha = isAlphaStage(systemConfig.releaseStage);
+  // North Pole setting (SystemConfig.releaseStage), read from /api/config. Alpha-only content (activation
+  // code, clearance request) shows only once the live config says ALPHA: the static HTML is built with
+  // the default config (stage ALPHA), and showing it until /api/config arrived flashed the alpha
+  // clearance form at BETA visitors. `edition` is only present in the live config. The server enforces
+  // the alpha code on sign-up either way (src/lib/registration-code.ts).
+  const liveConfigLoaded = systemConfig.edition !== undefined;
+  const isAlpha = liveConfigLoaded && isAlphaStage(systemConfig.releaseStage);
 
   // Alpha Clearance Lead Request State
   const [clearanceEmail, setClearanceEmail] = useState('');

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1-beta] - 2026-11-01
+
+Hotfix on 1.1.0-beta.
+
+### Fixed
+- **The home page no longer flashes the alpha clearance form.** The front page (and `/signin`, `/register`) is prerendered with the default settings, whose release stage is ALPHA, so until the live settings loaded it showed the "Alpha Early Clearance Request" box and an alpha-style sign-in button. Alpha-only content now appears only after the live settings confirm the ALPHA stage; the prerendered page shows open sign-up. The server still requires an activation code to register in ALPHA.
+
+---
+
 ## [1.1.0-beta] - 2026-11-01
 
 Dev #91–#98. Security & trust: email verification, Head Elf approval for code joins, self-service account deletion with a 30-day copy of your data, simpler passwords with a breach check, the email allowance as a North Pole setting (per day or per month), one front page with open sign-up, and the versioning change to `MAJOR.MINOR.PATCH-stage`. **Operators:** three SQL files run before deploy (`prisma/sql/2026-11-01_*.forward.sql`); SaaS needs the `USER_EXPORTS` R2 binding; self-hosted runs `npm run db:password` once.
