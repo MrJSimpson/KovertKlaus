@@ -5,7 +5,7 @@ import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { cachedSystemConfigReader, clearSystemConfigCaches, publicConfigCache } from './lib/system-config-cache';
 import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
-import { getPlatformSettings, hostedMissionLimitError, missionFullError, missionJoinError, validatePlatformSettings, type PlatformSettings } from './lib/platform-limits';
+import { getPlatformSettings, hostedMissionLimitError, missionJoinError, validatePlatformSettings, type PlatformSettings } from './lib/platform-limits';
 import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember, sanitizeMissionReports } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
@@ -35,6 +35,7 @@ import {
   UNVERIFIED_ALLOWED_PATHS,
 } from './lib/email-verification';
 import { deleteAccount, deletionPreview } from './lib/account-deletion';
+import { decideJoinRequest, joinMission, joinWithInviteAtSignup, myJoinRequests, pendingJoinRequests, requestToJoinAtSignup, viewerJoinRequest } from './lib/join-requests';
 import { downloadAccountExport, EXPORT_GONE_MESSAGE } from './lib/account-export';
 import { r2ExportStore, type R2BucketLike } from './lib/export-store';
 import {
@@ -62,7 +63,7 @@ import { openJoinGate } from './lib/join-throttle';
 import { isMissionInsider, missionPreview } from './lib/mission-preview';
 import { checkLoginThrottle, clearLoginFailures, clientIp, loginThrottleKeys, purgeLoginThrottle, recordLoginFailure, throttledResponseParts, tripLogMessage, type LoginThrottleKeys, type ThrottleCounts } from './lib/login-throttle';
 import { deleteFeedback, listFeedback, submitFeedback, updateFeedbackStatus } from './lib/feedback';
-import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
+import { listMissionInvitations, listMyInvitations, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { dismissNotifications, listMyNotifications } from './lib/notifications';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
@@ -1647,21 +1648,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             }
           }
 
-          // Auto-enroll if registering via mission invite
+          // A mission code at sign-up: an emailed invitation link joins at once; a bare code asks the
+          // Head Elf (src/lib/join-requests.ts).
+          let joinRequested = false;
           if (targetExchange) {
             try {
-              await enrollWithCodename(db, targetExchange.id, (codename) =>
-                db.exchangeMember.create({
-                  data: {
-                    exchangeId: targetExchange.id,
-                    userId: user.id,
-                    codename,
-                    role: 'MEMBER',
-                    wishlist: memberWishlistCreate(user.id, targetExchange.isWhiteElephant),
-                  },
-                })
-              );
-              await markInvitationAccepted(db, targetExchange.id, user.email, user.id);
+              const joined = await joinWithInviteAtSignup({ db, adminDb }, targetExchange, user.id, bodyString(body.inviteToken));
+              if (!joined) joinRequested = await requestToJoinAtSignup(db, targetExchange, user.id);
             } catch (enrollErr) {
               console.warn('[Worker Auto-Enroll Warning]', enrollErr);
             }
@@ -1695,7 +1688,14 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           headers.append('Set-Cookie', sessionCookie('user', signedUserId));
 
           return new Response(
-            JSON.stringify({ success: true, token: signedUserId, emailVerified: !mustVerify, verificationQueued, data: user }),
+            JSON.stringify({
+              success: true,
+              token: signedUserId,
+              emailVerified: !mustVerify,
+              verificationQueued,
+              joinRequested: joinRequested && targetExchange ? { code: targetExchange.code, title: targetExchange.title } : null,
+              data: user,
+            }),
             { status: 200, headers }
           );
         } catch (err) {
@@ -1735,7 +1735,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               return Response.json({ error: 'Exchange not found' }, { status: 404 });
             }
             // Outsiders holding the code (signed out, or not enrolled) get a preview only.
-            if (!isMissionInsider(exchange, activeUserId)) return Response.json({ success: true, data: missionPreview(exchange) });
+            if (!isMissionInsider(exchange, activeUserId)) {
+              // A would-be agent who asked to join sees where their request stands.
+              return Response.json({ success: true, data: { ...missionPreview(exchange), joinRequest: await viewerJoinRequest(db, exchange, activeUserId) } });
+            }
 
             // Sanitize targetUser and physical addresses server-side
             const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
@@ -1752,6 +1755,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 reports: sanitizeMissionReports(exchange.reports, viewer),
                 exclusionRules: isOrganizer ? exchange.exclusionRules : [],
                 repairIssues: visibleRepairIssues(exchange.repairIssues, activeUserId, isOrganizer),
+                // Requests to join by code, for the Head Elf to approve or decline.
+                joinRequests: isOrganizer ? await pendingJoinRequests(db, exchange) : [],
               },
             });
           }
@@ -1768,7 +1773,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             },
             orderBy: { createdAt: 'desc' },
           });
-          return Response.json({ success: true, data: exchanges });
+          // Missions the agent asked to join by code and is waiting on (dashboard "Waiting for the Head Elf").
+          return Response.json({ success: true, data: exchanges, joinRequests: await myJoinRequests(db, activeUserId) });
         }
 
         if (request.method === 'POST') {
@@ -2293,6 +2299,16 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const findScopedMember = (id: string) =>
             db.exchangeMember.findFirst({ where: { id, exchangeId: operationId } });
 
+          // Head Elf decides a request to join by code (src/lib/join-requests.ts).
+          if (action === 'approve_join' || action === 'decline_join') {
+            const result = await decideJoinRequest(
+              { db, adminDb },
+              ex,
+              { actorId: activeUserId, requestId: body.requestId, decision: action === 'approve_join' ? 'approve' : 'decline' }
+            );
+            return Response.json(result.body, { status: result.status });
+          }
+
           if (action === 'remove_agent' && memberId) {
             const memberToDelete = await findScopedMember(memberId);
             if (!memberToDelete) return Response.json({ error: 'Member not found in this operation' }, { status: 404 });
@@ -2441,7 +2457,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         return methodNotAllowed(pathname, request.method);
       }
 
-      // 15. /api/invitations/accept (POST)
+      // 15. /api/invitations/accept (POST): join by code; a request for the Head Elf unless an invitation link is used
       if (pathname === '/api/invitations/accept' && request.method === 'POST') {
         const body = await readJsonBody(request);
         const activeUserId = getUserIdFromRequest(request);
@@ -2452,40 +2468,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
         const gate = await openJoinGate(adminDb, activeUserId, request.headers);
         if (gate.blocked) return gate.blocked;
-        const exchange = await db.exchange.findUnique({ where: { code: operationCode.trim().toUpperCase() }, include: { members: true } });
+        const exchange = await db.exchange.findUnique({ where: { code: operationCode.trim().toUpperCase() } });
         if (!exchange) {
           await gate.wrongCode();
           return Response.json({ error: 'Exchange not found' }, { status: 404 });
         }
-        if (exchange.status !== 'RECRUITING') {
-          return Response.json({ error: 'Recruitment for this mission has closed. Operatives cannot join active or completed operations.' }, { status: 400 });
-        }
-
-        const existing = exchange.members.find((m) => m.userId === activeUserId);
-        if (existing) return Response.json({ error: 'You are already enrolled in this exchange.', exchangeCode: exchange.code }, { status: 409 });
-        const full = missionFullError(exchange.maxParticipants, exchange.members.length, await platformSettings(adminDb));
-        if (full) return Response.json({ error: full }, { status: 400 });
-
-        // Codename drawn for this mission; the agent can reroll it until they accept (parity with the Next.js route).
-        const user = await db.user.findUnique({ where: { id: activeUserId }, select: { email: true } });
-        const member = await enrollWithCodename(db, exchange.id, (codename) =>
-          db.exchangeMember.create({
-            data: {
-              exchangeId: exchange.id,
-              userId: activeUserId,
-              codename,
-              role: 'MEMBER',
-              wishlist: memberWishlistCreate(activeUserId, exchange.isWhiteElephant),
-            },
-          })
-        );
-        if (user?.email) await markInvitationAccepted(db, exchange.id, user.email, activeUserId);
-
-        return Response.json({
-          success: true,
-          message: 'Member successfully enrolled in exchange!',
-          data: { ...member, assignedCodename: member.codename },
-        });
+        const result = await joinMission({ db, adminDb }, exchange, { userId: activeUserId, inviteToken: bodyString(body.inviteToken) });
+        return Response.json(result.body, { status: result.status });
       }
 
       // /api/codename (POST): reroll or accept a mission codename, shared with the Next route.

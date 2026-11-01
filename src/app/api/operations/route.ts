@@ -8,6 +8,7 @@ import { getPlatformSettings, hostedMissionLimitError, missionJoinError } from '
 import { generateInviteCode } from '@/lib/security';
 import { openJoinGate } from '@/lib/join-throttle';
 import { isMissionInsider, missionPreview } from '@/lib/mission-preview';
+import { decideJoinRequest, myJoinRequests, pendingJoinRequests, viewerJoinRequest } from '@/lib/join-requests';
 import { executeTargetSwap } from '@/lib/draw';
 import { runManualDraw } from '@/lib/manual-draw';
 import { sendAssignmentEmail, sendMissionCancelledEmail, sendNudgeEmail } from '@/lib/email';
@@ -73,7 +74,10 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
       }
       // Outsiders holding the code (signed out, or not enrolled) get a preview only.
-      if (!isMissionInsider(exchange, activeUserId)) return NextResponse.json({ success: true, data: missionPreview(exchange) });
+      if (!isMissionInsider(exchange, activeUserId)) {
+        // A would-be agent who asked to join sees where their request stands.
+        return NextResponse.json({ success: true, data: { ...missionPreview(exchange), joinRequest: await viewerJoinRequest(db, exchange, activeUserId) } });
+      }
 
       // Security Invariant (Finding 2.1): Sanitize targetUser and physical addresses server-side.
       // Only the exchange organizer or the specific assigned giver may view a member's target details and shipping address.
@@ -93,6 +97,8 @@ export async function GET(request: Request) {
         exclusionRules: isOrganizer ? exchange.exclusionRules : [],
         repairIssues: visibleRepairIssues(exchange.repairIssues, activeUserId, isOrganizer),
         covertInviteTokens: isOrganizer ? exchange.covertInviteTokens : [],
+        // Requests to join by code, for the Head Elf to approve or decline.
+        joinRequests: isOrganizer ? await pendingJoinRequests(db, exchange) : [],
       };
 
       return NextResponse.json({ success: true, data: sanitizedData });
@@ -121,7 +127,8 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ success: true, data: exchanges });
+    // Missions the agent asked to join by code and is waiting on (dashboard "Waiting for the Head Elf").
+    return NextResponse.json({ success: true, data: exchanges, joinRequests: await myJoinRequests(db, activeUserId) });
   } catch (err: unknown) {
     console.error('API Error in GET /api/operations:', err);
     if (isDbConnectionError(err)) return dbUnavailableResponse();
@@ -873,7 +880,7 @@ export async function PATCH(request: Request) {
       demeritPoints,
     } = body as {
       operationId: string;
-      action?: 'update_dates' | 'update_settings' | 'remove_agent' | 'issue_demerit' | 'nudge_agent';
+      action?: 'update_dates' | 'update_settings' | 'remove_agent' | 'issue_demerit' | 'nudge_agent' | 'approve_join' | 'decline_join';
       dates?: {
         inviteCutoffDate: string;
         assignmentDate: string;
@@ -922,6 +929,16 @@ export async function PATCH(request: Request) {
       db.exchangeMember.findFirst({ where: { id, exchangeId: operationId } });
 
     // Member Action: Remove Member from Exchange
+    // Head Elf decides a request to join by code (src/lib/join-requests.ts).
+      if (action === 'approve_join' || action === 'decline_join') {
+        const result = await decideJoinRequest(
+          { db, adminDb },
+          ex,
+          { actorId: activeUserId, requestId: body.requestId, decision: action === 'approve_join' ? 'approve' : 'decline' }
+        );
+        return NextResponse.json(result.body, { status: result.status });
+      }
+
     if (action === 'remove_agent' && memberId) {
       const memberToDelete = await findScopedMember(memberId);
       if (!memberToDelete) {

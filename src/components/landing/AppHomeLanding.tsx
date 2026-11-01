@@ -127,6 +127,8 @@ export function AppHomeLanding() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [alphaCipher, setAlphaCipher] = useState('');
+  /** `?invite=` from an emailed invitation link: joins without Head Elf approval (src/lib/join-requests.ts). */
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
 
   // Exchange Specific Inputs
   const [title, setTitle] = useState('');
@@ -163,6 +165,8 @@ export function AppHomeLanding() {
       const params = new URLSearchParams(window.location.search);
       const codeParam = params.get('code') || params.get('alphaCode');
       const emailParam = params.get('email');
+      const inviteParam = params.get('invite');
+      if (inviteParam) setInviteToken(inviteParam);
       if (codeParam) {
         setAlphaCipher(codeParam.trim().toUpperCase());
         if (emailParam) setEmail(emailParam.trim());
@@ -231,6 +235,7 @@ export function AppHomeLanding() {
           email: email.trim(),
           password,
           inviteCode: alphaCipher.trim() || undefined,
+          inviteToken: inviteToken || undefined,
         }),
       });
 
@@ -358,6 +363,7 @@ export function AppHomeLanding() {
               email: email.trim(),
               password,
               inviteCode: cleanCode,
+              inviteToken: inviteToken || undefined,
             }),
           });
           const regData = await regRes.json();
@@ -388,7 +394,7 @@ export function AppHomeLanding() {
       const joinRes = await fetch('/api/invitations/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, operationCode: cleanCode }),
+        body: JSON.stringify({ userId, operationCode: cleanCode, inviteToken: inviteToken || undefined }),
       });
 
       const joinData = await joinRes.json();

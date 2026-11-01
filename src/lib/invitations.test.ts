@@ -90,7 +90,8 @@ test('Invitations - a new user gets a Join Exchange link to registration; nothin
   assert.strictEqual(res.status, 200);
   assert.strictEqual(fake.invitations[0].email, 'new.person@x.com');
   assert.strictEqual(sent[0].isExistingUser, false);
-  assert.match(sent[0].joinUrl, /\/register\?code=ABCD-1234&email=new\.person%40x\.com$/);
+  // The signed invite token lets the invitee join without Head Elf approval (src/lib/join-requests.ts).
+  assert.match(sent[0].joinUrl, /\/register\?code=ABCD-1234&email=new\.person%40x\.com&invite=[^&]+$/);
   assert.strictEqual(fake.notifications.length, 0);
 });
 
@@ -99,7 +100,7 @@ test('Invitations - an existing user is notified and linked to the mission page'
   const sent: InvitationEmail[] = [];
   await invite(fake.db, sent, 'pal@x.com');
   assert.strictEqual(sent[0].isExistingUser, true);
-  assert.strictEqual(sent[0].joinUrl, 'https://kk.test/exchange/ABCD-1234');
+  assert.match(sent[0].joinUrl, /^https:\/\/kk\.test\/exchange\/ABCD-1234\?invite=[^&]+$/);
   assert.strictEqual(fake.notifications.length, 1);
 });
 

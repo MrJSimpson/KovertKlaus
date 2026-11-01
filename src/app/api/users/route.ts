@@ -17,9 +17,7 @@ import {
   registrationThrottleKeys,
   registrationTripLogMessage,
 } from '@/lib/registration-throttle';
-import { markInvitationAccepted } from '@/lib/invitations';
-import { enrollWithCodename } from '@/lib/codename';
-import { memberWishlistCreate } from '@/lib/mission-wishlist';
+import { joinWithInviteAtSignup, requestToJoinAtSignup } from '@/lib/join-requests';
 import { bodyString, readJsonBody } from '@/lib/request-body';
 
 export async function POST(request: Request) {
@@ -113,21 +111,14 @@ export async function POST(request: Request) {
       }
     }
 
-    // If joining via an exchange invite, automatically enroll the new operative
+    // A mission code at sign-up: an emailed invitation link joins at once; a bare code asks the
+    // Head Elf (src/lib/join-requests.ts).
+    let joinedMission = false;
+    let joinRequested = false;
     if (targetExchange) {
       try {
-        await enrollWithCodename(db, targetExchange.id, (codename) =>
-          db.exchangeMember.create({
-            data: {
-              exchangeId: targetExchange.id,
-              userId: user.id,
-              codename,
-              role: 'MEMBER',
-              wishlist: memberWishlistCreate(user.id, targetExchange.isWhiteElephant),
-            },
-          })
-        );
-        await markInvitationAccepted(db, targetExchange.id, user.email, user.id);
+        joinedMission = await joinWithInviteAtSignup({ db, adminDb }, targetExchange, user.id, bodyString(body.inviteToken));
+        if (!joinedMission) joinRequested = await requestToJoinAtSignup(db, targetExchange, user.id);
       } catch (enrollErr) {
         console.warn('[Auto-Enroll Warning]', enrollErr);
       }
@@ -165,7 +156,8 @@ export async function POST(request: Request) {
       data: {
         ...user,
         demerits: user.penaltyPoints,
-        enrolledExchange: targetExchange ? { id: targetExchange.id, code: targetExchange.code, title: targetExchange.title } : null,
+        enrolledExchange: targetExchange && joinedMission ? { id: targetExchange.id, code: targetExchange.code, title: targetExchange.title } : null,
+        joinRequested: joinRequested && targetExchange ? { code: targetExchange.code, title: targetExchange.title } : null,
       },
     });
   } catch (error) {

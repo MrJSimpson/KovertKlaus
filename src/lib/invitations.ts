@@ -17,6 +17,7 @@
  * mission code still works and needs no invitation.
  */
 
+import { issueInviteToken } from '@/lib/invite-token';
 import type { PrismaClient } from '@prisma/client';
 import { isValidEmail } from '@/lib/security';
 import { generateKdmToken } from '@/lib/covertDelivery';
@@ -77,11 +78,13 @@ export function isInvitationOpen(
  * New users register with the mission code (their alpha clearance); existing users open the
  * mission to accept. Kovert Delivery invites keep the mission link so the KDM accord flow runs.
  */
-export function invitationLink(baseUrl: string, code: string, email: string, isExistingUser: boolean, kdmToken?: string): string {
+export function invitationLink(baseUrl: string, code: string, email: string, isExistingUser: boolean, kdmToken?: string, inviteToken?: string): string {
   const base = baseUrl.replace(/\/+$/, '');
   if (kdmToken) return `${base}/exchange/${code}?kdm=${encodeURIComponent(kdmToken)}`;
-  if (isExistingUser) return `${base}/exchange/${code}`;
-  return `${base}/register?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
+  // The signed invite token lets the invitee join without Head Elf approval (src/lib/join-requests.ts).
+  const invite = inviteToken ? `invite=${encodeURIComponent(inviteToken)}` : '';
+  if (isExistingUser) return `${base}/exchange/${code}${invite ? `?${invite}` : ''}`;
+  return `${base}/register?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}${invite ? `&${invite}` : ''}`;
 }
 
 /**
@@ -169,7 +172,7 @@ export async function sendMissionInvitation(
     });
   }
 
-  const joinUrl = invitationLink(deps.baseUrl, exchange.code, email, Boolean(targetUser), kdmToken);
+  const joinUrl = invitationLink(deps.baseUrl, exchange.code, email, Boolean(targetUser), kdmToken, issueInviteToken(invitation.id));
   const sent = await deps
     .sendEmail({
       recipientEmail: email,

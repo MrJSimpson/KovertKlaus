@@ -121,54 +121,55 @@ model User {
   createdAt                      DateTime      @default(now())
   updatedAt                      DateTime      @updatedAt
 
-  createdExchanges       Exchange[]          @relation("OrganizerExchanges")
-  participations         ExchangeMember[]    @relation("MemberUser")
-  targetedBy             ExchangeMember[]    @relation("TargetUser")
+  createdExchanges       Exchange[]           @relation("OrganizerExchanges")
+  participations         ExchangeMember[]     @relation("MemberUser")
+  targetedBy             ExchangeMember[]     @relation("TargetUser")
   items                  Item[]
   wishlists              Wishlist[]
   notifications          Notification[]
-  exclusionRulesAsMember ExclusionRule[]     @relation("ExclusionMember")
-  exclusionRulesAsTarget ExclusionRule[]     @relation("ExclusionRestrictedMember")
-  sentMessages           ExchangeMessage[]   @relation("MessageSender")
-  invitationsSent        MissionInvitation[] @relation("InvitationsSent")
-  receivedMessages       ExchangeMessage[]   @relation("MessageRecipient")
+  exclusionRulesAsMember ExclusionRule[]      @relation("ExclusionMember")
+  exclusionRulesAsTarget ExclusionRule[]      @relation("ExclusionRestrictedMember")
+  sentMessages           ExchangeMessage[]    @relation("MessageSender")
+  invitationsSent        MissionInvitation[]  @relation("InvitationsSent")
+  receivedMessages       ExchangeMessage[]    @relation("MessageRecipient")
   exchangeReports        ExchangeReport[]
   feedback               Feedback[]
+  joinRequests           MissionJoinRequest[]
 
   @@schema("app")
 }
 
 model Exchange {
-  id                      String         @id @default(uuid())
+  id                      String          @id @default(uuid())
   title                   String
   description             String?
-  code                    String         @unique
+  code                    String          @unique
   organizerId             String
-  organizer               User           @relation("OrganizerExchanges", fields: [organizerId], references: [id])
+  organizer               User            @relation("OrganizerExchanges", fields: [organizerId], references: [id])
   maxParticipants         Int?
-  giftingType             GiftingType    @default(SINGLE)
-  isLocalOnly             Boolean        @default(false)
+  giftingType             GiftingType     @default(SINGLE)
+  isLocalOnly             Boolean         @default(false)
   eventLocation           String?
-  isWhiteElephant         Boolean        @default(false)
-  organizerAssistedDraw   Boolean        @default(true)
+  isWhiteElephant         Boolean         @default(false)
+  organizerAssistedDraw   Boolean         @default(true)
   drawVerifiedAt          DateTime?
-  budgetMin               Decimal?       @db.Decimal(10, 2)
-  budgetMax               Decimal        @db.Decimal(10, 2)
-  currency                String         @default("USD")
+  budgetMin               Decimal?        @db.Decimal(10, 2)
+  budgetMax               Decimal         @db.Decimal(10, 2)
+  currency                String          @default("USD")
   inviteCutoffDate        DateTime
   assignmentDate          DateTime
   shippingDate            DateTime?
   executionDate           DateTime
-  status                  ExchangeStatus @default(RECRUITING)
+  status                  ExchangeStatus  @default(RECRUITING)
   /// When the mission was marked COMPLETED. Mission-wide Intel stays readable for 14 days after.
   completedAt             DateTime?
-  isFreeAnnualExchange    Boolean        @default(false)
-  enforcePenalties        Boolean        @default(true)
+  isFreeAnnualExchange    Boolean         @default(false)
+  enforcePenalties        Boolean         @default(true)
   /// When false, an agent's Wishlist Manifest may not total more than `budgetMax`. Each item is always capped at `budgetMax`.
-  allowWishlistOverBudget Boolean        @default(true)
-  isCovertDelivery        Boolean        @default(false)
+  allowWishlistOverBudget Boolean         @default(true)
+  isCovertDelivery        Boolean         @default(false)
   propertyWaiverText      String?
-  paymentStatus           PaymentStatus  @default(FREE_ANNUAL)
+  paymentStatus           PaymentStatus   @default(FREE_ANNUAL)
   /// Set when the mission is cancelled (status CANCELLED).
   cancelledAt             DateTime?
   cancelledBy             MissionActor?
@@ -184,8 +185,8 @@ model Exchange {
   repairIssues            String?
   /// Last repair notice and Head Elf email (sent at most once a day).
   repairNoticeAt          DateTime?
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
 
   members            ExchangeMember[]
   exclusionRules     ExclusionRule[]
@@ -193,6 +194,7 @@ model Exchange {
   reports            ExchangeReport[]
   covertInviteTokens CovertInviteToken[]
   invitations        MissionInvitation[]
+  joinRequests       MissionJoinRequest[]
 
   @@index([organizerId])
   @@index([status])
@@ -654,5 +656,37 @@ model PreLaunchApproval {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  @@schema("app")
+}
+
+/// Status of a request to join a mission by its code (src/lib/join-requests.ts).
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  /// RSVP closed (or the draw happened) before the Head Elf decided.
+  EXPIRED
+
+  @@schema("app")
+}
+
+/// A request to join a mission by its code, decided by the Head Elf (owner decision 2026-10-31).
+/// Emailed invitations carry a signed per-invitation link and join directly instead.
+model MissionJoinRequest {
+  id          String            @id @default(uuid())
+  exchangeId  String
+  userId      String
+  status      JoinRequestStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+  decidedAt   DateTime?
+  /// The Head Elf who decided (no relation, so their account can be deleted independently).
+  decidedById String?
+
+  exchange Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([exchangeId, userId])
+  @@index([exchangeId, status])
+  @@index([userId, status])
   @@schema("app")
 }

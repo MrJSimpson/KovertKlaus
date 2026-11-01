@@ -109,7 +109,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     lead: 'One invite link, a clear timeline and tools for when plans change.',
     points: [
       `Missions for ${f.minAgents} to ${f.maxAgents} agents. A Head Elf can run up to ${f.maxHostedMissions} missions at once.`,
-      'Invite by email or share one link. Late Passes let someone join after RSVP closes.',
+      'Invite by email or share the mission code. People you invite by email join straight away; anyone using the code needs your approval first. Late Passes let someone join after RSVP closes.',
       'Four stages: RSVP, Match, Sleigh, Party. A notification bell shows what needs attention, and the Head Elf can nudge agents by email.',
       'Mission Comms for messages, an After-Action Report for thank-yous, and one guess at who your Secret Santa was.',
       `Cancelling notifies every agent. A cancelled mission is deleted ${f.cancelledPurgeDays} days later, keeping only an anonymous record of what happened.`,
