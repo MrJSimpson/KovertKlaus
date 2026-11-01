@@ -42,8 +42,6 @@ export interface PublicSystemConfigResponse {
   defaultBudgetMin: number;
   defaultBudgetMax: number;
   defaultCurrency: string;
-  /** Landing page variant chosen in North Pole config ('' = edition default). */
-  altHome?: string;
   /** Deployment edition. Clients use it to show edition-specific UI (e.g. the self-hosted Workshop link). */
   edition?: Edition;
 }
@@ -53,7 +51,6 @@ export interface PublicConfigSource extends PlatformSettingsSource {
   activeThemeId: string;
   activeSeason: string;
   announcementBannerActive: boolean;
-  altHome?: string | null;
   freeAnnualHostAllowance: number;
   freeAnnualJoinAllowance: number;
   paidEventPriceUsd: number | { toString(): string };
@@ -99,7 +96,6 @@ export const DEFAULT_PUBLIC_CONFIG: Omit<PublicSystemConfigResponse, 'edition'> 
   defaultBudgetMin: 0.0,
   defaultBudgetMax: 50.0,
   defaultCurrency: 'USD',
-  altHome: '',
 };
 
 /**
@@ -134,7 +130,6 @@ export function toPublicConfig(
     defaultBudgetMin: Number(config.defaultBudgetMin),
     defaultBudgetMax: Number(config.defaultBudgetMax),
     defaultCurrency: config.defaultCurrency,
-    altHome: (config.altHome || '').trim().toLowerCase(),
     edition,
   };
 }

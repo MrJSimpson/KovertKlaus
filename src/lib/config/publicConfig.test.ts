@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { DEFAULT_PUBLIC_CONFIG, toPublicConfig } from './publicConfig';
-import { resolveHomeVariant } from './homeVariant';
 
 const fullConfigRow = {
   id: 'singleton',
@@ -53,7 +52,8 @@ test('Public Config - reflects live settings and resolves auto season from the t
   assert.strictEqual(out.announcementBannerActive, false);
   assert.strictEqual(out.bannerTextLight, 'Boo');
   assert.strictEqual(out.lightsStrandType, 'pumpkins');
-  assert.strictEqual(out.altHome, 'coming_soon');
+  // The retired Alt Home setting is never exposed, even if the column still holds a value.
+  assert.ok(!('altHome' in out));
   assert.strictEqual(out.paidEventPriceUsd, 7.5);
   assert.strictEqual(out.defaultBudgetMax, 75);
   assert.strictEqual(out.edition, 'saas');
@@ -62,12 +62,4 @@ test('Public Config - reflects live settings and resolves auto season from the t
 test('Public Config - defaults when the database is empty or unreachable', () => {
   const out = toPublicConfig(null, null, 'selfhosted');
   assert.deepStrictEqual(out, { ...DEFAULT_PUBLIC_CONFIG, edition: 'selfhosted' });
-});
-
-test('Home Variant - aliases, edition defaults, and unknown values', () => {
-  assert.strictEqual(resolveHomeVariant('coming-soon', false), 'coming_soon');
-  assert.strictEqual(resolveHomeVariant('APPHOME', true), 'app_home');
-  assert.strictEqual(resolveHomeVariant('', true), 'coming_soon');
-  assert.strictEqual(resolveHomeVariant(null, false), 'app_home');
-  assert.strictEqual(resolveHomeVariant('nonsense', true), 'coming_soon');
 });

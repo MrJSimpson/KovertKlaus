@@ -1,33 +1,17 @@
-import React from 'react';
-import HomeVariant from '@/components/landing/HomeVariant';
-import { adminDb } from '@/lib/adminDb';
-import { IS_SAAS } from '@/lib/config/mode';
-import { resolveHomeVariant } from '@/lib/config/homeVariant';
-
-export const dynamic = 'force-dynamic';
+import { AppHomeLanding } from '@/components/landing';
 
 /**
- * Start Page Controller
+ * @file page.tsx (/)
+ * @description The front page: the app landing with open sign-up and sign-in.
  *
- * 1. `ALT_HOME` / `NEXT_PUBLIC_ALT_HOME`, if set, fixes the variant (no live override).
- * 2. Otherwise the server reads the North Pole `altHome` setting (`SystemConfig`, admin schema)
- *    for the initial render; `HomeVariant` then follows the live value from `/api/config`.
- *    That second step matters for the SaaS static export, where this function runs at build time.
- * 3. Empty or unknown values use the edition default: SaaS `coming_soon`, self-hosted `app_home`.
+ * Tier 1 (what): Always renders `AppHomeLanding`, the same component as `/signin` and `/register`.
+ * Tier 2 (why): Owner decision (2026-11-01): one front page that looks like the sign-in page and lets
+ * people sign up without approval. The coming-soon waitlist page (and the North Pole "Alt Home" switch
+ * that chose it) is retired: in BETA it showed an expired countdown and a manual clearance request.
+ * Tier 3 (how): Static: no database lookup per visit (the self-hosted page used to read SystemConfig on
+ * every request to pick a variant). The release stage still decides, client side, whether sign-up
+ * needs an alpha code (`isAlphaStage` in the landing).
  */
-export default async function Page() {
-  const envAltHome = (process.env.ALT_HOME || process.env.NEXT_PUBLIC_ALT_HOME || '').trim();
-  if (envAltHome) {
-    return <HomeVariant initialKey={resolveHomeVariant(envAltHome, IS_SAAS)} locked />;
-  }
-
-  let altHome = '';
-  try {
-    const config = await adminDb.systemConfig.findFirst({ select: { altHome: true } });
-    altHome = config?.altHome || '';
-  } catch {
-    // Database unavailable (or no database at static-export build): use the edition default.
-  }
-
-  return <HomeVariant initialKey={resolveHomeVariant(altHome, IS_SAAS)} />;
+export default function Page() {
+  return <AppHomeLanding />;
 }

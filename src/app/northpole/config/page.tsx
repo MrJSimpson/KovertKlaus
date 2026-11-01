@@ -36,7 +36,6 @@ export default function NorthPoleConfigPage() {
   const [announcementBannerActive, setAnnouncementBannerActive] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintenanceMessage, setMaintenanceMessage] = useState('');
-  const [altHome, setAltHome] = useState('');
   const [appMode, setAppMode] = useState('selfhosted');
 
   // Email Config State
@@ -97,7 +96,6 @@ export default function NorthPoleConfigPage() {
           setAnnouncementBannerActive(Boolean(cfg.announcementBannerActive));
           setMaintenanceMode(Boolean(cfg.maintenanceMode));
           setMaintenanceMessage(cfg.maintenanceMessage || '');
-          setAltHome(cfg.altHome || '');
           setAppMode(cfg.appMode || 'selfhosted');
 
           setEmailProvider(cfg.emailProvider || 'auto');
@@ -171,7 +169,6 @@ export default function NorthPoleConfigPage() {
           announcementBannerActive,
           maintenanceMode,
           maintenanceMessage,
-          altHome,
           appMode,
           emailProvider,
           emailFrom,
@@ -470,18 +467,6 @@ export default function NorthPoleConfigPage() {
               </span>
             </div>
             <p className="text-[10px] text-kk-muted mt-1">Immutable deployment mode set via environment variables.</p>
-          </div>
-
-          <div>
-            <label className="block text-kk-ink font-bold mb-1">ALTERNATE START PAGE (ALT_HOME)</label>
-            <select
-              value={altHome}
-              onChange={(e) => setAltHome(e.target.value)}
-              className="w-full bg-kk-inset border border-kk-border rounded-xl px-3 py-2 text-kk-ink focus:outline-none focus:border-kk-focus"
-            >
-              <option value="">Default App Home (Full Interactive App)</option>
-              <option value="coming_soon">Coming Soon / Clearance Waitlist Landing</option>
-            </select>
           </div>
 
           <div>
