@@ -141,6 +141,10 @@ interface OperationData {
   repairDeadline?: string | null;
   /** JSON text of the blocking issues; agents receive only their own. */
   repairIssues?: string | null;
+  /** The signed-in outsider's request to join by code (src/lib/join-requests.ts). */
+  joinRequest?: { status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'EXPIRED'; requestedAt: string } | null;
+  /** Requests to join by code, Head Elf only. */
+  joinRequests?: Array<{ id: string; userId: string; name: string; requestedAt: string; emailVerified: boolean }>;
 }
 
 export default function OperationCommandCenterPage() {
@@ -185,6 +189,17 @@ export default function OperationCommandCenterPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [enlisting, setEnlisting] = useState(false);
+  /** `?invite=` from an emailed invitation link: joins without Head Elf approval. */
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [joinNotice, setJoinNotice] = useState('');
+  const [decidingRequestId, setDecidingRequestId] = useState<string | null>(null);
+
+  // Read once after mount (static export: no server-side query).
+  useEffect(() => {
+    const fromLink = new URLSearchParams(window.location.search).get('invite');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (fromLink) setInviteToken(fromLink);
+  }, []);
   const [enlistError, setEnlistError] = useState('');
 
   // Pending email invitation to this mission for the signed-in, not-yet-enrolled user (/api/invitations)
@@ -424,6 +439,7 @@ export default function OperationCommandCenterPage() {
             email: authEmail.trim(),
             password: authPassword,
             inviteCode: operation.code,
+            inviteToken,
           }),
         });
 
@@ -460,9 +476,10 @@ export default function OperationCommandCenterPage() {
         const joinRes = await fetch('/api/invitations/accept', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: loggedUser.id, operationCode: operation.code }),
+          body: JSON.stringify({ userId: loggedUser.id, operationCode: operation.code, inviteToken }),
         });
         const joinData = await joinRes.json().catch(() => ({}));
+        if (joinData.pending) setJoinNotice(joinData.message || 'Request sent to the Head Elf.');
         if (!joinRes.ok && !joinData.error?.includes('already enrolled')) {
           console.warn('[Enlist Warning]', joinData.error);
         }
@@ -487,7 +504,7 @@ export default function OperationCommandCenterPage() {
       const res = await fetch('/api/invitations/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, operationCode: operation.code }),
+        body: JSON.stringify({ userId, operationCode: operation.code, inviteToken }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -495,11 +512,30 @@ export default function OperationCommandCenterPage() {
           throw new Error(data.error || 'Failed to enlist in exchange');
         }
       }
+      if (data.pending) setJoinNotice(data.message || 'Request sent to the Head Elf.');
       await fetchExchangeDetails();
     } catch (err: unknown) {
       setEnlistError((err instanceof Error && err.message) || 'Enlistment failed');
     } finally {
       setEnlisting(false);
+    }
+  }
+
+  /** Head Elf approves or declines a request to join by code. */
+  async function handleJoinRequest(requestId: string, decision: 'approve_join' | 'decline_join') {
+    if (!operation) return;
+    setDecidingRequestId(requestId);
+    try {
+      const res = await fetch('/api/operations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operationId: operation.id, action: decision, requestId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) alert(data.error || 'Could not update the request.');
+      await fetchExchangeDetails();
+    } finally {
+      setDecidingRequestId(null);
     }
   }
 
@@ -1199,6 +1235,11 @@ export default function OperationCommandCenterPage() {
                     ⚠️ {enlistError}
                   </div>
                 )}
+                {joinNotice && !operation.joinRequest && (
+                  <div role="status" className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertSuccess}`}>
+                    {joinNotice}
+                  </div>
+                )}
 
                 {operation.status === 'RECRUITING' ? (
                   !userId ? (
@@ -1215,6 +1256,7 @@ export default function OperationCommandCenterPage() {
                         </h2>
                         <p className={`text-xs mt-1 max-w-xl ${theme.textSubLabel}`}>
                           Sign in or create your operative profile with invite code <strong className="font-mono">{operation.code}</strong> to submit your wishlist manifest and enter the Secret Santa assignment draw.
+                          {inviteToken ? ' Your invitation link lets you join right away.' : ' The Head Elf approves new agents who join with the code.'}
                         </p>
                       </div>
                       <div className="flex gap-2 flex-wrap shrink-0">
@@ -1232,6 +1274,20 @@ export default function OperationCommandCenterPage() {
                         </button>
                       </div>
                     </div>
+                  ) : operation.joinRequest?.status === 'PENDING' || operation.joinRequest?.status === 'DECLINED' ? (
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl">{operation.joinRequest.status === 'PENDING' ? '⏳' : '🚫'}</span>
+                      <div>
+                        <h2 className="text-lg font-black">
+                          {operation.joinRequest.status === 'PENDING' ? 'Waiting for the Head Elf' : 'Request declined'}
+                        </h2>
+                        <p className={`text-xs mt-1 max-w-xl ${theme.textSubLabel}`}>
+                          {operation.joinRequest.status === 'PENDING'
+                            ? `You asked to join ${operation.title}. The Head Elf has to approve it before you can see the roster, Mission Comms or build your wishlist. We'll let you know.`
+                            : `The Head Elf declined your request to join ${operation.title}. If you think that's a mistake, ask them to invite you by email.`}
+                        </p>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
@@ -1247,7 +1303,9 @@ export default function OperationCommandCenterPage() {
                         <p className={`text-xs mt-1 max-w-xl ${theme.textSubLabel}`}>
                           {inviteDeclined
                             ? 'You declined this invitation. You can still enlist while recruitment is open.'
-                            : <>You are authenticated as <strong>{userName || 'Operative'}</strong>. {myInvitation ? 'Accept to' : 'Enlist now to'} submit your wishlist manifest and enter the Secret Santa assignment draw.</>}
+                            : inviteToken
+                              ? <>You are signed in as <strong>{userName || 'Operative'}</strong>. Your invitation link lets you join right away.</>
+                              : <>You are signed in as <strong>{userName || 'Operative'}</strong>. Ask to join: the Head Elf approves new agents who join with the mission code.</>}
                         </p>
                       </div>
                       <div className="flex gap-2 shrink-0">
@@ -1256,7 +1314,7 @@ export default function OperationCommandCenterPage() {
                           disabled={enlisting}
                           className={`font-bold px-6 py-3 rounded-2xl text-xs transition-all shadow-md cursor-pointer ${theme.btnPrimary}`}
                         >
-                          {enlisting ? 'Enlisting...' : myInvitation ? '✅ Accept Invitation' : '🚀 Enlist in Mission Now'}
+                          {enlisting ? 'Sending...' : inviteToken ? '✅ Accept Invitation' : myInvitation ? '✅ Accept Invitation' : '🙋 Ask to Join'}
                         </button>
                         {myInvitation && (
                           <button
@@ -1968,6 +2026,47 @@ export default function OperationCommandCenterPage() {
 
               {/* Right Column: Participant Roster, Shipping Status & Mission Comms */}
               <div className="lg:col-span-5 space-y-6">
+                {/* Head Elf: requests to join by code (src/lib/join-requests.ts) */}
+                {isOpsLeader && !missionClosed && (operation.joinRequests?.length ?? 0) > 0 && (
+                  <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
+                    <h2 className="text-xl font-bold flex items-center gap-2">🙋 Join Requests ({operation.joinRequests!.length})</h2>
+                    <p className={`text-xs mt-1 ${theme.textSubLabel}`}>
+                      These agents used the mission code. Approve the ones you know; requests expire when RSVP closes.
+                    </p>
+                    <ul className="mt-4 space-y-3">
+                      {operation.joinRequests!.map((r) => (
+                        <li key={r.id} className={`p-3 rounded-2xl border border-kk-border flex flex-wrap items-center justify-between gap-2 ${theme.cardInnerBg}`}>
+                          <div>
+                            <p className="font-bold text-sm">{r.name}</p>
+                            <p className={`text-[11px] ${theme.textSubLabel}`}>
+                              Asked {new Date(r.requestedAt).toLocaleDateString()}
+                              {!r.emailVerified && ' · email not verified yet'}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={decidingRequestId === r.id}
+                              onClick={() => handleJoinRequest(r.id, 'approve_join')}
+                              className={`px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50 ${theme.btnPrimary}`}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              disabled={decidingRequestId === r.id}
+                              onClick={() => handleJoinRequest(r.id, 'decline_join')}
+                              className={`px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50 ${theme.btnNeutral}`}
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
                   <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
                     <h2 className="text-xl font-bold flex items-center gap-2">

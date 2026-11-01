@@ -229,6 +229,21 @@ test('Account Export - Worker serves downloads from the USER_EXPORTS binding dec
   assert.doesNotMatch(worker, /export-store-disk/);
 });
 
+test('Head Elf Approval - joining by code and signing up with a code go through join-requests in both runtimes', () => {
+  const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), 'src', ...p), 'utf-8');
+  const worker = read('worker.ts');
+  const acceptBlock = worker.slice(worker.indexOf("if (pathname === '/api/invitations/accept'"), worker.indexOf("if (pathname === '/api/codename'"));
+  const selfHostedAccept = read('app', 'api', 'invitations', 'accept', 'route.ts');
+  for (const source of [acceptBlock, selfHostedAccept]) {
+    assert.match(source, /await joinMission\(\{ db, adminDb \}, exchange, \{ userId: activeUserId, inviteToken: bodyString\(body\.inviteToken\) \}\)/);
+    assert.doesNotMatch(source, /exchangeMember\.create|enrollWithCodename/, 'no direct enrollment by code');
+  }
+  for (const source of [worker, read('app', 'api', 'users', 'route.ts')]) {
+    assert.match(source, /joinWithInviteAtSignup\(\{ db, adminDb \}, targetExchange, user\.id, bodyString\(body\.inviteToken\)\)/);
+    assert.match(source, /requestToJoinAtSignup\(db, targetExchange, user\.id\)/);
+  }
+});
+
 test('Nudge - both runtimes use the shared deadline nudge', () => {
   const read = (...p: string[]) => fs.readFileSync(path.join(process.cwd(), 'src', ...p), 'utf-8');
   for (const source of [read('worker.ts'), read('app', 'api', 'operations', 'route.ts')]) {

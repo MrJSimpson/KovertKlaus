@@ -125,6 +125,8 @@ export default function DashboardPage() {
   // Every mission the agent runs or has joined, with the list filters (the old Operations Center's).
   const [missions, setMissions] = useState<MissionSummary[]>([]);
   const [missionsError, setMissionsError] = useState('');
+  /** Missions the agent asked to join by code (src/lib/join-requests.ts): waiting or declined. */
+  const [joinRequests, setJoinRequests] = useState<Array<{ id: string; status: string; exchange: { title: string; code: string } }>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
@@ -243,7 +245,10 @@ export default function DashboardPage() {
       const { ok, json } = await fetchJsonWithRetry(`/api/operations?userId=${encodeURIComponent(userId)}`, {
         onRetry: () => setWakingUp(true),
       });
-      if (ok && json.success && Array.isArray(json.data)) setMissions(json.data);
+      if (ok && json.success && Array.isArray(json.data)) {
+        setMissions(json.data);
+        setJoinRequests(Array.isArray(json.joinRequests) ? json.joinRequests : []);
+      }
       else setMissionsError(json.error || 'Your missions could not be loaded.');
     } catch {
       setMissionsError('Your missions could not be loaded. Check your connection and try again.');
@@ -453,6 +458,32 @@ export default function DashboardPage() {
                   </div>
                 }
               />
+
+              {/* Requests to join by code: waiting for (or declined by) the Head Elf */}
+              {joinRequests.length > 0 && (
+                <div className="mb-6 space-y-3">
+                  {joinRequests.map((r) => (
+                    <Card key={r.id} className="border-kk-border-strong">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-kk-gold-ink">
+                            {r.status === 'DECLINED' ? '🚫 Request declined' : '⏳ Waiting for the Head Elf'}
+                          </span>
+                          <h3 className="text-base font-bold">{r.exchange.title}</h3>
+                          <p className="text-xs text-kk-muted">
+                            {r.status === 'DECLINED'
+                              ? 'The Head Elf declined your request. Ask them to invite you by email if this is a mistake.'
+                              : "You asked to join with the mission code. We'll let you know when the Head Elf decides."}
+                          </p>
+                        </div>
+                        <Button onClick={() => router.push(`/exchange/${r.exchange.code}`)} variant="secondary">
+                          View mission
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
 
               {/* Pending email invitations */}
               {invitations.length > 0 && (
