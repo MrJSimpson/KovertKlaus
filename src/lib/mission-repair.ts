@@ -9,7 +9,8 @@
  * lifts a pause when the Head Elf moves the draw to a later day.
  * Tier 2 (why): Owner rules (2026-10-20). Problems surface at matching: too few agents (Secret
  * Santa needs 4, White Elephant 3), a remote Secret Santa agent with no shipping address, or an
- * empty wishlist. The Head Elf and the agent at fault are told; the Head Elf removes the agent or
+ * empty wishlist. Since 2026-11-01 an agent who has not verified their email also blocks the draw,
+ * so a fake or mistyped account never receives a real target or shipping address. The Head Elf and the agent at fault are told; the Head Elf removes the agent or
  * extends the timeline. The deadline is halfway between Assignment Day and the shipping deadline
  * (Exchange Day when there is none), so givers keep half the time to buy and ship. Recruiting stays
  * open while paused. Unresolved by the deadline (including an unresponsive Head Elf), the mission
@@ -43,7 +44,11 @@ export type ReadinessIssue =
   | { type: 'NOT_ENOUGH_AGENTS'; have: number; need: number }
   | { type: 'MISSING_ADDRESS'; userId: string }
   | { type: 'EMPTY_WISHLIST'; userId: string }
+  | { type: 'UNVERIFIED_EMAIL'; userId: string }
   | { type: 'DRAW_IMPOSSIBLE' };
+
+/** Issue types that name one agent, in the order they are reported. */
+type AgentIssueType = 'MISSING_ADDRESS' | 'EMPTY_WISHLIST' | 'UNVERIFIED_EMAIL';
 
 /** The mission fields the readiness check reads. */
 export interface ReadinessMission {
@@ -51,7 +56,16 @@ export interface ReadinessMission {
   isLocalOnly: boolean;
   members: Array<{
     userId: string;
-    user: { name?: string | null; streetAddress?: string | null; city?: string | null; state?: string | null; zipCode?: string | null };
+    user: {
+      name?: string | null;
+      streetAddress?: string | null;
+      city?: string | null;
+      state?: string | null;
+      zipCode?: string | null;
+      /** Null = email not verified (src/lib/email-verification.ts). Absent = not loaded, not checked. */
+      emailVerifiedAt?: Date | string | null;
+      isWorkshop?: boolean | null;
+    };
     /** Items on the agent's list for this mission. */
     wishlistItemCount: number;
   }>;
@@ -95,6 +109,10 @@ export function drawReadinessIssues(mission: ReadinessMission): ReadinessIssue[]
   }
   for (const m of mission.members) {
     if (m.wishlistItemCount === 0) issues.push({ type: 'EMPTY_WISHLIST', userId: m.userId });
+  }
+  for (const m of mission.members) {
+    // Strictly null: a caller that did not load the column is not treated as unverified.
+    if (m.user.emailVerifiedAt === null && !m.user.isWorkshop) issues.push({ type: 'UNVERIFIED_EMAIL', userId: m.userId });
   }
 
   if (!mission.isWhiteElephant && mission.members.length >= need) {
@@ -142,9 +160,11 @@ export function cancellationReasonText(issues: ReadinessIssue[]): string {
   if (code === 'DRAW_FAILED') return 'The match rules made a Secret Santa draw impossible and were not changed in time.';
   const wishlists = issues.filter((i) => i.type === 'EMPTY_WISHLIST').length;
   const addresses = issues.filter((i) => i.type === 'MISSING_ADDRESS').length;
+  const unverified = issues.filter((i) => i.type === 'UNVERIFIED_EMAIL').length;
   const parts = [
     wishlists ? `${agentCount(wishlists)} still had an empty wishlist` : null,
     addresses ? `${agentCount(addresses)} still had no shipping address` : null,
+    unverified ? `${agentCount(unverified)} still had not verified their email` : null,
   ].filter(Boolean);
   if (parts.length === 0) return 'Problems blocking the draw were not fixed before the deadline.';
   return `The draw could not run: at the deadline, ${parts.join(' and ')}.`;
@@ -161,6 +181,7 @@ export function describeIssues(issues: ReadinessIssue[], nameOf: (userId: string
     if (i.type === 'NOT_ENOUGH_AGENTS') return `Only ${i.have} of the ${i.need} agents needed have joined.`;
     if (i.type === 'MISSING_ADDRESS') return `${nameOf(i.userId)} has no shipping address.`;
     if (i.type === 'EMPTY_WISHLIST') return `${nameOf(i.userId)} has an empty wishlist.`;
+    if (i.type === 'UNVERIFIED_EMAIL') return `${nameOf(i.userId)} has not verified their email address.`;
     return 'The match rules make a Secret Santa draw impossible. Remove some blocked pairs.';
   });
 }
@@ -172,15 +193,30 @@ export function agentTodo(issues: ReadinessIssue[], userId: string): string | nu
   const tasks = [
     mine.includes('MISSING_ADDRESS') ? 'add your shipping address in Account Preferences' : null,
     mine.includes('EMPTY_WISHLIST') ? 'add at least one gift to your wishlist for this mission' : null,
+    mine.includes('UNVERIFIED_EMAIL') ? 'verify your email address with the link we emailed you' : null,
   ].filter(Boolean);
   return tasks.join(' and ');
 }
 
+/** Short labels for the Head Elf's cancellation list. */
+const HEAD_ELF_ISSUE_TEXT: Record<AgentIssueType, string> = {
+  MISSING_ADDRESS: 'no shipping address',
+  EMPTY_WISHLIST: 'empty wishlist',
+  UNVERIFIED_EMAIL: 'email not verified',
+};
+
+/** The blocking agent's own cancellation line. */
+const OWN_ISSUE_TEXT: Record<AgentIssueType, string> = {
+  MISSING_ADDRESS: 'you had no shipping address',
+  EMPTY_WISHLIST: 'your wishlist for this mission was still empty',
+  UNVERIFIED_EMAIL: 'you had not verified your email address',
+};
+
 /** Each agent's unfixed issues, in issue order, keyed by user ID. */
-function issuesByAgent(issues: ReadinessIssue[]): Map<string, Array<'MISSING_ADDRESS' | 'EMPTY_WISHLIST'>> {
-  const byAgent = new Map<string, Array<'MISSING_ADDRESS' | 'EMPTY_WISHLIST'>>();
+function issuesByAgent(issues: ReadinessIssue[]): Map<string, AgentIssueType[]> {
+  const byAgent = new Map<string, AgentIssueType[]>();
   for (const i of issues) {
-    if (i.type !== 'MISSING_ADDRESS' && i.type !== 'EMPTY_WISHLIST') continue;
+    if (i.type !== 'MISSING_ADDRESS' && i.type !== 'EMPTY_WISHLIST' && i.type !== 'UNVERIFIED_EMAIL') continue;
     byAgent.set(i.userId, [...(byAgent.get(i.userId) ?? []), i.type]);
   }
   return byAgent;
@@ -206,9 +242,9 @@ export function cancellationNotes(
     const m = ex.members.find((x) => x.userId === userId);
     const name = m?.user.name || 'Unnamed agent';
     const label = m?.codename ? `${name} (${m.codename})` : name;
-    const headElfIssues = types.map((t) => (t === 'EMPTY_WISHLIST' ? 'empty wishlist' : 'no shipping address'));
+    const headElfIssues = types.map((t) => HEAD_ELF_ISSUE_TEXT[t]);
     entries.push(`${label}: ${headElfIssues.join(', ')}`);
-    const own = types.map((t) => (t === 'EMPTY_WISHLIST' ? 'your wishlist for this mission was still empty' : 'you had no shipping address'));
+    const own = types.map((t) => OWN_ISSUE_TEXT[t]);
     notes[userId] = `At the deadline, ${own.join(' and ')}.`;
   }
   // The Head Elf's list replaces their own line when they were also blocking: it names them too.

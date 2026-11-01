@@ -139,6 +139,16 @@ export interface PasswordResetEmailParams {
   overrideConfig?: Partial<EmailConfig>;
 }
 
+/** Email address verification link (`src/lib/email-verification.ts`). */
+export interface EmailVerificationEmailParams {
+  to: string;
+  name: string;
+  verifyUrl: string;
+  /** When the link stops working, as a phrase: "in 24 hours" or "in 48 hours". */
+  expiresText: string;
+  overrideConfig?: Partial<EmailConfig>;
+}
+
 export interface MissionCancelledEmailParams {
   recipientEmail?: string;
   to?: string;

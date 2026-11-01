@@ -26,6 +26,7 @@ import {
   getMissionRepairEmailTemplate,
   getNudgeEmailTemplate,
   getPasswordResetEmailTemplate,
+  getEmailVerificationEmailTemplate,
   getWelcomeEmailTemplate,
 } from './templates';
 import {
@@ -41,6 +42,7 @@ import {
   MissionRepairEmailParams,
   NudgeEmailParams,
   PasswordResetEmailParams,
+  EmailVerificationEmailParams,
   WelcomeEmailParams,
 } from './types';
 
@@ -423,6 +425,23 @@ export async function sendPasswordResetEmail(params: PasswordResetEmailParams): 
       html,
       text,
       tags: ['account', 'password-reset'],
+    },
+    params.overrideConfig
+  );
+}
+
+/**
+ * Dispatches an email address verification link (sign-up and resend).
+ */
+export async function sendEmailVerificationEmail(params: EmailVerificationEmailParams): Promise<EmailResult> {
+  const { subject, html, text } = getEmailVerificationEmailTemplate(params);
+  return sendEmail(
+    {
+      to: { email: params.to, name: params.name },
+      subject,
+      html,
+      text,
+      tags: ['account', 'email-verification'],
     },
     params.overrideConfig
   );

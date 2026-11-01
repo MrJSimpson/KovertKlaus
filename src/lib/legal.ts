@@ -19,7 +19,7 @@
 export const LEGAL_CONTACT_EMAIL = 'privacy@kovertklaus.com';
 
 /** Shown as "Last updated" on both pages. Change it whenever the text changes. */
-export const LEGAL_UPDATED = 'October 31, 2026';
+export const LEGAL_UPDATED = 'November 1, 2026';
 
 /** Minimum age for an account (US COPPA). */
 export const MINIMUM_AGE = 13;
@@ -75,7 +75,7 @@ export const PRIVACY_POLICY: LegalDocument = {
       id: 'what-we-collect',
       heading: 'What we collect and why',
       blocks: [
-        p('**Your account.** Your name, email address and password. Your password is stored only as a salted one-way hash, so we cannot read it. We use your email to sign you in and to send mission emails, such as invitations, assignment notices and password resets.'),
+        p('**Your account.** Your name, email address and password. Your password is stored only as a salted one-way hash, so we cannot read it. We use your email to sign you in, to confirm the address is yours when you sign up, and to send mission emails, such as invitations, assignment notices and password resets.'),
         p('**Your gift dossier (optional).** Shipping address and delivery notes, clothing sizes and measurements, favorite colors, hobbies, dislikes, and allergies or diet. These exist so your Secret Santa can choose a gift and send it. Allergies and diet can be health information: only add what you are comfortable sharing.'),
         p('**What you do in missions.** Missions you run or join, your codename, your Wishlist Manifest (including product links you paste), shipping and tracking numbers, Mission Comms messages, After-Action Reports, Secret Santa guesses and Coal Citations.'),
         p('**Invitations.** When a Head Elf invites you, we store your email address and whether the invitation was accepted, and we send you the invitation email.'),
@@ -120,7 +120,7 @@ export const PRIVACY_POLICY: LegalDocument = {
       blocks: [
         list(
           'You can view and change your profile and gift dossier at any time in the app.',
-          'You can turn mission emails off in your profile. Some emails, such as password resets, are always sent.',
+          'You can turn mission emails off in your profile. Some emails, such as email verification and password resets, are always sent.',
           `To get a copy of your information, correct something you cannot change yourself, or delete your account, email ${LEGAL_CONTACT_EMAIL} from the address on your account. Deleting your account in the app is coming; until then, we handle deletion requests by email.`,
           'We answer requests within 30 days. Depending on where you live (for example California or the European Union), you may have further rights under local law; ask us and we will help.'
         ),

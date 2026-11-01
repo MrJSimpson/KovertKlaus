@@ -227,6 +227,8 @@ export async function migrateLegacySqlDump(sqlFilePath: string) {
         data: {
           id: u.id,
           ...modernUserData,
+          // Legacy accounts predate email verification: grandfathered like the 2026-11-01 migration.
+          emailVerifiedAt: new Date(),
         },
       });
       usersCreated++;

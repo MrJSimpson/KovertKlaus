@@ -1,17 +1,29 @@
 import { NextResponse } from 'next/server';
 import { comparePassword, hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
-import { getSessionUserId, clearSessionCookie, renewSessionCookieIfStale, setSessionCookie } from '@/lib/auth';
+import { getSessionUserId, getSessionUserState, clearSessionCookie, renewSessionCookieIfStale, setSessionCookie } from '@/lib/auth';
+import { EMAIL_UNVERIFIED_CODE } from '@/lib/email-verification';
 import { sanitizeText, validatePassword } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const userId = await getSessionUserId();
+    const session = await getSessionUserState();
 
-    if (!userId) {
+    if (!session) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
+    }
+    const { userId } = session;
+
+    // Signed in but the email is not verified yet: identity only, no mission data.
+    if (session.unverified) {
+      const pending = await db.user.findUnique({ where: { id: userId }, select: { id: true, email: true, name: true } });
+      if (!pending) return NextResponse.json({ authenticated: false }, { status: 401 });
+      return NextResponse.json(
+        { authenticated: true, emailVerified: false, code: EMAIL_UNVERIFIED_CODE, error: 'Please verify your email address.', user: pending },
+        { status: 403 }
+      );
     }
 
     const user = await db.user.findUnique({
@@ -71,6 +83,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       authenticated: true,
+      emailVerified: true,
       user: {
         ...user,
         demerits: user.penaltyPoints,

@@ -1,6 +1,6 @@
 'use client';
 
-import { USER_ID_KEY } from '@/lib/constants/auth';
+import { EMAIL_UNVERIFIED_CODE, USER_ID_KEY } from '@/lib/constants/auth';
 
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
@@ -220,6 +220,10 @@ export default function DashboardPage() {
         setUser(me.json.user);
         localStorage.setItem(USER_ID_KEY, me.json.user.id);
         await fetchMissions(me.json.user.id);
+      } else if (me.status === 403 && me.json.code === EMAIL_UNVERIFIED_CODE) {
+        // Signed in but the email is not verified yet: the dashboard waits behind /verify-email.
+        window.location.replace('/verify-email');
+        return;
       } else if (me.status === 401 || me.status === 404) {
         // Session expired or signed out: drop the cached identity.
         localStorage.removeItem(USER_ID_KEY);

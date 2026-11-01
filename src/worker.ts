@@ -23,8 +23,17 @@ import { executeTargetSwap } from './lib/draw';
 import { runManualDraw } from './lib/manual-draw';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
 import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
-import { flushHeldEmailQueue, isDailyEmailQuotaReached, sendEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
+import { flushHeldEmailQueue, isDailyEmailQuotaReached, sendEmail, sendEmailVerificationEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
 import { confirmPasswordReset, requestPasswordReset } from './lib/password-reset';
+import {
+  confirmEmailVerification,
+  EMAIL_UNVERIFIED_CODE,
+  isUnverified,
+  isVerificationRequired,
+  requestVerificationResend,
+  sendVerificationEmail,
+  UNVERIFIED_ALLOWED_PATHS,
+} from './lib/email-verification';
 import {
   sendWelcomeEmail,
   sendInvitationEmail,
@@ -113,6 +122,8 @@ export const WORKER_API_PATHS = new Set([
   '/api/users/password-reset',
   '/api/users/password-reset/confirm',
   '/api/users/profile',
+  '/api/users/verify-email',
+  '/api/users/verify-email/confirm',
   '/api/wishlist',
   '/api/workshop/auth',
 ]);
@@ -235,14 +246,38 @@ function readUserClaimsFromRequest(request: Request): SessionClaims | null {
 const revokedSessionRequests = new WeakSet<Request>();
 
 /**
- * Looks up whether this request's user token was revoked by a password change, once, before routing.
- * Requests without a valid user token skip the lookup.
+ * Requests from a signed-in agent who still has to verify their email (src/lib/email-verification.ts).
+ * On paths outside `UNVERIFIED_ALLOWED_PATHS` they are also in `revokedSessionRequests`, so every
+ * other route treats them as signed out; `/api/users/me` answers them with a 403 `EMAIL_UNVERIFIED`.
  */
-async function markRevokedUserSession(request: Request, db: PrismaClient): Promise<void> {
+const unverifiedSessionRequests = new WeakSet<Request>();
+
+/**
+ * Looks up, once before routing, whether this request's user token was revoked by a password change
+ * or belongs to an agent who has not verified their email. Requests without a valid user token skip
+ * the lookup, and the email provider is only resolved for an unverified agent.
+ */
+async function markRevokedUserSession(request: Request, db: PrismaClient, adminDb: PrismaClient, env: Env, pathname: string): Promise<void> {
   const claims = readUserClaimsFromRequest(request);
   if (!claims) return;
-  const user = await db.user.findUnique({ where: { id: claims.subjectId }, select: { sessionsRevokedAt: true } });
-  if (!user || isSessionRevoked(claims, user.sessionsRevokedAt)) revokedSessionRequests.add(request);
+  const user = await db.user.findUnique({
+    where: { id: claims.subjectId },
+    select: { sessionsRevokedAt: true, emailVerifiedAt: true, isWorkshop: true },
+  });
+  if (!user || isSessionRevoked(claims, user.sessionsRevokedAt)) {
+    revokedSessionRequests.add(request);
+    return;
+  }
+  if (!isUnverified(user)) return;
+  let required = false;
+  try {
+    required = isVerificationRequired((await resolveWorkerEmailConfig(env, adminDb)).provider);
+  } catch (err) {
+    console.warn('[Worker] could not resolve the email provider; not requiring verification:', err);
+  }
+  if (!required) return;
+  unverifiedSessionRequests.add(request);
+  if (!UNVERIFIED_ALLOWED_PATHS.has(pathname)) revokedSessionRequests.add(request);
 }
 
 /**
@@ -334,8 +369,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
       const adminDb = getAdminDb(adminConnStr);
       const db = getDb(appConnStr);
 
-      // Reject user tokens issued before a password change (one lookup, only when a token is present).
-      await markRevokedUserSession(request, db);
+      // Reject user tokens issued before a password change, and gate agents who have not verified
+      // their email (one lookup, only when a token is present).
+      await markRevokedUserSession(request, db, adminDb, env, pathname);
 
       // =======================================================================
       // SECTION 1: NORTH POLE SUPER ADMIN ENDPOINTS (/api/northpole/*)
@@ -1357,6 +1393,41 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         return Response.json(result.body, { status: result.status, headers: result.headers });
       }
 
+      // 10d. /api/users/verify-email (POST): email the signed-in agent another verification link
+      if (pathname === '/api/users/verify-email' && request.method === 'POST') {
+        const userId = getUserIdFromRequest(request);
+        if (!userId) return Response.json({ error: 'Please sign in again.' }, { status: 401 });
+        const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+        const result = await requestVerificationResend(
+          {
+            db,
+            adminDb,
+            // Cloudflare only routes this zone's hostnames here, so the origin is trustworthy.
+            baseUrl: url.origin || 'https://kovertklaus.com',
+            isQuotaReached: () => isDailyEmailQuotaReached(emailConfig),
+            sendEmail: (email) => sendEmailVerificationEmail({ ...email, overrideConfig: emailConfig }),
+          },
+          userId
+        );
+        return Response.json(result.body, { status: result.status, headers: result.headers });
+      }
+
+      // 10e. /api/users/verify-email/confirm (POST): mark the email verified from the link (no session needed)
+      if (pathname === '/api/users/verify-email/confirm' && request.method === 'POST') {
+        const body = await readJsonBody(request);
+        const result = await confirmEmailVerification(
+          {
+            db,
+            sendWelcome: async (user) => {
+              const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+              return sendWelcomeEmail({ to: user.email, name: user.name, overrideConfig: emailConfig });
+            },
+          },
+          { token: body.token }
+        );
+        return Response.json(result.body, { status: result.status, headers: result.headers });
+      }
+
       // 11. /api/users/me / /api/users/profile (GET / PATCH / DELETE)
       if (pathname === '/api/users/me' || pathname === '/api/users/profile') {
         const userId = getUserIdFromRequest(request);
@@ -1365,6 +1436,17 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const headers = new Headers({ 'Content-Type': 'application/json' });
           headers.append('Set-Cookie', `${USER_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`);
           return new Response(JSON.stringify({ success: true, message: 'Logged out successfully' }), { status: 200, headers });
+        }
+
+        // Signed in but the email is not verified yet: identity only, no mission data.
+        if (request.method === 'GET' && unverifiedSessionRequests.has(request)) {
+          const claims = readUserClaimsFromRequest(request);
+          const pending = claims ? await db.user.findUnique({ where: { id: claims.subjectId }, select: { id: true, email: true, name: true } }) : null;
+          if (!pending) return Response.json({ authenticated: false }, { status: 401 });
+          return Response.json(
+            { authenticated: true, emailVerified: false, code: EMAIL_UNVERIFIED_CODE, error: 'Please verify your email address.', user: pending },
+            { status: 403 }
+          );
         }
 
         if (!userId) return Response.json({ authenticated: false }, { status: 401 });
@@ -1404,6 +1486,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           return Response.json({
             success: true,
             authenticated: true,
+            emailVerified: true,
             user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints },
           }, { headers: meHeaders });
         }
@@ -1481,6 +1564,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
 
         const passwordHash = await hashPassword(password);
+        // New agents verify their email before the dashboard when email delivery is set up.
+        const signupEmailConfig = await resolveWorkerEmailConfig(env, adminDb);
+        const mustVerify = isVerificationRequired(signupEmailConfig.provider);
 
         try {
           const user = await db.user.create({
@@ -1488,6 +1574,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               email: cleanEmail,
               name: sanitizeText(name),
               passwordHash,
+              emailVerifiedAt: mustVerify ? null : new Date(),
             },
             select: { id: true, email: true, name: true, accountStatus: true, penaltyPoints: true },
           });
@@ -1534,22 +1621,37 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             }
           }
 
-          try {
-            const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
-            await sendWelcomeEmail({
-              to: user.email,
-              name: user.name,
-              overrideConfig: emailConfig,
-            });
-          } catch (welcomeErr) {
-            console.warn('[Welcome Email Error]', welcomeErr);
+          // Verification link first when required (the welcome email follows verification); else welcome now.
+          let verificationQueued = false;
+          if (mustVerify) {
+            ({ queued: verificationQueued } = await sendVerificationEmail(
+              {
+                baseUrl: url.origin || 'https://kovertklaus.com',
+                isQuotaReached: () => isDailyEmailQuotaReached(signupEmailConfig),
+                sendEmail: (email) => sendEmailVerificationEmail({ ...email, overrideConfig: signupEmailConfig }),
+              },
+              user
+            ));
+          } else {
+            try {
+              await sendWelcomeEmail({
+                to: user.email,
+                name: user.name,
+                overrideConfig: signupEmailConfig,
+              });
+            } catch (welcomeErr) {
+              console.warn('[Welcome Email Error]', welcomeErr);
+            }
           }
 
           const signedUserId = issueSessionToken('user', user.id);
           const headers = new Headers({ 'Content-Type': 'application/json' });
           headers.append('Set-Cookie', sessionCookie('user', signedUserId));
 
-          return new Response(JSON.stringify({ success: true, token: signedUserId, data: user }), { status: 200, headers });
+          return new Response(
+            JSON.stringify({ success: true, token: signedUserId, emailVerified: !mustVerify, verificationQueued, data: user }),
+            { status: 200, headers }
+          );
         } catch (err) {
           if ((err as { code?: string } | null)?.code === 'P2002') {
             return Response.json({ error: 'An account with this email already exists.' }, { status: 400 });

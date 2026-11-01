@@ -8,6 +8,7 @@ import {
   MissionRepairEmailParams,
   NudgeEmailParams,
   PasswordResetEmailParams,
+  EmailVerificationEmailParams,
   WelcomeEmailParams,
 } from '../types';
 
@@ -554,6 +555,46 @@ export function getPasswordResetEmailTemplate(params: PasswordResetEmailParams):
 
     Resetting your password signs you out on every device.
     If you didn't ask for this, ignore this email. Your password stays the same.
+    --------------------------------------------------
+  `);
+
+  return { subject, html, text };
+}
+
+/**
+ * Generates the email address verification email sent at sign-up and on resend.
+ * Plain wording, like password reset: it is about account access.
+ */
+export function getEmailVerificationEmailTemplate(params: EmailVerificationEmailParams): { subject: string; html: string; text: string } {
+  const { name, verifyUrl, expiresText } = params;
+  const subject = 'Verify your email for KovertKlaus';
+
+  const bodyHtml = `
+    <p>Hi <strong>${escapeHtml(name)}</strong>,</p>
+    <p>Thanks for joining KovertKlaus. Please confirm this is your email address so you can open your dashboard and join your missions.</p>
+    <p>The link expires <strong>${escapeHtml(expiresText)}</strong>. You can request a new one from the sign-in page at any time.</p>
+    <p style="font-size: 14px; color: ${EMAIL_PALETTE.muted};">If you didn't create a KovertKlaus account, you can ignore this email. Nobody can use this address on KovertKlaus without the link.</p>
+  `;
+
+  const html = renderBaseEmail({
+    title: 'Verify your email',
+    preheader: `Confirm your email address. The link expires ${expiresText}.`,
+    bodyHtml,
+    actionText: 'Verify my email',
+    actionUrl: verifyUrl,
+  });
+
+  const text = stripHtml(`
+    KOVERT KLAUS // VERIFY YOUR EMAIL
+    --------------------------------------------------
+    Hi ${name},
+
+    Thanks for joining KovertKlaus. Please confirm this is your email address
+    so you can open your dashboard and join your missions.
+    Verify here (expires ${expiresText}):
+    ${verifyUrl}
+
+    If you didn't create a KovertKlaus account, ignore this email.
     --------------------------------------------------
   `);
 

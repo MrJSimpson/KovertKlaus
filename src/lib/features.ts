@@ -31,6 +31,7 @@ export const FEATURE_FACTS = {
   cancelledPurgeDays: 90,
   /** `RESET_LINK_TTL_MS` in `src/lib/password-reset.ts`. */
   resetLinkMinutes: 30,
+  verifyLinkHours: 24,
   /** `JOIN_LIMITS` in `src/lib/join-throttle.ts`. */
   wrongCodesPerHour: 10,
   /** Carriers whose tracking numbers protect an agent from Coal Citations. */
@@ -142,6 +143,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     lead: 'Protections that work quietly in the background.',
     points: [
       'Passwords are stored as salted one-way hashes; sessions use a secure, HTTP-only cookie.',
+      `New accounts confirm their email address before opening the dashboard (the link lasts ${f.verifyLinkHours} hours), and an unverified agent can't be drawn in a Secret Santa.`,
       `Forgot your password? A single-use reset link by email, valid for ${f.resetLinkMinutes} minutes.`,
       `Sign-in, sign-up, password resets and mission codes are rate-limited; after ${f.wrongCodesPerHour} wrong mission codes in an hour, you wait.`,
       'Everything is sent over HTTPS.',

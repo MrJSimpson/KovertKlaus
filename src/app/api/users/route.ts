@@ -3,8 +3,9 @@ import { hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { adminDb } from '@/lib/adminDb';
 import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
-import { setSessionCookie } from '@/lib/auth';
-import { sendWelcomeEmail } from '@/lib/email';
+import { emailVerificationRequired, setSessionCookie } from '@/lib/auth';
+import { isDailyEmailQuotaReached, sendEmailVerificationEmail, sendWelcomeEmail } from '@/lib/email';
+import { sendVerificationEmail } from '@/lib/email-verification';
 import { getPlatformSettings } from '@/lib/platform-limits';
 import { logInfo, logWarn } from '@/lib/logger';
 import { clientIp } from '@/lib/login-throttle';
@@ -70,12 +71,17 @@ export async function POST(request: Request) {
     // Hash Password with native scrypt
     const passwordHash = await hashPassword(password);
 
+    // New agents verify their email before the dashboard when this install can send email
+    // (src/lib/email-verification.ts); otherwise the account starts verified.
+    const mustVerify = await emailVerificationRequired();
+
     // Create User in DB
     const user = await db.user.create({
       data: {
         email: cleanEmail,
         name: cleanName,
         passwordHash,
+        emailVerifiedAt: mustVerify ? null : new Date(),
       },
       select: {
         id: true,
@@ -130,18 +136,32 @@ export async function POST(request: Request) {
     // Set HTTP-Only Short-Lived Session Cookie
     await setSessionCookie(user.id);
 
-    // Dispatch Welcome Email via Cloudflare Email Engine
-    try {
-      await sendWelcomeEmail({
-        to: user.email,
-        name: user.name,
-      });
-    } catch (emailErr) {
-      console.warn('[Welcome Email Non-Fatal]', emailErr);
+    // Verification link first when required (the welcome email follows verification); else welcome now.
+    let verificationQueued = false;
+    if (mustVerify) {
+      ({ queued: verificationQueued } = await sendVerificationEmail(
+        {
+          baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin,
+          isQuotaReached: () => isDailyEmailQuotaReached(),
+          sendEmail: (email) => sendEmailVerificationEmail(email),
+        },
+        user
+      ));
+    } else {
+      try {
+        await sendWelcomeEmail({
+          to: user.email,
+          name: user.name,
+        });
+      } catch (emailErr) {
+        console.warn('[Welcome Email Non-Fatal]', emailErr);
+      }
     }
 
     return NextResponse.json({
       success: true,
+      emailVerified: !mustVerify,
+      verificationQueued,
       data: {
         ...user,
         demerits: user.penaltyPoints,
