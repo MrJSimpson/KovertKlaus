@@ -1,4 +1,4 @@
 @echo off
 title KovertKlaus Dev Server Launcher
-cd /d "C:\Users\Joshua\projects\kovertklaus"
-powershell -ExecutionPolicy Bypass -File "C:\Users\Joshua\projects\kovertklaus\run-kovertklaus.ps1"
+cd /d "%~dp0"
+powershell -ExecutionPolicy Bypass -File "%~dp0run-kovertklaus.ps1"

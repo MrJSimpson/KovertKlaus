@@ -11,6 +11,10 @@ import {
   quotaDayStart,
   quotaSettings,
   recipientCount,
+  LEDGER_RETENTION_DAYS,
+  nextPeriodStart,
+  periodStart,
+  quotaResumesAt,
 } from './daily-limit';
 import type { EmailMessage, EmailResult } from './types';
 
@@ -56,10 +60,13 @@ const msg = (subject: string, to: EmailMessage['to'] = 'agent@example.com'): Ema
 const ok = async (): Promise<EmailResult> => ({ success: true, provider: 'brevo' });
 const settings = quotaSettings();
 
-test('Daily limit - defaults: quota 300, cap 290, warning at 240; EMAIL_DAILY_QUOTA overrides', () => {
-  assert.deepStrictEqual(quotaSettings(), { quota: 300, cap: 290, warnAt: 240 });
-  assert.deepStrictEqual(quotaSettings({ EMAIL_DAILY_QUOTA: '1000' }), { quota: 1000, cap: 990, warnAt: 800 });
-  assert.deepStrictEqual(quotaSettings({ EMAIL_DAILY_QUOTA: 'nope' }), { quota: 300, cap: 290, warnAt: 240 });
+test('Daily limit - defaults: 300 a day, cap 290, warning at 240; the North Pole setting overrides', () => {
+  assert.deepStrictEqual(quotaSettings(), { period: 'DAY', quota: 300, cap: 290, warnAt: 240, resetDay: 1, dailyCap: 0 });
+  assert.deepStrictEqual(quotaSettings({ quota: 1000 }), { period: 'DAY', quota: 1000, cap: 990, warnAt: 800, resetDay: 1, dailyCap: 0 });
+  assert.deepStrictEqual(quotaSettings({ period: 'MONTH', quota: 50000, resetDay: 15, dailyCap: 2500 }), {
+    period: 'MONTH', quota: 50000, cap: 49990, warnAt: 40000, resetDay: 15, dailyCap: 2500,
+  });
+  assert.strictEqual(quotaSettings({ period: 'DAY', dailyCap: 50 }).dailyCap, 0, 'daily cap only applies to monthly mode');
 });
 
 test('Daily limit - the quota day starts at midnight Pacific, across daylight-saving changes', () => {
@@ -149,4 +156,61 @@ test('Daily limit - a provider quota rejection stops the flush until the next ru
   const summary = await flushHeldEmails(store, async () => { calls++; return { success: false, provider: 'brevo', error: 'Brevo API HTTP 429: limit' }; }, settings);
   assert.strictEqual(calls, 1);
   assert.deepStrictEqual(summary, { sent: 0, failed: 1, gaveUp: 0, remaining: 2 });
+});
+
+test('Monthly quota - the period starts at midnight Pacific on the reset day, across DST and year end', () => {
+  const s15 = quotaSettings({ period: 'MONTH', resetDay: 15 });
+  assert.strictEqual(periodStart(s15, new Date('2026-11-20T12:00:00Z')).toISOString(), '2026-11-15T08:00:00.000Z', 'PST');
+  assert.strictEqual(periodStart(s15, new Date('2026-11-10T12:00:00Z')).toISOString(), '2026-10-15T07:00:00.000Z', 'previous month, PDT');
+  assert.strictEqual(nextPeriodStart(s15, new Date('2026-11-20T12:00:00Z')).toISOString(), '2026-12-15T08:00:00.000Z');
+  assert.strictEqual(nextPeriodStart(s15, new Date('2026-10-20T12:00:00Z')).toISOString(), '2026-11-15T08:00:00.000Z', 'across fall back');
+
+  const s1 = quotaSettings({ period: 'MONTH', resetDay: 1 });
+  assert.strictEqual(periodStart(s1, new Date('2026-11-01T12:00:00Z')).toISOString(), '2026-11-01T07:00:00.000Z', 'reset day itself (fall-back day)');
+  assert.strictEqual(periodStart(s1, new Date('2026-11-01T06:59:59Z')).toISOString(), '2026-10-01T07:00:00.000Z', 'one second before');
+
+  const s28 = quotaSettings({ period: 'MONTH', resetDay: 28 });
+  assert.strictEqual(periodStart(s28, new Date('2027-01-03T12:00:00Z')).toISOString(), '2026-12-28T08:00:00.000Z', 'year rollover');
+  assert.strictEqual(nextPeriodStart(s28, new Date('2027-02-10T12:00:00Z')).toISOString(), '2027-02-28T08:00:00.000Z', 'February has day 28');
+
+  // DAY mode: the next period is the next midnight Pacific.
+  assert.strictEqual(nextPeriodStart(quotaSettings(), new Date('2026-10-31T20:00:00Z')).toISOString(), '2026-11-01T07:00:00.000Z');
+  assert.strictEqual(nextPeriodStart(quotaSettings(), new Date('2026-11-01T20:00:00Z')).toISOString(), '2026-11-02T08:00:00.000Z');
+});
+
+test('Monthly quota - sends count across the whole period; the daily cap limits a single day', async () => {
+  const monthly = quotaSettings({ period: 'MONTH', quota: 1000, resetDay: 1, dailyCap: 50 });
+  const now = new Date('2026-11-20T20:00:00Z');
+  const { store, sent } = memoryStore(0, now);
+  sent.push({ at: new Date('2026-11-05T20:00:00Z'), recipients: 900 }); // earlier this period
+  sent.push({ at: new Date('2026-10-25T20:00:00Z'), recipients: 500 }); // last period: not counted
+  assert.deepStrictEqual(await checkQuota(store, 1, monthly, now), { send: true, usedBefore: 900 });
+  assert.strictEqual((await checkQuota(store, 91, monthly, now)).send, false, 'period cap 990');
+
+  sent.push({ at: now, recipients: 50 }); // today's cap used
+  assert.strictEqual((await checkQuota(store, 1, monthly, now)).send, false, 'daily cap reached');
+  assert.strictEqual((await quotaResumesAt(store, monthly, now))?.toISOString(), '2026-11-21T08:00:00.000Z', 'resumes tomorrow');
+
+  sent.push({ at: new Date('2026-11-06T20:00:00Z'), recipients: 40 }); // period now at 990
+  assert.strictEqual((await quotaResumesAt(store, monthly, now))?.toISOString(), '2026-12-01T08:00:00.000Z', 'resumes next period');
+
+  const fresh = memoryStore(0, now);
+  assert.strictEqual(await quotaResumesAt(fresh.store, monthly, now), null);
+});
+
+test("Monthly quota - a quota rejection does not use up a held email's attempts; flush respects the daily cap", async () => {
+  const now = new Date('2026-11-20T20:00:00Z');
+  const { store, held } = memoryStore(0, now);
+  for (let i = 0; i < 3; i++) await store.hold(msg(`held ${i}`), 1, 'over quota');
+  const rejected = async (): Promise<EmailResult> => ({ success: false, provider: 'brevo', error: 'HTTP 429: daily limit exceeded' });
+  for (let run = 0; run < MAX_FLUSH_ATTEMPTS + 2; run++) await flushHeldEmails(store, rejected, quotaSettings(), now);
+  assert.ok(held.every((h) => h.status === 'HELD' && h.attempts === 0), 'still held, no attempts used');
+
+  const capped = quotaSettings({ period: 'MONTH', quota: 1000, dailyCap: 2 });
+  const summary = await flushHeldEmails(store, ok, capped, now);
+  assert.deepStrictEqual([summary.sent, summary.remaining], [2, 1], 'two today, one waits for tomorrow');
+});
+
+test('Monthly quota - the ledger outlives any monthly period', () => {
+  assert.ok(LEDGER_RETENTION_DAYS >= 32);
 });

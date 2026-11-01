@@ -23,7 +23,9 @@ test('Versioning - package.json, version.ts, CHANGELOG and announcements agree',
 });
 
 test('Versioning - versions follow the protocol format', () => {
-  assert.match(APP_VERSION, /^(0\.\d+\.\d+-alpha|1\.0\.0-beta\.\d+|\d+\.\d+\.\d+)$/);
+  // docs/VERSIONING.md section 1: MAJOR.MINOR.PATCH with an optional -alpha or -beta stage.
+  // 1.0.0-beta.1 is the one release in the retired 1.0.0-beta.N form; its tag is public.
+  assert.match(APP_VERSION, /^(\d+\.\d+\.\d+(-alpha|-beta)?|1\.0\.0-beta\.1)$/);
 });
 
 test('Announcements - newest first, unique keys, valid dates, the dot clears once seen', () => {

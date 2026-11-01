@@ -74,12 +74,13 @@ test('Security & Scraper Engine Test Suite', async (t) => {
     assert.equal(isValidEmail(''), false);
   });
 
-  await t.test('validatePassword enforces minimum 10 characters with mixed character sets', () => {
+  await t.test('validatePassword: 10+ characters, no composition rules, common passwords refused (2026-11-01)', () => {
     assert.equal(validatePassword('Short1!').isValid, false);
-    assert.equal(validatePassword('nocapitalletter123!').isValid, false);
-    assert.equal(validatePassword('NOLOWERCASE123!').isValid, false);
-    assert.equal(validatePassword('NoNumbersHere!@#').isValid, false);
-    assert.equal(validatePassword('NoSpecialCharacters123').isValid, false);
+    // Composition rules are gone: any of these is fine at 10+ characters.
+    assert.equal(validatePassword('nocapitalletter123!').isValid, true);
+    assert.equal(validatePassword('NOLOWERCASE123!').isValid, true);
+    assert.equal(validatePassword('NoSpecialCharacters123').isValid, true);
     assert.equal(validatePassword('Klaus2026!Security').isValid, true);
+    assert.equal(validatePassword('password123').isValid, false);
   });
 });

@@ -14,7 +14,7 @@ import { db } from '@/lib/db';
 import { adminDb } from '@/lib/adminDb';
 import { logWarn } from '@/lib/logger';
 import { clientIp } from '@/lib/login-throttle';
-import { isDailyEmailQuotaReached, sendPasswordResetEmail } from '@/lib/email/dispatcher';
+import { emailQuotaResumesAt, isEmailQuotaReached, sendPasswordResetEmail } from '@/lib/email/dispatcher';
 import { requestPasswordReset } from '@/lib/password-reset';
 import { dbUnavailableResponse, isDbConnectionError } from '@/lib/db-errors';
 
@@ -26,7 +26,8 @@ export async function POST(request: Request) {
         db,
         adminDb,
         baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin,
-        isQuotaReached: () => isDailyEmailQuotaReached(),
+        isQuotaReached: () => isEmailQuotaReached(),
+        quotaResumesAt: () => emailQuotaResumesAt(),
         sendEmail: (email) => sendPasswordResetEmail(email),
         onTrip: (message, metadata) => {
           logWarn('AUTH', message, { metadata }).catch(() => {});

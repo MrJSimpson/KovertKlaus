@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { adminDb } from '@/lib/adminDb';
-import { sanitizeText, isValidEmail, validatePassword } from '@/lib/security';
-import { setSessionCookie } from '@/lib/auth';
-import { sendWelcomeEmail } from '@/lib/email';
+import { sanitizeText, isValidEmail } from '@/lib/security';
+import { emailVerificationRequired, setSessionCookie } from '@/lib/auth';
+import { emailQuotaResumesAt, isEmailQuotaReached, sendEmailVerificationEmail, sendWelcomeEmail } from '@/lib/email';
+import { sendVerificationEmail } from '@/lib/email-verification';
+import { checkNewPassword } from '@/lib/password-check';
 import { getPlatformSettings } from '@/lib/platform-limits';
 import { logInfo, logWarn } from '@/lib/logger';
 import { clientIp } from '@/lib/login-throttle';
@@ -16,9 +18,7 @@ import {
   registrationThrottleKeys,
   registrationTripLogMessage,
 } from '@/lib/registration-throttle';
-import { markInvitationAccepted } from '@/lib/invitations';
-import { enrollWithCodename } from '@/lib/codename';
-import { memberWishlistCreate } from '@/lib/mission-wishlist';
+import { joinWithInviteAtSignup, requestToJoinAtSignup } from '@/lib/join-requests';
 import { bodyString, readJsonBody } from '@/lib/request-body';
 
 export async function POST(request: Request) {
@@ -42,8 +42,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
     }
 
-    // Validate 10-Character Complex Password Policy
-    const passCheck = validatePassword(password);
+    // Password rules: 10+ characters, not common, contextual or breached (src/lib/password-check.ts)
+    const passCheck = await checkNewPassword(password, { email, name });
     if (!passCheck.isValid) {
       return NextResponse.json({ error: passCheck.error }, { status: 400 });
     }
@@ -70,12 +70,17 @@ export async function POST(request: Request) {
     // Hash Password with native scrypt
     const passwordHash = await hashPassword(password);
 
+    // New agents verify their email before the dashboard when this install can send email
+    // (src/lib/email-verification.ts); otherwise the account starts verified.
+    const mustVerify = await emailVerificationRequired();
+
     // Create User in DB
     const user = await db.user.create({
       data: {
         email: cleanEmail,
         name: cleanName,
         passwordHash,
+        emailVerifiedAt: mustVerify ? null : new Date(),
       },
       select: {
         id: true,
@@ -107,21 +112,14 @@ export async function POST(request: Request) {
       }
     }
 
-    // If joining via an exchange invite, automatically enroll the new operative
+    // A mission code at sign-up: an emailed invitation link joins at once; a bare code asks the
+    // Head Elf (src/lib/join-requests.ts).
+    let joinedMission = false;
+    let joinRequested = false;
     if (targetExchange) {
       try {
-        await enrollWithCodename(db, targetExchange.id, (codename) =>
-          db.exchangeMember.create({
-            data: {
-              exchangeId: targetExchange.id,
-              userId: user.id,
-              codename,
-              role: 'MEMBER',
-              wishlist: memberWishlistCreate(user.id, targetExchange.isWhiteElephant),
-            },
-          })
-        );
-        await markInvitationAccepted(db, targetExchange.id, user.email, user.id);
+        joinedMission = await joinWithInviteAtSignup({ db, adminDb }, targetExchange, user.id, bodyString(body.inviteToken));
+        if (!joinedMission) joinRequested = await requestToJoinAtSignup(db, targetExchange, user.id);
       } catch (enrollErr) {
         console.warn('[Auto-Enroll Warning]', enrollErr);
       }
@@ -130,22 +128,38 @@ export async function POST(request: Request) {
     // Set HTTP-Only Short-Lived Session Cookie
     await setSessionCookie(user.id);
 
-    // Dispatch Welcome Email via Cloudflare Email Engine
-    try {
-      await sendWelcomeEmail({
-        to: user.email,
-        name: user.name,
-      });
-    } catch (emailErr) {
-      console.warn('[Welcome Email Non-Fatal]', emailErr);
+    // Verification link first when required (the welcome email follows verification); else welcome now.
+    let verificationQueued = false;
+    if (mustVerify) {
+      ({ queued: verificationQueued } = await sendVerificationEmail(
+        {
+          baseUrl: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin,
+          isQuotaReached: () => isEmailQuotaReached(),
+          quotaResumesAt: () => emailQuotaResumesAt(),
+          sendEmail: (email) => sendEmailVerificationEmail(email),
+        },
+        user
+      ));
+    } else {
+      try {
+        await sendWelcomeEmail({
+          to: user.email,
+          name: user.name,
+        });
+      } catch (emailErr) {
+        console.warn('[Welcome Email Non-Fatal]', emailErr);
+      }
     }
 
     return NextResponse.json({
       success: true,
+      emailVerified: !mustVerify,
+      verificationQueued,
       data: {
         ...user,
         demerits: user.penaltyPoints,
-        enrolledExchange: targetExchange ? { id: targetExchange.id, code: targetExchange.code, title: targetExchange.title } : null,
+        enrolledExchange: targetExchange && joinedMission ? { id: targetExchange.id, code: targetExchange.code, title: targetExchange.title } : null,
+        joinRequested: joinRequested && targetExchange ? { code: targetExchange.code, title: targetExchange.title } : null,
       },
     });
   } catch (error) {

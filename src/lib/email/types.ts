@@ -1,3 +1,4 @@
+import type { QuotaConfig } from './quota-config';
 export type EmailProviderType = 'auto' | 'brevo' | 'smtp' | 'resend' | 'console';
 
 export interface EmailAddress {
@@ -48,6 +49,8 @@ export interface EmailConfig {
   // Edge runtime context & DB persistence bindings
   dbClient?: any;
   env?: Record<string, any>;
+  /** Brevo sending allowance from the North Pole (`quota-config.ts`); defaults to 300 a day. */
+  quota?: QuotaConfig;
 }
 
 
@@ -135,6 +138,27 @@ export interface PasswordResetEmailParams {
   name: string;
   resetUrl: string;
   /** When the link stops working, as a phrase: "in 30 minutes" or "at noon Pacific time today". */
+  expiresText: string;
+  overrideConfig?: Partial<EmailConfig>;
+}
+
+/** Email address verification link (`src/lib/email-verification.ts`). */
+export interface EmailVerificationEmailParams {
+  to: string;
+  name: string;
+  verifyUrl: string;
+  /** When the link stops working, as a phrase: "in 24 hours" or "in 48 hours". */
+  expiresText: string;
+  overrideConfig?: Partial<EmailConfig>;
+}
+
+/** "Your account was deleted, here is your data" email (`src/lib/account-deletion.ts`). */
+export interface AccountExportEmailParams {
+  to: string;
+  name: string;
+  /** Download link for the sealed copy of their data; empty when no copy was made. */
+  downloadUrl: string;
+  /** When the link stops working, as a date phrase, e.g. "December 1, 2026". */
   expiresText: string;
   overrideConfig?: Partial<EmailConfig>;
 }

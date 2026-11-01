@@ -5,6 +5,7 @@ import {
   agentTodo,
   cancellationNotes,
   cancellationReasonText,
+  describeIssues,
   drawReadinessIssues,
   failureReasonFor,
   isRosterLocked,
@@ -267,4 +268,35 @@ test('Repair sweep - deadline cancel: blockers named to the Head Elf only, each 
   assert.match(email('boss@x.com').personalNote, /Still blocking the draw/);
   assert.match(email('ivy@x.com').personalNote, /no shipping address/);
   assert.strictEqual(email('jo@x.com').personalNote, undefined);
+});
+
+test('Readiness - an agent with an unverified email blocks the draw; verified, workshop and unloaded do not', () => {
+  const verified = new Date('2026-10-01T00:00:00Z');
+  const withState = (userId: string, emailVerifiedAt: Date | null | undefined, isWorkshop = false) => {
+    const m = member(userId);
+    return { ...m, user: { ...m.user, emailVerifiedAt, isWorkshop } };
+  };
+  const issues = drawReadinessIssues(
+    mission([withState('a', null), withState('b', verified), withState('c', null, true), withState('d', undefined)])
+  );
+  assert.deepStrictEqual(issues, [{ type: 'UNVERIFIED_EMAIL', userId: 'a' }]);
+  assert.strictEqual(failureReasonFor(issues), 'REPAIR_DEADLINE_MISSED');
+  // White Elephant missions are blocked too: every agent ends up holding someone's gift.
+  assert.deepStrictEqual(
+    drawReadinessIssues(mission([withState('a', null), withState('b', verified), withState('c', verified)], { isWhiteElephant: true })),
+    [{ type: 'UNVERIFIED_EMAIL', userId: 'a' }]
+  );
+});
+
+test('Readiness - unverified email wording for the Head Elf, the agent and a cancellation', () => {
+  const issues = [{ type: 'EMPTY_WISHLIST' as const, userId: 'a' }, { type: 'UNVERIFIED_EMAIL' as const, userId: 'a' }];
+  assert.deepStrictEqual(describeIssues(issues, (id) => id.toUpperCase()), ['A has an empty wishlist.', 'A has not verified their email address.']);
+  assert.match(agentTodo(issues, 'a')!, /wishlist.*and verify your email address/);
+  assert.match(cancellationReasonText([{ type: 'UNVERIFIED_EMAIL', userId: 'a' }]), /1 agent still had not verified their email/);
+  const notes = cancellationNotes(
+    { organizerId: 'boss', members: [{ userId: 'a', codename: 'Quiet Fox', user: { name: 'Ivy' } }] },
+    [{ type: 'UNVERIFIED_EMAIL', userId: 'a' }]
+  );
+  assert.strictEqual(notes.boss, 'Still blocking the draw at the deadline: Ivy (Quiet Fox): email not verified.');
+  assert.strictEqual(notes.a, 'At the deadline, you had not verified your email address.');
 });

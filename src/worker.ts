@@ -5,26 +5,34 @@ import { getAdminDb, invalidateCachedAdminDb } from './lib/adminDb';
 import { toPublicConfig } from './lib/config/publicConfig';
 import { cachedSystemConfigReader, clearSystemConfigCaches, publicConfigCache } from './lib/system-config-cache';
 import { buildSystemConfigUpdate } from './lib/config/systemConfigUpdate';
-import { getPlatformSettings, hostedMissionLimitError, missionFullError, missionJoinError, validatePlatformSettings, type PlatformSettings } from './lib/platform-limits';
+import { getPlatformSettings, hostedMissionLimitError, missionJoinError, validatePlatformSettings, type PlatformSettings } from './lib/platform-limits';
 import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitizeExchangeMember, sanitizeMissionReports } from './lib/exchange-view';
 import { runWithDbScope } from './lib/dbRequestScope';
 import { getDb, invalidateCachedDb } from './lib/db';
 import { dbUnavailableResponse, isDbConnectionError } from './lib/db-errors';
 import { validateNistPassword } from './lib/adminAuth';
-import {
-  sanitizeText,
-  isValidEmail,
-  validatePassword,
-  generateInviteCode,
-  isSafePublicUrl,
-  normalizeProductUrl,
-} from './lib/security';
+import { sanitizeText, isValidEmail, generateInviteCode, isSafePublicUrl, normalizeProductUrl } from './lib/security';
 import { executeTargetSwap } from './lib/draw';
 import { runManualDraw } from './lib/manual-draw';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
 import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
-import { flushHeldEmailQueue, isDailyEmailQuotaReached, sendEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
+import { flushHeldEmailQueue, emailQuotaResumesAt, isEmailQuotaReached, sendAccountExportEmail, sendEmail, sendEmailVerificationEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
 import { confirmPasswordReset, requestPasswordReset } from './lib/password-reset';
+import {
+  confirmEmailVerification,
+  EMAIL_UNVERIFIED_CODE,
+  isUnverified,
+  isVerificationRequired,
+  requestVerificationResend,
+  sendVerificationEmail,
+  UNVERIFIED_ALLOWED_PATHS,
+} from './lib/email-verification';
+import { deleteAccount, deletionPreview } from './lib/account-deletion';
+import { checkNewPassword } from './lib/password-check';
+import { validateEmailQuotaSettings } from './lib/email/quota-config';
+import { decideJoinRequest, joinMission, joinWithInviteAtSignup, myJoinRequests, pendingJoinRequests, requestToJoinAtSignup, viewerJoinRequest } from './lib/join-requests';
+import { downloadAccountExport, EXPORT_GONE_MESSAGE } from './lib/account-export';
+import { r2ExportStore, type R2BucketLike } from './lib/export-store';
 import {
   sendWelcomeEmail,
   sendInvitationEmail,
@@ -50,7 +58,7 @@ import { openJoinGate } from './lib/join-throttle';
 import { isMissionInsider, missionPreview } from './lib/mission-preview';
 import { checkLoginThrottle, clearLoginFailures, clientIp, loginThrottleKeys, purgeLoginThrottle, recordLoginFailure, throttledResponseParts, tripLogMessage, type LoginThrottleKeys, type ThrottleCounts } from './lib/login-throttle';
 import { deleteFeedback, listFeedback, submitFeedback, updateFeedbackStatus } from './lib/feedback';
-import { listMissionInvitations, listMyInvitations, markInvitationAccepted, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
+import { listMissionInvitations, listMyInvitations, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { dismissNotifications, listMyNotifications } from './lib/notifications';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
@@ -108,17 +116,23 @@ export const WORKER_API_PATHS = new Set([
   '/api/scraper',
   '/api/shipping',
   '/api/users',
+  '/api/users/data-export',
+  '/api/users/delete-account',
   '/api/users/login',
   '/api/users/me',
   '/api/users/password-reset',
   '/api/users/password-reset/confirm',
   '/api/users/profile',
+  '/api/users/verify-email',
+  '/api/users/verify-email/confirm',
   '/api/wishlist',
   '/api/workshop/auth',
 ]);
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
+  /** R2 bucket `kovertklaus` (wrangler.json `r2_buckets`): account-deletion exports under `user_backups/`. */
+  USER_EXPORTS?: R2BucketLike;
   DATABASE_URL?: string;
   DATABASE_ADMIN_URL?: string;
   DIRECT_URL?: string;
@@ -235,14 +249,38 @@ function readUserClaimsFromRequest(request: Request): SessionClaims | null {
 const revokedSessionRequests = new WeakSet<Request>();
 
 /**
- * Looks up whether this request's user token was revoked by a password change, once, before routing.
- * Requests without a valid user token skip the lookup.
+ * Requests from a signed-in agent who still has to verify their email (src/lib/email-verification.ts).
+ * On paths outside `UNVERIFIED_ALLOWED_PATHS` they are also in `revokedSessionRequests`, so every
+ * other route treats them as signed out; `/api/users/me` answers them with a 403 `EMAIL_UNVERIFIED`.
  */
-async function markRevokedUserSession(request: Request, db: PrismaClient): Promise<void> {
+const unverifiedSessionRequests = new WeakSet<Request>();
+
+/**
+ * Looks up, once before routing, whether this request's user token was revoked by a password change
+ * or belongs to an agent who has not verified their email. Requests without a valid user token skip
+ * the lookup, and the email provider is only resolved for an unverified agent.
+ */
+async function markRevokedUserSession(request: Request, db: PrismaClient, adminDb: PrismaClient, env: Env, pathname: string): Promise<void> {
   const claims = readUserClaimsFromRequest(request);
   if (!claims) return;
-  const user = await db.user.findUnique({ where: { id: claims.subjectId }, select: { sessionsRevokedAt: true } });
-  if (!user || isSessionRevoked(claims, user.sessionsRevokedAt)) revokedSessionRequests.add(request);
+  const user = await db.user.findUnique({
+    where: { id: claims.subjectId },
+    select: { sessionsRevokedAt: true, emailVerifiedAt: true, isWorkshop: true },
+  });
+  if (!user || isSessionRevoked(claims, user.sessionsRevokedAt)) {
+    revokedSessionRequests.add(request);
+    return;
+  }
+  if (!isUnverified(user)) return;
+  let required = false;
+  try {
+    required = isVerificationRequired((await resolveWorkerEmailConfig(env, adminDb)).provider);
+  } catch (err) {
+    console.warn('[Worker] could not resolve the email provider; not requiring verification:', err);
+  }
+  if (!required) return;
+  unverifiedSessionRequests.add(request);
+  if (!UNVERIFIED_ALLOWED_PATHS.has(pathname)) revokedSessionRequests.add(request);
 }
 
 /**
@@ -334,8 +372,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
       const adminDb = getAdminDb(adminConnStr);
       const db = getDb(appConnStr);
 
-      // Reject user tokens issued before a password change (one lookup, only when a token is present).
-      await markRevokedUserSession(request, db);
+      // Reject user tokens issued before a password change, and gate agents who have not verified
+      // their email (one lookup, only when a token is present).
+      await markRevokedUserSession(request, db, adminDb, env, pathname);
 
       // =======================================================================
       // SECTION 1: NORTH POLE SUPER ADMIN ENDPOINTS (/api/northpole/*)
@@ -518,7 +557,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
         if (request.method === 'PATCH') {
           const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-          const invalid = validatePlatformSettings(body);
+          const invalid = [...validatePlatformSettings(body), ...validateEmailQuotaSettings(body)];
           if (invalid.length > 0) return Response.json({ error: invalid.join(' '), details: invalid }, { status: 400 });
           const updateData = buildSystemConfigUpdate(body, admin.id);
           const updated = await adminDb.systemConfig.upsert({
@@ -1339,7 +1378,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             adminDb,
             // Cloudflare only routes this zone's hostnames here, so the origin is trustworthy.
             baseUrl: url.origin || 'https://kovertklaus.com',
-            isQuotaReached: () => isDailyEmailQuotaReached(emailConfig),
+            isQuotaReached: () => isEmailQuotaReached(emailConfig),
+            quotaResumesAt: () => emailQuotaResumesAt(emailConfig),
             sendEmail: (email) => sendPasswordResetEmail({ ...email, overrideConfig: emailConfig }),
             onTrip: (message, metadata) => {
               logSystemEvent({ level: 'WARN', category: 'AUTH', message, metadata }).catch(() => {});
@@ -1357,6 +1397,81 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         return Response.json(result.body, { status: result.status, headers: result.headers });
       }
 
+      // 10d. /api/users/verify-email (POST): email the signed-in agent another verification link
+      if (pathname === '/api/users/verify-email' && request.method === 'POST') {
+        const userId = getUserIdFromRequest(request);
+        if (!userId) return Response.json({ error: 'Please sign in again.' }, { status: 401 });
+        const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+        const result = await requestVerificationResend(
+          {
+            db,
+            adminDb,
+            // Cloudflare only routes this zone's hostnames here, so the origin is trustworthy.
+            baseUrl: url.origin || 'https://kovertklaus.com',
+            isQuotaReached: () => isEmailQuotaReached(emailConfig),
+            quotaResumesAt: () => emailQuotaResumesAt(emailConfig),
+            sendEmail: (email) => sendEmailVerificationEmail({ ...email, overrideConfig: emailConfig }),
+          },
+          userId
+        );
+        return Response.json(result.body, { status: result.status, headers: result.headers });
+      }
+
+      // 10e. /api/users/verify-email/confirm (POST): mark the email verified from the link (no session needed)
+      if (pathname === '/api/users/verify-email/confirm' && request.method === 'POST') {
+        const body = await readJsonBody(request);
+        const result = await confirmEmailVerification(
+          {
+            db,
+            sendWelcome: async (user) => {
+              const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
+              return sendWelcomeEmail({ to: user.email, name: user.name, overrideConfig: emailConfig });
+            },
+          },
+          { token: body.token }
+        );
+        return Response.json(result.body, { status: result.status, headers: result.headers });
+      }
+
+      // 10f. /api/users/delete-account (GET preview / POST delete): self-service account deletion
+      if (pathname === '/api/users/delete-account' && (request.method === 'GET' || request.method === 'POST')) {
+        const userId = getUserIdFromRequest(request);
+        if (!userId) return Response.json({ error: 'Please sign in again.' }, { status: 401 });
+        if (request.method === 'GET') return Response.json({ success: true, ...(await deletionPreview(db, userId)) });
+        const body = await readJsonBody(request);
+        const exportEmailConfig = await resolveWorkerEmailConfig(env, adminDb);
+        const result = await deleteAccount(
+          {
+            db,
+            adminDb,
+            // Without the binding there is nowhere to keep the copy, so deletion refuses (503) instead.
+            exportStore: env.USER_EXPORTS ? r2ExportStore(env.USER_EXPORTS) : undefined,
+            // Cloudflare only routes this zone's hostnames here, so the origin is trustworthy.
+            baseUrl: url.origin || 'https://kovertklaus.com',
+            sendExportEmail: (email) => sendAccountExportEmail({ ...email, overrideConfig: exportEmailConfig }),
+            onDeleted: (message, metadata) => {
+              logSystemEvent({ level: 'INFO', category: 'AUTH', message, metadata }).catch(() => {});
+            },
+          },
+          userId,
+          { password: body.password, confirm: body.confirm }
+        );
+        const headers = new Headers(result.headers);
+        if (result.status === 200) headers.append('Set-Cookie', `${USER_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`);
+        return Response.json(result.body, { status: result.status, headers });
+      }
+
+      // 10g. /api/users/data-export (GET): download the copy of a deleted account's data (token, no session)
+      if (pathname === '/api/users/data-export' && request.method === 'GET') {
+        if (!env.USER_EXPORTS) return Response.json({ error: EXPORT_GONE_MESSAGE }, { status: 410 });
+        const result = await downloadAccountExport(
+          { adminDb, store: r2ExportStore(env.USER_EXPORTS) },
+          { token: url.searchParams.get('token'), ip: clientIp(request.headers) }
+        );
+        if (result.status === 200) return new Response(result.body as string, { status: 200, headers: result.headers });
+        return Response.json(result.body, { status: result.status, headers: result.headers });
+      }
+
       // 11. /api/users/me / /api/users/profile (GET / PATCH / DELETE)
       if (pathname === '/api/users/me' || pathname === '/api/users/profile') {
         const userId = getUserIdFromRequest(request);
@@ -1365,6 +1480,17 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const headers = new Headers({ 'Content-Type': 'application/json' });
           headers.append('Set-Cookie', `${USER_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`);
           return new Response(JSON.stringify({ success: true, message: 'Logged out successfully' }), { status: 200, headers });
+        }
+
+        // Signed in but the email is not verified yet: identity only, no mission data.
+        if (request.method === 'GET' && unverifiedSessionRequests.has(request)) {
+          const claims = readUserClaimsFromRequest(request);
+          const pending = claims ? await db.user.findUnique({ where: { id: claims.subjectId }, select: { id: true, email: true, name: true } }) : null;
+          if (!pending) return Response.json({ authenticated: false }, { status: 401 });
+          return Response.json(
+            { authenticated: true, emailVerified: false, code: EMAIL_UNVERIFIED_CODE, error: 'Please verify your email address.', user: pending },
+            { status: 403 }
+          );
         }
 
         if (!userId) return Response.json({ authenticated: false }, { status: 401 });
@@ -1404,6 +1530,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           return Response.json({
             success: true,
             authenticated: true,
+            emailVerified: true,
             user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints },
           }, { headers: meHeaders });
         }
@@ -1426,7 +1553,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
             const match = await comparePassword(oldPassword, user.passwordHash);
             if (!match) return Response.json({ error: 'Incorrect current password' }, { status: 400 });
-            const passCheck = validatePassword(newPassword);
+            const passCheck = await checkNewPassword(newPassword, { email: user.email, name: user.name });
             if (!passCheck.isValid) return Response.json({ error: passCheck.error }, { status: 400 });
             updateData.passwordHash = await hashPassword(newPassword);
             // Sign out every other device; this one gets a fresh token below.
@@ -1461,7 +1588,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (!email || !isValidEmail(email)) return Response.json({ error: 'Valid email required' }, { status: 400 });
         if (!name || !password) return Response.json({ error: 'Name, email, and password required' }, { status: 400 });
 
-        const passCheck = validatePassword(password);
+        // Password rules: 10+ characters, not common, contextual or breached (src/lib/password-check.ts)
+        const passCheck = await checkNewPassword(password, { email, name });
         if (!passCheck.isValid) return Response.json({ error: passCheck.error }, { status: 400 });
 
         // Alpha gate and invite code (src/lib/registration-code.ts), then the sign-up rate limit.
@@ -1481,6 +1609,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         }
 
         const passwordHash = await hashPassword(password);
+        // New agents verify their email before the dashboard when email delivery is set up.
+        const signupEmailConfig = await resolveWorkerEmailConfig(env, adminDb);
+        const mustVerify = isVerificationRequired(signupEmailConfig.provider);
 
         try {
           const user = await db.user.create({
@@ -1488,6 +1619,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               email: cleanEmail,
               name: sanitizeText(name),
               passwordHash,
+              emailVerifiedAt: mustVerify ? null : new Date(),
             },
             select: { id: true, email: true, name: true, accountStatus: true, penaltyPoints: true },
           });
@@ -1514,42 +1646,57 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             }
           }
 
-          // Auto-enroll if registering via mission invite
+          // A mission code at sign-up: an emailed invitation link joins at once; a bare code asks the
+          // Head Elf (src/lib/join-requests.ts).
+          let joinRequested = false;
           if (targetExchange) {
             try {
-              await enrollWithCodename(db, targetExchange.id, (codename) =>
-                db.exchangeMember.create({
-                  data: {
-                    exchangeId: targetExchange.id,
-                    userId: user.id,
-                    codename,
-                    role: 'MEMBER',
-                    wishlist: memberWishlistCreate(user.id, targetExchange.isWhiteElephant),
-                  },
-                })
-              );
-              await markInvitationAccepted(db, targetExchange.id, user.email, user.id);
+              const joined = await joinWithInviteAtSignup({ db, adminDb }, targetExchange, user.id, bodyString(body.inviteToken));
+              if (!joined) joinRequested = await requestToJoinAtSignup(db, targetExchange, user.id);
             } catch (enrollErr) {
               console.warn('[Worker Auto-Enroll Warning]', enrollErr);
             }
           }
 
-          try {
-            const emailConfig = await resolveWorkerEmailConfig(env, adminDb);
-            await sendWelcomeEmail({
-              to: user.email,
-              name: user.name,
-              overrideConfig: emailConfig,
-            });
-          } catch (welcomeErr) {
-            console.warn('[Welcome Email Error]', welcomeErr);
+          // Verification link first when required (the welcome email follows verification); else welcome now.
+          let verificationQueued = false;
+          if (mustVerify) {
+            ({ queued: verificationQueued } = await sendVerificationEmail(
+              {
+                baseUrl: url.origin || 'https://kovertklaus.com',
+                isQuotaReached: () => isEmailQuotaReached(signupEmailConfig),
+                quotaResumesAt: () => emailQuotaResumesAt(signupEmailConfig),
+                sendEmail: (email) => sendEmailVerificationEmail({ ...email, overrideConfig: signupEmailConfig }),
+              },
+              user
+            ));
+          } else {
+            try {
+              await sendWelcomeEmail({
+                to: user.email,
+                name: user.name,
+                overrideConfig: signupEmailConfig,
+              });
+            } catch (welcomeErr) {
+              console.warn('[Welcome Email Error]', welcomeErr);
+            }
           }
 
           const signedUserId = issueSessionToken('user', user.id);
           const headers = new Headers({ 'Content-Type': 'application/json' });
           headers.append('Set-Cookie', sessionCookie('user', signedUserId));
 
-          return new Response(JSON.stringify({ success: true, token: signedUserId, data: user }), { status: 200, headers });
+          return new Response(
+            JSON.stringify({
+              success: true,
+              token: signedUserId,
+              emailVerified: !mustVerify,
+              verificationQueued,
+              joinRequested: joinRequested && targetExchange ? { code: targetExchange.code, title: targetExchange.title } : null,
+              data: user,
+            }),
+            { status: 200, headers }
+          );
         } catch (err) {
           if ((err as { code?: string } | null)?.code === 'P2002') {
             return Response.json({ error: 'An account with this email already exists.' }, { status: 400 });
@@ -1587,7 +1734,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               return Response.json({ error: 'Exchange not found' }, { status: 404 });
             }
             // Outsiders holding the code (signed out, or not enrolled) get a preview only.
-            if (!isMissionInsider(exchange, activeUserId)) return Response.json({ success: true, data: missionPreview(exchange) });
+            if (!isMissionInsider(exchange, activeUserId)) {
+              // A would-be agent who asked to join sees where their request stands.
+              return Response.json({ success: true, data: { ...missionPreview(exchange), joinRequest: await viewerJoinRequest(db, exchange, activeUserId) } });
+            }
 
             // Sanitize targetUser and physical addresses server-side
             const isOrganizer = Boolean(activeUserId && exchange.organizerId === activeUserId);
@@ -1604,6 +1754,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 reports: sanitizeMissionReports(exchange.reports, viewer),
                 exclusionRules: isOrganizer ? exchange.exclusionRules : [],
                 repairIssues: visibleRepairIssues(exchange.repairIssues, activeUserId, isOrganizer),
+                // Requests to join by code, for the Head Elf to approve or decline.
+                joinRequests: isOrganizer ? await pendingJoinRequests(db, exchange) : [],
               },
             });
           }
@@ -1620,7 +1772,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             },
             orderBy: { createdAt: 'desc' },
           });
-          return Response.json({ success: true, data: exchanges });
+          // Missions the agent asked to join by code and is waiting on (dashboard "Waiting for the Head Elf").
+          return Response.json({ success: true, data: exchanges, joinRequests: await myJoinRequests(db, activeUserId) });
         }
 
         if (request.method === 'POST') {
@@ -2145,6 +2298,16 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           const findScopedMember = (id: string) =>
             db.exchangeMember.findFirst({ where: { id, exchangeId: operationId } });
 
+          // Head Elf decides a request to join by code (src/lib/join-requests.ts).
+          if (action === 'approve_join' || action === 'decline_join') {
+            const result = await decideJoinRequest(
+              { db, adminDb },
+              ex,
+              { actorId: activeUserId, requestId: body.requestId, decision: action === 'approve_join' ? 'approve' : 'decline' }
+            );
+            return Response.json(result.body, { status: result.status });
+          }
+
           if (action === 'remove_agent' && memberId) {
             const memberToDelete = await findScopedMember(memberId);
             if (!memberToDelete) return Response.json({ error: 'Member not found in this operation' }, { status: 404 });
@@ -2293,7 +2456,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         return methodNotAllowed(pathname, request.method);
       }
 
-      // 15. /api/invitations/accept (POST)
+      // 15. /api/invitations/accept (POST): join by code; a request for the Head Elf unless an invitation link is used
       if (pathname === '/api/invitations/accept' && request.method === 'POST') {
         const body = await readJsonBody(request);
         const activeUserId = getUserIdFromRequest(request);
@@ -2304,40 +2467,13 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
         const gate = await openJoinGate(adminDb, activeUserId, request.headers);
         if (gate.blocked) return gate.blocked;
-        const exchange = await db.exchange.findUnique({ where: { code: operationCode.trim().toUpperCase() }, include: { members: true } });
+        const exchange = await db.exchange.findUnique({ where: { code: operationCode.trim().toUpperCase() } });
         if (!exchange) {
           await gate.wrongCode();
           return Response.json({ error: 'Exchange not found' }, { status: 404 });
         }
-        if (exchange.status !== 'RECRUITING') {
-          return Response.json({ error: 'Recruitment for this mission has closed. Operatives cannot join active or completed operations.' }, { status: 400 });
-        }
-
-        const existing = exchange.members.find((m) => m.userId === activeUserId);
-        if (existing) return Response.json({ error: 'You are already enrolled in this exchange.', exchangeCode: exchange.code }, { status: 409 });
-        const full = missionFullError(exchange.maxParticipants, exchange.members.length, await platformSettings(adminDb));
-        if (full) return Response.json({ error: full }, { status: 400 });
-
-        // Codename drawn for this mission; the agent can reroll it until they accept (parity with the Next.js route).
-        const user = await db.user.findUnique({ where: { id: activeUserId }, select: { email: true } });
-        const member = await enrollWithCodename(db, exchange.id, (codename) =>
-          db.exchangeMember.create({
-            data: {
-              exchangeId: exchange.id,
-              userId: activeUserId,
-              codename,
-              role: 'MEMBER',
-              wishlist: memberWishlistCreate(activeUserId, exchange.isWhiteElephant),
-            },
-          })
-        );
-        if (user?.email) await markInvitationAccepted(db, exchange.id, user.email, activeUserId);
-
-        return Response.json({
-          success: true,
-          message: 'Member successfully enrolled in exchange!',
-          data: { ...member, assignedCodename: member.codename },
-        });
+        const result = await joinMission({ db, adminDb }, exchange, { userId: activeUserId, inviteToken: bodyString(body.inviteToken) });
+        return Response.json(result.body, { status: result.status });
       }
 
       // /api/codename (POST): reroll or accept a mission codename, shared with the Next route.

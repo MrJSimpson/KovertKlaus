@@ -13,3 +13,9 @@ export const ADMIN_USER_KEY = IS_SAAS ? 'kovert_saas_admin_user' : 'kovertklaus_
 export const USER_ID_KEY = IS_SAAS ? 'kovert_saas_user_id' : 'kovertklaus_user_id';
 export const USER_TOKEN_KEY = IS_SAAS ? 'kovert_saas_user_token' : 'kovertklaus_user_token';
 export const USER_INFO_KEY = IS_SAAS ? 'kovert_saas_user_info' : 'kovertklaus_user_info';
+
+/**
+ * `code` on the 403 a signed-in agent with an unverified email gets from `/api/users/me`.
+ * Client pages send that agent to `/verify-email` (src/lib/email-verification.ts holds the logic).
+ */
+export const EMAIL_UNVERIFIED_CODE = 'EMAIL_UNVERIFIED';

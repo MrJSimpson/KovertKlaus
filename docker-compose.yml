@@ -5,10 +5,12 @@ services:
     restart: always
     environment:
       POSTGRES_USER: kovert
-      POSTGRES_PASSWORD: kovertsecret
+      # From .env (scripts/ensure-db-password.mjs creates it); never committed.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env - run npm run db:password}
       POSTGRES_DB: kovertklaus
     ports:
-      - "5433:5432"
+      # Local access only (dev tools, prisma db push); the app container uses the internal network.
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,15 +28,20 @@ services:
     ports:
       - "2425:2425"
     environment:
-      - DATABASE_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
-      - DATABASE_ADMIN_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
-      - DIRECT_URL=postgresql://kovert:kovertsecret@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
+      - DATABASE_URL=postgresql://kovert:${POSTGRES_PASSWORD}@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
+      - DATABASE_ADMIN_URL=postgresql://kovert:${POSTGRES_PASSWORD}@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
+      - DIRECT_URL=postgresql://kovert:${POSTGRES_PASSWORD}@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
       - NODE_ENV=production
       - LIFECYCLE_CRON_ENABLED=true
       - LIFECYCLE_CRON_INTERVAL_MINUTES=60
+      # Copies of deleted accounts' data, kept 30 days (src/lib/export-store-disk.ts).
+      - EXPORT_DIR=/app/data/exports
+    volumes:
+      - kovertklaus_exports:/app/data/exports
     depends_on:
       kovertklaus-db:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  kovertklaus_exports:

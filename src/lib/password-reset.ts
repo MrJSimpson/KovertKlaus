@@ -20,7 +20,8 @@
 
 import crypto from 'crypto';
 import type { PrismaClient } from '@prisma/client';
-import { getSessionSecret, isValidEmail, signToken, validatePassword, verifyToken } from '@/lib/security';
+import { getSessionSecret, isValidEmail, signToken, verifyToken } from '@/lib/security';
+import { checkNewPassword } from '@/lib/password-check';
 import { UNKNOWN_IP } from '@/lib/login-throttle';
 import { quotaDayStart } from '@/lib/email/daily-limit';
 import { hashPassword } from '@/lib/password';
@@ -56,6 +57,31 @@ export const RESET_SENT_MESSAGE =
 export const RESET_QUEUED_MESSAGE =
   'Due to email limitations during beta, we are unable to send email currently. Your password reset email will reach you tomorrow AM.';
 
+/** Reply when the allowance resets later than tomorrow (monthly mode). */
+export function resetQueuedUntilMessage(resumesAt: Date): string {
+  return `Due to email limitations during beta, we are unable to send email currently. Your password reset email will reach you on ${monthDay(resumesAt)}.`;
+}
+
+/** "December 1" on the Pacific calendar. */
+export function monthDay(at: Date): string {
+  return at.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' });
+}
+
+/**
+ * When held mail resumes, if that is later than tomorrow (monthly mode); `null` for the daily case,
+ * which keeps the "tomorrow AM" wording and expiry.
+ */
+export async function heldUntilLater(deps: { quotaResumesAt?: () => Promise<Date | null> }, nowMs: number): Promise<Date | null> {
+  if (!deps.quotaResumesAt) return null;
+  try {
+    const resumesAt = await deps.quotaResumesAt();
+    const tomorrow = quotaDayStart(new Date(nowMs + 24 * HOUR_MS)).getTime();
+    return resumesAt && resumesAt.getTime() > tomorrow + HOUR_MS ? resumesAt : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Reply for a link that is forged, expired or already used. */
 export const RESET_INVALID_LINK_MESSAGE = 'This reset link is invalid, expired or already used. Request a new one from the sign-in page.';
 
@@ -74,8 +100,10 @@ export interface ResetRequestDeps {
   adminDb: PrismaClient;
   /** Site origin for the link, e.g. `https://kovertklaus.com`. */
   baseUrl: string;
-  /** True when today's email quota is used up, so a new email would be held until tomorrow. */
+  /** True when the email allowance is used up, so a new email would be held. */
   isQuotaReached: () => Promise<boolean>;
+  /** When held mail goes out again (monthly mode can be weeks away); optional, defaults to tomorrow. */
+  quotaResumesAt?: () => Promise<Date | null>;
   /** Sends the reset email. */
   sendEmail: (email: { to: string; name: string; resetUrl: string; expiresText: string }) => Promise<EmailResult>;
   /** One WARN per tripped limit, for the system log. */
@@ -213,12 +241,15 @@ export async function requestPasswordReset(deps: ResetRequestDeps, input: { emai
     queued = false;
   }
 
+  // In monthly mode held mail can wait until the reset day, not just tomorrow.
+  const later = queued ? await heldUntilLater(deps, nowMs) : null;
+
   const user = await deps.db.user.findUnique({ where: { email }, select: { id: true, name: true, email: true, passwordHash: true, accountStatus: true } });
   if (user && user.accountStatus !== 'DISABLED') {
-    const expiresAtMs = resetLinkExpiry(queued, nowMs);
+    const expiresAtMs = later ? later.getTime() + QUEUED_LINK_GRACE_MS : resetLinkExpiry(queued, nowMs);
     const token = issueResetToken(user.id, user.passwordHash, expiresAtMs);
     const resetUrl = `${deps.baseUrl.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
-    const expiresText = queued ? 'at noon Pacific time today' : 'in 30 minutes';
+    const expiresText = later ? `at noon Pacific time on ${monthDay(later)}` : queued ? 'at noon Pacific time today' : 'in 30 minutes';
     try {
       const result = await deps.sendEmail({ to: user.email, name: user.name, resetUrl, expiresText });
       if (!result.success) console.error('[PasswordReset] reset email failed:', result.error);
@@ -232,7 +263,8 @@ export async function requestPasswordReset(deps: ResetRequestDeps, input: { emai
     }
   }
 
-  return { status: 200, body: { success: true, queued, message: queued ? RESET_QUEUED_MESSAGE : RESET_SENT_MESSAGE } };
+  const message = later ? resetQueuedUntilMessage(later) : queued ? RESET_QUEUED_MESSAGE : RESET_SENT_MESSAGE;
+  return { status: 200, body: { success: true, queued, message } };
 }
 
 /**
@@ -240,19 +272,27 @@ export async function requestPasswordReset(deps: ResetRequestDeps, input: { emai
  *
  * @param db - App-schema client.
  */
-export async function confirmPasswordReset(db: PrismaClient, input: { token: unknown; password: unknown }, nowMs = Date.now()): Promise<ResetResult> {
+export async function confirmPasswordReset(
+  db: PrismaClient,
+  input: { token: unknown; password: unknown },
+  nowMs = Date.now(),
+  deps: { checkPassword?: typeof checkNewPassword } = {}
+): Promise<ResetResult> {
   const token = typeof input.token === 'string' ? input.token.trim() : '';
   const password = typeof input.password === 'string' ? input.password : '';
   const claims = token ? readResetToken(token, nowMs) : null;
   if (!claims) return { status: 400, body: { error: RESET_INVALID_LINK_MESSAGE } };
 
-  const check = validatePassword(password);
-  if (!check.isValid) return { status: 400, body: { error: check.error } };
-
-  const user = await db.user.findUnique({ where: { id: claims.userId }, select: { id: true, passwordHash: true, accountStatus: true } });
+  const user = await db.user.findUnique({
+    where: { id: claims.userId },
+    select: { id: true, email: true, name: true, passwordHash: true, accountStatus: true },
+  });
   if (!user || user.accountStatus === 'DISABLED' || hashFingerprint(user.passwordHash) !== claims.fingerprint) {
     return { status: 400, body: { error: RESET_INVALID_LINK_MESSAGE } };
   }
+
+  const check = await (deps.checkPassword ?? checkNewPassword)(password, { email: user.email, name: user.name });
+  if (!check.isValid) return { status: 400, body: { error: check.error } };
 
   const passwordHash = await hashPassword(password);
   // Conditional on the old hash: two tabs submitting the same link cannot both succeed.

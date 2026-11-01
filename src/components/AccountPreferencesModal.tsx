@@ -587,7 +587,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated, ini
                       />
                     </div>
                     <div>
-                      <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>New Password (Min 10 characters)</label>
+                      <label className={`block text-[11px] mb-1 ${theme.textSubLabel}`}>New Password (10+ characters; a short phrase works well)</label>
                       <input
                         type="password"
                         placeholder="••••••••"
@@ -611,6 +611,17 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated, ini
                         Receive transactional email alerts for invitations and target reveals
                       </span>
                     </label>
+                  </div>
+
+                  {/* Account deletion (src/lib/account-deletion.ts) */}
+                  <div className="pt-2 border-t border-kk-border space-y-1">
+                    <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textLabel}`}>🗑️ Delete Account</h4>
+                    <p className={`text-[11px] ${theme.textSubLabel}`}>
+                      Permanently delete your account and everything in it. You&apos;ll see what has to happen first.
+                    </p>
+                    <a href="/delete-account" className="inline-block text-xs font-bold text-kk-danger hover:underline">
+                      Delete my account →
+                    </a>
                   </div>
                 </div>
               )}

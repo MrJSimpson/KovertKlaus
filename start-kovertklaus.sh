@@ -83,6 +83,9 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
+# The local database password lives in .env, never in the repo (scripts/ensure-db-password.mjs).
+node scripts/ensure-db-password.mjs || exit 1
+
 if [ "$MODE" = "prod" ]; then
   echo -e "${GREEN}[+] Launching full KovertKlaus stack in Production Docker mode...${NC}"
   docker compose up -d --build

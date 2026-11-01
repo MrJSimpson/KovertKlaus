@@ -8,6 +8,8 @@ import {
   MissionRepairEmailParams,
   NudgeEmailParams,
   PasswordResetEmailParams,
+  EmailVerificationEmailParams,
+  AccountExportEmailParams,
   WelcomeEmailParams,
 } from '../types';
 
@@ -554,6 +556,85 @@ export function getPasswordResetEmailTemplate(params: PasswordResetEmailParams):
 
     Resetting your password signs you out on every device.
     If you didn't ask for this, ignore this email. Your password stays the same.
+    --------------------------------------------------
+  `);
+
+  return { subject, html, text };
+}
+
+/**
+ * Generates the email address verification email sent at sign-up and on resend.
+ * Plain wording, like password reset: it is about account access.
+ */
+export function getEmailVerificationEmailTemplate(params: EmailVerificationEmailParams): { subject: string; html: string; text: string } {
+  const { name, verifyUrl, expiresText } = params;
+  const subject = 'Verify your email for KovertKlaus';
+
+  const bodyHtml = `
+    <p>Hi <strong>${escapeHtml(name)}</strong>,</p>
+    <p>Thanks for joining KovertKlaus. Please confirm this is your email address so you can open your dashboard and join your missions.</p>
+    <p>The link expires <strong>${escapeHtml(expiresText)}</strong>. You can request a new one from the sign-in page at any time.</p>
+    <p style="font-size: 14px; color: ${EMAIL_PALETTE.muted};">If you didn't create a KovertKlaus account, you can ignore this email. Nobody can use this address on KovertKlaus without the link.</p>
+  `;
+
+  const html = renderBaseEmail({
+    title: 'Verify your email',
+    preheader: `Confirm your email address. The link expires ${expiresText}.`,
+    bodyHtml,
+    actionText: 'Verify my email',
+    actionUrl: verifyUrl,
+  });
+
+  const text = stripHtml(`
+    KOVERT KLAUS // VERIFY YOUR EMAIL
+    --------------------------------------------------
+    Hi ${name},
+
+    Thanks for joining KovertKlaus. Please confirm this is your email address
+    so you can open your dashboard and join your missions.
+    Verify here (expires ${expiresText}):
+    ${verifyUrl}
+
+    If you didn't create a KovertKlaus account, ignore this email.
+    --------------------------------------------------
+  `);
+
+  return { subject, html, text };
+}
+
+/**
+ * Generates the "your account was deleted" email with the link to download a copy of the agent's data.
+ */
+export function getAccountExportEmailTemplate(params: AccountExportEmailParams): { subject: string; html: string; text: string } {
+  const { name, downloadUrl, expiresText } = params;
+  const subject = 'Your KovertKlaus account was deleted';
+
+  const bodyHtml = `
+    <p>Hi <strong>${escapeHtml(name)}</strong>,</p>
+    <p>Your KovertKlaus account and its data have been deleted, as you asked. Thanks for being part of KovertKlaus.</p>
+    <p>We kept an encrypted copy of your data so you can download it: your profile, gift dossier, missions, wishlists and the messages you sent. It's available until <strong>${escapeHtml(expiresText)}</strong>, then it's deleted for good.</p>
+    <p style="font-size: 14px; color: ${EMAIL_PALETTE.muted};">Anyone with this link can download the file, so don't forward this email. If you didn't delete your account, reply to this email right away.</p>
+  `;
+
+  const html = renderBaseEmail({
+    title: 'Account deleted',
+    preheader: `Download a copy of your data until ${expiresText}.`,
+    bodyHtml,
+    actionText: 'Download my data',
+    actionUrl: downloadUrl,
+  });
+
+  const text = stripHtml(`
+    KOVERT KLAUS // ACCOUNT DELETED
+    --------------------------------------------------
+    Hi ${name},
+
+    Your KovertKlaus account and its data have been deleted, as you asked.
+    Download a copy of your data (available until ${expiresText}):
+    ${downloadUrl}
+
+    Anyone with this link can download the file, so don't forward this email.
+    If you didn't delete your account, reply to this email right away.
     --------------------------------------------------
   `);
 

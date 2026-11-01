@@ -1,3 +1,4 @@
+import { validateEmailQuotaSettings } from '@/lib/email/quota-config';
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/adminDb';
 import { verifyAdminSession } from '@/lib/adminAuth';
@@ -41,7 +42,6 @@ export async function GET() {
           defaultBudgetMax: 50.0,
           defaultCurrency: 'USD',
           appMode: IS_SAAS ? 'saas' : 'selfhosted',
-          altHome: '',
           emailProvider: 'auto',
           emailFrom: 'admin@kovertklaus.com',
           emailFromName: 'KovertKlaus HQ',
@@ -93,7 +93,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const invalid = validatePlatformSettings(body);
+    const invalid = [...validatePlatformSettings(body), ...validateEmailQuotaSettings(body)];
     if (invalid.length > 0) {
       return NextResponse.json({ error: invalid.join(' '), details: invalid }, { status: 400 });
     }

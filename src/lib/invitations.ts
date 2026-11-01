@@ -17,6 +17,7 @@
  * mission code still works and needs no invitation.
  */
 
+import { issueInviteToken } from '@/lib/invite-token';
 import type { PrismaClient } from '@prisma/client';
 import { isValidEmail } from '@/lib/security';
 import { generateKdmToken } from '@/lib/covertDelivery';
@@ -77,11 +78,13 @@ export function isInvitationOpen(
  * New users register with the mission code (their alpha clearance); existing users open the
  * mission to accept. Kovert Delivery invites keep the mission link so the KDM accord flow runs.
  */
-export function invitationLink(baseUrl: string, code: string, email: string, isExistingUser: boolean, kdmToken?: string): string {
+export function invitationLink(baseUrl: string, code: string, email: string, isExistingUser: boolean, kdmToken?: string, inviteToken?: string): string {
   const base = baseUrl.replace(/\/+$/, '');
   if (kdmToken) return `${base}/exchange/${code}?kdm=${encodeURIComponent(kdmToken)}`;
-  if (isExistingUser) return `${base}/exchange/${code}`;
-  return `${base}/register?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}`;
+  // The signed invite token lets the invitee join without Head Elf approval (src/lib/join-requests.ts).
+  const invite = inviteToken ? `invite=${encodeURIComponent(inviteToken)}` : '';
+  if (isExistingUser) return `${base}/exchange/${code}${invite ? `?${invite}` : ''}`;
+  return `${base}/register?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}${invite ? `&${invite}` : ''}`;
 }
 
 /**
@@ -169,7 +172,7 @@ export async function sendMissionInvitation(
     });
   }
 
-  const joinUrl = invitationLink(deps.baseUrl, exchange.code, email, Boolean(targetUser), kdmToken);
+  const joinUrl = invitationLink(deps.baseUrl, exchange.code, email, Boolean(targetUser), kdmToken, issueInviteToken(invitation.id));
   const sent = await deps
     .sendEmail({
       recipientEmail: email,
@@ -264,7 +267,7 @@ export async function resendMissionInvitation(
  * Tier 2 (why): Email addresses are not verified yet, and BETA opens sign-up to everyone, so anyone
  * could register with an invitee's address, see their invitation and its mission code, and join as
  * them, later receiving a target's shipping address (owner decision 2026-10-31).
- * Tier 3 (how): Off until email verification ships (planned for 1.0.0-beta.2). Invitees join through
+ * Tier 3 (how): Off until email verification ships (planned for 1.1.0-beta). Invitees join through
  * the link in their invitation email, which carries the mission code and reaches only their inbox.
  * Enrollment still marks the invitation accepted (`markInvitationAccepted`).
  */

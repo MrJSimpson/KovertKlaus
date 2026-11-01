@@ -18,7 +18,6 @@ const STRING_FIELDS = [
   'activeThemeId',
   'activeSeason',
   'maintenanceMessage',
-  'altHome',
   'emailProvider',
   'emailFrom',
   'emailFromName',
@@ -32,6 +31,8 @@ const STRING_FIELDS = [
   'resendApiKey',
   'defaultCurrency',
   'releaseStage',
+  // Validated by validateEmailQuotaSettings before this runs (src/lib/email/quota-config.ts).
+  'emailQuotaPeriod',
 ] as const;
 
 const BOOLEAN_FIELDS = ['announcementBannerActive', 'maintenanceMode', 'smtpSecure', 'lifecycleCronEnabled'] as const;
@@ -47,6 +48,9 @@ const NUMBER_FIELDS = [
   'maxItemQuantity',
   'defaultBudgetMin',
   'defaultBudgetMax',
+  'emailQuota',
+  'emailQuotaResetDay',
+  'emailDailyCap',
 ] as const;
 
 /**

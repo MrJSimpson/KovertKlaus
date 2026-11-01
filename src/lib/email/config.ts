@@ -1,4 +1,5 @@
 import { EmailConfig, EmailProviderType } from './types';
+import { toQuotaConfig } from './quota-config';
 import { db } from '@/lib/db';
 import { adminDb } from '@/lib/adminDb';
 
@@ -21,6 +22,10 @@ export function getEmailConfig(
     smtpSecure?: boolean | null;
     smtpFrom?: string | null;
     resendApiKey?: string | null;
+    emailQuotaPeriod?: string | null;
+    emailQuota?: number | null;
+    emailQuotaResetDay?: number | null;
+    emailDailyCap?: number | null;
   },
   envOverride?: Record<string, string | undefined>
 ): EmailConfig {
@@ -109,6 +114,17 @@ export function getEmailConfig(
     resendApiKey,
     defaultFromEmail,
     defaultFromName,
+    // The allowance is a database setting only (EMAIL_DAILY_QUOTA env var retired 2026-11-01).
+    quota: toQuotaConfig(
+      dbOverride
+        ? {
+            emailQuotaPeriod: dbOverride.emailQuotaPeriod ?? undefined,
+            emailQuota: dbOverride.emailQuota ?? undefined,
+            emailQuotaResetDay: dbOverride.emailQuotaResetDay ?? undefined,
+            emailDailyCap: dbOverride.emailDailyCap ?? undefined,
+          }
+        : null
+    ),
   };
 }
 
@@ -146,6 +162,10 @@ export async function getResolvedEmailConfig(
             smtpSecure: config.smtpSecure,
             smtpFrom: config.smtpFrom,
             resendApiKey: config.resendApiKey,
+            emailQuotaPeriod: config.emailQuotaPeriod,
+            emailQuota: config.emailQuota,
+            emailQuotaResetDay: config.emailQuotaResetDay,
+            emailDailyCap: config.emailDailyCap,
           },
           env
         );

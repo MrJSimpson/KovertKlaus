@@ -217,3 +217,20 @@ test('Password reset - the new password must meet the complexity rules', async (
   assert.strictEqual(weak.status, 400);
   assert.match(String(weak.body.error), /at least 10 characters/);
 });
+
+test('Password reset - monthly allowance used up: the reply and link follow the reset date, not tomorrow', async () => {
+  const t = await setup({ quotaReached: true });
+  const resumesAt = new Date('2026-12-01T08:00:00Z'); // Dec 1, midnight Pacific
+  t.deps.quotaResumesAt = async () => resumesAt;
+  const r = await requestPasswordReset(t.deps, { email: 'holly@example.com', ip: '1.2.3.4' }, t.now());
+  assert.match(String(r.body.message), /will reach you on December 1\./);
+  assert.strictEqual(t.sent[0].expiresText, 'at noon Pacific time on December 1');
+  const token = decodeURIComponent(new URL(t.sent[0].resetUrl).searchParams.get('token')!);
+  assert.ok(readResetToken(token, resumesAt.getTime() + 11 * 60 * 60 * 1000), 'still works on the morning it arrives');
+
+  // Daily mode (resumes tomorrow) keeps the owner's "tomorrow AM" wording.
+  const d = await setup({ quotaReached: true });
+  d.deps.quotaResumesAt = async () => quotaDayStart(new Date(d.now() + 24 * 60 * 60 * 1000));
+  const daily = await requestPasswordReset(d.deps, { email: 'holly@example.com', ip: '1.2.3.4' }, d.now());
+  assert.strictEqual(daily.body.message, RESET_QUEUED_MESSAGE);
+});

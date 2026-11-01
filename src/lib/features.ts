@@ -31,6 +31,7 @@ export const FEATURE_FACTS = {
   cancelledPurgeDays: 90,
   /** `RESET_LINK_TTL_MS` in `src/lib/password-reset.ts`. */
   resetLinkMinutes: 30,
+  verifyLinkHours: 24,
   /** `JOIN_LIMITS` in `src/lib/join-throttle.ts`. */
   wrongCodesPerHour: 10,
   /** Carriers whose tracking numbers protect an agent from Coal Citations. */
@@ -108,7 +109,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     lead: 'One invite link, a clear timeline and tools for when plans change.',
     points: [
       `Missions for ${f.minAgents} to ${f.maxAgents} agents. A Head Elf can run up to ${f.maxHostedMissions} missions at once.`,
-      'Invite by email or share one link. Late Passes let someone join after RSVP closes.',
+      'Invite by email or share the mission code. People you invite by email join straight away; anyone using the code needs your approval first. Late Passes let someone join after RSVP closes.',
       'Four stages: RSVP, Match, Sleigh, Party. A notification bell shows what needs attention, and the Head Elf can nudge agents by email.',
       'Mission Comms for messages, an After-Action Report for thank-yous, and one guess at who your Secret Santa was.',
       `Cancelling notifies every agent. A cancelled mission is deleted ${f.cancelledPurgeDays} days later, keeping only an anonymous record of what happened.`,
@@ -141,9 +142,11 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     heading: 'Built to be safe',
     lead: 'Protections that work quietly in the background.',
     points: [
-      'Passwords are stored as salted one-way hashes; sessions use a secure, HTTP-only cookie.',
+      'Passwords need 10+ characters (a short phrase works well), with no symbol rules; common and leaked passwords are refused. They are stored as salted one-way hashes; sessions use a secure, HTTP-only cookie.',
+      `New accounts confirm their email address before opening the dashboard (the link lasts ${f.verifyLinkHours} hours), and an unverified agent can't be drawn in a Secret Santa.`,
       `Forgot your password? A single-use reset link by email, valid for ${f.resetLinkMinutes} minutes.`,
       `Sign-in, sign-up, password resets and mission codes are rate-limited; after ${f.wrongCodesPerHour} wrong mission codes in an hour, you wait.`,
+      'Delete your account yourself any time from Account Preferences; it is immediate and permanent.',
       'Everything is sent over HTTPS.',
     ],
   },

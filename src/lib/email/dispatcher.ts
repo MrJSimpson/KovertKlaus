@@ -2,6 +2,7 @@ import { adminDb, getAdminDb } from '../adminDb';
 import { logEmailEvent, logSystemEvent } from '../logger';
 import {
   checkQuota,
+  quotaResumesAt,
   crossedWarning,
   EmailQuotaStore,
   FlushSummary,
@@ -26,6 +27,8 @@ import {
   getMissionRepairEmailTemplate,
   getNudgeEmailTemplate,
   getPasswordResetEmailTemplate,
+  getEmailVerificationEmailTemplate,
+  getAccountExportEmailTemplate,
   getWelcomeEmailTemplate,
 } from './templates';
 import {
@@ -41,6 +44,8 @@ import {
   MissionRepairEmailParams,
   NudgeEmailParams,
   PasswordResetEmailParams,
+  EmailVerificationEmailParams,
+  AccountExportEmailParams,
   WelcomeEmailParams,
 } from './types';
 
@@ -63,14 +68,15 @@ export async function sendEmail(
   const store = config.provider === 'brevo' ? quotaStoreFor(config) : null;
   if (!store) return deliverEmail(message, config, maxRetries);
 
-  const settings = quotaSettings(quotaEnv(config));
+  const settings = quotaSettings(config.quota);
   const recipients = recipientCount(message);
   let usedBefore: number;
   try {
     const decision = await checkQuota(store, recipients, settings);
     usedBefore = decision.usedBefore;
     if (!decision.send) {
-      return holdEmail(store, message, recipients, `Daily limit reached (${decision.usedBefore}/${settings.cap} sent today)`, config);
+      const window = settings.period === 'MONTH' ? 'this month' : 'today';
+      return holdEmail(store, message, recipients, `Email allowance reached (${decision.usedBefore}/${settings.cap} sent ${window})`, config);
     }
   } catch (err: unknown) {
     // Fail open: a ledger outage must not stop mail. The cap's reserve absorbs uncounted sends.
@@ -87,8 +93,11 @@ export async function sendEmail(
       await logSystemEvent({
         level: 'WARN',
         category: 'EMAIL',
-        message: `Daily email quota at ${usedBefore + recipients}/${settings.quota}: emails past ${settings.cap} today are held until midnight Pacific.`,
-        metadata: { sentToday: usedBefore + recipients, quota: settings.quota, cap: settings.cap },
+        message:
+          settings.period === 'MONTH'
+            ? `Monthly email quota at ${usedBefore + recipients}/${settings.quota}: emails past ${settings.cap} this period are held until the reset day (${settings.resetDay}).`
+            : `Daily email quota at ${usedBefore + recipients}/${settings.quota}: emails past ${settings.cap} today are held until midnight Pacific.`,
+        metadata: { sentThisPeriod: usedBefore + recipients, quota: settings.quota, cap: settings.cap, period: settings.period },
         dbClient: config.dbClient,
         env: config.env,
       }).catch(() => {});
@@ -111,7 +120,7 @@ export async function flushHeldEmailQueue(overrideConfig?: Partial<EmailConfig>)
   const store = config.provider === 'brevo' ? quotaStoreFor(config) : null;
   if (!store) return null;
 
-  const summary = await flushHeldEmails(store, (message) => deliverEmail(message, config), quotaSettings(quotaEnv(config)));
+  const summary = await flushHeldEmails(store, (message) => deliverEmail(message, config), quotaSettings(config.quota));
   if (summary.sent || summary.failed) {
     await logSystemEvent({
       level: summary.gaveUp ? 'ERROR' : summary.failed ? 'WARN' : 'INFO',
@@ -123,11 +132,6 @@ export async function flushHeldEmailQueue(overrideConfig?: Partial<EmailConfig>)
     }).catch(() => {});
   }
   return summary;
-}
-
-/** Environment the quota settings read (`EMAIL_DAILY_QUOTA`): the Worker's env or process.env. */
-function quotaEnv(config: EmailConfig): Record<string, string | undefined> | undefined {
-  return config.env ?? (typeof process !== 'undefined' ? process.env : undefined);
 }
 
 /**
@@ -429,19 +433,70 @@ export async function sendPasswordResetEmail(params: PasswordResetEmailParams): 
 }
 
 /**
- * True when one more email today would be held until midnight Pacific (Brevo only). Lets a caller
- * tell the user before sending; a ledger outage reads as "not reached", matching `sendEmail`.
+ * Dispatches an email address verification link (sign-up and resend).
  */
-export async function isDailyEmailQuotaReached(overrideConfig?: Partial<EmailConfig>): Promise<boolean> {
+export async function sendEmailVerificationEmail(params: EmailVerificationEmailParams): Promise<EmailResult> {
+  const { subject, html, text } = getEmailVerificationEmailTemplate(params);
+  return sendEmail(
+    {
+      to: { email: params.to, name: params.name },
+      subject,
+      html,
+      text,
+      tags: ['account', 'email-verification'],
+    },
+    params.overrideConfig
+  );
+}
+
+/**
+ * Dispatches the "account deleted" email with the data download link.
+ */
+export async function sendAccountExportEmail(params: AccountExportEmailParams): Promise<EmailResult> {
+  const { subject, html, text } = getAccountExportEmailTemplate(params);
+  return sendEmail(
+    {
+      to: { email: params.to, name: params.name },
+      subject,
+      html,
+      text,
+      tags: ['account', 'account-deleted'],
+    },
+    params.overrideConfig
+  );
+}
+
+/**
+ * True when one more email now would be held (Brevo only): the period's allowance, or in monthly mode
+ * the day's cap, is used up. Lets a caller tell the user before sending; a ledger outage reads as
+ * "not reached", matching `sendEmail`.
+ */
+export async function isEmailQuotaReached(overrideConfig?: Partial<EmailConfig>): Promise<boolean> {
   const baseConfig = await getResolvedEmailConfig();
   const config: EmailConfig = { ...baseConfig, ...overrideConfig };
   const store = config.provider === 'brevo' ? quotaStoreFor(config) : null;
   if (!store) return false;
   try {
-    const decision = await checkQuota(store, 1, quotaSettings(quotaEnv(config)));
+    const decision = await checkQuota(store, 1, quotaSettings(config.quota));
     return !decision.send;
   } catch {
     return false;
+  }
+}
+
+/**
+ * When held mail goes out again, or `null` when an email would send now (or no quota applies).
+ * Password reset and verification use it to size their links and tell the agent when to expect mail.
+ */
+export async function emailQuotaResumesAt(overrideConfig?: Partial<EmailConfig>): Promise<Date | null> {
+  const baseConfig = await getResolvedEmailConfig();
+  const config: EmailConfig = { ...baseConfig, ...overrideConfig };
+  const store = config.provider === 'brevo' ? quotaStoreFor(config) : null;
+  if (!store) return null;
+  try {
+    return await quotaResumesAt(store, quotaSettings(config.quota));
+  } catch {
+    return null;
   }
 }
 

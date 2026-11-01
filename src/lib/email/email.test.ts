@@ -190,6 +190,14 @@ async function runTests() {
   assert(clearanceOverrideRes.success === true, 'sendClearanceConfirmationEmail honors overrideConfig');
   assert(clearanceOverrideRes.provider === 'console', 'overrideConfig correctly sets console mock provider');
 
+  // --- Test 9: North Pole quota setting ---
+  console.log('\n--- Test 9: North Pole quota setting reaches the dispatcher ---');
+  const noRow = getEmailConfig(undefined, {}).quota;
+  assert(noRow?.period === 'DAY' && noRow.quota === 300 && noRow.dailyCap === 0, 'No SystemConfig row means 300 a day');
+  const monthlyCfg = getEmailConfig({ emailQuotaPeriod: 'MONTH', emailQuota: 50000, emailQuotaResetDay: 15, emailDailyCap: 2500 }, {}).quota;
+  assert(monthlyCfg?.period === 'MONTH' && monthlyCfg.quota === 50000 && monthlyCfg.resetDay === 15 && monthlyCfg.dailyCap === 2500, 'Monthly setting read from SystemConfig');
+  assert(getEmailConfig(undefined, { EMAIL_DAILY_QUOTA: '9999' }).quota?.quota === 300, 'Retired EMAIL_DAILY_QUOTA env var is ignored');
+
   console.log(`\n📊 Test Summary: ${passed} Passed, ${failed} Failed`);
   if (failed > 0) {
     process.exit(1);
@@ -200,4 +208,5 @@ runTests().catch((err) => {
   console.error('Fatal test error:', err);
   process.exit(1);
 });
+
 
