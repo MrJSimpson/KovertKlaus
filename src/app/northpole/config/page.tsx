@@ -1,5 +1,6 @@
 'use client';
 
+import { DEFAULT_QUOTA_CONFIG, EMAIL_QUOTA_BOUNDS, isEmailQuotaPeriod, toQuotaConfig, type QuotaConfig } from '@/lib/email/quota-config';
 import { ADMIN_TOKEN_KEY } from '@/lib/constants/auth';
 import {
   DEFAULT_PLATFORM_SETTINGS,
@@ -63,6 +64,8 @@ export default function NorthPoleConfigPage() {
   const [defaultBudgetMin, setDefaultBudgetMin] = useState(0);
   const [defaultBudgetMax, setDefaultBudgetMax] = useState(50);
   const [defaultCurrency, setDefaultCurrency] = useState('USD');
+  // Brevo sending allowance (bounds in src/lib/email/quota-config.ts; the server refuses values outside them)
+  const [quota, setQuota] = useState<QuotaConfig>(DEFAULT_QUOTA_CONFIG);
 
   // Live Email Testing State
   const [testEmailRecipient, setTestEmailRecipient] = useState('');
@@ -119,6 +122,7 @@ export default function NorthPoleConfigPage() {
           setDefaultBudgetMin(Number(cfg.defaultBudgetMin ?? 0));
           setDefaultBudgetMax(Number(cfg.defaultBudgetMax ?? 50));
           setDefaultCurrency(cfg.defaultCurrency || 'USD');
+          setQuota(toQuotaConfig(cfg));
 
           setLifecycleCronEnabled(cfg.lifecycleCronEnabled ?? true);
           setLifecycleCronIntervalMinutes(cfg.lifecycleCronIntervalMinutes ?? 60);
@@ -190,6 +194,10 @@ export default function NorthPoleConfigPage() {
           defaultBudgetMin,
           defaultBudgetMax,
           defaultCurrency,
+          emailQuotaPeriod: quota.period,
+          emailQuota: quota.quota,
+          emailQuotaResetDay: quota.resetDay,
+          emailDailyCap: quota.dailyCap,
           lifecycleCronEnabled,
           lifecycleCronIntervalMinutes,
         }),
@@ -560,7 +568,7 @@ export default function NorthPoleConfigPage() {
         <div className="p-4 rounded-xl bg-kk-inset border border-kk-border space-y-3">
           <div className="text-xs font-mono font-bold text-kk-accent flex items-center justify-between">
             <span>⚡ Brevo REST API Credentials (Cloud SaaS)</span>
-            <span className="text-[10px] text-kk-muted font-normal">300 free emails/day</span>
+            <span className="text-[10px] text-kk-muted font-normal">Allowance set below</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
             <div>
@@ -593,6 +601,70 @@ export default function NorthPoleConfigPage() {
                 className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Brevo sending allowance (src/lib/email/quota-config.ts) */}
+        <div className="p-4 rounded-xl bg-kk-inset border border-kk-border space-y-3">
+          <div className="text-xs font-mono font-bold text-kk-accent">📮 Brevo Sending Allowance</div>
+          <p className="text-[11px] text-kk-muted">
+            Match your Brevo plan: free is 300 a day; paid plans are a monthly allowance. Emails past the allowance wait in the
+            outbox and go out, oldest first, when it resets. KovertKlaus keeps 10 spare and warns in the log at 80%.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs font-mono">
+            <div>
+              <label className="block text-kk-muted mb-1">PERIOD</label>
+              <select
+                value={quota.period}
+                onChange={(e) => setQuota({ ...quota, period: isEmailQuotaPeriod(e.target.value) ? e.target.value : quota.period })}
+                className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
+              >
+                <option value="DAY">Per day (resets midnight Pacific)</option>
+                <option value="MONTH">Per month (resets on a set day)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-kk-muted mb-1">{EMAIL_QUOTA_BOUNDS.emailQuota.label.toUpperCase()}</label>
+              <input
+                type="number"
+                min={EMAIL_QUOTA_BOUNDS.emailQuota.min}
+                max={EMAIL_QUOTA_BOUNDS.emailQuota.max}
+                step={1}
+                value={quota.quota}
+                onChange={(e) => setQuota({ ...quota, quota: Number(e.target.value) })}
+                className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
+              />
+            </div>
+            {quota.period === 'MONTH' && (
+              <>
+                <div>
+                  <label className="block text-kk-muted mb-1">{EMAIL_QUOTA_BOUNDS.emailQuotaResetDay.label.toUpperCase()}</label>
+                  <input
+                    type="number"
+                    min={EMAIL_QUOTA_BOUNDS.emailQuotaResetDay.min}
+                    max={EMAIL_QUOTA_BOUNDS.emailQuotaResetDay.max}
+                    step={1}
+                    value={quota.resetDay}
+                    onChange={(e) => setQuota({ ...quota, resetDay: Number(e.target.value) })}
+                    className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
+                  />
+                  <p className="text-kk-muted mt-1">Day of the month your Brevo allowance renews (1 to 28).</p>
+                </div>
+                <div>
+                  <label className="block text-kk-muted mb-1">{EMAIL_QUOTA_BOUNDS.emailDailyCap.label.toUpperCase()}</label>
+                  <input
+                    type="number"
+                    min={EMAIL_QUOTA_BOUNDS.emailDailyCap.min}
+                    max={EMAIL_QUOTA_BOUNDS.emailDailyCap.max}
+                    step={1}
+                    value={quota.dailyCap}
+                    onChange={(e) => setQuota({ ...quota, dailyCap: Number(e.target.value) })}
+                    className="w-full bg-kk-surface border border-kk-border rounded-lg px-2.5 py-1.5 text-kk-ink focus:outline-none"
+                  />
+                  <p className="text-kk-muted mt-1">Keeps one busy day from spending the month.</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

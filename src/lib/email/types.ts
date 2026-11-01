@@ -1,3 +1,4 @@
+import type { QuotaConfig } from './quota-config';
 export type EmailProviderType = 'auto' | 'brevo' | 'smtp' | 'resend' | 'console';
 
 export interface EmailAddress {
@@ -48,6 +49,8 @@ export interface EmailConfig {
   // Edge runtime context & DB persistence bindings
   dbClient?: any;
   env?: Record<string, any>;
+  /** Brevo sending allowance from the North Pole (`quota-config.ts`); defaults to 300 a day. */
+  quota?: QuotaConfig;
 }
 
 
