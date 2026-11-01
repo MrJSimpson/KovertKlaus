@@ -264,7 +264,7 @@ export async function resendMissionInvitation(
  * Tier 2 (why): Email addresses are not verified yet, and BETA opens sign-up to everyone, so anyone
  * could register with an invitee's address, see their invitation and its mission code, and join as
  * them, later receiving a target's shipping address (owner decision 2026-10-31).
- * Tier 3 (how): Off until email verification ships (planned for 1.0.0-beta.2). Invitees join through
+ * Tier 3 (how): Off until email verification ships (planned for 1.1.0-beta). Invitees join through
  * the link in their invitation email, which carries the mission code and reaches only their inbox.
  * Enrollment still marks the invitation accepted (`markInvitationAccepted`).
  */

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Versions now use `MAJOR.MINOR.PATCH-stage` by feature area (Missions, Wishlists, Accounts, Notifications & Email, North Pole, Shipping) instead of `1.0.0-beta.N`, and releases ship when their scope is verified rather than on dates (`docs/VERSIONING.md` §1–§3). The next release is `1.1.0-beta`. Removed the unused `RELEASE_TIMELINE` constant.
+
 ---
 
 ## [1.0.0-beta.1] - 2026-10-31
