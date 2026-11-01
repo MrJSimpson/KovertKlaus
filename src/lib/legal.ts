@@ -10,7 +10,7 @@
  * will be replaced before it becomes one.
  * Tier 3 (how): Adapted from the Basecamp open-source policies (CC BY 4.0, attribution in
  * `LEGAL_ATTRIBUTION`), rewritten for what this codebase actually does: Cloudflare hosting, Neon
- * database, Brevo email, no payments, no analytics, no self-service account deletion yet. These
+ * database, Brevo email, no payments, no analytics, self-service account deletion (src/lib/account-deletion.ts). These
  * pages cover the hosted service at kovertklaus.com; a self-hosted install is run by its operator.
  * Keep this file in step with the code when data handling changes.
  */
@@ -121,7 +121,7 @@ export const PRIVACY_POLICY: LegalDocument = {
         list(
           'You can view and change your profile and gift dossier at any time in the app.',
           'You can turn mission emails off in your profile. Some emails, such as email verification and password resets, are always sent.',
-          `To get a copy of your information, correct something you cannot change yourself, or delete your account, email ${LEGAL_CONTACT_EMAIL} from the address on your account. Deleting your account in the app is coming; until then, we handle deletion requests by email.`,
+          `To get a copy of your information, correct something you cannot change yourself, or delete your account, email ${LEGAL_CONTACT_EMAIL} from the address on your account. You can also delete your account yourself under Account Preferences → Security.`,
           'We answer requests within 30 days. Depending on where you live (for example California or the European Union), you may have further rights under local law; ask us and we will help.'
         ),
       ],
@@ -131,11 +131,11 @@ export const PRIVACY_POLICY: LegalDocument = {
       heading: 'How long we keep it',
       blocks: [
         list(
-          'Your account and dossier stay until you ask us to delete your account.',
+          'Your account and dossier stay until you delete your account (Account Preferences → Security) or ask us to.',
           'A cancelled mission is deleted 90 days after it was cancelled. We keep only an anonymous record of its outcome and the reason, with no names.',
           'A completed mission stays as a read-only record for the agents who took part.',
-          'When we delete your account, we remove your profile, dossier, Wishlist Manifests, messages and reports. If you run a mission that is still active, we will work with you to finish or cancel it first.',
-          'Security records are deleted after about a day. Copies in database backups are removed when those backups expire.'
+          'Deleting your account is immediate and permanent: we remove your profile, dossier, Wishlist Manifests, messages, reports, notifications and Coal Citations, and keep nothing else about you. Finished missions you ran are deleted with it. If you run a mission that is still open, or names have been drawn in a mission you are in, you can delete your account once that mission is cancelled or finished. Leaving before the draw just removes you from the mission.',
+          'Security records are deleted after about a day. Copies in our encrypted database backups are gone within 30 days.'
         ),
       ],
     },
@@ -238,7 +238,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       id: 'termination',
       heading: 'Suspending or closing accounts',
       blocks: [
-        p('We may suspend or close an account that breaks these terms or puts other agents at risk. You can stop using KovertKlaus at any time and ask us to delete your account (see the Privacy Policy).'),
+        p('We may suspend or close an account that breaks these terms or puts other agents at risk. You can stop using KovertKlaus at any time and delete your account in the app or ask us to (see the Privacy Policy).'),
       ],
     },
     {

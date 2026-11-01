@@ -34,6 +34,7 @@ import {
   sendVerificationEmail,
   UNVERIFIED_ALLOWED_PATHS,
 } from './lib/email-verification';
+import { deleteAccount, deletionPreview } from './lib/account-deletion';
 import {
   sendWelcomeEmail,
   sendInvitationEmail,
@@ -117,6 +118,7 @@ export const WORKER_API_PATHS = new Set([
   '/api/scraper',
   '/api/shipping',
   '/api/users',
+  '/api/users/delete-account',
   '/api/users/login',
   '/api/users/me',
   '/api/users/password-reset',
@@ -1426,6 +1428,28 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
           { token: body.token }
         );
         return Response.json(result.body, { status: result.status, headers: result.headers });
+      }
+
+      // 10f. /api/users/delete-account (GET preview / POST delete): self-service account deletion
+      if (pathname === '/api/users/delete-account' && (request.method === 'GET' || request.method === 'POST')) {
+        const userId = getUserIdFromRequest(request);
+        if (!userId) return Response.json({ error: 'Please sign in again.' }, { status: 401 });
+        if (request.method === 'GET') return Response.json({ success: true, ...(await deletionPreview(db, userId)) });
+        const body = await readJsonBody(request);
+        const result = await deleteAccount(
+          {
+            db,
+            adminDb,
+            onDeleted: (message, metadata) => {
+              logSystemEvent({ level: 'INFO', category: 'AUTH', message, metadata }).catch(() => {});
+            },
+          },
+          userId,
+          { password: body.password, confirm: body.confirm }
+        );
+        const headers = new Headers(result.headers);
+        if (result.status === 200) headers.append('Set-Cookie', `${USER_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`);
+        return Response.json(result.body, { status: result.status, headers });
       }
 
       // 11. /api/users/me / /api/users/profile (GET / PATCH / DELETE)

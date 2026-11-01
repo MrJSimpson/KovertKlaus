@@ -60,6 +60,8 @@ export const UNVERIFIED_ALLOWED_PATHS: ReadonlySet<string> = new Set([
   '/api/users/me',
   '/api/users/verify-email',
   '/api/users/verify-email/confirm',
+  // A mistyped address is a good reason to delete the account; deletion still needs the password.
+  '/api/users/delete-account',
 ]);
 
 /** Reply when a verification email went out. */

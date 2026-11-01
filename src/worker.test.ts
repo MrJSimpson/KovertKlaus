@@ -197,7 +197,7 @@ test('Email Verification - unverified agents are gated in both runtimes, with on
   // Self-hosted: getSessionUserId refuses unverified sessions unless the caller opts in.
   assert.match(read('lib', 'auth.ts'), /if \(session\.unverified && !options\.allowUnverified\) return null;/);
 
-  // Only the verify routes opt in (the /me route reads the full session state instead).
+  // Only resend and account deletion opt in (the /me route reads the full session state instead).
   const apiDir = path.join(process.cwd(), 'src', 'app', 'api');
   const optIns: string[] = [];
   const walk = (dir: string) => {
@@ -210,7 +210,7 @@ test('Email Verification - unverified agents are gated in both runtimes, with on
     }
   };
   walk(apiDir);
-  assert.deepStrictEqual(optIns, ['users/verify-email/route.ts']);
+  assert.deepStrictEqual(optIns.sort(), ['users/delete-account/route.ts', 'users/verify-email/route.ts']);
 
   // Both sign-up paths decide verification at creation.
   for (const source of [worker, read('app', 'api', 'users', 'route.ts')]) {
