@@ -39,7 +39,7 @@
     "ws": "^8.22.0"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.20.12",
+    "@opennextjs/cloudflare": "^1.20.13",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.19.2",
     "@types/nodemailer": "^8.0.2",
