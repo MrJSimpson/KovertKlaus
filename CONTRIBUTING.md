@@ -34,7 +34,7 @@ We enforce a strict **pre-flight feature branching policy**:
 > Direct commits to the `main` branch are strictly prohibited across all repositories.
 
 ### Release Branches
-Work is collected on a release branch, `release/vX.Y.Z-stage`, and reaches `main` once per release ([`docs/VERSIONING.md`](docs/VERSIONING.md) §4). **Cut your branch from the open release branch and target your pull request at it, not at `main`.** Before your pull request is merged, merge the latest release branch into your branch and resolve any conflicts there. Only urgent production fixes (`hotfix/<name>`) start from and target `main`.
+Work is collected on a release branch, `release/vX.Y.Z-stage`, and reaches `main` once per release ([`docs/VERSIONING.md`](docs/VERSIONING.md) §4). **Cut your branch from the open release branch and target your pull request at it, not at `main`.** Before your pull request is merged, merge the latest release branch into your branch and resolve any conflicts there. Urgent production fixes (`hotfix/<name>`) target their own patch release branch cut from `main` (§4.6).
 
 ### Branch Naming Conventions
 Always create an isolated, descriptive branch before making any code modifications:

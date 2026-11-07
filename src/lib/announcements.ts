@@ -41,6 +41,19 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '1.1.2-beta',
+    date: '2026-11-07',
+    title: 'Fix: missions open from your dashboard every time',
+    summary: 'Opening a mission from your dashboard could show "Operation Not Found" even though you belong to it. It now opens the mission every time.',
+    highlights: [
+      {
+        emoji: '🎯',
+        title: 'Straight to your Command Center',
+        text: 'Tapping a mission on your dashboard now takes you to it, so you can add to your wishlist without refreshing or retyping the link.',
+      },
+    ],
+  },
+  {
     version: '0.7.0-alpha',
     stage: 'BETA',
     date: '2026-11-01',
