@@ -2,8 +2,8 @@
 
 import { EMAIL_UNVERIFIED_CODE, USER_ID_KEY } from '@/lib/constants/auth';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
 import { stageCardClass, stagePillClass, stageState, statusBadgeClass, type MissionStage } from '@/lib/stage-colors';
@@ -149,10 +149,15 @@ interface OperationData {
 
 export default function OperationCommandCenterPage() {
   const params = useParams();
+  const pathname = usePathname();
   const router = useRouter();
   // The SaaS static export serves one shell page for every mission, so useParams() says 'preview'
-  // there; the browser URL carries the real code (src/lib/exchange-route.ts).
-  const code = resolveExchangeCode(params?.code, typeof window !== 'undefined' ? window.location.pathname : null);
+  // there. The router's pathname carries the real code, even mid-navigation when the browser URL
+  // still shows the previous page (src/lib/exchange-route.ts). '' until the code is known.
+  const code = resolveExchangeCode(params?.code, pathname, typeof window !== 'undefined' ? window.location.pathname : null);
+  /** The code this page shows now: a load for an older code must not overwrite it. */
+  const currentCodeRef = useRef(code);
+  currentCodeRef.current = code;
 
   const { isDarkMode, toggleTheme, theme, systemConfig } = useTheme();
   const [loading, setLoading] = useState(true);
@@ -383,6 +388,8 @@ export default function OperationCommandCenterPage() {
 
   async function fetchExchangeDetails() {
     if (!code) return;
+    const requestedCode = code;
+    const stale = () => currentCodeRef.current !== requestedCode;
     setLoading(true);
     setError('');
     setErrorStatus(0);
@@ -390,6 +397,7 @@ export default function OperationCommandCenterPage() {
       const { status, ok, json } = await fetchJsonWithRetry(`/api/operations?code=${encodeURIComponent(code)}`, {
         onRetry: () => setWakingUp(true),
       });
+      if (stale()) return;
       if (!ok || !json.success || !json.data) {
         setErrorStatus(status);
         setError(json.error || 'Operation not found');
@@ -398,11 +406,14 @@ export default function OperationCommandCenterPage() {
         populateForms(json.data);
       }
     } catch {
+      if (stale()) return;
       setErrorStatus(0);
       setError('Could not reach KovertKlaus. Check your connection and try again.');
     } finally {
-      setLoading(false);
-      setWakingUp(false);
+      if (!stale()) {
+        setLoading(false);
+        setWakingUp(false);
+      }
     }
   }
 
