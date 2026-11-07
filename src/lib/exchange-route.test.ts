@@ -26,7 +26,7 @@ test('Exchange Route - the page takes its code from the URL', () => {
 
 test('Exchange Route - a click-through from the dashboard loads the new mission, not the shell', () => {
   // Client-side navigation: the router already has the new path, the browser URL does not yet.
-  assert.strictEqual(resolveExchangeCode('preview', '/exchange/2R53-3VZ7', '/dashboard'), '2R53-3VZ7');
+  assert.strictEqual(resolveExchangeCode('preview', '/exchange/KKXQ-7TNP', '/dashboard'), 'KKXQ-7TNP');
 });
 
 test('Exchange Route - the shell code is never loaded', () => {
