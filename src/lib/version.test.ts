@@ -42,10 +42,13 @@ test('Announcements - newest first, unique keys, valid dates, the dot clears onc
 test('Announcements - a staged entry shows only at its stage, and flipping the stage relights the dot', () => {
   assert.ok(visibleAnnouncements('ALPHA').every((a) => !a.stage), 'nothing staged leaks into alpha');
   assert.strictEqual(visibleAnnouncements('ALPHA')[0].version, LATEST_ANNOUNCEMENT_VERSION);
-  const beta = visibleAnnouncements('BETA')[0];
-  assert.strictEqual(beta.stage, 'BETA');
-  assert.strictEqual(latestAnnouncementKey('BETA'), `${beta.version}+beta`);
-  // An agent who opened the alpha notes sees the dot again once the stage is BETA.
-  assert.strictEqual(hasUnseenAnnouncement(latestAnnouncementKey('ALPHA'), 'BETA'), true);
+  const staged = visibleAnnouncements('BETA').find((a) => a.stage === 'BETA');
+  assert.ok(staged, 'the beta welcome is shown at BETA');
+  assert.ok(!visibleAnnouncements('ALPHA').includes(staged));
+  const newestBeta = visibleAnnouncements('BETA')[0];
+  assert.strictEqual(latestAnnouncementKey('BETA'), announcementKey(newestBeta));
+  // While the staged entry is the newest, an agent who opened the alpha notes sees the dot again
+  // once the stage is BETA; after a newer release both stages share the same newest entry.
+  assert.strictEqual(hasUnseenAnnouncement(latestAnnouncementKey('ALPHA'), 'BETA'), newestBeta.stage === 'BETA');
   assert.strictEqual(hasUnseenAnnouncement(latestAnnouncementKey('BETA'), 'BETA'), false);
 });

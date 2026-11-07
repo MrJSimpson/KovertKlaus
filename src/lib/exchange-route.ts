@@ -31,14 +31,35 @@ export function rewriteExchangeShellPath(pathname: string): string | null {
   return `/exchange/${EXCHANGE_SHELL_CODE}${ext}${rest}`;
 }
 
+/** The mission code in an `/exchange/<code>` path, or null (other pages, and the shell itself). */
+function codeFromPath(path: string | null | undefined): string | null {
+  const raw = path?.match(/^\/exchange\/([^/.]+)/)?.[1];
+  if (!raw) return null;
+  let code: string;
+  try {
+    code = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+  return code.toLowerCase() === EXCHANGE_SHELL_CODE ? null : code;
+}
+
 /**
- * The mission code the page should load, upper-cased.
+ * The mission code the page should load, upper-cased, or `''` while it is not known yet.
+ *
+ * Tier 1: The router's pathname wins, then the browser URL, then the route param.
+ * Tier 2: On a click-through from the dashboard (client-side navigation) the page renders before
+ * the browser URL changes, so `window.location` still says `/dashboard` and the param says
+ * `preview`. Loading `PREVIEW` showed "Operation Not Found" and counted as a wrong code
+ * (bug reports 2026-11-06). The router's pathname is already the new URL at that point.
+ * Tier 3: The shell code `preview` is never returned, so the page waits instead of loading it.
  *
  * @param paramCode - `useParams().code` (always `preview` on the static shell).
+ * @param routerPath - `usePathname()`, or null.
  * @param browserPath - `window.location.pathname`, or null during prerender.
  */
-export function resolveExchangeCode(paramCode: unknown, browserPath: string | null): string {
-  const fromUrl = browserPath?.match(/^\/exchange\/([^/.]+)/)?.[1];
-  const code = fromUrl ? decodeURIComponent(fromUrl) : typeof paramCode === 'string' ? paramCode : '';
+export function resolveExchangeCode(paramCode: unknown, routerPath: string | null, browserPath: string | null): string {
+  const fromParam = typeof paramCode === 'string' && paramCode.toLowerCase() !== EXCHANGE_SHELL_CODE ? paramCode : null;
+  const code = codeFromPath(routerPath) ?? codeFromPath(browserPath) ?? fromParam ?? '';
   return code.toUpperCase();
 }
