@@ -62,12 +62,15 @@ release/vX.Y.Z ────●──●──────●──────�
 feat/… fix/… docs/… ──●      ●      ●           (work branches: cut from the release branch, PR back into it)
 ```
 
-1. **Open the release branch** when the next release is known: `git checkout main && git pull && git checkout -b release/vX.Y.Z-stage && git push -u origin release/vX.Y.Z-stage`. Only one release branch is open at a time.
+1. **Open the release branch** when the next release is known: `git checkout main && git pull && git checkout -b release/vX.Y.Z-stage && git push -u origin release/vX.Y.Z-stage`. Only one release branch is open at a time, apart from a hotfix patch release (step 6).
 2. **Work branches** (`feat/`, `fix/`, `docs/`, `refactor/`, `test/`, `sec/`) are cut **from the release branch**, and their pull requests **target the release branch** (`gh pr create --base release/vX.Y.Z-stage`), never `main`. Git cannot nest a branch under another branch's name (`release/v1.1.0-beta/fix-x` is not possible while `release/v1.1.0-beta` exists), so the base branch, not the name, makes a work branch part of a release.
 3. **No conflicts at release time:** before a work branch's pull request is merged, merge the current release branch into it and resolve any conflicts there. The release branch itself is never edited directly; it only receives merged pull requests.
 4. **Verify the release branch as a whole** on the test server before releasing: `npm test`, `npm run build`, and the checks listed in each merged pull request.
 5. **Release:** the release checklist (§5) is the last pull request into the release branch (`release: vX.Y.Z-stage`). Then one pull request merges the release branch into `main`. That merge starts the SaaS sync and the production deploy once, and its merge commit is tagged.
-6. **Hotfixes** for production problems that cannot wait: `hotfix/<name>` from `main`, pull request into `main`, released as a patch (§2). Then merge `main` into the open release branch so it stays current and the later release merge stays conflict-free.
+6. **Hotfixes** for production problems that cannot wait go through a release branch too (owner decision 2026-11-07):
+   - **One fix:** open `release/vX.Y.(Z+1)-stage` from `main`, cut `hotfix/<name>` from it and open the pull request against it, then release it as a PATCH with the checklist (§5). A patch release branch may be open alongside a release already in progress.
+   - **Several fixes at once:** ship them together as the next MINOR release instead of a string of patches.
+   - After the hotfix release reaches `main`, merge `main` into any other open release branch so it stays current and its later release merge stays conflict-free.
 7. **Close:** after the release is deployed and tagged, delete the release branch and its merged work branches (§6).
 
 ---

@@ -9,8 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.1.2-beta] - 2026-11-07
+
+Hotfix on 1.1.1-beta.
+
 ### Fixed
 - **Opening a mission from the dashboard no longer shows "Operation Not Found".** On a click-through (rather than a typed link or refresh) the mission page rendered before the browser address changed, so it read the placeholder code of the shared mission page and asked for a mission called `PREVIEW`. Depending on which load finished last, agents saw "Operation Not Found" for missions they belong to, and each failed load counted against the wrong-code limit (10 an hour), which could have locked them out of mission codes entirely. The page now takes the code from the router, never loads the placeholder, and ignores a load that finishes after the page has moved to another mission.
+
+### Changed
+- **Hotfixes ship on their own patch release branch** (`release/vX.Y.(Z+1)-stage` from `main`), and several fixes at once ship as a MINOR release (`docs/VERSIONING.md` §4.6).
 
 ---
 
