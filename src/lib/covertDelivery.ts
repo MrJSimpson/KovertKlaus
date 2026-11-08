@@ -7,6 +7,8 @@
  * - Stealth outcome and badge resolution (🎅 Kovert Klaus vs. 🕵️ Vigilant Elf)
  */
 
+import { randomHex } from './security';
+
 export const KDM_TOKEN_REGEX = /^KDM-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/i;
 
 export const BADGE_KOVERT_KLAUS = 'KOVERT_KLAUS';
@@ -20,22 +22,11 @@ export interface CovertDeliveryOutcome {
 /**
  * Generates a high-entropy 12-character hexadecimal invitation token
  * prefixed with 'KDM-' and partitioned in groups of 4 (e.g. KDM-7F4A-9B2C-E3D1).
+ * The 48 bits come from the CSPRNG (`randomHex`); with no CSPRNG available it throws
+ * instead of falling back to a predictable generator.
  */
 export function generateKdmToken(): string {
-  const bytes = new Uint8Array(6);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(bytes);
-  } else {
-    // Fallback for environments lacking Web Crypto
-    for (let i = 0; i < bytes.length; i++) {
-      bytes[i] = Math.floor(Math.random() * 256);
-    }
-  }
-
-  const hex = Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
-    .join('');
-
+  const hex = randomHex(6).toUpperCase();
   return `KDM-${hex.slice(0, 4)}-${hex.slice(4, 8)}-${hex.slice(8, 12)}`;
 }
 

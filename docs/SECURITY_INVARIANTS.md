@@ -58,8 +58,10 @@ flowchart TD
     R -->|Yes, more than 3 hops| Block
 ```
 
+**Connect-time address check (Node).** The flowchart judges the hostname's text, which a public domain pointing at a private address would pass. The Node scraper route therefore fetches through `createSsrfSafeFetch` (`src/lib/ssrf-node-fetch.ts`): an undici `Agent` whose `connect.lookup` hook refuses the connection if any resolved address is not public unicast (`isPublicAddress`), and which classifies literal IP hosts the same way. The address that is validated is the address the socket connects to, so DNS rebinding between check and connection is closed, on every redirect hop. Blocked attempts are logged as `BLOCKED_SSRF` (reason `BLOCKED_ADDRESS`).
+
 > [!NOTE]
-> **Known limitation:** the checks run on the URL's hostname; the hostname is not resolved first, so a public domain whose DNS record points at a private address is not caught here. The Cloudflare Workers runtime cannot reach private networks; self-hosted Node deployments rely on network placement for this case.
+> The Cloudflare Workers path (`src/worker.ts`) has no socket-level DNS hook and keeps the runtime `fetch`; the Workers runtime cannot reach private networks.
 
 ---
 

@@ -16,18 +16,72 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const CODE_REGEX = /^[A-Z0-9-]{3,16}$/;
 
 /**
- * Fallback HMAC session secret for development when SESSION_SECRET is unset.
+ * Fallback HMAC session secret for development and tests only. It is public (this file is in a
+ * public repository), so `getSessionSecret` refuses it in production.
  */
 const DEFAULT_SESSION_SECRET = 'kovertklaus-session-hmac-secret-vault-do-not-use-in-production-min32chars';
 
 /**
- * Retrieves the cryptographic secret used for HMAC token signing and verification.
- * Fails hard in production if no secret is explicitly configured.
+ * SHA-256 digests of secrets anyone can read in the repository: the development default and the
+ * `.env.example` placeholder (ban lists store digests, AGENTS.md §4). Keep in sync with
+ * `PUBLIC_SESSION_SECRET_DIGESTS` in scripts/ensure-db-password.mjs.
+ */
+const PUBLIC_SESSION_SECRET_DIGESTS: ReadonlySet<string> = new Set([
+  '90fc02370db9c2e53c530590ee1d97dff4aadcae61b718d996af513bf8d408d2',
+  '95e9e74541fee747a0273a19d45364bb0803c0b35faa51ecc3fef24c43063b53',
+]);
+
+/** True when `secret` is one of the public values in this repository. */
+function isPublicSessionSecret(secret: string): boolean {
+  return PUBLIC_SESSION_SECRET_DIGESTS.has(crypto.createHash('sha256').update(secret).digest('hex'));
+}
+
+/** Recommended minimum length; shorter secrets work but log a warning. */
+export const MIN_SESSION_SECRET_LENGTH = 32;
+
+let warnedSessionSecret = false;
+
+/** Logs a session secret problem once per process, so a hot path does not flood the log. */
+function warnSessionSecretOnce(message: string): void {
+  if (warnedSessionSecret) return;
+  warnedSessionSecret = true;
+  console.warn(`[security] ${message}`);
+}
+
+/**
+ * Returns the secret behind every HMAC in the app: session tokens, password-reset, email
+ * verification, invite and export links, and throttle keys.
+ *
+ * Tier 1 (what): Reads `SESSION_SECRET` (or `NEXTAUTH_SECRET`). In production it throws when the
+ * secret is missing or is one of the public values in this repository.
+ * Tier 2 (why): It used to fall back to `DEFAULT_SESSION_SECRET` silently, and docker-compose.yml
+ * never passed `SESSION_SECRET` to the app, so Docker installs signed sessions with a secret anyone
+ * could read and forge user and admin cookies with. A missing secret must stop the server instead.
+ * Tier 3 (how): `NODE_ENV === 'production'` decides; `src/instrumentation.ts` calls this at boot so
+ * the Node server exits with the reason before serving requests. Outside production the
+ * development default still applies, with a one-time warning.
+ *
+ * @returns The configured secret (or the development default outside production).
+ * @throws {Error} In production, if the secret is missing or public.
  */
 export function getSessionSecret(): string {
-  const secret = process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET;
-  if (!secret) {
+  const secret = (process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET || '').trim();
+  const problem = !secret
+    ? 'SESSION_SECRET is not set'
+    : isPublicSessionSecret(secret)
+      ? 'SESSION_SECRET is a public placeholder from this repository'
+      : null;
+
+  if (problem) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`${problem}. Set a random SESSION_SECRET (run \`npm run db:password\` for Docker installs).`);
+    }
+    warnSessionSecretOnce(`${problem}; using the development default. Never deploy like this.`);
     return DEFAULT_SESSION_SECRET;
+  }
+
+  if (secret.length < MIN_SESSION_SECRET_LENGTH) {
+    warnSessionSecretOnce(`SESSION_SECRET is shorter than ${MIN_SESSION_SECRET_LENGTH} characters; use a longer random value.`);
   }
   return secret;
 }
@@ -360,27 +414,51 @@ export function sanitizeInviteCode(code: string): string | null {
 }
 
 /**
- * Safely fills a typed array with cryptographically secure random bytes
- * across Browser, Edge Worker (Cloudflare Workers), and Node.js environments.
+ * Fills a typed array with cryptographically secure random bytes.
+ *
+ * Tier 1 (what): The single CSPRNG entry point for browsers, Cloudflare Workers and Node.js.
+ * Tier 2 (why): Fails closed. With no CSPRNG it throws rather than degrade to a predictable source.
+ * Tier 3 (how): Web Crypto `globalThis.crypto.getRandomValues` (the same object as `window.crypto`
+ * in browsers), then Node's `randomFillSync` for runtimes without the global.
+ *
+ * @param buffer - Array to fill in place.
+ * @throws {Error} If no CSPRNG is available in the current runtime.
  */
-function fillCryptoRandom(buffer: ArrayBufferView): void {
-  if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
-    globalThis.crypto.getRandomValues(buffer as any);
+function fillCryptoRandom(buffer: Uint8Array | Uint32Array): void {
+  const webCrypto = globalThis.crypto;
+  if (webCrypto && typeof webCrypto.getRandomValues === 'function') {
+    webCrypto.getRandomValues(buffer);
     return;
   }
-  if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.getRandomValues === 'function') {
-    window.crypto.getRandomValues(buffer as any);
-    return;
-  }
-  if (crypto && typeof (crypto as any).getRandomValues === 'function') {
-    (crypto as any).getRandomValues(buffer as any);
-    return;
-  }
-  if (crypto && typeof (crypto as any).randomFillSync === 'function') {
-    (crypto as any).randomFillSync(buffer);
+  if (crypto && typeof crypto.randomFillSync === 'function') {
+    crypto.randomFillSync(buffer);
     return;
   }
   throw new Error('Web Crypto API is not available in the current environment.');
+}
+
+/**
+ * Returns `byteLength` CSPRNG bytes as a lowercase hex string (two characters per byte).
+ *
+ * Tier 1 (what): The one helper for random IDs and token material outside the draw.
+ * Tier 2 (why): Ad-hoc `Math.random` IDs and a silent `Math.random` fallback for KDM keys
+ * used a predictable generator. This helper never downgrades: it throws when no CSPRNG exists.
+ * Tier 3 (how): Fills a `Uint8Array` through `fillCryptoRandom` (Web Crypto, then Node
+ * `randomFillSync`). It avoids `crypto.randomUUID()`, which browsers expose only on HTTPS pages,
+ * so self-hosted instances served over plain HTTP keep working.
+ *
+ * @param byteLength - Number of random bytes, a positive integer.
+ * @returns Hex string of length `2 * byteLength`.
+ * @throws {RangeError} If `byteLength` is not a positive integer.
+ * @throws {Error} If no CSPRNG is available in the current runtime.
+ */
+export function randomHex(byteLength: number): string {
+  if (!Number.isInteger(byteLength) || byteLength < 1) {
+    throw new RangeError('byteLength must be a positive integer.');
+  }
+  const bytes = new Uint8Array(byteLength);
+  fillCryptoRandom(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**

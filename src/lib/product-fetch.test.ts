@@ -76,6 +76,7 @@ test('Product page fetch (scraper)', async (t) => {
 
   await t.test('maps failures to scraper log actions', () => {
     assert.equal(describeFetchFailure(new ProductFetchError('x', 'BLOCKED_REDIRECT', 302)).action, 'BLOCKED_SSRF');
+    assert.equal(describeFetchFailure(new ProductFetchError('x', 'BLOCKED_ADDRESS')).action, 'BLOCKED_SSRF');
     assert.equal(describeFetchFailure(new ProductFetchError('x', 'TIMEOUT')).action, 'TIMEOUT');
     const http = describeFetchFailure(new ProductFetchError('HTTP 403', 'HTTP_STATUS', 403));
     assert.equal(http.action, 'SCRAPE_FAILURE');

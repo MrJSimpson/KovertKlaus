@@ -19,24 +19,25 @@ This guide provides instructions for deploying KovertKlaus in a self-hosted envi
    cd kovertklaus
    ```
 
-2. **Configure Environment Variables**:
+2. **Configure Environment Variables** (optional: only for settings such as email; see `.env.example`):
    ```bash
    cp .env.example .env
    ```
-   *Generate secure secrets for your deployment*:
-   ```bash
-   # On Linux/macOS:
-   openssl rand -hex 32
-   ```
 
-3. **Start the Stack** (the first command creates a random database password in `.env`; upgrading from an
-   install made before 1.1.0, it reuses the password in your `.env` `DATABASE_URL` or tells you to add it):
+3. **Start the Stack**. The first command writes this install's own secrets to `.env`: a random
+   `SESSION_SECRET` (replacing the `.env.example` placeholder) and a random database password. Upgrading
+   from an install made before 1.1.0, it reuses the password in your `.env` `DATABASE_URL` or tells you
+   to add it. `docker compose` refuses to start without both values, and the app refuses to start in
+   production with a missing or placeholder `SESSION_SECRET`:
    ```bash
    npm run db:password
    docker compose up -d
    ```
 
-4. **Access the Application**:
+4. **Access the Application**. On every start the app container brings the database schema up to date
+   (`prisma db push`), and on the first start it seeds default themes and settings with no users; watch
+   it with `docker logs kovertklaus-app` (`[db-bootstrap]` lines). An upgrade that would drop data stops
+   the container with instructions instead (back up first). Set `KOVERTKLAUS_DB_BOOTSTRAP=off` to opt out.
    - **Main Web Application**: [http://localhost:2425](http://localhost:2425)
    - **North Pole Super Admin Console**: [http://localhost:2425/northpole](http://localhost:2425/northpole)
      - *First-Run Setup*: no default password ships. Read the one-time setup token from the server console (`docker logs kovertklaus-app`) and open `/northpole/setup` to create your administrator.
@@ -45,38 +46,14 @@ This guide provides instructions for deploying KovertKlaus in a self-hosted envi
 
 ## 🐳 Docker Compose Architecture
 
-```yaml
-services:
-  kovertklaus-db:
-    image: postgres:17-alpine
-    container_name: kovertklaus-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-kovertklaus}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-kovertklaus}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+[`docker-compose.yml`](../docker-compose.yml) is the source of truth. It runs two containers:
 
-  kovertklaus-app:
-    build: .
-    container_name: kovertklaus-app
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-kovertklaus}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@kovertklaus-db:5432/${POSTGRES_DB:-kovertklaus}?schema=public
-      SESSION_SECRET: ${SESSION_SECRET}
-    ports:
-      - "2425:2425"
-    depends_on:
-      kovertklaus-db:
-        condition: service_healthy
+| Service | Image | Notes |
+| :--- | :--- | :--- |
+| `kovertklaus-db` | `postgres:16-alpine` | User `kovert`, database `kovertklaus`, password `POSTGRES_PASSWORD` from `.env`. Published on `127.0.0.1:5433` only (local tools); the app uses the internal network. Data in the `postgres_data` volume. |
+| `kovertklaus-app` | built from `Dockerfile` | Port `2425`. Gets `DATABASE_URL` (built from `POSTGRES_PASSWORD`) and **`SESSION_SECRET`** from `.env`; both are required. Starts after the database is healthy. Account-deletion exports in the `kovertklaus_exports` volume. |
 
-volumes:
-  postgres_data:
-```
+Only variables listed under `environment:` in `docker-compose.yml` reach the app container; `.env` alone only fills in the `${...}` placeholders. To pass another setting (for example SMTP), add it there or in a local `docker-compose.override.yml`.
 
 ---
 
