@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Self-hosted product lookups can no longer be pointed at your own network.** The scraper checked a pasted link's hostname as text, so a public domain whose DNS record points at a private address (for example `lvh.me`, which resolves to `127.0.0.1`) passed and the server would fetch from the local machine or LAN. The Node server now checks the address each connection actually goes to and refuses anything outside public unicast space, including literal IPs and every redirect hop. Because the check happens inside the connection's own DNS lookup, a record that changes between check and connection (DNS rebinding) is caught too (`src/lib/ssrf-node-fetch.ts`). The hosted service runs on Cloudflare Workers, which cannot reach private networks, and was not affected.
+
+### Changed
+- `undici` is now a direct dependency (already installed through `cheerio`); the `overrides` entry follows it (`"$undici"`).
+
 ---
 
 ## [1.1.2-beta] - 2026-11-07

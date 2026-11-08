@@ -103,7 +103,7 @@ flowchart LR
 
 ### Security Invariants:
 1. **Timing-Safe Session Verification**: Constant-time `crypto.timingSafeEqual` prevents timing attacks on cookie validation.
-2. **OWASP A10 (SSRF) Defensive Scraper**: The metadata scraper checks every URL and every redirect target before requesting it, blocking loopback, private and link-local ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16` incl. cloud metadata), integer/hex/octal IPs and wildcard-DNS services. Checks run on the hostname without DNS resolution; see [`SECURITY_INVARIANTS.md`](SECURITY_INVARIANTS.md) §3.
+2. **OWASP A10 (SSRF) Defensive Scraper**: The metadata scraper checks every URL and every redirect target before requesting it, blocking loopback, private and link-local ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16` incl. cloud metadata), integer/hex/octal IPs and wildcard-DNS services. On the self-hosted Node server, every connection is also checked against the resolved address at socket time, so a public name pointing at a private address is refused; see [`SECURITY_INVARIANTS.md`](SECURITY_INVARIANTS.md) §3.
 3. **Anti-Overwishing Budget Limits (+20%)**: Live validation blocks single items that exceed the event's configured hard cap, protecting group fairness.
 
 ---

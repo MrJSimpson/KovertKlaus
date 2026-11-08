@@ -34,6 +34,8 @@ const REQUEST_HEADERS = {
 export type ProductFetchFailure =
   | 'TIMEOUT'
   | 'BLOCKED_REDIRECT'
+  /** The hostname resolved to a non-public address (Node only, `ssrf-node-fetch.ts`). */
+  | 'BLOCKED_ADDRESS'
   | 'TOO_MANY_REDIRECTS'
   | 'HTTP_STATUS'
   | 'NETWORK'
@@ -154,7 +156,8 @@ export function describeFetchFailure(error: unknown): {
   details: Record<string, unknown>;
 } {
   if (error instanceof ProductFetchError) {
-    const action = error.reason === 'BLOCKED_REDIRECT' ? 'BLOCKED_SSRF' : error.reason === 'TIMEOUT' ? 'TIMEOUT' : 'SCRAPE_FAILURE';
+    const blocked = error.reason === 'BLOCKED_REDIRECT' || error.reason === 'BLOCKED_ADDRESS';
+    const action = blocked ? 'BLOCKED_SSRF' : error.reason === 'TIMEOUT' ? 'TIMEOUT' : 'SCRAPE_FAILURE';
     return { action, details: { reason: error.reason, status: error.status, error: error.message.slice(0, 300) } };
   }
   // Fetched fine, but parsing or saving the page failed
