@@ -10,8 +10,10 @@ We actively maintain and provide security updates for the following release line
 
 | Version | Status | Security Support |
 | :--- | :--- | :--- |
-| `0.1.x-prealpha` | Active Development | Full (Current) |
-| `< 0.1.0` | Deprecated | None |
+| `1.1.x-beta` | Current beta | Full |
+| `< 1.1.0` | Superseded | None (upgrade to the latest release) |
+
+Security fixes ship as patch releases on the current line (see [`docs/VERSIONING.md`](./docs/VERSIONING.md)).
 
 ---
 
@@ -39,9 +41,11 @@ Instead, please send an encrypted or direct disclosure report to:
 KovertKlaus enforces five defensive layers at the architectural level:
 
 ### 1. Cryptographic Session Tokens & Constant-Time Verification
-- **Signed Tokens Only**: Session cookies (`kovertklaus_session`) and tokens contain an explicit HMAC-SHA256 signature generated with the server's `SESSION_SECRET`:
-  $$\text{Token} = \text{userId} \parallel \text{"."} \parallel \text{HMAC-SHA256}(\text{userId}, \text{secret})$$
-- **Constant-Time Verification**: All token signature validations utilize `crypto.timingSafeEqual` to prevent side-channel timing attacks.
+- **Signed, Expiring Tokens**: Session cookies (`kovertklaus_session`, `kovertklaus_admin_session`) carry a payload of session kind, subject ID and expiry, signed with HMAC-SHA256 under the server's `SESSION_SECRET` (`src/lib/session-token.ts`):
+  $$\text{Token} = \text{kind} \parallel \text{"."} \parallel \text{subjectId} \parallel \text{"."} \parallel \text{expiresAt} \parallel \text{"."} \parallel \text{HMAC-SHA256}(\text{payload}, \text{secret})$$
+- **Bounded Lifetimes**: User sessions last 24 hours and renew while the agent stays active; admin sessions last 8 hours and never renew. Because kind and expiry are inside the signature, an expired token, or a user token presented as an admin token, is rejected even if a client keeps it. Older tokens without kind or expiry are rejected outright.
+- **Revocation on Password Change**: Changing a password revokes every user token issued before the change, signing out all other devices.
+- **Constant-Time Verification**: Signature checks use `crypto.timingSafeEqual` to prevent timing side channels.
 - **Unsigned UUID Rejection**: Raw, unsigned UUIDs or malformed identifiers are immediately rejected at the controller boundary.
 
 ### 2. Parameter Tampering & Identity Isolation
@@ -49,20 +53,21 @@ KovertKlaus enforces five defensive layers at the architectural level:
 - **Explicit Parameter Rejection**: Identity cannot be overridden or passed via request bodies (`body.userId`) or query strings (`?userId=...`). Any mismatched identity in mutating operations results in an immediate `403 Forbidden` or `401 Unauthorized`.
 
 ### 3. Zero-Trust E-Commerce Link Scraper & Anti-SSRF Defense
-To allow operatives to paste product URLs into their Wishlist Manifests without exposing the server to Server-Side Request Forgery (SSRF), all external URL fetching in `src/lib/scraper.ts` enforces:
-- **Protocol Whitelisting**: Strictly `http:` and `https:`.
-- **IP Format Disambiguation**: Blocks alternative IP notations (decimal `2130706433`, hexadecimal `0x7f000001`, octal, or IPv6 embedded).
-- **Private & Cloud Metadata Range Blocking**: Blocks `127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.169.254` (AWS/GCP metadata), `0.0.0.0/8`, and DNS rebinding wildcard domains (`*.nip.io`, `*.sslip.io`).
-- **Strict Redirect Denial**: Fetch operations explicitly set `redirect: 'error'` to prevent redirect-based SSRF bypasses.
-- **Fast Failover**: Scraper operations abort after 2500ms to eliminate socket-hanging denial-of-service vectors.
+Operatives can paste product URLs into their Wishlist Manifests. To keep that from becoming Server-Side Request Forgery (SSRF), every URL is checked by `isSafePublicUrl` (`src/lib/security.ts`) before it is fetched by `fetchProductPage` (`src/lib/product-fetch.ts`):
+- **Protocol Allowlist**: Only `http:` and `https:`. URLs with embedded credentials (`user:pass@host`) are refused.
+- **Alternative IP Notations**: Integer (`2130706433`), hexadecimal (`0x7f000001`) and octal host forms are refused.
+- **Private, Local & Metadata Ranges**: Refuses `localhost`, `.local`, `.internal`, `.lan` and single-label hostnames; IPv4 `0.0.0.0/8`, `10.0.0.0/8`, `127.0.0.0/8`, `169.254.0.0/16` (including cloud metadata `169.254.169.254`), `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` and `198.18.0.0/15`; IPv6 loopback, unique-local and link-local addresses; and wildcard-DNS services such as `nip.io` and `sslip.io`.
+- **Re-Checked Redirects**: Redirects are followed manually (`redirect: 'manual'`), at most 3 hops, and every redirect target passes the same check before it is requested.
+- **Fast Failover**: All hops share one 2500 ms budget, after which the request is aborted and the manual-entry form opens.
+- **Known Limitation**: The checks apply to the URL's hostname; the hostname is not resolved first. A public domain whose DNS points at a private address is not caught by this layer. On the hosted service the Cloudflare Workers runtime cannot reach private networks; self-hosters who expose the app should keep it on a network segment without sensitive internal services.
 
 ### 4. Server-Side PII & Target Graph Isolation
 - **Zero Client-Side Filtering for PII**: Sensitive exchange data—including Secret Santa target assignments, recipient physical shipping addresses, and exclusion graph matrices—is filtered and redacted at the database query and controller layer before payload serialization.
-- **Organizer Target Protection**: Even the Head Elf / Organizer cannot view who is assigned to whom prior to event execution, preserving complete mission secrecy.
+- **Who Sees Assignments**: Each Elf Agent sees only their own target. The mission's Head Elf can see every assignment, because target swaps and mission repair need it; the Head Elf's view of a target's dossier fields is further limited by that target's own privacy toggles (`src/lib/exchange-view.ts`). Everyone else in a mission is shown by codename.
 
 ### 5. Cryptographically Secure Pseudo-Random Number Generation (CSPRNG)
-- **Rejection-Sampled CSPRNG**: Target derangement (Sattolo matching algorithm in `src/lib/draw.ts`) and security tokens utilize Web Crypto / Node CSPRNG (`crypto.getRandomValues` / `crypto.randomBytes`).
-- **Zero Modulo Bias**: Integer mapping applies rejection sampling to guarantee uniform distribution across all participants. `Math.random()` is banned across the entire codebase.
+- **CSPRNG for Security-Relevant Randomness**: The target draw (`src/lib/draw.ts`), invite codes and security tokens use Web Crypto / Node CSPRNG (`crypto.getRandomValues` / `crypto.randomFillSync`) on every supported runtime.
+- **Zero Modulo Bias**: Random integers for the draw use rejection sampling (`getSecureRandomInt`), so every participant order is equally likely.
 
 ---
 
@@ -70,7 +75,7 @@ To allow operatives to paste product URLs into their Wishlist Manifests without 
 
 The security invariants are continuously validated by our automated test suite:
 ```bash
-npx tsx src/lib/security.test.ts
-npx tsx src/worker.test.ts
+npm test
 ```
+The most relevant suites are `src/lib/security.test.ts` (SSRF guard, CSPRNG), `src/lib/session-token.test.ts` (signed, expiring sessions), `src/lib/product-fetch.test.ts` (redirect re-checks) and `src/worker.test.ts` (edge/Node parity).
 All automated tests must pass with 0 errors before any pull request or deployment is approved.

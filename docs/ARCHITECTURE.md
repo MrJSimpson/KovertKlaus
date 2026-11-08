@@ -1,8 +1,8 @@
 # KovertKlaus — Self-Hosted Technical Architecture Specification 🕵️‍♂️🎄
 
-**Document Version:** 1.0.0 (Self-Hosted Edition)  
-**Target Release:** `v0.1.0-prealpha` ➔ `v1.0.0-beta`  
-**Classification:** Open-Core Self-Hosted Architecture  
+**Document Version:** 1.1.0 (Self-Hosted Edition)  
+**Applies To:** `1.1.x-beta` (see [`CHANGELOG.md`](../CHANGELOG.md))  
+**Classification:** Source-Available Self-Hosted Architecture  
 
 ---
 
@@ -18,7 +18,7 @@ flowchart TD
 
     subgraph Self-Hosted Container Stack [Docker Compose]
         App_Container[KovertKlaus Next.js App Container<br/>Node.js 24 Standalone Server :2425]
-        DB_Container[(Local PostgreSQL 17 Container<br/>Persistent Volume :5432)]
+        DB_Container[(Local PostgreSQL 16 Container<br/>Persistent Volume :5432)]
         Prisma_ORM[Prisma Client v7<br/><code>@prisma/client</code> via Prisma Driver]
     end
 
@@ -65,12 +65,12 @@ sequenceDiagram
     participant Email as Email Gateway (SMTP / Brevo)
 
     Operative->>App: POST /api/operations (action: 'draw')
-    App->>Auth: verifyToken(sessionCookie)
-    Auth-->>App: Validated userId (Constant-Time HMAC)
+    App->>Auth: readSessionToken(sessionCookie, 'user')
+    Auth-->>App: Validated userId (Constant-Time HMAC, kind & expiry checked)
     App->>DB: Fetch members & exclusion rules
     DB-->>App: Roster dataset
-    Note over App: Execute Sattolo derangement algorithm
-    App->>DB: db.$transaction([Update Member Targets, Exchange Status])
+    Note over App: Draw one random gift circle (CSPRNG shuffle, exact search fallback)
+    App->>DB: db.$transaction(async tx => Update Member Targets, Exchange Status)
     DB-->>App: Transaction Committed
     App->>Email: sendAssignmentEmail() with exponential backoff
     Email-->>App: Delivery receipt (messageId)
@@ -89,21 +89,21 @@ sequenceDiagram
 ```mermaid
 flowchart LR
     subgraph Ingestion Gate
-        Cookie[Cookie: kovertklaus_session] --> Split[Split: userId + '.' + signature]
+        Cookie[Cookie: kovertklaus_session] --> Split[Split: kind.subjectId.expiresAt + '.' + signature]
         Secret[(SESSION_SECRET)] --> Calc[HMAC-SHA256 Calc]
         Split --> Calc
         Calc --> Comp{crypto.timingSafeEqual}
     end
 
     subgraph Authorization Pipeline
-        Comp -->|Valid Signature| Hydrate[Hydrate Session Context]
+        Comp -->|Valid Signature, Kind & Unexpired| Hydrate[Hydrate Session Context]
         Comp -->|Tampered / Invalid| Reject[Clear Cookie & 401 Unauthorized]
     end
 ```
 
 ### Security Invariants:
 1. **Timing-Safe Session Verification**: Constant-time `crypto.timingSafeEqual` prevents timing attacks on cookie validation.
-2. **OWASP A01 SSRF Defensive Scraper**: The metadata scraper validates IP addresses before making HTTP requests, blocking internal subnet attacks (`127.0.0.1`, `10.0.0.0/8`, `192.168.0.0/16`, AWS metadata `169.254.169.254`, integer IPs, and DNS rebinding).
+2. **OWASP A10 (SSRF) Defensive Scraper**: The metadata scraper checks every URL and every redirect target before requesting it, blocking loopback, private and link-local ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16` incl. cloud metadata), integer/hex/octal IPs and wildcard-DNS services. Checks run on the hostname without DNS resolution; see [`SECURITY_INVARIANTS.md`](SECURITY_INVARIANTS.md) §3.
 3. **Anti-Overwishing Budget Limits (+20%)**: Live validation blocks single items that exceed the event's configured hard cap, protecting group fairness.
 
 ---
@@ -112,7 +112,7 @@ flowchart LR
 
 ```
 /var/lib/docker/volumes/
-└── kovertklaus_postgres_data/     <-- Persistent database files (PostgreSQL 17)
+└── kovertklaus_postgres_data/     <-- Persistent database files (PostgreSQL 16)
 ```
 
 For complete deployment, backup, and environment configuration instructions, see [`docs/SELF_HOSTED_DEPLOYMENT.md`](SELF_HOSTED_DEPLOYMENT.md).

@@ -2,14 +2,14 @@
 
 **Stealth Intelligence Gift Exchange Network & Reliability Platform**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE.md)
-[![Target Release](https://img.shields.io/badge/Release-v0.2.0--alpha-emerald.svg)](./CHANGELOG.md)
+[![License: Source-Available (BSL-style)](https://img.shields.io/badge/License-Source--Available%20(BSL--style)-orange.svg)](./LICENSE.md)
+[![Latest Release](https://img.shields.io/github/v/tag/MrJSimpson/KovertKlaus?sort=semver&label=Release&color=10b981)](./CHANGELOG.md)
 [![Runtime](https://img.shields.io/badge/Runtime-Node.js%2024%20%2B%20Next.js%2016-blueviolet.svg)](./docs/ARCHITECTURE.md)
-[![Database](https://img.shields.io/badge/Database-PostgreSQL%2017-green.svg)](./docs/DEPLOYMENT_GUIDE.md)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%2016-green.svg)](./docs/DEPLOYMENT_GUIDE.md)
 [![Security Policy](https://img.shields.io/badge/Security-HMAC--SHA256%20%2B%20Anti--SSRF-red.svg)](./SECURITY.md)
 
 > [!IMPORTANT]
-> **ACTIVE RELEASE: `v0.2.0-alpha` (Self-Hosted Community Edition)**  
+> **BETA: Self-Hosted Community Edition** (shares one version number with the hosted service; see [`CHANGELOG.md`](./CHANGELOG.md))  
 > Clean Database Architecture | Internal Workshop Benches (`/workshop`) | NIST SP 800-63B Auth  
 > Contributions welcome: see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
@@ -23,7 +23,7 @@ All system documentation is maintained in both standard repository Markdown and 
 
 | Document | Topic & Scope | Open Formats |
 | :--- | :--- | :--- |
-| 🏛️ **[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)** | Full System Topology, Edge Worker Gateway & Sattolo Matching | [Draw.io Diagram](./docs/kovertklaus_system_topology.drawio) |
+| 🏛️ **[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)** | Full System Topology, Edge Worker Gateway & Gift-Circle Matching | [Draw.io Diagram](./docs/kovertklaus_system_topology.drawio) |
 | 📡 **[`docs/API_REFERENCE.md`](./docs/API_REFERENCE.md)** | Complete REST API Catalog (Auth, Missions, Manifests, Admin) | [ODT Runbook](./docs/KovertKlaus_Knowledge_Base.odt) |
 | 🚀 **[`docs/DEPLOYMENT_GUIDE.md`](./docs/DEPLOYMENT_GUIDE.md)** | Cloudflare Workers + Neon PostgreSQL & Docker Setup | [ODS Env Matrix](./docs/KovertKlaus_Configuration_Matrix.ods) |
 | 🔒 **[`docs/SECURITY_INVARIANTS.md`](./docs/SECURITY_INVARIANTS.md)** | HMAC-SHA256 Sessions, Parameter Tampering & SSRF Defense | [`SECURITY.md`](./SECURITY.md) |
@@ -37,7 +37,7 @@ All system documentation is maintained in both standard repository Markdown and 
 
 ## 🌟 Key Product Capabilities
 
-- 🎲 **Sattolo Derangement Matching Engine**: Eliminates chain predictability. No operative can draw themselves ($A \neq B$), and cyclic chains are randomized using cryptographically secure random numbers (`src/lib/draw.ts`).
+- 🎲 **Single Gift-Circle Matching Engine**: Every operative gives and receives exactly once in one unbroken circle, so no one draws themselves and no two operatives draw each other. The circle is a CSPRNG shuffle (a Sattolo-equivalent random cycle), with an exact circle search as the fallback for tightly constrained rosters (`src/lib/draw.ts`).
 - 🚫 **100% Bidirectional Exclusion Rules ($A \iff B$)**: Prevents blocked pairs (spouses, household members) from being matched in either direction.
 - 🎯 **Mobile-First Tap-to-Swap Modal**: Allows Head Elves to reassign a target ($A \to T$) without complex line-dragging UI; $T$ moves into place so the gift circle stays unbroken.
 - 🎖️ **Phase-Scoped Head Elf Admin Console**: Action buttons dynamically align with mission stages (`RECRUITING` ➔ `SETUP` ➔ `SHIPPED` ➔ `EXECUTED` ➔ `COMPLETED`).
@@ -109,28 +109,15 @@ http://localhost:2425
 ## 🧪 Running Automated Test Suites
 
 ```bash
-# Edge Worker & Next.js API Parity Test
-npx tsx src/worker.test.ts
+# All unit and integration suites (Node test runner via tsx)
+npm test
 
-# Sattolo Target Matching & Exclusion Constraints
-npx tsx src/lib/draw.test.ts
-
-# Database Connection Pool Lifecycle & Transactions
-npx tsx src/lib/db.test.ts
-
-# Cryptographic Token Verification & Anti-SSRF Guardrails
-npx tsx src/lib/security.test.ts
-
-# Demerit State Machine & Carrier Protection Waivers
-npx tsx src/lib/demerits.test.ts
-
-# Universal Email Dispatcher & Exponential Backoff Retries
-npx tsx src/lib/email/email.test.ts
-
-# Full TypeScript Compilation & Static Export
+# Type check and production build
 npx tsc --noEmit
 npm run build
 ```
+
+Run one suite with `npx tsx --test <file>`, e.g. `src/lib/draw.test.ts` (matching and exclusion rules), `src/lib/security.test.ts` (SSRF guard and CSPRNG) or `src/lib/session-token.test.ts` (signed, expiring sessions).
 
 ---
 
@@ -145,5 +132,10 @@ We welcome community contributions! Please review our guidelines before submitti
 
 ## 📜 Licensing & Commercial Rights
 
-- **Open-Core License**: Licensed under the [MIT License](./LICENSE.md).
-- **Commercial SaaS Reservation**: Rights to operate and monetize KovertKlaus as a commercial SaaS service at `kovertklaus.com` are managed by **Joshua Simpson**.
+KovertKlaus is **source-available** under a Business Source License-style license ([`LICENSE.md`](./LICENSE.md)). It is not an OSI-approved open-source license.
+
+- **Free self-hosting**: Run, modify and self-host KovertKlaus at no cost for personal, family, non-profit, educational, home-lab or other non-commercial use.
+- **Commercial rights reserved**: Hosting, operating or monetizing KovertKlaus as a paid service or commercial product is reserved to **Joshua Simpson**, who runs the hosted service at `kovertklaus.com`.
+- **Change License**: The code converts to **GPL-3.0-or-later** on the events listed in `LICENSE.md` §5.
+
+`LICENSE.md` is the binding text; this section only summarizes it.
