@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Continuous integration.** Every push and pull request now runs the test suite, a TypeScript check and the production build on GitHub Actions (`.github/workflows/ci.yml`), and the README shows the result as a badge.
+
 ---
 
 ## [1.1.3-beta] - 2026-11-07

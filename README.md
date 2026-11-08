@@ -2,6 +2,11 @@
 
 **Stealth Intelligence Gift Exchange Network & Reliability Platform**
 
+**In plain English:** KovertKlaus is a web app for running Secret Santa and White Elephant gift exchanges. It draws names, collects wishlists, reminds people about deadlines, and tracks who sent their gift on time.
+
+<!-- Screenshot: docs/images/dashboard.png (Head Elf dashboard with demo data, `npm run demo:load`) -->
+
+[![CI](https://github.com/MrJSimpson/KovertKlaus/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MrJSimpson/KovertKlaus/actions/workflows/ci.yml)
 [![License: Source-Available (BSL-style)](https://img.shields.io/badge/License-Source--Available%20(BSL--style)-orange.svg)](./LICENSE.md)
 [![Latest Release](https://img.shields.io/github/v/tag/MrJSimpson/KovertKlaus?sort=semver&label=Release&color=10b981)](./CHANGELOG.md)
 [![Runtime](https://img.shields.io/badge/Runtime-Node.js%2024%20%2B%20Next.js%2016-blueviolet.svg)](./docs/ARCHITECTURE.md)
