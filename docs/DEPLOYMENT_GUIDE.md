@@ -30,7 +30,7 @@ graph TD
 This is the official production deployment configuration for `kovertklaus.com`.
 
 ### Prerequisites
-1. **Cloudflare Account** with Wrangler CLI installed (`npm install -g wrangler`).
+1. **Cloudflare Account.** The Wrangler CLI ships as a development dependency (`npm install`), so run it with `npx wrangler`.
 2. **Neon Serverless PostgreSQL** database instance.
 3. **Brevo Account** for transactional email API key.
 

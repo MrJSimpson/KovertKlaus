@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.5-beta] - 2026-11-08
+
+Security maintenance on 1.1.4-beta (dev #116). Development tooling only; the site and Worker are unchanged, and there is nothing to do for self-hosted installs.
+
+### Security
+- **Removed an unused build dependency that carried a vulnerable `minimatch`.** `@opennextjs/cloudflare` was left over from the first Cloudflare setup (August 2026) and nothing used it, but it pulled in `glob` 12 with `minimatch` 10.2.6 (GHSA-g3hv-75wg-m249, denial of service through crafted patterns; development only). Removing it drops 230 packages and the old `glob` pin from `overrides`. `wrangler` is now a direct development dependency at the same version (4.151.1), so `npx wrangler deploy` keeps using a pinned version. The production site and Worker are unchanged. One copy of the old `minimatch` remains under `typescript-eslint` (lint only) until upstream moves to `minimatch` 11.
+
+---
+
 ## [1.1.4-beta] - 2026-11-08
 
 Small maintenance release on 1.1.3-beta (dev #113). **Self-hosted:** run `npm run db:password` once if host-side database commands fail to sign in.

@@ -41,6 +41,19 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '1.1.5-beta',
+    date: '2026-11-08',
+    title: 'Security maintenance',
+    summary: 'Behind-the-scenes housekeeping. Nothing changes in how you use KovertKlaus.',
+    highlights: [
+      {
+        emoji: '🧹',
+        title: 'Leaner, safer tooling',
+        text: 'We removed an unused building block from the tools that build KovertKlaus, along with a known weakness it carried.',
+      },
+    ],
+  },
+  {
     version: '1.1.4-beta',
     date: '2026-11-08',
     title: 'Maintenance update',
