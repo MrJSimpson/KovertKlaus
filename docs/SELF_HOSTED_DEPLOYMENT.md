@@ -34,7 +34,10 @@ This guide provides instructions for deploying KovertKlaus in a self-hosted envi
    docker compose up -d
    ```
 
-4. **Access the Application**:
+4. **Access the Application**. On every start the app container brings the database schema up to date
+   (`prisma db push`), and on the first start it seeds default themes and settings with no users; watch
+   it with `docker logs kovertklaus-app` (`[db-bootstrap]` lines). An upgrade that would drop data stops
+   the container with instructions instead (back up first). Set `KOVERTKLAUS_DB_BOOTSTRAP=off` to opt out.
    - **Main Web Application**: [http://localhost:2425](http://localhost:2425)
    - **North Pole Super Admin Console**: [http://localhost:2425/northpole](http://localhost:2425/northpole)
      - *First-Run Setup*: no default password ships. Read the one-time setup token from the server console (`docker logs kovertklaus-app`) and open `/northpole/setup` to create your administrator.

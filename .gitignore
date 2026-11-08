@@ -56,3 +56,6 @@ next-env.d.ts
 
 # Account-deletion exports (self-hosted EXPORT_DIR default)
 /data/exports/
+
+# First-run seed bundle (built in the Docker image)
+prisma/seed.bundle.cjs
