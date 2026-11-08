@@ -4,7 +4,9 @@
 
 **In plain English:** KovertKlaus is a web app for running Secret Santa and White Elephant gift exchanges. It draws names, collects wishlists, reminds people about deadlines, and tracks who sent their gift on time.
 
-<!-- Screenshot: docs/images/dashboard.png (Head Elf dashboard with demo data, `npm run demo:load`) -->
+![KovertKlaus dashboard: a Head Elf's three Holiday Missions at the recruiting, shipping and completed stages](./docs/images/dashboard.png)
+
+<sub>Demo data from [`npm run demo:load`](./docs/DEMO_DATABASE.md).</sub>
 
 [![CI](https://github.com/MrJSimpson/KovertKlaus/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MrJSimpson/KovertKlaus/actions/workflows/ci.yml)
 [![License: Source-Available (BSL-style)](https://img.shields.io/badge/License-Source--Available%20(BSL--style)-orange.svg)](./LICENSE.md)
