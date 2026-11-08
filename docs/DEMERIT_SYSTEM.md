@@ -60,7 +60,7 @@ KovertKlaus believes in restorative holiday justice. Operatives who accumulate C
 
 ## 🧪 5. Automated Audit Test Matrix
 
-The Demerit Engine is continuously verified via [`src/lib/demerits.test.ts`](file:///C:/Users/Joshua/projects/kovertklaus/src/lib/demerits.test.ts):
+The Demerit Engine is continuously verified via [`src/lib/demerits.test.ts`](../src/lib/demerits.test.ts):
 - Intentional neglect triggers `+1` Coal Citation.
 - Reaching 3 citations triggers `REMOTE_RESTRICTED`.
 - Carrier tracking numbers grant automated penalty immunity.

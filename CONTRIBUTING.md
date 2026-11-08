@@ -90,14 +90,14 @@ All submitted code must strictly adhere to the project's architectural invariant
 ### 1. Security & Defensive Ingestion
 - **Cryptographic State & Sessions**: Never issue raw, unsigned identifiers (e.g., plain UUIDs) in cookies, tokens, or query strings. Always sign and verify session tokens using HMAC-SHA256 with constant-time equality checks (`crypto.timingSafeEqual`).
 - **Parameter Tampering Defense**: Never fall back to untrusted request bodies or query parameters for identity (e.g., reject `body.userId` or `?userId=...` on authenticated endpoints). Identity must derive solely from verified session contexts.
-- **Strict Trust Boundaries & SSRF Guarding**: Block non-standard IP formats (decimal, hex, octal), DNS rebinding wildcard domains, loopback, and private CIDR ranges on any external fetching logic. Always enforce `redirect: 'error'` on SSRF-sensitive fetch calls.
+- **Strict Trust Boundaries & SSRF Guarding**: Block non-standard IP formats (decimal, hex, octal), DNS rebinding wildcard domains, loopback, and private CIDR ranges on any external fetching logic (`isSafePublicUrl` in `src/lib/security.ts`). Never let `fetch` follow redirects on its own: use `redirect: 'manual'` and re-check every `Location` before following it, as `fetchProductPage` (`src/lib/product-fetch.ts`) does. (`redirect: 'error'` is rejected by Cloudflare Workers.)
 - **Server-Side PII Isolation**: Never rely on client-side filtering for sensitive data. Redact target graphs, addresses, and private records at the query/controller layer before serialization.
 
 ### 2. Concurrency, Database & Resource Lifecycle
 - **Explicit Pool Teardown**: Always explicitly await connection closure and pool teardown (e.g., `client.$disconnect()`, `pool.end()`) inside `try...catch` blocks during cache invalidation or reconnection loops. Never leave unreferenced sockets dangling.
-- **Atomic Mutation Boundaries**: Wrap multi-entity updates and cascaded operations inside atomic transactions (`db.$transaction([...])`). Eliminate sequential $O(N)$ database round-trips within loops.
+- **Atomic Mutation Boundaries**: Wrap multi-entity updates and cascaded operations inside atomic interactive transactions (`db.$transaction(async (tx) => …)`; the array form fails through the `db` proxy, see `src/lib/db-transactions.test.ts`). Eliminate sequential $O(N)$ database round-trips within loops.
 - **Relational Indexing**: Ensure every foreign key filter, status lookup, and compound filter query is backed by explicit schema index directives.
-- **Cryptographic Entropy**: Use Web Crypto / CSPRNG (`crypto.getRandomValues`) with rejection sampling to eliminate modulo bias for shuffles, tokens, and random indexing. Never use `Math.random()`.
+- **Cryptographic Entropy**: Use Web Crypto / CSPRNG (`crypto.getRandomValues`) with rejection sampling to eliminate modulo bias for shuffles, tokens, and random indexing. Never use `Math.random()` for anything security-relevant.
 
 ### 3. Runtime Parity & Framework Contracts
 - **Edge & Node Parity**: Maintain exact functional and behavioral parity between serverless/edge runtimes (e.g., Cloudflare Workers) and core framework controllers (e.g., Next.js App Router).
@@ -114,11 +114,11 @@ All submitted code must strictly adhere to the project's architectural invariant
 ## 🧪 Testing Guidelines
 
 PRs that introduce new features or bug fixes MUST include corresponding unit or integration tests:
-- Algorithmic matching tests belong in [`src/lib/draw.test.ts`](file:///C:/Users/Joshua/projects/kovertklaus/src/lib/draw.test.ts).
-- Security, SSRF, and hashing tests belong in [`src/lib/security.test.ts`](file:///C:/Users/Joshua/projects/kovertklaus/src/lib/security.test.ts).
-- Demerit and penalty tests belong in [`src/lib/demerits.test.ts`](file:///C:/Users/Joshua/projects/kovertklaus/src/lib/demerits.test.ts).
-- Email dispatcher tests belong in [`src/lib/email/email.test.ts`](file:///C:/Users/Joshua/projects/kovertklaus/src/lib/email/email.test.ts).
-- Edge worker parity tests belong in [`src/worker.test.ts`](file:///C:/Users/Joshua/projects/kovertklaus/src/worker.test.ts).
+- Algorithmic matching tests belong in [`src/lib/draw.test.ts`](./src/lib/draw.test.ts).
+- Security, SSRF, and hashing tests belong in [`src/lib/security.test.ts`](./src/lib/security.test.ts).
+- Demerit and penalty tests belong in [`src/lib/demerits.test.ts`](./src/lib/demerits.test.ts).
+- Email dispatcher tests belong in [`src/lib/email/email.test.ts`](./src/lib/email/email.test.ts).
+- Edge worker parity tests belong in [`src/worker.test.ts`](./src/worker.test.ts).
 
 ---
 

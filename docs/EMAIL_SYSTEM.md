@@ -84,7 +84,7 @@ All templates reside in `src/lib/email/templates.ts` and generate both responsiv
 
 ## 🧪 5. Testing & Verification
 
-The Universal Email Dispatcher is verified via [`src/lib/email/email.test.ts`](file:///C:/Users/Joshua/projects/kovertklaus/src/lib/email/email.test.ts):
+The Universal Email Dispatcher is verified via [`src/lib/email/email.test.ts`](../src/lib/email/email.test.ts):
 ```bash
 npx tsx src/lib/email/email.test.ts
 ```
