@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -105,6 +106,51 @@ test('Session secret - a real NEXTAUTH_SECRET stands in, so no new secret signs 
     writeFileSync(path.join(dir, '.env'), 'NEXTAUTH_SECRET="an-operator-chosen-secret-value-0123456789"\nPOSTGRES_PASSWORD=x\n');
     assert.strictEqual(run(dir).code, 0);
     assert.ok(!readFileSync(path.join(dir, '.env'), 'utf8').includes('SESSION_SECRET='));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** A throwaway value generated per run, so no password-like literal lives in the repo. */
+const throwaway = (): string => randomBytes(12).toString('hex');
+const composeUrl = (pw: string, host = 'localhost:5433'): string => `postgresql://kovert:${pw}@${host}/kovertklaus?schema=public`;
+
+test('DB password - Compose-database URLs with an older password follow POSTGRES_PASSWORD; others are kept', () => {
+  const dir = scratch();
+  try {
+    const current = throwaway();
+    const stale = throwaway();
+    const external = `postgresql://kovert:${stale}@localhost:5432/mine`; // another local database: not ours
+    writeFileSync(
+      path.join(dir, '.env'),
+      `DATABASE_URL="${composeUrl(stale)}"\nPOSTGRES_PASSWORD=${current}\nDIRECT_URL="${external}"\n`
+    );
+    const first = run(dir);
+    assert.strictEqual(first.code, 0, first.out);
+    const env = readFileSync(path.join(dir, '.env'), 'utf8');
+    assert.ok(env.includes(`DATABASE_URL="${composeUrl(current)}"`), 'Compose URL updated');
+    assert.ok(env.includes(`DIRECT_URL="${external}"`), 'other database left alone');
+    assert.ok(!env.includes(composeUrl(stale)));
+    assert.ok(!first.out.includes(current) && !first.out.includes(stale), 'no password is printed');
+
+    assert.strictEqual(run(dir).code, 0);
+    assert.strictEqual(readFileSync(path.join(dir, '.env'), 'utf8'), env, 'unchanged on rerun');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('DB password - a fresh install rewrites a stale Compose-database URL to the new password', () => {
+  const dir = scratch();
+  try {
+    const stale = throwaway();
+    writeFileSync(path.join(dir, '.env'), `DATABASE_URL="${composeUrl(stale, 'kovertklaus-db:5432')}"\n`);
+    assert.strictEqual(run(dir).code, 0);
+    const env = readFileSync(path.join(dir, '.env'), 'utf8');
+    const pw = env.match(/^POSTGRES_PASSWORD=(.+)$/m)?.[1] ?? '';
+    assert.match(pw, /^[0-9a-f]{36}$/);
+    assert.ok(env.includes(`DATABASE_URL="${composeUrl(pw, 'kovertklaus-db:5432')}"`));
+    assert.strictEqual((env.match(/^DATABASE_URL=/gm) ?? []).length, 1);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
