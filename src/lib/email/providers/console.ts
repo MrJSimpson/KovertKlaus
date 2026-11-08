@@ -1,4 +1,5 @@
 import { EmailConfig, EmailMessage, EmailResult } from '../types';
+import { randomHex } from '../../security';
 
 /**
  * Console Mock Provider for Local Development & Testing.
@@ -14,7 +15,7 @@ export async function sendWithConsole(message: EmailMessage, config: EmailConfig
     .map((t) => (typeof t === 'string' ? t : t.name ? `${t.name} (${t.email})` : t.email))
     .join(', ');
 
-  const fakeMessageId = `mock-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+  const fakeMessageId = `mock-${Date.now()}-${randomHex(3)}`;
 
   console.log('\n======================================================');
   console.log('📨 [EMAIL:CONSOLE MOCK DISPATCH]');

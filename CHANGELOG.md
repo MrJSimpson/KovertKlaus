@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - **Self-hosted product lookups can no longer be pointed at your own network.** The scraper checked a pasted link's hostname as text, so a public domain whose DNS record points at a private address (for example `lvh.me`, which resolves to `127.0.0.1`) passed and the server would fetch from the local machine or LAN. The Node server now checks the address each connection actually goes to and refuses anything outside public unicast space, including literal IPs and every redirect hop. Because the check happens inside the connection's own DNS lookup, a record that changes between check and connection (DNS rebinding) is caught too (`src/lib/ssrf-node-fetch.ts`). The hosted service runs on Cloudflare Workers, which cannot reach private networks, and was not affected.
+- **All randomness now comes from the cryptographic random source.** Kovert Delivery invitation keys had a fallback to `Math.random()`, a predictable generator, for runtimes without Web Crypto. No supported runtime (Node 24, Cloudflare Workers, modern browsers) ever took that path, but it would have produced guessable keys without warning. It is gone: key generation now fails loudly instead of degrading. White Elephant log IDs and console-mock email IDs used `Math.random()` too and now use the same source (`randomHex` in `src/lib/security.ts`). A new test (`src/lib/random-source.test.ts`) fails the build if `Math.random()` reappears anywhere in `src/` or `scripts/`.
 
 ### Changed
 - `undici` is now a direct dependency (already installed through `cheerio`); the `overrides` entry follows it (`"$undici"`).
+- `fillCryptoRandom` is typed and drops a duplicate browser branch; behaviour is unchanged.
 
 ---
 

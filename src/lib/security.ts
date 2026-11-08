@@ -360,27 +360,51 @@ export function sanitizeInviteCode(code: string): string | null {
 }
 
 /**
- * Safely fills a typed array with cryptographically secure random bytes
- * across Browser, Edge Worker (Cloudflare Workers), and Node.js environments.
+ * Fills a typed array with cryptographically secure random bytes.
+ *
+ * Tier 1 (what): The single CSPRNG entry point for browsers, Cloudflare Workers and Node.js.
+ * Tier 2 (why): Fails closed. With no CSPRNG it throws rather than degrade to a predictable source.
+ * Tier 3 (how): Web Crypto `globalThis.crypto.getRandomValues` (the same object as `window.crypto`
+ * in browsers), then Node's `randomFillSync` for runtimes without the global.
+ *
+ * @param buffer - Array to fill in place.
+ * @throws {Error} If no CSPRNG is available in the current runtime.
  */
-function fillCryptoRandom(buffer: ArrayBufferView): void {
-  if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
-    globalThis.crypto.getRandomValues(buffer as any);
+function fillCryptoRandom(buffer: Uint8Array | Uint32Array): void {
+  const webCrypto = globalThis.crypto;
+  if (webCrypto && typeof webCrypto.getRandomValues === 'function') {
+    webCrypto.getRandomValues(buffer);
     return;
   }
-  if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.getRandomValues === 'function') {
-    window.crypto.getRandomValues(buffer as any);
-    return;
-  }
-  if (crypto && typeof (crypto as any).getRandomValues === 'function') {
-    (crypto as any).getRandomValues(buffer as any);
-    return;
-  }
-  if (crypto && typeof (crypto as any).randomFillSync === 'function') {
-    (crypto as any).randomFillSync(buffer);
+  if (crypto && typeof crypto.randomFillSync === 'function') {
+    crypto.randomFillSync(buffer);
     return;
   }
   throw new Error('Web Crypto API is not available in the current environment.');
+}
+
+/**
+ * Returns `byteLength` CSPRNG bytes as a lowercase hex string (two characters per byte).
+ *
+ * Tier 1 (what): The one helper for random IDs and token material outside the draw.
+ * Tier 2 (why): Ad-hoc `Math.random` IDs and a silent `Math.random` fallback for KDM keys
+ * used a predictable generator. This helper never downgrades: it throws when no CSPRNG exists.
+ * Tier 3 (how): Fills a `Uint8Array` through `fillCryptoRandom` (Web Crypto, then Node
+ * `randomFillSync`). It avoids `crypto.randomUUID()`, which browsers expose only on HTTPS pages,
+ * so self-hosted instances served over plain HTTP keep working.
+ *
+ * @param byteLength - Number of random bytes, a positive integer.
+ * @returns Hex string of length `2 * byteLength`.
+ * @throws {RangeError} If `byteLength` is not a positive integer.
+ * @throws {Error} If no CSPRNG is available in the current runtime.
+ */
+export function randomHex(byteLength: number): string {
+  if (!Number.isInteger(byteLength) || byteLength < 1) {
+    throw new RangeError('byteLength must be a positive integer.');
+  }
+  const bytes = new Uint8Array(byteLength);
+  fillCryptoRandom(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
