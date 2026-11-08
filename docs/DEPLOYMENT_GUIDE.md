@@ -113,15 +113,18 @@ For families, clubs, and home-lab enthusiasts running KovertKlaus on a local ser
 git clone https://github.com/MrJSimpson/KovertKlaus.git
 cd KovertKlaus
 
-# 2. Copy and configure environment variables
+# 2. Optional: copy .env.example for extra settings
 cp .env.example .env
 
-# 3. Launch full stack via Docker Compose
-docker compose up -d
+# 3. Write this install's secrets to .env (never committed)
+npm run db:password
 
-# 4. Initialize database schema
-docker compose exec app npx prisma db push
+# 4. Launch the stack. On every start the app container syncs the database schema;
+#    on the first start it also seeds default themes and settings (no users).
+docker compose up -d
 ```
+
+Startup logs show the schema step as `[db-bootstrap]` lines (`docker logs kovertklaus-app`). If an upgrade would drop data, the app refuses to start and prints how to apply the change after a backup. Set `KOVERTKLAUS_DB_BOOTSTRAP=off` in the app's `environment:` to manage the schema yourself.
 
 Access your instance at: `http://localhost:2425`
 

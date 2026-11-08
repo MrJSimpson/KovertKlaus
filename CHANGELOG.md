@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `undici` is now a direct dependency (already installed through `cheerio`); the `overrides` entry follows it (`"$undici"`).
 - `fillCryptoRandom` is typed and drops a duplicate browser branch; behaviour is unchanged.
 
+### Fixed
+- **The Docker quickstart now produces a working install.** `docker compose up -d` started the app against an empty database, because only the developer start script created the schema (and the deployment guide's manual step named a service that does not exist). The app container now runs `prisma db push` before the server starts, and seeds default themes and settings (no users) on the first start only (`scripts/docker-db-bootstrap.mjs`). Upgrades get new tables and columns the same way. A change that would drop data is never applied automatically: the container stops with instructions to back up first. `KOVERTKLAUS_DB_BOOTSTRAP=off` opts out.
+
 ---
 
 ## [1.1.2-beta] - 2026-11-07
