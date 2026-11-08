@@ -67,7 +67,7 @@ Operatives can paste product URLs into their Wishlist Manifests. To keep that fr
 - **Who Sees Assignments**: Each Elf Agent sees only their own target. The mission's Head Elf can see every assignment, because target swaps and mission repair need it; the Head Elf's view of a target's dossier fields is further limited by that target's own privacy toggles (`src/lib/exchange-view.ts`). Everyone else in a mission is shown by codename.
 
 ### 5. Cryptographically Secure Pseudo-Random Number Generation (CSPRNG)
-- **CSPRNG for Security-Relevant Randomness**: The target draw (`src/lib/draw.ts`), invite codes and security tokens use Web Crypto / Node CSPRNG (`crypto.getRandomValues` / `crypto.randomFillSync`) on every supported runtime.
+- **CSPRNG Only**: All randomness (the target draw in `src/lib/draw.ts`, invite codes, Kovert Delivery keys, tokens and IDs) comes from Web Crypto / Node CSPRNG (`crypto.getRandomValues` / `crypto.randomFillSync`) through `src/lib/security.ts`. With no CSPRNG available it throws instead of degrading. `Math.random()` is not used anywhere in `src/` or `scripts/`, and `src/lib/random-source.test.ts` fails the build if it returns.
 - **Zero Modulo Bias**: Random integers for the draw use rejection sampling (`getSecureRandomInt`), so every participant order is equally likely.
 
 ---

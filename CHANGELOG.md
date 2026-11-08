@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.1.3-beta] - 2026-11-07
+
+Security release on 1.1.2-beta. **Self-hosted Docker installs:** run `npm run db:password`, then `docker compose up -d --build` (everyone is signed out once).
+
 ### Security
 - **Self-hosted Docker installs now sign sessions with their own secret (critical; action needed).** `docker-compose.yml` never passed `SESSION_SECRET` to the app, and the app silently fell back to a development secret that is published in this repository. On a Docker install, anyone who read the code could forge sign-in cookies for any agent **or administrator**, and the password-reset, email-verification and invite links derived from the same secret. Now `npm run db:password` writes a random `SESSION_SECRET` to `.env` (or replaces the `.env.example` placeholder), `docker-compose.yml` requires it, and in production the app refuses to start with a missing or public secret instead of falling back. **To upgrade:** run `npm run db:password`, then `docker compose up -d --build`. Everyone is signed out once, and reset or invite links sent before the upgrade stop working. Installs that set `SESSION_SECRET` themselves outside Docker, and the hosted service, were not affected.
 - **Self-hosted product lookups can no longer be pointed at your own network.** The scraper checked a pasted link's hostname as text, so a public domain whose DNS record points at a private address (for example `lvh.me`, which resolves to `127.0.0.1`) passed and the server would fetch from the local machine or LAN. The Node server now checks the address each connection actually goes to and refuses anything outside public unicast space, including literal IPs and every redirect hop. Because the check happens inside the connection's own DNS lookup, a record that changes between check and connection (DNS rebinding) is caught too (`src/lib/ssrf-node-fetch.ts`). The hosted service runs on Cloudflare Workers, which cannot reach private networks, and was not affected.

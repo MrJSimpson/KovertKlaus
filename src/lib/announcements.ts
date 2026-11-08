@@ -41,6 +41,37 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '1.1.3-beta',
+    date: '2026-11-07',
+    title: 'Security update',
+    summary: 'Behind-the-scenes security fixes. Nothing changes in how you use KovertKlaus.',
+    highlights: [
+      {
+        emoji: '🔐',
+        title: 'Stronger random codes',
+        text: 'Every invitation key and code now comes from a cryptographic random source, so they can never be guessed.',
+      },
+      {
+        emoji: '🛡️',
+        title: 'Your own sign-in key',
+        text: 'Each home server now protects sign-ins with its own secret key. After the update everyone signs in once more, and older reset or invite links need to be sent again.',
+        selfHostedOnly: true,
+      },
+      {
+        emoji: '🔗',
+        title: 'Safer product links',
+        text: 'Pasted product links can no longer make your server open pages on your home network.',
+        selfHostedOnly: true,
+      },
+      {
+        emoji: '🧰',
+        title: 'Setup that just works',
+        text: 'A new Docker install now prepares its own database on first start, with no extra commands.',
+        selfHostedOnly: true,
+      },
+    ],
+  },
+  {
     version: '1.1.2-beta',
     date: '2026-11-07',
     title: 'Fix: missions open from your dashboard every time',
