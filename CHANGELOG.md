@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **All randomness now comes from the cryptographic random source.** Kovert Delivery invitation keys had a fallback to `Math.random()`, a predictable generator, for runtimes without Web Crypto. No supported runtime (Node 24, Cloudflare Workers, modern browsers) ever took that path, but it would have produced guessable keys without warning. It is gone: key generation now fails loudly instead of degrading. White Elephant log IDs and console-mock email IDs used `Math.random()` too and now use the same source (`randomHex` in `src/lib/security.ts`). A new test (`src/lib/random-source.test.ts`) fails the build if `Math.random()` reappears anywhere in `src/` or `scripts/`.
+
+### Changed
+- `fillCryptoRandom` is typed and drops a duplicate browser branch; behaviour is unchanged.
+
 ---
 
 ## [1.1.2-beta] - 2026-11-07

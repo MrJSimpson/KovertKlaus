@@ -13,7 +13,12 @@
  * 8. Grand Unboxing Finale: When all rounds resolve, transitions to synchronized Grand Unboxing!
  */
 
-import { getSecureRandomInt } from './security';
+import { getSecureRandomInt, randomHex } from './security';
+
+/** Unique ID for a game action log entry: timestamp plus 32 CSPRNG bits. */
+function newLogId(): string {
+  return `log-${Date.now()}-${randomHex(4)}`;
+}
 
 export interface WhiteElephantOperative {
   userId: string;
@@ -222,7 +227,7 @@ export function pickGiftFromPile(
   );
 
   const newLog: GameActionLog = {
-    id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    id: newLogId(),
     turnNumber: state.currentTurnIndex + 1,
     actorUserId: playerId,
     actorName: operative.codename || operative.name,
@@ -338,7 +343,7 @@ export function swapGiftWithPlayer(
   });
 
   const newLog: GameActionLog = {
-    id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    id: newLogId(),
     turnNumber: state.currentTurnIndex + 1,
     actorUserId: thiefPlayerId,
     actorName: thiefOp.codename || thiefOp.name,
@@ -424,7 +429,7 @@ export function resolvePlayer1FinalChoice(
 
   if (choice === 'KEEP' || !targetGiftId) {
     const keepLog: GameActionLog = {
-      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: newLogId(),
       turnNumber: state.currentTurnIndex + 1,
       actorUserId: player1Id,
       actorName: player1Op.codename || player1Op.name,
@@ -469,7 +474,7 @@ export function resolvePlayer1FinalChoice(
   });
 
   const swapLog: GameActionLog = {
-    id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    id: newLogId(),
     turnNumber: state.currentTurnIndex + 1,
     actorUserId: player1Id,
     actorName: player1Op.codename || player1Op.name,
