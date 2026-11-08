@@ -31,6 +31,8 @@ services:
       - DATABASE_URL=postgresql://kovert:${POSTGRES_PASSWORD}@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
       - DATABASE_ADMIN_URL=postgresql://kovert:${POSTGRES_PASSWORD}@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
       - DIRECT_URL=postgresql://kovert:${POSTGRES_PASSWORD}@kovertklaus-db:5432/kovertklaus?schema=public&sslmode=disable
+      # Signs sessions and every reset, verification and invite link. From .env (npm run db:password); never committed.
+      - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env - run npm run db:password}
       - NODE_ENV=production
       - LIFECYCLE_CRON_ENABLED=true
       - LIFECYCLE_CRON_INTERVAL_MINUTES=60
