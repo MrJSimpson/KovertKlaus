@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.1.4-beta] - 2026-11-08
+
+Small maintenance release on 1.1.3-beta (dev #113). **Self-hosted:** run `npm run db:password` once if host-side database commands fail to sign in.
+
 ### Added
 - **Continuous integration.** Every push and pull request now runs the test suite, a TypeScript check and the production build on GitHub Actions (`.github/workflows/ci.yml`), and the README shows the result as a badge.
 
