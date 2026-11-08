@@ -9,6 +9,9 @@
  *   - `POSTGRES_PASSWORD`: if it is missing,
  *       - a fresh install (no `kovertklaus_postgres_data` volume) gets a random password, written to
  *         `.env` with a matching local `DATABASE_URL` / `DIRECT_URL` if those are missing;
+ *     and whenever `POSTGRES_PASSWORD` is set or generated, a `DATABASE_URL` / `DIRECT_URL` that points
+ *     at the Compose database (`kovert@localhost:5433` or `kovertklaus-db`) is updated to use it;
+ *     URLs for any other database are never changed.
  *       - an existing install reuses the password from its local `DATABASE_URL` in `.env`;
  *       - an existing install with no such URL is told to add its current password once, and the script
  *         exits non-zero so Docker does not start with the wrong password.
@@ -99,8 +102,57 @@ function passwordFromUrl(url) {
   }
 }
 
+/**
+ * Whether a URL points at this project's Docker Compose database: user `kovert` on `localhost:5433` /
+ * `127.0.0.1:5433` (the published port) or on the compose host `kovertklaus-db`. Other local databases
+ * (another port, another user) are not ours to rewrite.
+ */
+function isComposeDbUrl(url) {
+  try {
+    const u = new URL(url);
+    if (u.username !== 'kovert') return false;
+    if (u.hostname === 'kovertklaus-db') return true;
+    return ['localhost', '127.0.0.1'].includes(u.hostname) && u.port === '5433';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Points every Compose-database URL in `.env` at `password`.
+ *
+ * Tier 1 (what): Rewrites the password inside `DATABASE_URL` / `DIRECT_URL` when the URL targets the
+ * Compose database and its password differs; other URLs are left alone.
+ * Tier 2 (why): docker-compose.yml builds the app's own connection strings from `POSTGRES_PASSWORD`, so
+ * that value is what the database accepts. A host-side URL left with an older password (a `.env` copied
+ * from an earlier install, or a volume recreated with a new password) made host tools such as
+ * `npm run demo:load` and `npm run db:seed` fail to authenticate while the app itself worked.
+ * Tier 3 (how): Edits the line in place, keeping the rest of the URL and writing it quoted. Never prints
+ * either password.
+ *
+ * @param password The password the Compose database was created with.
+ * @returns The keys that were rewritten.
+ */
+function alignComposeUrls(password) {
+  const fixed = [];
+  for (const key of ['DATABASE_URL', 'DIRECT_URL']) {
+    const i = indexOf(key);
+    const value = get(key);
+    if (i < 0 || !isComposeDbUrl(value)) continue;
+    const u = new URL(value);
+    if (decodeURIComponent(u.password) === password) continue;
+    u.password = encodeURIComponent(password);
+    lines[i] = `${key}="${u.toString()}"`;
+    fixed.push(key);
+  }
+  if (fixed.length) changed = true;
+  return fixed;
+}
+
 if (get('POSTGRES_PASSWORD')) {
   console.log('[db-password] POSTGRES_PASSWORD is set in .env.');
+  const fixed = alignComposeUrls(get('POSTGRES_PASSWORD'));
+  if (fixed.length) console.log(`[db-password] Updated ${fixed.join(' and ')} in .env to use POSTGRES_PASSWORD.`);
 } else if (volumeExists()) {
   const reused = passwordFromUrl(get('DATABASE_URL')) || passwordFromUrl(get('DIRECT_URL'));
   if (!reused) {
@@ -124,6 +176,8 @@ if (get('POSTGRES_PASSWORD')) {
   const url = `postgresql://kovert:${password}@localhost:5433/kovertklaus?schema=public`;
   if (!get('DATABASE_URL')) append.push(`DATABASE_URL="${url}"`);
   if (!get('DIRECT_URL')) append.push(`DIRECT_URL="${url}"`);
+  // No volume yet, so any password already in a Compose-database URL cannot be the new database's.
+  alignComposeUrls(password);
   changed = true;
   console.log('[db-password] Fresh install: generated a database password in .env.');
 }

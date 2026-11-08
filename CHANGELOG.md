@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Continuous integration.** Every push and pull request now runs the test suite, a TypeScript check and the production build on GitHub Actions (`.github/workflows/ci.yml`), and the README shows the result as a badge.
 
+### Fixed
+- **Self-hosted: host-side database commands work again after the database password changes.** `npm run db:password` set a new `POSTGRES_PASSWORD` but kept an older password inside an existing local `DATABASE_URL` or `DIRECT_URL`. The Docker app still worked, because `docker-compose.yml` builds its own connection string, but commands run from your machine (`npm run demo:load`, `npm run db:seed`, `npm run db:push`) failed to sign in to the database. Now any `DATABASE_URL` / `DIRECT_URL` that points at the Docker Compose database (`kovert@localhost:5433` or `kovertklaus-db`) is updated to match `POSTGRES_PASSWORD`. URLs for any other database are never changed. **To apply:** run `npm run db:password` once.
+
 ---
 
 ## [1.1.3-beta] - 2026-11-07
