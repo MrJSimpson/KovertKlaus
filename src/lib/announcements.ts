@@ -41,6 +41,25 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '1.1.4-beta',
+    date: '2026-11-08',
+    title: 'Maintenance update',
+    summary: 'Behind-the-scenes improvements. Nothing changes in how you use KovertKlaus.',
+    highlights: [
+      {
+        emoji: '✅',
+        title: 'Every change is checked',
+        text: 'Each update to KovertKlaus is now tested and built automatically before it can ship.',
+      },
+      {
+        emoji: '🔧',
+        title: 'Setup tools stay in step',
+        text: 'After the database password changes, the setup commands you run on the server itself (such as loading the demo) keep working.',
+        selfHostedOnly: true,
+      },
+    ],
+  },
+  {
     version: '1.1.3-beta',
     date: '2026-11-07',
     title: 'Security update',
