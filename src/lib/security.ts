@@ -16,18 +16,72 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const CODE_REGEX = /^[A-Z0-9-]{3,16}$/;
 
 /**
- * Fallback HMAC session secret for development when SESSION_SECRET is unset.
+ * Fallback HMAC session secret for development and tests only. It is public (this file is in a
+ * public repository), so `getSessionSecret` refuses it in production.
  */
 const DEFAULT_SESSION_SECRET = 'kovertklaus-session-hmac-secret-vault-do-not-use-in-production-min32chars';
 
 /**
- * Retrieves the cryptographic secret used for HMAC token signing and verification.
- * Fails hard in production if no secret is explicitly configured.
+ * SHA-256 digests of secrets anyone can read in the repository: the development default and the
+ * `.env.example` placeholder (ban lists store digests, AGENTS.md §4). Keep in sync with
+ * `PUBLIC_SESSION_SECRET_DIGESTS` in scripts/ensure-db-password.mjs.
+ */
+const PUBLIC_SESSION_SECRET_DIGESTS: ReadonlySet<string> = new Set([
+  '90fc02370db9c2e53c530590ee1d97dff4aadcae61b718d996af513bf8d408d2',
+  '95e9e74541fee747a0273a19d45364bb0803c0b35faa51ecc3fef24c43063b53',
+]);
+
+/** True when `secret` is one of the public values in this repository. */
+function isPublicSessionSecret(secret: string): boolean {
+  return PUBLIC_SESSION_SECRET_DIGESTS.has(crypto.createHash('sha256').update(secret).digest('hex'));
+}
+
+/** Recommended minimum length; shorter secrets work but log a warning. */
+export const MIN_SESSION_SECRET_LENGTH = 32;
+
+let warnedSessionSecret = false;
+
+/** Logs a session secret problem once per process, so a hot path does not flood the log. */
+function warnSessionSecretOnce(message: string): void {
+  if (warnedSessionSecret) return;
+  warnedSessionSecret = true;
+  console.warn(`[security] ${message}`);
+}
+
+/**
+ * Returns the secret behind every HMAC in the app: session tokens, password-reset, email
+ * verification, invite and export links, and throttle keys.
+ *
+ * Tier 1 (what): Reads `SESSION_SECRET` (or `NEXTAUTH_SECRET`). In production it throws when the
+ * secret is missing or is one of the public values in this repository.
+ * Tier 2 (why): It used to fall back to `DEFAULT_SESSION_SECRET` silently, and docker-compose.yml
+ * never passed `SESSION_SECRET` to the app, so Docker installs signed sessions with a secret anyone
+ * could read and forge user and admin cookies with. A missing secret must stop the server instead.
+ * Tier 3 (how): `NODE_ENV === 'production'` decides; `src/instrumentation.ts` calls this at boot so
+ * the Node server exits with the reason before serving requests. Outside production the
+ * development default still applies, with a one-time warning.
+ *
+ * @returns The configured secret (or the development default outside production).
+ * @throws {Error} In production, if the secret is missing or public.
  */
 export function getSessionSecret(): string {
-  const secret = process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET;
-  if (!secret) {
+  const secret = (process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET || '').trim();
+  const problem = !secret
+    ? 'SESSION_SECRET is not set'
+    : isPublicSessionSecret(secret)
+      ? 'SESSION_SECRET is a public placeholder from this repository'
+      : null;
+
+  if (problem) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`${problem}. Set a random SESSION_SECRET (run \`npm run db:password\` for Docker installs).`);
+    }
+    warnSessionSecretOnce(`${problem}; using the development default. Never deploy like this.`);
     return DEFAULT_SESSION_SECRET;
+  }
+
+  if (secret.length < MIN_SESSION_SECRET_LENGTH) {
+    warnSessionSecretOnce(`SESSION_SECRET is shorter than ${MIN_SESSION_SECRET_LENGTH} characters; use a longer random value.`);
   }
   return secret;
 }

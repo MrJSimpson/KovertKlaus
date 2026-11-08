@@ -1,5 +1,14 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Fail fast: in production a missing or public SESSION_SECRET stops the server before it serves requests.
+    try {
+      const { getSessionSecret } = await import('@/lib/security');
+      getSessionSecret();
+    } catch (error) {
+      console.error(`[startup] ${(error as Error).message}`);
+      process.exit(1);
+    }
+
     const { initLifecycleScheduler } = await import('@/lib/lifecycle-scheduler');
     initLifecycleScheduler();
 

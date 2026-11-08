@@ -19,18 +19,16 @@ This guide provides instructions for deploying KovertKlaus in a self-hosted envi
    cd kovertklaus
    ```
 
-2. **Configure Environment Variables**:
+2. **Configure Environment Variables** (optional: only for settings such as email; see `.env.example`):
    ```bash
    cp .env.example .env
    ```
-   *Generate secure secrets for your deployment*:
-   ```bash
-   # On Linux/macOS:
-   openssl rand -hex 32
-   ```
 
-3. **Start the Stack** (the first command creates a random database password in `.env`; upgrading from an
-   install made before 1.1.0, it reuses the password in your `.env` `DATABASE_URL` or tells you to add it):
+3. **Start the Stack**. The first command writes this install's own secrets to `.env`: a random
+   `SESSION_SECRET` (replacing the `.env.example` placeholder) and a random database password. Upgrading
+   from an install made before 1.1.0, it reuses the password in your `.env` `DATABASE_URL` or tells you
+   to add it. `docker compose` refuses to start without both values, and the app refuses to start in
+   production with a missing or placeholder `SESSION_SECRET`:
    ```bash
    npm run db:password
    docker compose up -d
@@ -45,38 +43,14 @@ This guide provides instructions for deploying KovertKlaus in a self-hosted envi
 
 ## 🐳 Docker Compose Architecture
 
-```yaml
-services:
-  kovertklaus-db:
-    image: postgres:17-alpine
-    container_name: kovertklaus-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-kovertklaus}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-kovertklaus}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+[`docker-compose.yml`](../docker-compose.yml) is the source of truth. It runs two containers:
 
-  kovertklaus-app:
-    build: .
-    container_name: kovertklaus-app
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-kovertklaus}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@kovertklaus-db:5432/${POSTGRES_DB:-kovertklaus}?schema=public
-      SESSION_SECRET: ${SESSION_SECRET}
-    ports:
-      - "2425:2425"
-    depends_on:
-      kovertklaus-db:
-        condition: service_healthy
+| Service | Image | Notes |
+| :--- | :--- | :--- |
+| `kovertklaus-db` | `postgres:16-alpine` | User `kovert`, database `kovertklaus`, password `POSTGRES_PASSWORD` from `.env`. Published on `127.0.0.1:5433` only (local tools); the app uses the internal network. Data in the `postgres_data` volume. |
+| `kovertklaus-app` | built from `Dockerfile` | Port `2425`. Gets `DATABASE_URL` (built from `POSTGRES_PASSWORD`) and **`SESSION_SECRET`** from `.env`; both are required. Starts after the database is healthy. Account-deletion exports in the `kovertklaus_exports` volume. |
 
-volumes:
-  postgres_data:
-```
+Only variables listed under `environment:` in `docker-compose.yml` reach the app container; `.env` alone only fills in the `${...}` placeholders. To pass another setting (for example SMTP), add it there or in a local `docker-compose.override.yml`.
 
 ---
 
