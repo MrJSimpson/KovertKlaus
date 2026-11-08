@@ -5,6 +5,10 @@ import { isSafePublicUrl, sanitizeText, normalizeProductUrl } from '@/lib/securi
 import { logScraperEvent } from '@/lib/logger';
 import { assertProductTitle, describeFetchFailure, fetchProductPage, isUsableProductTitle } from '@/lib/product-fetch';
 import { detectProductCategory, getCategorySuggestedKeys } from '@/lib/product-intelligence';
+import { createSsrfSafeFetch } from '@/lib/ssrf-node-fetch';
+
+/** Connects only to public addresses, checked at socket time on every hop (see ssrf-node-fetch.ts). */
+const ssrfSafeFetch = createSsrfSafeFetch();
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +20,7 @@ export async function POST(request: Request) {
 
     const formattedUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
 
-    // SSRF Security Validation (OWASP A01: SSRF Protection)
+    // SSRF validation of the URL text (OWASP A10); resolved addresses are checked by ssrfSafeFetch
     const ssrfCheck = isSafePublicUrl(formattedUrl);
     if (!ssrfCheck.safe) {
       await logScraperEvent(formattedUrl, 'BLOCKED_SSRF', { reason: ssrfCheck.error }).catch(() => {});
@@ -68,7 +72,7 @@ export async function POST(request: Request) {
 
     // Step 2: live fetch within a 2.5 second budget, following only safe redirects
     try {
-      const { html } = await fetchProductPage(parsedUrl.toString());
+      const { html } = await fetchProductPage(parsedUrl.toString(), { fetchImpl: ssrfSafeFetch });
       const $ = cheerio.load(html);
 
       // Extract & Sanitize Open Graph & Meta Metadata (Stored XSS Prevention)
