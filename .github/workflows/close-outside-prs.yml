@@ -1,0 +1,25 @@
+# Closes pull requests from anyone except the owner and Dependabot, with a pointer to CONTRIBUTING.md.
+# Why: outside code is not accepted for now (no CLA yet), so contributed code never has to be
+# licensed for the hosted service. pull_request_target runs in the base repository's context so it
+# can comment on and close fork PRs; it never checks out or runs the PR's code.
+name: close-outside-prs
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    if: github.event.pull_request.user.login != 'MrJSimpson' && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Comment and close
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr close "$PR" --repo "$REPO" --comment "Thanks for taking the time to send this! KovertKlaus doesn't accept outside pull requests right now (see [CONTRIBUTING.md](https://github.com/$REPO/blob/main/CONTRIBUTING.md#-who-can-contribute--how-review-works)). Please open an issue describing the change instead; good ideas are credited in the changelog."

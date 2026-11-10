@@ -91,12 +91,12 @@ export default function NorthPoleKnowledgeBasePage() {
                 <li><strong className="text-kk-ink">Kovert Mode ❄️ (Dark Theme)</strong>: Midnight slate (#090d16), icy sky blue accents (sky-400), translucent glassmorphism panels, and frost borders.</li>
               </ul>
 
-              <h3 className="text-sm font-bold text-kk-brand pt-2">1.2 Open-Core Licensing Model (BSL 1.1)</h3>
+              <h3 className="text-sm font-bold text-kk-brand pt-2">1.2 Source-Available Licensing (BSL 1.1)</h3>
               <ul className="list-disc pl-5 space-y-1 text-kk-muted">
-                <li><strong className="text-kk-ink">Free Non-Commercial Self-Hosting</strong>: 100% free for families, friends, non-profits, and home labs.</li>
-                <li><strong className="text-kk-ink">Commercial Reservation</strong>: Exclusive SaaS commercial rights belong to Joshua Simpson.</li>
-                <li><strong className="text-kk-ink">Anti-Enshittification Covenant</strong>: Any acquiring entity is contractually bound to maintain an open-source GPLv3 version.</li>
-                <li><strong className="text-kk-ink">GPLv3 Automatic Sunset</strong>: Converts unconditionally to GNU GPLv3 upon business closure, acquisition breach, or owner demise.</li>
+                <li><strong className="text-kk-ink">Free Self-Hosting</strong>: Free to run, change and self-host for yourself, family and friends, or your own company, school, club or non-profit.</li>
+                <li><strong className="text-kk-ink">Commercial Reservation</strong>: Selling KovertKlaus to others as a hosted service is reserved to Joshua Simpson.</li>
+                <li><strong className="text-kk-ink">Anti-Enshittification Clause</strong>: If a future owner adds ads, paywalls existing features or stops publishing the source, every version converts to AGPLv3 at once.</li>
+                <li><strong className="text-kk-ink">AGPLv3 Conversion</strong>: Each version converts to AGPLv3 four years after release, or sooner on an announcement by the author or estate, or after 24 months with no release or statement.</li>
               </ul>
             </div>
           )}

@@ -1,6 +1,6 @@
 # Contributing to KovertKlaus 🕵️‍♂️🎄
 
-Thank you for your interest in contributing to **KovertKlaus**! Whether you are reporting a bug, proposing an architectural improvement, optimizing performance, or submitting a feature pull request, we welcome your collaboration.
+Thank you for your interest in **KovertKlaus**! Bug reports, questions, feature ideas and architectural suggestions are all welcome.
 
 To maintain the highest standards of software quality, security, and algorithmic integrity, all contributors must adhere to the engineering guidelines detailed below.
 
@@ -14,12 +14,13 @@ All contributors and maintainers are expected to adhere to our [Code of Conduct]
 
 ## 🤝 Who Can Contribute & How Review Works
 
-KovertKlaus is open source. **Everyone is welcome**, people and AI agents alike, to:
-- **Fork** the repository and build on it.
+KovertKlaus is **source-available** under the Business Source License 1.1 ([`LICENSE.md`](./LICENSE.md)), not open source until it converts to AGPLv3. Within that license, everyone is welcome to:
+- **Fork** the repository and self-host or change it for permitted uses.
 - **Open issues** for bugs, questions, and feature ideas.
-- **Submit pull requests** from a fork or feature branch.
 
-**Every issue and pull request is reviewed by the project owner and team before anything is merged.** Only maintainers merge to `main`. AI-assisted contributions are held to the same standard as any other: the Definition of Done in [`AGENTS.md`](./AGENTS.md) applies, and the submitting human or agent operator is responsible for the change.
+**Outside pull requests are not accepted at this time.** The project owner writes and merges all code, so outside code never has to be licensed for the hosted service. Pull requests from anyone other than the owner and Dependabot are closed automatically with a pointer to this file. If you have a fix, please open an issue describing it instead; good ideas are credited in the changelog. This will change if the project grows a team, and contributions will then need a Contributor License Agreement.
+
+The rest of this guide describes how the owner and AI agents working for the owner build and review changes. Everything is reviewed before merge. AI-assisted changes are held to the same standard as any other: the Definition of Done in [`AGENTS.md`](./AGENTS.md) applies, and the human operating the agent is responsible for the change.
 
 **Security vulnerabilities:** do not open a public issue. Follow [`SECURITY.md`](./SECURITY.md) for private disclosure.
 

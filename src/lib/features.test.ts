@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { FEATURE_FACTS, FEATURE_GROUPS, LICENSE_SUMMARY } from './features';
 import { PLATFORM_LIMIT_BOUNDS } from './platform-limits';
 import { PRODUCT_FETCH_TIMEOUT_MS } from './product-fetch';
@@ -51,9 +53,18 @@ test('Features page: carrier sentence lists all four carriers in plain English',
   assert.ok(shipping.points[0].includes('USPS, FedEx, UPS or DHL'), shipping.points[0]);
 });
 
-test('License summary: no conversion date (LICENSE.md has none) and the real triggers', () => {
-  assert.ok(!/20[0-9]{2}/.test(LICENSE_SUMMARY.text), 'no year in the license summary');
-  assert.match(LICENSE_SUMMARY.text, /non-commercial/);
-  assert.match(LICENSE_SUMMARY.text, /GPLv3/);
+test('License summary: matches the BUSL-1.1 parameters in LICENSE.md', () => {
+  const license = readFileSync(join(process.cwd(), 'LICENSE.md'), 'utf8');
+  assert.match(license, /^# Business Source License 1\.1/);
+  assert.ok(license.includes('**Change License:** GNU Affero General Public License, version 3 or any later version'));
+  assert.match(license, /fourth anniversary/);
+  assert.match(license, /24 months/);
+  assert.ok(!/public domain/i.test(license), 'AGPL code is not public domain');
+  assert.equal(LICENSE_SUMMARY.label, 'Business Source License 1.1');
+  assert.match(LICENSE_SUMMARY.text, /AGPLv3/);
+  assert.match(LICENSE_SUMMARY.text, /four years/);
+  assert.match(LICENSE_SUMMARY.text, /24 months/);
+  assert.ok(!/\bGPLv3\b/.test(LICENSE_SUMMARY.text.replace(/AGPLv3/g, '')), 'no plain GPLv3 left');
+  assert.ok(!/unconditional/i.test(LICENSE_SUMMARY.text));
   assert.match(LICENSE_SUMMARY.licenseUrl, /LICENSE\.md$/);
 });
