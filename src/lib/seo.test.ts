@@ -11,6 +11,8 @@ import {
   publicPageMetadata,
   buildRobots,
   buildSitemap,
+  buildStructuredData,
+  jsonLdScript,
   searchIndexingEnabled,
   siteUrl,
 } from './seo';
@@ -85,5 +87,31 @@ test('SEO: every private page segment exports NOINDEX from a server layout', () 
     const src = readFileSync(layout, 'utf8');
     assert.ok(!src.includes("'use client'"), `${name}/layout.tsx must be a server component`);
     assert.ok(src.includes('export const metadata = NOINDEX'), `${name}/layout.tsx must export NOINDEX`);
+  }
+});
+
+test('SEO: structured data describes a free web app at the site origin', () => {
+  const data = buildStructuredData('https://elves.example.org') as { '@graph': Array<Record<string, unknown>> };
+  const app = data['@graph'].find((n) => n['@type'] === 'WebApplication');
+  const site = data['@graph'].find((n) => n['@type'] === 'WebSite');
+  assert.ok(app && site);
+  assert.strictEqual(app.url, 'https://elves.example.org/');
+  assert.strictEqual(site.url, 'https://elves.example.org/');
+  assert.deepStrictEqual(app.offers, { '@type': 'Offer', price: '0', priceCurrency: 'USD' });
+  assert.strictEqual(app.image, `https://elves.example.org${SHARE_IMAGE.url}`);
+});
+
+test('SEO: JSON-LD serialization cannot close its script tag', () => {
+  const out = jsonLdScript({ name: '</script><script>alert(1)</script>' });
+  assert.ok(!out.includes('<'));
+  assert.deepStrictEqual(JSON.parse(out), { name: '</script><script>alert(1)</script>' });
+});
+
+test('SEO: nothing in public/ besides site assets (public/ is served to anyone and can be indexed)', () => {
+  const allowed = new Set(['_headers', 'opengraph-image.png']);
+  const PUBLIC_DIR = join(process.cwd(), 'public');
+  for (const n of readdirSync(PUBLIC_DIR)) {
+    const isArt = statSync(join(PUBLIC_DIR, n)).isDirectory() || /\.(png|svg|webp|jpg|ico)$/.test(n);
+    assert.ok(allowed.has(n) || isArt, `public/${n}: documents and internal files do not belong in public/`);
   }
 });
