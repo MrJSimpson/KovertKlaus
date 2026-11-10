@@ -58,7 +58,7 @@ Every change (from maintainers, contributors, or AI agents) must meet:
   - 100% typed TypeScript with 3-tier TSDoc annotations.
   - Automated test suite passes 100% (`npm test`).
   - Next.js Turbopack build succeeds with 0 errors (`npm run build`).
-  - Contributions follow [`CONTRIBUTING.md`](CONTRIBUTING.md). All issues and pull requests are reviewed by the owner and team before merge.
+  - Contributions follow [`CONTRIBUTING.md`](CONTRIBUTING.md): issues are welcome, outside pull requests are not accepted for now, and the owner reviews every change before merge.
   - User- or operator-visible changes add a line under `## [Unreleased]` in `CHANGELOG.md`. Versions, releases and branch pruning follow [`docs/VERSIONING.md`](docs/VERSIONING.md); each release adds a plain-language entry to `src/lib/announcements.ts`.
   - **Zero credentials** in code, docs, tests, commit messages and pull requests: no passwords (including retired or example ones), keys, tokens or connection strings with secrets. Reference secrets by variable name; ban lists store digests.
 
@@ -96,12 +96,12 @@ Every change (from maintainers, contributors, or AI agents) must meet:
 
 ## 🌿 8. Mandatory Git Feature Branching Protocol (NON-NEGOTIABLE)
 
-1. **Zero Direct-to-Main Changes**: NEVER make edits or commit directly to `main` in this repository. Contributors work on a fork or feature branch and open a pull request.
+1. **Zero Direct-to-Main Changes**: NEVER make edits or commit directly to `main` in this repository. The owner (and agents working for the owner) work on a feature branch and open a pull request.
 2. **Branch Creation**: Always create a descriptive feature/fix branch before modifying code:
    `git checkout -b <type>/<short-description>` (e.g., `feat/wishlist-sharing`, `sec/rbac-guards`).
 3. **Release Branches**: Cut work branches from the open release branch (`release/vX.Y.Z-stage`) and open pull requests **against that release branch**, not `main`. Merge the latest release branch into your branch before review so the release merges cleanly. A `hotfix/<name>` branch targets its own patch release branch, `release/vX.Y.(Z+1)-stage` cut from `main`; several fixes at once ship as a MINOR release (`docs/VERSIONING.md` §4.6).
 4. **Verification**: Complete and test all changes on the branch (`npm run build`, unit tests).
-5. **Review & Merge**: Open a pull request. The owner and team review it; only maintainers merge, and a release branch reaches `main` once per release.
+5. **Review & Merge**: Open a pull request. The owner reviews and merges it, and a release branch reaches `main` once per release.
 
 ---
 

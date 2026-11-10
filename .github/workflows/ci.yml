@@ -1,5 +1,7 @@
 # Runs the Definition of Done checks (AGENTS.md §4) on every push and pull request:
-# the automated test suite, a strict TypeScript check and the production build.
+# the automated test suite, a strict TypeScript check and the production build, plus two
+# supply-chain checks: no known vulnerability in production dependencies, and a current
+# THIRD_PARTY_NOTICES.md.
 # Needs no database or secrets: the tests mock Prisma, and the build connects lazily.
 name: ci
 
@@ -31,6 +33,14 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Production dependency audit
+        # Fails on any moderate-or-higher advisory in what ships (Worker bundle, static export,
+        # Docker image). Development-only advisories are tracked through Dependabot instead.
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Third-party notices are current
+        run: npm run notices:check
 
       - name: Tests
         run: npm test

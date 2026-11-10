@@ -155,10 +155,10 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
 /** The license summary under the feature cards. Mirrors `LICENSE.md`. */
 export const LICENSE_SUMMARY = {
   label: 'Business Source License 1.1',
-  heading: 'Free to self-host for non-commercial use',
+  heading: 'Free to self-host, for you and your organization',
   text:
-    'You can run, change and self-host KovertKlaus free of charge for personal, family, non-profit, educational, home-lab or other non-commercial use. ' +
-    'Running it as a paid or commercial hosted service is reserved to its author, Joshua Simpson. ' +
-    'If the project is ever sold, the buyer must keep a complete open-source version available; the code becomes GPLv3 open source if that promise is broken, if the project closes, or if its author can no longer run it.',
+    'You can run, change and self-host KovertKlaus free of charge: for yourself, your family and friends, or your own company, school, club or non-profit. ' +
+    'Selling it to others as a hosted service is reserved to its author, Joshua Simpson. ' +
+    'Each version becomes AGPLv3 open source four years after its release, or sooner if its author announces it, goes 24 months without a release or statement, or a future owner adds ads, paywalls existing features or stops publishing the source.',
   licenseUrl: 'https://github.com/MrJSimpson/KovertKlaus/blob/main/LICENSE.md',
 };
