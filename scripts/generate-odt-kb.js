@@ -468,16 +468,9 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
 
-const publicDir = path.join(__dirname, '..', 'public');
-if (!fs.existsSync(publicDir)) {
-  fs.mkdirSync(publicDir, { recursive: true });
-}
-
 const outputPath = path.join(outputDir, 'KovertKlaus_Knowledge_Base.odt');
-const publicPath = path.join(publicDir, 'KovertKlaus_Knowledge_Base.odt');
 const files = generateODTFiles();
 const zipBuffer = createZipArchive(files);
 
 fs.writeFileSync(outputPath, zipBuffer);
-fs.writeFileSync(publicPath, zipBuffer);
-console.log(`[Success] Generated LibreOffice Writer .odt Knowledge Base at: ${outputPath} and ${publicPath} (${zipBuffer.length} bytes)`);
+console.log(`[Success] Generated LibreOffice Writer .odt Knowledge Base at: ${outputPath} (${zipBuffer.length} bytes)`);

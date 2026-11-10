@@ -107,5 +107,41 @@ export function publicPageMetadata(path: string, title = SITE_TITLE, description
   };
 }
 
+/**
+ * JSON-LD for the front page: the app (free, runs in a browser) and the site that publishes it.
+ *
+ * Tier 1 (what): A schema.org `@graph` with one `WebApplication` and one `WebSite`.
+ * Tier 2 (why): Lets search engines show KovertKlaus as a free web app instead of guessing from page
+ * text (owner decision 2026-11-10). Only facts the site already states: name, address, description,
+ * price 0.
+ * Tier 3 (how): Pure, so tests cover both editions; the front page renders it only when indexing is on.
+ */
+export function buildStructuredData(origin: string): Record<string, unknown> {
+  const url = `${origin}/`;
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebApplication',
+        '@id': `${url}#app`,
+        name: SITE_NAME,
+        url,
+        description: SITE_DESCRIPTION,
+        applicationCategory: 'LifestyleApplication',
+        operatingSystem: 'Any (web browser)',
+        browserRequirements: 'Requires JavaScript.',
+        image: `${origin}${SHARE_IMAGE.url}`,
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      },
+      { '@type': 'WebSite', '@id': `${url}#site`, name: SITE_NAME, url, inLanguage: 'en-US' },
+    ],
+  };
+}
+
+/** Serializes JSON-LD for an inline `<script>`: `<` is escaped so the data can never close the tag. */
+export function jsonLdScript(data: Record<string, unknown>): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
+
 /** Metadata for private route segments: never indexed, links not followed. */
 export const NOINDEX: Metadata = { robots: { index: false, follow: false } };

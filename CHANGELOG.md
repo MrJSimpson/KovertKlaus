@@ -13,9 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Search engines can find kovertklaus.com.** `robots.txt` and `sitemap.xml` list the public pages (home, features, privacy, terms). Account, mission, invite and admin pages are blocked in `robots.txt` and marked `noindex` (`src/lib/seo.ts`).
 - **Link previews.** Shared links show a KovertKlaus card (`public/opengraph-image.png`) with a title and description, and every public page has a canonical address.
 - `SEARCH_INDEXING` setting. Self-hosted installs stay out of search engines unless the operator sets it to `true`.
+- **Structured data.** The front page describes KovertKlaus to search engines as a free web app (schema.org JSON-LD), only when search indexing is on.
 
 ### Changed
+- The Knowledge Base `.odt` is no longer served from the site. The North Pole download button opens it in the public source repo (`docs/`).
 - The North Pole and Workshop layouts are now server layouts around their former client layouts (`NorthPoleShell`, `WorkshopShell`), so they can set page metadata. No visible change.
+
+### Removed
+- Unused starter files in `public/` (`next.svg`, `vercel.svg`, `file.svg`, `globe.svg`, `window.svg`).
 
 ---
 
