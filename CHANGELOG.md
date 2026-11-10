@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.0-beta] - 2026-11-10
+
 ### Added
 - **Search engines can find kovertklaus.com.** `robots.txt` and `sitemap.xml` list the public pages (home, features, privacy, terms). Account, mission, invite and admin pages are blocked in `robots.txt` and marked `noindex` (`src/lib/seo.ts`).
 - **Link previews.** Shared links show a KovertKlaus card (`public/opengraph-image.png`) with a title and description, and every public page has a canonical address.
