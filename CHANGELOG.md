@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.1.6-beta] - 2026-11-09
+
+License and dependency maintenance on 1.1.5-beta (dev #120, #121). The app works the same; the license terms are new (see Changed), and `npm audit` now reports no known vulnerabilities in any dependency. Nothing to do for self-hosted installs beyond pulling the update.
+
 ### Security
 - **No known vulnerabilities left in any dependency, including development tools.** The last copy of `minimatch` 10.2.6 (GHSA-g3hv-75wg-m249, development only) sat under `typescript-eslint`, whose newest release still asks for `minimatch` 10. A scoped override gives that one package `minimatch` 11; lint reports exactly the same results before and after, so it still checks every file. `npm audit` now reports 0.
 - **Dependencies updated to the newest versions that keep the build working:** `next` and `eslint-config-next` 16.4.4, `nodemailer` 10.3.1, `undici` 8.12.3, `ws` 8.22.1, `tailwindcss` and `@tailwindcss/postcss` 4.3.4, `wrangler` 4.156.2, plus their sub-dependencies. The 7-day release cooldown still applies. Three majors stay on hold until their tooling supports them: TypeScript 7 (`typescript-eslint` supports below 6.1), ESLint 10 (`eslint-plugin-react`, `-import` and `-jsx-a11y` support up to 9) and `@types/node` 26 (tracks the Node 24 runtime).
