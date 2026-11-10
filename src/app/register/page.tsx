@@ -1,4 +1,8 @@
 import { AppHomeLanding } from '@/components/landing';
+import type { Metadata } from 'next';
+
+/** Same landing as `/`, so search engines are pointed at `/` (`src/lib/seo.ts`). */
+export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 /**
  * @file page.tsx (/register)
