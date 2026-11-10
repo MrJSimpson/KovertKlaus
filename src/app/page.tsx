@@ -1,4 +1,8 @@
 import { AppHomeLanding } from '@/components/landing';
+import type { Metadata } from 'next';
+
+/** The front page is the canonical address of the landing. */
+export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 /**
  * @file page.tsx (/)
