@@ -1,8 +1,8 @@
 {
   "name": "kovertklaus",
-  "version": "1.1.5-beta",
+  "version": "1.1.6-beta",
   "private": true,
-  "license": "SEE LICENSE IN LICENSE.md",
+  "license": "BUSL-1.1",
   "scripts": {
     "dev": "next dev -p 2425",
     "prebuild": "next telemetry disable",
@@ -19,7 +19,9 @@
     "demo:remove": "tsx --env-file=.env scripts/demo-db.ts --remove",
     "test": "tsx --test src/worker.test.ts src/lib/*.test.ts src/lib/**/*.test.ts src/app/**/*.test.ts scripts/*.test.ts",
     "lint": "eslint",
-    "db:password": "node scripts/ensure-db-password.mjs"
+    "db:password": "node scripts/ensure-db-password.mjs",
+    "notices": "node scripts/third-party-notices.mjs",
+    "notices:check": "node scripts/third-party-notices.mjs --check"
   },
   "prisma": {
     "seed": "tsx --env-file=.env prisma/seed.ts"
@@ -71,6 +73,9 @@
     "@napi-rs/wasm-runtime": {
       "@emnapi/core": "1.10.0",
       "@emnapi/runtime": "1.10.0"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
     }
   }
 }

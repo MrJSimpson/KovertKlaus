@@ -9,7 +9,7 @@
 <sub>Demo data from [`npm run demo:load`](./docs/DEMO_DATABASE.md).</sub>
 
 [![CI](https://github.com/MrJSimpson/KovertKlaus/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MrJSimpson/KovertKlaus/actions/workflows/ci.yml)
-[![License: Source-Available (BSL-style)](https://img.shields.io/badge/License-Source--Available%20(BSL--style)-orange.svg)](./LICENSE.md)
+[![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL--1.1-orange.svg)](./LICENSE.md)
 [![Latest Release](https://img.shields.io/github/v/tag/MrJSimpson/KovertKlaus?sort=semver&label=Release&color=10b981)](./CHANGELOG.md)
 [![Runtime](https://img.shields.io/badge/Runtime-Node.js%2024%20%2B%20Next.js%2016-blueviolet.svg)](./docs/ARCHITECTURE.md)
 [![Database](https://img.shields.io/badge/Database-PostgreSQL%2016-green.svg)](./docs/DEPLOYMENT_GUIDE.md)
@@ -140,10 +140,11 @@ We welcome community contributions! Please review our guidelines before submitti
 
 ## 📜 Licensing & Commercial Rights
 
-KovertKlaus is **source-available** under a Business Source License-style license ([`LICENSE.md`](./LICENSE.md)). It is not an OSI-approved open-source license.
+KovertKlaus is **source-available** under the [Business Source License 1.1](./LICENSE.md) (`BUSL-1.1`). It is not an OSI-approved open-source license until it converts.
 
-- **Free self-hosting**: Run, modify and self-host KovertKlaus at no cost for personal, family, non-profit, educational, home-lab or other non-commercial use.
-- **Commercial rights reserved**: Hosting, operating or monetizing KovertKlaus as a paid service or commercial product is reserved to **Joshua Simpson**, who runs the hosted service at `kovertklaus.com`.
-- **Change License**: The code converts to **GPL-3.0-or-later** on the events listed in `LICENSE.md` §5.
+- **Free self-hosting**: Run, change and self-host KovertKlaus at no cost for yourself, your family and friends, or your own company, school, club or non-profit, including for its staff, members and volunteers.
+- **Commercial hosting reserved**: Offering KovertKlaus to others as a paid hosted service (subscriptions, participation fees, advertising, or as part of a paid product) is reserved to **Joshua Simpson**, who runs the hosted service at `kovertklaus.com`. Voluntary donations that no one must pay to get access don't count as payment.
+- **Conversion to AGPLv3**: Each version becomes **AGPL-3.0-or-later** four years after its release, or sooner if the author or his estate announces it, if 24 months pass with no release and no statement from the author, or if a future owner adds ads, paywalls existing features or stops publishing the source.
+- **Earlier versions**: Versions up to `v1.1.5-beta` were first published under an earlier KovertKlaus license. As the sole author, Joshua Simpson now offers every version under `BUSL-1.1` as well.
 
 `LICENSE.md` is the binding text; this section only summarizes it.
