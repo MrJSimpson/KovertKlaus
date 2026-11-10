@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **No known vulnerabilities left in any dependency, including development tools.** The last copy of `minimatch` 10.2.6 (GHSA-g3hv-75wg-m249, development only) sat under `typescript-eslint`, whose newest release still asks for `minimatch` 10. A scoped override gives that one package `minimatch` 11; lint reports exactly the same results before and after, so it still checks every file. `npm audit` now reports 0.
+- **Dependencies updated to the newest versions that keep the build working:** `next` and `eslint-config-next` 16.4.4, `nodemailer` 10.3.1, `undici` 8.12.3, `ws` 8.22.1, `tailwindcss` and `@tailwindcss/postcss` 4.3.4, `wrangler` 4.156.2, plus their sub-dependencies. The 7-day release cooldown still applies. Three majors stay on hold until their tooling supports them: TypeScript 7 (`typescript-eslint` supports below 6.1), ESLint 10 (`eslint-plugin-react`, `-import` and `-jsx-a11y` support up to 9) and `@types/node` 26 (tracks the Node 24 runtime).
 ### Changed
 - **KovertKlaus now uses the standard Business Source License 1.1** (`BUSL-1.1`) instead of a custom license that only borrowed its name. Self-hosting stays free for yourself, family and friends, and now clearly also for your own company, school, club or non-profit and its staff or members. Selling it to others as a hosted service stays reserved to the author.
 - **The license converts to AGPLv3, not GPLv3.** Each version becomes AGPL-3.0-or-later four years after its release, or sooner if the author or his estate announces it, if 24 months pass with no release or statement, or if a future owner adds ads, paywalls existing features or stops publishing the source. AGPL also requires anyone who hosts a changed copy to share their changes.
