@@ -43,15 +43,15 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `@img/sharp-win32-ia32` (platform-specific) | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
 | `@img/sharp-win32-x64` (platform-specific) | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
 | `@neondatabase/serverless` | 1.2.0 | MIT |
-| `@next/env` | 16.4.3 | MIT |
-| `@next/swc-darwin-arm64` (platform-specific) | 16.4.3 | MIT |
-| `@next/swc-darwin-x64` (platform-specific) | 16.4.3 | MIT |
-| `@next/swc-linux-arm64-gnu` (platform-specific) | 16.4.3 | MIT |
-| `@next/swc-linux-arm64-musl` (platform-specific) | 16.4.3 | MIT |
-| `@next/swc-linux-x64-gnu` (platform-specific) | 16.4.3 | MIT |
-| `@next/swc-linux-x64-musl` (platform-specific) | 16.4.3 | MIT |
-| `@next/swc-win32-arm64-msvc` (platform-specific) | 16.4.3 | MIT |
-| `@next/swc-win32-x64-msvc` (platform-specific) | 16.4.3 | MIT |
+| `@next/env` | 16.4.4 | MIT |
+| `@next/swc-darwin-arm64` (platform-specific) | 16.4.4 | MIT |
+| `@next/swc-darwin-x64` (platform-specific) | 16.4.4 | MIT |
+| `@next/swc-linux-arm64-gnu` (platform-specific) | 16.4.4 | MIT |
+| `@next/swc-linux-arm64-musl` (platform-specific) | 16.4.4 | MIT |
+| `@next/swc-linux-x64-gnu` (platform-specific) | 16.4.4 | MIT |
+| `@next/swc-linux-x64-musl` (platform-specific) | 16.4.4 | MIT |
+| `@next/swc-win32-arm64-msvc` (platform-specific) | 16.4.4 | MIT |
+| `@next/swc-win32-x64-msvc` (platform-specific) | 16.4.4 | MIT |
 | `@prisma/adapter-neon` | 7.10.1 | Apache-2.0 |
 | `@prisma/adapter-pg` | 7.10.1 | Apache-2.0 |
 | `@prisma/client` | 7.10.1 | Apache-2.0 |
@@ -91,9 +91,9 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `@types/d3-time` (platform-specific) | 3.0.0 | MIT |
 | `@types/d3-time-format` (platform-specific) | 2.1.0 | MIT |
 | `@types/geojson` (platform-specific) | 7946.0.16 | MIT |
-| `@types/lodash` (platform-specific) | 4.17.24 | MIT |
+| `@types/lodash` (platform-specific) | 4.17.27 | MIT |
 | `@types/node` | 24.19.2 | MIT |
-| `@types/pg` | 8.20.0 | MIT |
+| `@types/pg` | 8.23.1 | MIT |
 | `@types/react` (platform-specific) | 19.3.0 | MIT |
 | `@types/react-dom` (platform-specific) | 19.3.0 | MIT |
 | `@visx/curve` (platform-specific) | 4.0.1-alpha.0 | MIT |
@@ -107,19 +107,19 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `@visx/vendor` (platform-specific) | 4.0.0-alpha.0 | MIT and ISC |
 | `ajv` (platform-specific) | 8.20.0 | MIT |
 | `aws-ssl-profiles` (platform-specific) | 1.1.2 | MIT |
-| `baseline-browser-mapping` | 2.11.7 | Apache-2.0 |
+| `baseline-browser-mapping` | 2.11.35 | Apache-2.0 |
 | `bcryptjs` | 3.0.3 | BSD-3-Clause |
 | `better-result` (platform-specific) | 2.10.0 | MIT |
 | `boolbase` | 1.0.0 | ISC |
 | `c12` (platform-specific) | 3.3.4 | MIT |
-| `caniuse-lite` | 1.0.30001806 | CC-BY-4.0 |
+| `caniuse-lite` | 1.0.30001820 | CC-BY-4.0 |
 | `cheerio` | 1.2.0 | MIT |
 | `cheerio-select` | 2.1.0 | BSD-2-Clause |
 | `chokidar` (platform-specific) | 5.0.0 | MIT |
 | `classnames` (platform-specific) | 2.5.1 | MIT |
 | `client-only` | 0.0.1 | MIT |
 | `confbox` (platform-specific) | 0.2.4 | MIT |
-| `confbox` (platform-specific) | 0.3.1 | MIT |
+| `confbox` (platform-specific) | 0.3.2 | MIT |
 | `cross-spawn` (platform-specific) | 7.0.6 | MIT |
 | `css-select` | 5.2.2 | BSD-2-Clause |
 | `css-what` | 6.2.2 | BSD-2-Clause |
@@ -154,7 +154,7 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `entities` | 6.0.1 | BSD-2-Clause |
 | `entities` | 7.0.1 | BSD-2-Clause |
 | `env-paths` (platform-specific) | 3.0.0 | MIT |
-| `exsolve` (platform-specific) | 1.1.3 | MIT |
+| `exsolve` (platform-specific) | 1.2.0 | MIT |
 | `fast-check` (platform-specific) | 3.23.2 | MIT |
 | `fast-decode-uri-component` (platform-specific) | 1.0.1 | MIT |
 | `fast-deep-equal` (platform-specific) | 3.1.3 | MIT |
@@ -178,12 +178,12 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `json-schema-traverse` (platform-specific) | 1.0.0 | MIT |
 | `lodash` (platform-specific) | 4.18.1 | MIT |
 | `long` (platform-specific) | 5.3.2 | Apache-2.0 |
-| `lru.min` (platform-specific) | 1.1.4 | MIT |
-| `mysql2` (platform-specific) | 3.24.5 | MIT |
+| `lru.min` (platform-specific) | 1.1.5 | MIT |
+| `mysql2` (platform-specific) | 3.24.6 | MIT |
 | `named-placeholders` (platform-specific) | 1.1.6 | MIT |
-| `nanoid` | 3.3.18 | MIT |
-| `next` | 16.4.3 | MIT |
-| `nodemailer` | 10.2.1 | MIT-0 |
+| `nanoid` | 3.3.20 | MIT |
+| `next` | 16.4.4 | MIT |
+| `nodemailer` | 10.3.1 | MIT-0 |
 | `nth-check` | 2.1.1 | BSD-2-Clause |
 | `ohash` (platform-specific) | 2.0.12 | MIT |
 | `parse5` | 7.3.0 | MIT |
@@ -201,8 +201,8 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `pg-types` | 2.2.0 | MIT |
 | `pgpass` | 1.0.5 | MIT |
 | `picocolors` | 1.1.1 | ISC |
-| `pkg-types` (platform-specific) | 2.3.3 | MIT |
-| `postcss` | 8.5.26 | MIT |
+| `pkg-types` (platform-specific) | 2.4.0 | MIT |
+| `postcss` | 8.5.32 | MIT |
 | `postgres` (platform-specific) | 3.4.7 | Unlicense |
 | `postgres-array` | 2.0.0 | MIT |
 | `postgres-array` | 3.0.4 | MIT |
@@ -218,13 +218,13 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `readdirp` (platform-specific) | 5.1.1 | MIT |
 | `remeda` (platform-specific) | 2.33.4 | MIT |
 | `require-from-string` (platform-specific) | 2.0.2 | MIT |
-| `ret` (platform-specific) | 0.5.0 | MIT |
+| `ret` (platform-specific) | 0.5.1 | MIT |
 | `retry` (platform-specific) | 0.12.0 | MIT |
 | `robust-predicates` (platform-specific) | 3.0.3 | Unlicense |
-| `safe-regex2` (platform-specific) | 5.1.1 | MIT |
+| `safe-regex2` (platform-specific) | 5.1.2 | MIT |
 | `safer-buffer` | 2.1.2 | MIT |
 | `scheduler` | 0.28.0 | MIT |
-| `semver` (platform-specific) | 7.8.5 | ISC |
+| `semver` (platform-specific) | 7.8.6 | ISC |
 | `sharp` (platform-specific) | 0.35.5 | Apache-2.0 |
 | `shebang-command` (platform-specific) | 2.0.0 | MIT |
 | `shebang-regex` (platform-specific) | 3.0.0 | MIT |
@@ -235,15 +235,15 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `sql-escaper` (platform-specific) | 1.5.2 | MIT |
 | `std-env` (platform-specific) | 3.10.0 | MIT |
 | `styled-jsx` | 5.1.6 | MIT |
-| `tslib` | 2.8.1 | 0BSD |
+| `tslib` | 2.9.1 | 0BSD |
 | `typescript` (platform-specific) | 6.0.3 | Apache-2.0 |
-| `undici` | 8.12.2 | MIT |
+| `undici` | 8.12.3 | MIT |
 | `undici-types` | 7.24.6 | MIT |
 | `valibot` (platform-specific) | 1.4.2 | MIT |
 | `whatwg-encoding` | 3.1.1 | MIT |
 | `whatwg-mimetype` | 4.0.0 | MIT |
 | `which` (platform-specific) | 2.0.2 | ISC |
-| `ws` | 8.22.0 | MIT |
+| `ws` | 8.22.1 | MIT |
 | `xtend` | 4.0.2 | MIT |
 | `zeptomatch` (platform-specific) | 2.1.0 | MIT |
 <!-- table:end -->
@@ -431,7 +431,7 @@ Apache License
    END OF TERMS AND CONDITIONS
 ```
 
-### @emnapi/runtime@1.11.3, @next/swc-darwin-arm64@16.4.3, @next/swc-darwin-x64@16.4.3, @next/swc-linux-arm64-gnu@16.4.3, @next/swc-linux-arm64-musl@16.4.3, @next/swc-linux-x64-gnu@16.4.3, @next/swc-linux-x64-musl@16.4.3, @next/swc-win32-arm64-msvc@16.4.3
+### @emnapi/runtime@1.11.3, @next/swc-darwin-arm64@16.4.4, @next/swc-darwin-x64@16.4.4, @next/swc-linux-arm64-gnu@16.4.4, @next/swc-linux-arm64-musl@16.4.4, @next/swc-linux-x64-gnu@16.4.4, @next/swc-linux-x64-musl@16.4.4, @next/swc-win32-arm64-msvc@16.4.4
 
 MIT. Not installed on the machine that generated this file (platform-specific); see the package for its license text.
 
@@ -760,11 +760,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### @next/env@16.4.3, @next/swc-win32-x64-msvc@16.4.3, @radix-ui/react-compose-refs@1.1.2, @radix-ui/react-use-layout-effect@1.1.1, client-only@0.0.1, pg-types@2.2.0, pgpass@1.0.5, remeda@2.33.4
+### @next/env@16.4.4, @next/swc-win32-x64-msvc@16.4.4, @radix-ui/react-compose-refs@1.1.2, @radix-ui/react-use-layout-effect@1.1.1, client-only@0.0.1, pg-types@2.2.0, pgpass@1.0.5, remeda@2.33.4
 
 MIT. The package ships no separate license file.
 
-### @prisma/adapter-neon@7.10.1, @prisma/adapter-pg@7.10.1, @prisma/client@7.10.1, @prisma/client-runtime-utils@7.10.1, @prisma/config@7.10.1, @prisma/debug@7.2.0, @prisma/debug@7.10.1, @prisma/driver-adapter-utils@7.10.1, @prisma/engines@7.10.1, @prisma/engines-version@8.1.0-1.d1b3f377ca835d73fd50954a5e22128b9ebdd6b8, @prisma/fetch-engine@7.10.1, @prisma/get-platform@7.2.0, @prisma/get-platform@7.10.1, @prisma/query-plan-executor@7.2.0, baseline-browser-mapping@2.11.7, long@5.3.2, prisma@7.10.1
+### @prisma/adapter-neon@7.10.1, @prisma/adapter-pg@7.10.1, @prisma/client@7.10.1, @prisma/client-runtime-utils@7.10.1, @prisma/config@7.10.1, @prisma/debug@7.2.0, @prisma/debug@7.10.1, @prisma/driver-adapter-utils@7.10.1, @prisma/engines@7.10.1, @prisma/engines-version@8.1.0-1.d1b3f377ca835d73fd50954a5e22128b9ebdd6b8, @prisma/fetch-engine@7.10.1, @prisma/get-platform@7.2.0, @prisma/get-platform@7.10.1, @prisma/query-plan-executor@7.2.0, baseline-browser-mapping@2.11.35, long@5.3.2, prisma@7.10.1
 
 ```text
 Apache License
@@ -1456,7 +1456,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### @types/d3-array@3.0.3, @types/d3-color@3.1.0, @types/d3-delaunay@6.0.1, @types/d3-format@3.0.1, @types/d3-geo@3.1.0, @types/d3-interpolate@3.0.1, @types/d3-path@3.1.1, @types/d3-scale@4.0.2, @types/d3-shape@3.1.7, @types/d3-time@3.0.0, @types/geojson@7946.0.16, @types/lodash@4.17.24, @types/node@24.19.2, @types/pg@8.20.0, @types/react@19.3.0, @types/react-dom@19.3.0
+### @types/d3-array@3.0.3, @types/d3-color@3.1.0, @types/d3-delaunay@6.0.1, @types/d3-format@3.0.1, @types/d3-geo@3.1.0, @types/d3-interpolate@3.0.1, @types/d3-path@3.1.1, @types/d3-scale@4.0.2, @types/d3-shape@3.1.7, @types/d3-time@3.0.0, @types/geojson@7946.0.16, @types/lodash@4.17.27, @types/node@24.19.2, @types/pg@8.23.1, @types/react@19.3.0, @types/react-dom@19.3.0
 
 ```text
 MIT License
@@ -1668,7 +1668,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### caniuse-lite@1.0.30001806
+### caniuse-lite@1.0.30001820
 
 ```text
 Attribution 4.0 International
@@ -2162,7 +2162,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### confbox@0.2.4, confbox@0.3.1
+### confbox@0.2.4, confbox@0.3.2
 
 ```text
 MIT License
@@ -3024,7 +3024,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### exsolve@1.1.3
+### exsolve@1.2.0
 
 ```text
 MIT License
@@ -3710,7 +3710,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### isexe@2.0.0, semver@7.8.5, which@2.0.2
+### isexe@2.0.0, semver@7.8.6, which@2.0.2
 
 ```text
 The ISC License
@@ -3782,7 +3782,7 @@ licenses; we recommend you read them, as their terms may differ from the
 terms above.
 ```
 
-### lru.min@1.1.4
+### lru.min@1.1.5
 
 ```text
 MIT License
@@ -3808,7 +3808,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### mysql2@3.24.5
+### mysql2@3.24.6
 
 ```text
 Copyright (c) 2016 Andrey Sidorov (sidorares@yandex.ru) and contributors
@@ -3858,7 +3858,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### nanoid@3.3.18
+### nanoid@3.3.20
 
 ```text
 The MIT License (MIT)
@@ -3883,7 +3883,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### next@16.4.3
+### next@16.4.4
 
 ```text
 The MIT License (MIT)
@@ -3909,7 +3909,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### nodemailer@10.2.1
+### nodemailer@10.3.1
 
 ```text
 Copyright (c) 2011-2023 Andris Reinman
@@ -4159,7 +4159,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### pkg-types@2.3.3
+### pkg-types@2.4.0
 
 ```text
 MIT License
@@ -4208,7 +4208,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### postcss@8.5.26
+### postcss@8.5.32
 
 ```text
 The MIT License (MIT)
@@ -4411,7 +4411,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### ret@0.5.0
+### ret@0.5.1
 
 ```text
 MIT License
@@ -4492,7 +4492,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org>
 ```
 
-### safe-regex2@5.1.1
+### safe-regex2@5.1.2
 
 ```text
 MIT License
@@ -4702,7 +4702,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### tslib@2.8.1
+### tslib@2.9.1
 
 ```text
 Copyright (c) Microsoft Corporation.
@@ -4779,7 +4779,7 @@ If the Work includes a "NOTICE" text file as part of its distribution, then any 
 END OF TERMS AND CONDITIONS
 ```
 
-### undici@8.12.2, undici-types@7.24.6
+### undici@8.12.3, undici-types@7.24.6
 
 ```text
 MIT License
@@ -4831,7 +4831,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### ws@8.22.0
+### ws@8.22.1
 
 ```text
 Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com>
