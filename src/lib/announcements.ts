@@ -41,6 +41,24 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '1.1.6-beta',
+    date: '2026-11-09',
+    title: 'A clearer license, fresher parts',
+    summary: 'Nothing changes in how you use KovertKlaus. We cleaned up the fine print and updated what it is built from.',
+    highlights: [
+      {
+        emoji: '📜',
+        title: 'Clear, standard license',
+        text: 'KovertKlaus now uses the standard Business Source License. Running your own copy is free for you, your family and friends, or your own company, school or club. Every version becomes fully open source after four years, and sooner if a future owner ever adds ads or puts existing features behind a paywall.',
+      },
+      {
+        emoji: '🛡️',
+        title: 'Up-to-date building blocks',
+        text: 'We updated the pieces KovertKlaus is built from to their latest working versions, and none of them have any known security issues.',
+      },
+    ],
+  },
+  {
     version: '1.1.5-beta',
     date: '2026-11-08',
     title: 'Security maintenance',
