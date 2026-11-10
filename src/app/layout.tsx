@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { NOINDEX, SITE_NAME, publicPageMetadata, searchIndexingEnabled, siteUrl } from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,9 +13,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * Site-wide metadata. `metadataBase` makes canonical and share-image links absolute. When search
+ * indexing is off (self-hosted by default, `src/lib/seo.ts`) every page is marked noindex.
+ */
 export const metadata: Metadata = {
-  title: "KovertKlaus | Simple & Fun Secret Santa & Gift Exchanges",
-  description: "Organize Secret Santa, Yankee Swaps, and Holiday Gift Exchanges in 60 seconds with universal wishlists and guaranteed 1-to-1 fair matching.",
+  metadataBase: new URL(siteUrl()),
+  applicationName: SITE_NAME,
+  ...publicPageMetadata("/"),
+  alternates: undefined,
+  ...(searchIndexingEnabled() ? {} : NOINDEX),
 };
 
 export const viewport: Viewport = {

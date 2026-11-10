@@ -3,6 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+/**
+ * The .odt lives in the public source repo, not in `public/`: a file in `public/` is served to anyone
+ * and can be indexed by search engines, while this is an admin runbook (owner decision 2026-11-10).
+ */
+const KB_ODT_URL = 'https://github.com/MrJSimpson/KovertKlaus/raw/main/docs/KovertKlaus_Knowledge_Base.odt';
+
 export default function NorthPoleKnowledgeBasePage() {
   const [activeSection, setActiveSection] = useState('overview');
 
@@ -39,8 +45,9 @@ export default function NorthPoleKnowledgeBasePage() {
 
         <div className="flex items-center gap-3">
           <a
-            href="/KovertKlaus_Knowledge_Base.odt"
-            download="KovertKlaus_Knowledge_Base.odt"
+            href={KB_ODT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="bg-kk-gold hover:brightness-95 text-kk-on-gold px-4 py-2 rounded-xl font-mono text-xs font-black transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
           >
             <span>📥 Download LibreOffice (.odt)</span>

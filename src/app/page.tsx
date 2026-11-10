@@ -1,4 +1,9 @@
 import { AppHomeLanding } from '@/components/landing';
+import type { Metadata } from 'next';
+import { buildStructuredData, jsonLdScript, searchIndexingEnabled, siteUrl } from '@/lib/seo';
+
+/** The front page is the canonical address of the landing. */
+export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 /**
  * @file page.tsx (/)
@@ -8,10 +13,21 @@ import { AppHomeLanding } from '@/components/landing';
  * Tier 2 (why): Owner decision (2026-11-01): one front page that looks like the sign-in page and lets
  * people sign up without approval. The coming-soon waitlist page (and the North Pole "Alt Home" switch
  * that chose it) is retired: in BETA it showed an expired countdown and a manual clearance request.
+ * Structured data (JSON-LD, `buildStructuredData`) is added only when search indexing is on.
  * Tier 3 (how): Static: no database lookup per visit (the self-hosted page used to read SystemConfig on
  * every request to pick a variant). The release stage still decides, client side, whether sign-up
  * needs an alpha code (`isAlphaStage` in the landing).
  */
 export default function Page() {
-  return <AppHomeLanding />;
+  return (
+    <>
+      {searchIndexingEnabled() && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(buildStructuredData(siteUrl())) }}
+        />
+      )}
+      <AppHomeLanding />
+    </>
+  );
 }

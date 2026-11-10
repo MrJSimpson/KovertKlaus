@@ -41,6 +41,30 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '1.2.0-beta',
+    date: '2026-11-10',
+    title: 'Easier to find, nicer to share',
+    summary: 'KovertKlaus can now show up in search results, and links you share look better. Your missions and wishlists stay private.',
+    highlights: [
+      {
+        emoji: '🔎',
+        title: 'Findable in search',
+        text: 'Search engines can now find our home page, features, privacy policy and terms, so friends can look us up. Your account, missions, wishlists and invites are never shown in search results.',
+      },
+      {
+        emoji: '🔗',
+        title: 'Better link previews',
+        text: 'When you share a KovertKlaus link in a chat or email, it now shows a picture with a short description.',
+      },
+      {
+        emoji: '🏠',
+        title: 'Your own copy stays private',
+        text: 'Running KovertKlaus yourself? It stays out of search engines unless you turn on the new SEARCH_INDEXING setting.',
+        selfHostedOnly: true,
+      },
+    ],
+  },
+  {
     version: '1.1.6-beta',
     date: '2026-11-09',
     title: 'A clearer license, fresher parts',

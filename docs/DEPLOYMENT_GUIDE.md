@@ -146,6 +146,7 @@ Access your instance at: `http://localhost:2425`
 | `SMTP_USER` | Optional | `operative@yourdomain.com` | SMTP username. |
 | `SMTP_PASS` | Optional | `********` | SMTP password. |
 | `APP_MODE` | Optional | `selfhosted` (`saas`) | Open-core mode toggle vector. |
+| `SEARCH_INDEXING` | Optional | unset (`true`, `false`) | Whether search engines may index the site. Unset: **off** for self-hosted (robots.txt blocks everything and every page is `noindex`), **on** for SaaS (public pages only; accounts, missions, invites and admin stay blocked). Read at build time. Set `NEXT_PUBLIC_APP_URL` too if you turn it on, so the sitemap and canonical links use your address. |
 
 ---
 

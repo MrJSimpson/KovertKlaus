@@ -9,10 +9,15 @@
  */
 
 import type { Metadata } from 'next';
+import { publicPageMetadata } from '@/lib/seo';
 import { LegalPage } from '@/components/LegalPage';
 import { TERMS_OF_SERVICE } from '@/lib/legal';
 
-export const metadata: Metadata = { title: 'Terms of Service | KovertKlaus' };
+export const metadata: Metadata = publicPageMetadata(
+  '/terms',
+  'Terms of Service | KovertKlaus',
+  'The rules for using KovertKlaus, the hosted Secret Santa and gift exchange service.',
+);
 
 export default function TermsPage() {
   return <LegalPage doc={TERMS_OF_SERVICE} other={{ href: '/privacy', label: 'Privacy Policy' }} />;
