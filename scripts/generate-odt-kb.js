@@ -221,12 +221,12 @@ function generateODTFiles() {
         • <text:span text:style-name="CodeText">Klaus Mode 🎄 (Light Theme)</text:span>: Evergreen pine headers (emerald-950), holly berry buttons (red-700), warm gold accents, and clean white frames.<text:line-break/>
         • <text:span text:style-name="CodeText">Kovert Mode ❄️ (Dark Theme)</text:span>: Midnight slate (#090d16), icy sky blue accents (sky-400), translucent glassmorphism panels, and frost borders.
       </text:p>
-      <text:p text:style-name="Heading2">1.2 Open-Core Licensing Model (BSL 1.1)</text:p>
+      <text:p text:style-name="Heading2">1.2 Source-Available Licensing (BSL 1.1)</text:p>
       <text:p text:style-name="StandardText">
-        • <text:span text:style-name="CodeText">Free Non-Commercial Self-Hosting</text:span>: 100% free for families, friends, non-profits, and home labs.<text:line-break/>
-        • <text:span text:style-name="CodeText">Commercial Reservation</text:span>: Exclusive SaaS commercial rights belong to Joshua Simpson.<text:line-break/>
-        • <text:span text:style-name="CodeText">Anti-Enshittification Covenant</text:span>: Any acquiring entity is contractually bound to maintain an open-source GPLv3 version.<text:line-break/>
-        • <text:span text:style-name="CodeText">GPLv3 Automatic Sunset</text:span>: Converts unconditionally to GNU GPLv3 upon business closure, acquisition breach, or owner demise.
+        • <text:span text:style-name="CodeText">Free Self-Hosting</text:span>: Free to run, change and self-host for yourself, family and friends, or your own company, school, club or non-profit.<text:line-break/>
+        • <text:span text:style-name="CodeText">Commercial Reservation</text:span>: Selling KovertKlaus to others as a hosted service is reserved to Joshua Simpson.<text:line-break/>
+        • <text:span text:style-name="CodeText">Anti-Enshittification Clause</text:span>: If a future owner adds ads, paywalls existing features or stops publishing the source, every version converts to AGPLv3 at once.<text:line-break/>
+        • <text:span text:style-name="CodeText">AGPLv3 Conversion</text:span>: Each version converts to AGPLv3 four years after release, or sooner on an announcement by the author or estate, or after 24 months with no release or statement.
       </text:p>
       <text:p text:style-name="Heading2">1.3 Canonical Domain Nomenclature (Santa&apos;s Whimsical Secret Service)</text:p>
       <text:p text:style-name="StandardText">

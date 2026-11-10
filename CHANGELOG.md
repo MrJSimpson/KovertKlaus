@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **KovertKlaus now uses the standard Business Source License 1.1** (`BUSL-1.1`) instead of a custom license that only borrowed its name. Self-hosting stays free for yourself, family and friends, and now clearly also for your own company, school, club or non-profit and its staff or members. Selling it to others as a hosted service stays reserved to the author.
+- **The license converts to AGPLv3, not GPLv3.** Each version becomes AGPL-3.0-or-later four years after its release, or sooner if the author or his estate announces it, if 24 months pass with no release or statement, or if a future owner adds ads, paywalls existing features or stops publishing the source. AGPL also requires anyone who hosts a changed copy to share their changes.
+- **Outside pull requests are not accepted for now** ([`CONTRIBUTING.md`](./CONTRIBUTING.md)); issues and ideas are still welcome. A workflow closes outside pull requests with a pointer to the guide.
+
+### Fixed
+- The North Pole knowledge base (page and generated `.odt`) said the license converts "unconditionally" and called the model "open-core"; it now matches `LICENSE.md`. The old license text also wrongly called GPL code "public domain".
+
+### Added
+- **`THIRD_PARTY_NOTICES.md`** lists every production dependency with its license and license text, generated from `package-lock.json` (`npm run notices`). CI fails when it is out of date.
+
 ---
 
 ## [1.1.5-beta] - 2026-11-08
