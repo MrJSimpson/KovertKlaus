@@ -71,6 +71,9 @@
     "@napi-rs/wasm-runtime": {
       "@emnapi/core": "1.10.0",
       "@emnapi/runtime": "1.10.0"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
     }
   }
 }
