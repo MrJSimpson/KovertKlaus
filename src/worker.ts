@@ -14,7 +14,7 @@ import { validateNistPassword } from './lib/adminAuth';
 import { sanitizeText, isValidEmail, generateInviteCode, isSafePublicUrl, normalizeProductUrl } from './lib/security';
 import { executeTargetSwap } from './lib/draw';
 import { runManualDraw } from './lib/manual-draw';
-import { exclusionRuleProblemForMission, removeMemberExclusionRules } from './lib/exclusion-rules';
+import { exclusionRuleProblemForMission, removeMemberExclusionRules, toClientExclusionRules } from './lib/exclusion-rules';
 import { isSessionRevoked, issueSessionToken, readSessionToken, verifySessionToken, shouldRenewSession, SESSION_TTL_SECONDS, type SessionClaims, type SessionKind } from './lib/session-token';
 import { flushHeldEmailQueue, emailQuotaResumesAt, isEmailQuotaReached, sendAccountExportEmail, sendEmail, sendEmailVerificationEmail, sendPasswordResetEmail } from './lib/email/dispatcher';
 import { confirmPasswordReset, requestPasswordReset } from './lib/password-reset';
@@ -1752,7 +1752,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
                 ...exchange,
                 members: sanitizedMembers,
                 reports: sanitizeMissionReports(exchange.reports, viewer),
-                exclusionRules: isOrganizer ? exchange.exclusionRules : [],
+                exclusionRules: isOrganizer ? toClientExclusionRules(exchange.exclusionRules, exchange.members) : [],
                 repairIssues: visibleRepairIssues(exchange.repairIssues, activeUserId, isOrganizer),
                 // Requests to join by code, for the Head Elf to approve or decline.
                 joinRequests: isOrganizer ? await pendingJoinRequests(db, exchange) : [],

@@ -29,7 +29,7 @@ import { resolveTimelineUpdate } from '@/lib/validations/timeline';
 import { dispatchNudge } from '@/lib/nudge';
 import { drawCodename, enrollWithCodename } from '@/lib/codename';
 import { deleteMemberWishlistItems, memberWishlistCreate } from '@/lib/mission-wishlist';
-import { exclusionRuleProblemForMission, removeMemberExclusionRules } from '@/lib/exclusion-rules';
+import { exclusionRuleProblemForMission, removeMemberExclusionRules, toClientExclusionRules } from '@/lib/exclusion-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,7 +94,7 @@ export async function GET(request: Request) {
         members: sanitizedMembers,
         reports: sanitizeMissionReports(exchange.reports, viewer),
         // Preventative exclusion rules and invite tokens are strictly visible only to the Head Elf
-        exclusionRules: isOrganizer ? exchange.exclusionRules : [],
+        exclusionRules: isOrganizer ? toClientExclusionRules(exchange.exclusionRules, exchange.members) : [],
         repairIssues: visibleRepairIssues(exchange.repairIssues, activeUserId, isOrganizer),
         covertInviteTokens: isOrganizer ? exchange.covertInviteTokens : [],
         // Requests to join by code, for the Head Elf to approve or decline.

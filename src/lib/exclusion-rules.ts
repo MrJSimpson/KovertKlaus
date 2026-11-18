@@ -2,7 +2,8 @@
  * @file exclusion-rules.ts
  * @description Preventative match rules (two-way blocks) checked against the mission roster.
  *
- * Tier 1 (what): `exclusionRuleProblemForMission` validates a new rule before it is saved, and
+ * Tier 1 (what): `exclusionRuleProblemForMission` validates a new rule before it is saved,
+ * `toClientExclusionRules` shapes stored rules for the mission page, and
  * `removeMemberExclusionRules` deletes a removed agent's rules and reports whether the remaining
  * rules still allow one gift circle. Both runtimes (Next.js route and edge worker) call these.
  * Tier 2 (why): Rules are validated when they are made (every agent keeps 2 allowed partners and a
@@ -29,6 +30,68 @@ async function loadRosterAndRules(db: PrismaClient, exchangeId: string) {
     roster: members.map((m) => ({ id: m.userId, name: m.user.name ?? m.codename ?? 'An agent', codename: m.codename })),
     rules: rules.map<ExclusionRuleInput>((r) => ({ agentId: r.memberId, restrictedAgentId: r.restrictedMemberId })),
   };
+}
+
+/** One agent as the Head Elf's rule list labels them. */
+export interface ClientRuleAgent {
+  id: string;
+  name: string;
+  codename: string | null;
+}
+
+/** A preventative match rule as the mission page receives it (`OperationExclusionRule`). */
+export interface ClientExclusionRule {
+  id: string;
+  agentId: string;
+  restrictedAgentId: string;
+  agent: ClientRuleAgent;
+  restrictedAgent: ClientRuleAgent;
+}
+
+/** A stored rule as the mission query loads it; `member`/`restrictedMember` are optional fallbacks. */
+interface StoredExclusionRule {
+  id: string;
+  memberId: string;
+  restrictedMemberId: string;
+  member?: { name: string | null } | null;
+  restrictedMember?: { name: string | null } | null;
+}
+
+/** A roster entry: the membership's codename and the account's name. */
+interface RosterMember {
+  userId: string;
+  codename?: string | null;
+  user?: { name?: string | null } | null;
+}
+
+/**
+ * Converts stored rules (`memberId`, `restrictedMemberId`: user IDs) to the client's
+ * `agentId`/`restrictedAgentId` shape, labelled from the mission roster.
+ *
+ * The mission page and the rules dialog read the client names; sending the raw rows left every
+ * rule blank and made the page's draw-feasibility check ignore the rules (feedback 2026-11-09).
+ *
+ * @param rules - Rules loaded for one mission
+ * @param members - That mission's roster, for names and per-mission codenames
+ * @returns The rules in `OperationExclusionRule` shape
+ */
+export function toClientExclusionRules(rules: StoredExclusionRule[], members: RosterMember[]): ClientExclusionRule[] {
+  const byUser = new Map(members.map((m) => [m.userId, m]));
+  const agentFor = (userId: string, fallbackName: string | null | undefined): ClientRuleAgent => {
+    const m = byUser.get(userId);
+    return {
+      id: userId,
+      name: m?.user?.name || fallbackName || m?.codename || 'Former agent',
+      codename: m?.codename ?? null,
+    };
+  };
+  return rules.map((r) => ({
+    id: r.id,
+    agentId: r.memberId,
+    restrictedAgentId: r.restrictedMemberId,
+    agent: agentFor(r.memberId, r.member?.name),
+    restrictedAgent: agentFor(r.restrictedMemberId, r.restrictedMember?.name),
+  }));
 }
 
 /**
