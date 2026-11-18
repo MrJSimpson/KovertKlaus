@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Preventative match rules now show both agents' names on the mission page. The list was blank, and the page's draw check ignored the rules; the server-side draw check was not affected.
+
 ---
 
 ## [1.2.0-beta] - 2026-11-10
