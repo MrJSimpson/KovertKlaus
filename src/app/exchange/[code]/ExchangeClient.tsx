@@ -1082,6 +1082,16 @@ export default function OperationCommandCenterPage() {
               };
               const deadline = new Date(operation.repairDeadline).toLocaleString();
               const myTodo = userId ? agentTodo(issues, userId) : null;
+              // Refreshed on save (refreshPausedMissionsFor); the hourly sweep then resumes the draw.
+              // Only the Head Elf gets the full list: an agent's list holds just their own issues.
+              if (isOpsLeader && issues.length === 0) {
+                return (
+                  <div className={`p-5 sm:p-6 rounded-3xl border shadow-lg ${theme.alertSuccess}`}>
+                    <h2 className="font-extrabold text-base">✅ Everything is fixed</h2>
+                    <p className="text-sm mt-1">The draw runs at the next hourly check. Nothing else is needed.</p>
+                  </div>
+                );
+              }
               return (
                 <div className={`p-5 sm:p-6 rounded-3xl border shadow-lg ${theme.alertWarning}`}>
                   <h2 className="font-extrabold text-base">⏸️ The draw is paused</h2>

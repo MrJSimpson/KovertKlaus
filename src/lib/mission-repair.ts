@@ -5,7 +5,8 @@
  * Tier 1 (what): `drawReadinessIssues` lists what blocks a mission's draw. `repairDeadlineFor`
  * picks how long the Head Elf has to fix it. `runRepairSweep` is called by the lifecycle sweep for
  * each mission on or after Assignment Day: it pauses a mission with issues, reminds once a day,
- * resumes it when the issues are gone, and cancels it at the deadline. `timelineRepairUpdate`
+ * resumes it when the issues are gone, and cancels it at the deadline. `refreshPausedMissionsFor`
+ * re-checks an agent's paused missions right after they save their profile or wishlist. `timelineRepairUpdate`
  * lifts a pause when the Head Elf moves the draw to a later day.
  * Tier 2 (why): Owner rules (2026-10-20). Problems surface at matching: too few agents (Secret
  * Santa needs 4, White Elephant 3), a remote Secret Santa agent with no shipping address, or an
@@ -350,6 +351,44 @@ async function sendRepairNotices(
   }
 }
 
+/** Deletes the "Action Needed" notice of each listed agent who has nothing left to fix. */
+async function clearFixedAgentNotices(db: PrismaClient, exchangeId: string, userIds: string[], issues: ReadinessIssue[]): Promise<void> {
+  const fixed = userIds.filter((id) => agentTodo(issues, id) === null);
+  if (fixed.length === 0) return;
+  await db.notification.deleteMany({ where: { dedupeKey: `repair-agent:${exchangeId}`, userId: { in: fixed } } });
+}
+
+/**
+ * Re-checks every paused mission the agent belongs to, right after they change their profile or
+ * wishlist, so the mission page and the bell stop asking them for something already done.
+ *
+ * Only the stored issue list and the agent's own notice change here. Resuming the draw, reminders
+ * and cancellation stay with the hourly sweep (`runRepairSweep`), which also picks up the change.
+ * Failures are logged and swallowed: the agent's save already succeeded.
+ *
+ * @param db - Prisma client
+ * @param userId - The agent whose data just changed
+ * @returns How many paused missions were re-checked
+ */
+export async function refreshPausedMissionsFor(db: PrismaClient, userId: string): Promise<number> {
+  try {
+    const paused = await db.exchange.findMany({
+      where: { repairDeadline: { not: null }, status: 'RECRUITING', members: { some: { userId } } },
+      include: { members: { include: READINESS_MEMBERS_INCLUDE }, exclusionRules: true },
+    });
+    for (const ex of paused) {
+      const issues = drawReadinessIssues(toReadinessMission(ex));
+      const stored = JSON.stringify(issues);
+      if (stored !== ex.repairIssues) await db.exchange.update({ where: { id: ex.id }, data: { repairIssues: stored } });
+      await clearFixedAgentNotices(db, ex.id, [userId], issues);
+    }
+    return paused.length;
+  } catch (err) {
+    console.error('[MissionRepair] refresh after agent update failed:', err);
+    return 0;
+  }
+}
+
 /** Removes the pause notices once the mission resumes or ends. */
 async function clearRepairNotices(db: PrismaClient, exchangeId: string): Promise<void> {
   await db.notification.deleteMany({ where: { dedupeKey: { in: [`repair:${exchangeId}`, `repair-agent:${exchangeId}`] } } });
@@ -410,7 +449,11 @@ export async function runRepairSweep(db: PrismaClient, deps: MissionRepairDeps, 
     return 'reminded';
   }
   const stored = JSON.stringify(issues);
-  if (stored !== ex.repairIssues) await db.exchange.update({ where: { id: ex.id }, data: { repairIssues: stored } });
+  if (stored !== ex.repairIssues) {
+    await db.exchange.update({ where: { id: ex.id }, data: { repairIssues: stored } });
+    // Agents who fixed their part since the last reminder lose their notice now, not at the next reminder.
+    await clearFixedAgentNotices(db, ex.id, ex.members.map((m) => m.userId), issues).catch(() => {});
+  }
   return 'waiting';
 }
 

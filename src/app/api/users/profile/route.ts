@@ -4,6 +4,7 @@ import { comparePassword, hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { getSessionUserId, setSessionCookie } from '@/lib/auth';
 import { sanitizeText } from '@/lib/security';
+import { refreshPausedMissionsFor } from '@/lib/mission-repair';
 
 export const dynamic = 'force-dynamic';
 
@@ -209,6 +210,8 @@ export async function PUT(request: Request) {
       },
     });
     if (updateData.sessionsRevokedAt) await setSessionCookie(userId);
+    // A fixed address clears this agent's "Action Needed" on paused missions right away.
+    await refreshPausedMissionsFor(db, userId);
 
     return NextResponse.json({
       success: true,

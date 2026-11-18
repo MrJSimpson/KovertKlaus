@@ -13,8 +13,10 @@ import {
   parseRepairIssues,
   repairDeadlineFor,
   REPAIR_REMINDER_MS,
+  refreshPausedMissionsFor,
   runRepairSweep,
   timelineRepairUpdate,
+  toReadinessMission,
   visibleRepairIssues,
   type ReadinessMission,
 } from './mission-repair';
@@ -152,6 +154,7 @@ function fakeDb(overrides: Record<string, unknown> = {}) {
     exchange: {
       update: async ({ data }: any) => (updates.push(data), Object.assign(ex, data)),
       findUnique: async () => ex,
+      findMany: async () => (ex.repairDeadline && ex.status === 'RECRUITING' ? [ex] : []),
       updateMany: async ({ data }: any) => (Object.assign(ex, data), { count: 1 }),
     },
     notification: {
@@ -299,4 +302,43 @@ test('Readiness - unverified email wording for the Head Elf, the agent and a can
   );
   assert.strictEqual(notes.boss, 'Still blocking the draw at the deadline: Ivy (Quiet Fox): email not verified.');
   assert.strictEqual(notes.a, 'At the deadline, you had not verified your email address.');
+});
+
+test('Repair refresh - a saved address updates the stored list and clears the agent notice at once', async () => {
+  const f = fakeDb({ status: 'RECRUITING', repairDeadline: new Date(NOW + 2 * DAY), repairNoticeAt: new Date(NOW) });
+  f.ex.repairIssues = JSON.stringify(drawReadinessIssues(toReadinessMission(f.ex)));
+  Object.assign(f.ex.members[1].user, ADDRESS); // Ivy saves her address
+  assert.strictEqual(await refreshPausedMissionsFor(f.db, 'u2'), 1);
+  assert.deepStrictEqual(parseRepairIssues(f.ex.repairIssues), [{ type: 'EMPTY_WISHLIST', userId: 'u3' }]);
+  assert.deepStrictEqual(f.deleted, [{ dedupeKey: 'repair-agent:ex1', userId: { in: ['u2'] } }]);
+  assert.strictEqual(f.ex.status, 'RECRUITING', 'the hourly sweep resumes the draw, not the save');
+});
+
+test('Repair refresh - an agent still at fault keeps their notice; no paused mission is a no-op', async () => {
+  const f = fakeDb({ status: 'RECRUITING', repairDeadline: new Date(NOW + 2 * DAY), repairNoticeAt: new Date(NOW) });
+  assert.strictEqual(await refreshPausedMissionsFor(f.db, 'u3'), 1);
+  assert.deepStrictEqual(f.deleted, []);
+  const idle = fakeDb();
+  assert.strictEqual(await refreshPausedMissionsFor(idle.db, 'u2'), 0);
+  assert.deepStrictEqual(idle.updates, []);
+});
+
+test('Repair refresh - a database failure never fails the save', async () => {
+  const f = fakeDb();
+  f.db.exchange.findMany = async () => { throw new Error('connection reset'); };
+  const origError = console.error;
+  console.error = () => {};
+  try {
+    assert.strictEqual(await refreshPausedMissionsFor(f.db, 'u2'), 0);
+  } finally {
+    console.error = origError;
+  }
+});
+
+test('Repair sweep - waiting: agents who fixed their part lose their notice before the next reminder', async () => {
+  const f = fakeDb({ status: 'RECRUITING', repairDeadline: new Date(NOW + 2 * DAY), repairNoticeAt: new Date(NOW - 60 * 60 * 1000) });
+  f.ex.repairIssues = JSON.stringify(drawReadinessIssues(toReadinessMission(f.ex)));
+  f.ex.members[2].wishlist._count.wishlistItems = 2; // Noel adds a gift
+  assert.strictEqual(await runRepairSweep(f.db, fakeDeps().deps, f.ex, NOW), 'waiting');
+  assert.deepStrictEqual(f.deleted, [{ dedupeKey: 'repair-agent:ex1', userId: { in: ['boss', 'u3', 'u4'] } }]);
 });

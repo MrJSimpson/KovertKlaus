@@ -25,6 +25,8 @@ function fakeDb(opts: { items?: Array<[string, number, number?]>; budgetMax?: nu
   let list = opts.hasList === false ? null : { id: 'w1', type: opts.whiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD' };
   let next = items.length;
   const db = {
+    // No paused missions: the post-change readiness refresh (refreshPausedMissionsFor) finds nothing.
+    exchange: { findMany: async () => [] },
     exchangeMember: {
       findUnique: async ({ where }: { where: { exchangeId_userId: { exchangeId: string; userId: string } } }) => {
         const { exchangeId, userId } = where.exchangeId_userId;

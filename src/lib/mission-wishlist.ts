@@ -29,6 +29,7 @@ import { sanitizeItemDetails, updateCatalogIntelligence, type ItemDetail } from 
 import { validateAndSanitizeManifestItem } from '@/lib/validations/manifest';
 import { isMissionClosed, MISSION_CLOSED_RESULT } from '@/lib/mission-cancel';
 import { DEFAULT_PLATFORM_SETTINGS, type PlatformSettings } from '@/lib/platform-limits';
+import { refreshPausedMissionsFor } from '@/lib/mission-repair';
 
 /** The platform limits the list rules read. */
 export type WishlistLimits = Pick<PlatformSettings, 'maxWishlistItems' | 'maxItemQuantity'>;
@@ -417,6 +418,12 @@ export async function deleteMemberWishlistItems(db: PrismaClient, memberId: stri
   await db.item.deleteMany({ where: { wishlistItems: { some: { wishlist: { memberId } } } } });
 }
 
+/** After a successful add or remove, re-checks the agent's paused missions (empty-wishlist issues). */
+async function afterListChange(db: PrismaClient, userId: string, result: WishlistResult): Promise<WishlistResult> {
+  if (result.status < 300) await refreshPausedMissionsFor(db, userId);
+  return result;
+}
+
 /**
  * Routes one `/api/wishlist` request to the handler for its method, so the worker and the Next
  * route stay identical.
@@ -441,11 +448,11 @@ export async function handleWishlistRequest(
     case 'GET':
       return getMissionWishlist(db, userId, searchParams.get('exchangeId'), limits);
     case 'POST':
-      return addWishlistItem(db, userId, ((await readBody()) ?? {}) as WishlistItemInput, limits);
+      return afterListChange(db, userId, await addWishlistItem(db, userId, ((await readBody()) ?? {}) as WishlistItemInput, limits));
     case 'PATCH':
       return updateWishlistItem(db, userId, ((await readBody()) ?? {}) as WishlistItemInput, limits);
     case 'DELETE':
-      return removeWishlistItem(db, userId, searchParams.get('exchangeId'), searchParams.get('itemId'));
+      return afterListChange(db, userId, await removeWishlistItem(db, userId, searchParams.get('exchangeId'), searchParams.get('itemId')));
     default:
       return { status: 405, body: { error: 'Method not allowed' } };
   }
