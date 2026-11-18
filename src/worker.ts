@@ -64,7 +64,7 @@ import { dismissNotifications, listMyNotifications } from './lib/notifications';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
 import { isRosterLocked, refreshPausedMissionsFor, timelineRepairUpdate, visibleRepairIssues } from './lib/mission-repair';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
-import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
+import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate, wishlistRefusalLog } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
 import { bodyObject, bodyString, readJsonBody } from './lib/request-body';
 import { assertProductTitle, describeFetchFailure, fetchProductPage, isUsableProductTitle } from './lib/product-fetch';
@@ -80,6 +80,7 @@ import {
   BADGE_VIGILANT_ELF,
 } from './lib/covertDelivery';
 import { PROFILE_DOSSIER_SELECT, buildProfileUpdate, organizerVisibilityAliases } from './lib/profile-update';
+import { extractProductUrl, NO_LINK_MESSAGE } from './lib/product-url';
 
 const ADMIN_COOKIE_NAME = ADMIN_SESSION_COOKIE_NAME;
 const USER_COOKIE_NAME = SESSION_COOKIE_NAME;
@@ -2670,7 +2671,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
         if (!url) return Response.json({ error: 'Valid product URL required' }, { status: 400 });
 
-        const formattedUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
+        // Share text and product names: find the link, or ask for one without logging (src/lib/product-url.ts).
+        const formattedUrl = extractProductUrl(url);
+        if (!formattedUrl) return Response.json({ error: NO_LINK_MESSAGE }, { status: 400 });
         const ssrfCheck = isSafePublicUrl(formattedUrl);
         if (!ssrfCheck.safe) {
           await logScraperEvent(formattedUrl, 'BLOCKED_SSRF', { reason: ssrfCheck.error }, { dbClient: db, env }).catch(() => {});
@@ -2833,6 +2836,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (!userId) return Response.json({ error: 'Authentication required' }, { status: 401 });
         const result = await handleWishlistRequest(db, userId, request.method, url.searchParams,
           () => request.json().catch(() => ({})), await platformSettings(adminDb));
+        const refusal = wishlistRefusalLog(request.method, result, userId);
+        if (refusal) await logSystemEvent({ level: 'WARN', category: 'OPERATION', ...refusal, path: pathname, method: request.method, statusCode: result.status, env }).catch(() => {});
         return Response.json(result.body, { status: result.status });
       }
 

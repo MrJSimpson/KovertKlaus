@@ -64,7 +64,7 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Fetch profile error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to fetch user profile' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 500 });
   }
 }
 
@@ -223,6 +223,7 @@ export async function PUT(request: Request) {
     });
   } catch (error: any) {
     console.error('Update profile error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to update profile' }, { status: 500 });
+    // Never echo internal error text (database messages) to the client; the worker does the same.
+    return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
   }
 }

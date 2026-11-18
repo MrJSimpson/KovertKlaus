@@ -15,7 +15,8 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { adminDb } from '@/lib/adminDb';
 import { getSessionUserId } from '@/lib/auth';
-import { handleWishlistRequest } from '@/lib/mission-wishlist';
+import { handleWishlistRequest, wishlistRefusalLog } from '@/lib/mission-wishlist';
+import { logWarn } from '@/lib/logger';
 import { getPlatformSettings } from '@/lib/platform-limits';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,8 @@ async function handle(request: Request) {
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     const result = await handleWishlistRequest(db, userId, request.method, new URL(request.url).searchParams,
       () => request.json().catch(() => ({})), await getPlatformSettings(adminDb));
+    const refusal = wishlistRefusalLog(request.method, result, userId);
+    if (refusal) await logWarn('OPERATION', refusal.message, { metadata: refusal.metadata, path: '/api/wishlist', method: request.method, statusCode: result.status }).catch(() => {});
     return NextResponse.json(result.body, { status: result.status });
   } catch (error) {
     console.error('[Wishlist] request failed:', error);

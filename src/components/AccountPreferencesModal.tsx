@@ -377,6 +377,10 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated, ini
                   <p className={`text-xs ${theme.textSubLabel}`}>
                     Provide sizing and preferences so your Secret Santa can find gifts that fit your style.
                   </p>
+                  {/* Agents mistook these hints for their wishlist and the draw stayed paused (beta feedback 2026-11-18). */}
+                  <div className={`p-3 rounded-2xl text-xs border ${theme.alertWarning}`}>
+                    💡 These are hints, not your wishlist. Each mission needs at least one gift in <strong>🎁 My Wishlist Manifest</strong> on the mission page before the draw can run.
+                  </div>
 
                   {/* Section A: Sizing */}
                   <div className="space-y-3">
