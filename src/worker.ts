@@ -62,7 +62,7 @@ import { listMissionInvitations, listMyInvitations, resendMissionInvitation, sen
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
 import { dismissNotifications, listMyNotifications } from './lib/notifications';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
-import { isRosterLocked, timelineRepairUpdate, visibleRepairIssues } from './lib/mission-repair';
+import { isRosterLocked, refreshPausedMissionsFor, timelineRepairUpdate, visibleRepairIssues } from './lib/mission-repair';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
 import { deleteMemberWishlistItems, handleWishlistRequest, memberWishlistCreate } from './lib/mission-wishlist';
 import { logSystemEvent, logScraperEvent, logError, logInfo } from './lib/logger';
@@ -1567,6 +1567,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
               id: true, email: true, name: true, emailNotifications: true, ...PROFILE_DOSSIER_SELECT,
             },
           });
+
+          // A fixed address clears this agent's "Action Needed" on paused missions right away.
+          await refreshPausedMissionsFor(db, userId);
 
           const prefHeaders = new Headers();
           if (updateData.sessionsRevokedAt) prefHeaders.append('Set-Cookie', sessionCookie('user', issueSessionToken('user', userId)));

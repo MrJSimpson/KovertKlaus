@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Preventative match rules now show both agents' names on the mission page. The list was blank, and the page's draw check ignored the rules; the server-side draw check was not affected.
+- Account Preferences shows "Preferences saved" (or the error) next to the Save button, so it is visible on a phone however far the form is scrolled. Before, the message appeared above the form, out of view.
+- Saving an address or changing a wishlist re-checks the agent's paused missions at once. The mission page and the bell stop asking for something already done, instead of waiting up to a day for the next reminder. The Head Elf sees "Everything is fixed" until the next hourly check runs the draw.
 
 ---
 

@@ -165,7 +165,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated, ini
         throw new Error(data.error || 'Failed to update profile');
       }
 
-      setSuccessMessage('Profile and Operative Dossier updated successfully!');
+      setSuccessMessage('Preferences saved.');
       setCurrentPassword('');
       setNewPassword('');
       if (onProfileUpdated) onProfileUpdated();
@@ -243,18 +243,6 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated, ini
         {/* Form Body */}
         <form onSubmit={handleSaveProfile} className="flex flex-col flex-1 overflow-hidden">
           <div className="p-4 sm:p-8 overflow-y-auto flex-1 space-y-6">
-          {successMessage && (
-            <div className={`p-4 rounded-2xl text-xs font-bold border ${theme.alertSuccess}`}>
-              ✓ {successMessage}
-            </div>
-          )}
-
-          {errorMessage && (
-            <div className={`p-4 rounded-2xl text-xs font-bold border ${theme.alertWarning}`}>
-              ⚠️ {errorMessage}
-            </div>
-          )}
-
           {loading ? (
             <div className="text-center py-12">
               <div className="text-3xl animate-spin mb-2">🎁</div>
@@ -630,8 +618,22 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated, ini
 
           </div>
 
-          {/* Footer Buttons */}
-          <div className="p-4 sm:p-6 border-t border-kk-border flex items-center justify-end gap-3 shrink-0 pb-safe-sheet bg-inherit">
+          {/* Footer: save result and buttons. The result sits here, not above the form, so it is
+              visible however far the agent has scrolled (beta feedback 2026-11-16). */}
+          <div className="p-4 sm:p-6 border-t border-kk-border flex flex-col gap-3 shrink-0 pb-safe-sheet bg-inherit">
+          <div aria-live="polite" role="status">
+            {successMessage && (
+              <div className={`p-3 rounded-2xl text-xs font-bold border ${theme.alertSuccess}`}>
+                ✓ {successMessage}
+              </div>
+            )}
+            {errorMessage && (
+              <div className={`p-3 rounded-2xl text-xs font-bold border ${theme.alertWarning}`}>
+                ⚠️ {errorMessage}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-end gap-3 min-w-0">
             <button
               type="button"
               onClick={onClose}
@@ -648,6 +650,7 @@ export function AccountPreferencesModal({ isOpen, onClose, onProfileUpdated, ini
             >
               {saving ? '💾 Saving Changes...' : '💾 Save Preferences'}
             </button>
+          </div>
           </div>
         </form>
       </div>
