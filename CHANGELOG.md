@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.0-beta] - 2026-11-18
+
 ### Added
 - North Pole logs record refused wishlist adds (the reason only, never the item), so "I added items but the draw is paused" can be checked.
 

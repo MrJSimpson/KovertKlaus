@@ -41,6 +41,39 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '1.3.0-beta',
+    date: '2026-11-18',
+    title: 'Fixes from your feedback',
+    summary: 'Thank you for telling us what went wrong. These fixes make saving your details, adding gifts and setting match rules clearer.',
+    highlights: [
+      {
+        emoji: '🚫',
+        title: 'Match rules show names again',
+        text: 'Head Elves: your preventative match rules now show who is kept apart. The list was blank before, but your rules always applied to the draw.',
+      },
+      {
+        emoji: '💾',
+        title: 'You can see when it saved',
+        text: 'Account Preferences now says "Preferences saved" right next to the Save button, even on a phone.',
+      },
+      {
+        emoji: '⏸️',
+        title: 'Paused draws update right away',
+        text: 'When a draw is waiting on you, adding your address or a gift clears the reminder at once. The draw runs at the next hourly check once everything is fixed.',
+      },
+      {
+        emoji: '🔗',
+        title: 'Paste a store link from any app',
+        text: 'Shared a product from a store app? Paste the whole message: we find the link in it. If there is no link, we tell you what to paste.',
+      },
+      {
+        emoji: '🎁',
+        title: 'Hints are not a wishlist',
+        text: 'Your sizes and favorites help your Secret Santa, but each mission still needs at least one gift on its wishlist before the draw.',
+      },
+    ],
+  },
+  {
     version: '1.2.0-beta',
     date: '2026-11-10',
     title: 'Easier to find, nicer to share',
