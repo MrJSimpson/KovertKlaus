@@ -33,29 +33,29 @@
     "@prisma/client": "^7.10.1",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
-    "next": "^16.4.4",
-    "nodemailer": "^10.3.1",
+    "next": "^16.4.5",
+    "nodemailer": "^10.4.0",
     "pg": "^8.23.1",
     "pg-cloudflare": "^1.4.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "undici": "^8.12.3",
-    "ws": "^8.22.1"
+    "undici": "^8.12.4",
+    "ws": "^8.22.2"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^24.19.2",
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/ws": "^8.18.2",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.4.4",
+    "eslint-config-next": "^16.4.5",
     "prisma": "^7.10.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "wrangler": "^4.156.1"
+    "wrangler": "^4.158.0"
   },
   "overrides": {
     "deepmerge-ts": "^8.0.0",
