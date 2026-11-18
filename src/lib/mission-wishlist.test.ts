@@ -10,6 +10,7 @@ import {
   parsePrice,
   removeWishlistItem,
   updateWishlistItem,
+  wishlistRefusalLog,
   wishlistRules,
 } from './mission-wishlist';
 
@@ -25,6 +26,8 @@ function fakeDb(opts: { items?: Array<[string, number, number?]>; budgetMax?: nu
   let list = opts.hasList === false ? null : { id: 'w1', type: opts.whiteElephant ? 'WHITE_ELEPHANT' : 'STANDARD' };
   let next = items.length;
   const db = {
+    // No paused missions: the post-change readiness refresh (refreshPausedMissionsFor) finds nothing.
+    exchange: { findMany: async () => [] },
     exchangeMember: {
       findUnique: async ({ where }: { where: { exchangeId_userId: { exchangeId: string; userId: string } } }) => {
         const { exchangeId, userId } = where.exchangeId_userId;
@@ -249,4 +252,15 @@ test('Mission wishlist API', async (t) => {
     assert.equal(limited.body.rules?.maxItems, 5);
     assert.equal(limited.body.rules?.maxQuantity, 3);
   });
+});
+
+test('wishlistRefusalLog - logs refused adds with the reason only', () => {
+  const refused = wishlistRefusalLog('POST', { status: 400, body: { error: 'A personalized gift needs a description.' } }, 'u1');
+  assert.deepEqual(refused, {
+    message: 'Wishlist add refused (400): A personalized gift needs a description.',
+    metadata: { userId: 'u1', status: 400, reason: 'A personalized gift needs a description.' },
+  });
+  assert.equal(wishlistRefusalLog('POST', { status: 200, body: { success: true } }, 'u1'), null, 'successful add');
+  assert.equal(wishlistRefusalLog('PATCH', { status: 400, body: { error: 'x' } }, 'u1'), null, 'only adds');
+  assert.equal(wishlistRefusalLog('POST', { status: 500, body: { error: 'x' } }, 'u1'), null, 'server errors are logged elsewhere');
 });

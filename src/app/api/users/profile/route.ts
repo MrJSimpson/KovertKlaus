@@ -4,6 +4,7 @@ import { comparePassword, hashPassword } from '@/lib/password';
 import { db } from '@/lib/db';
 import { getSessionUserId, setSessionCookie } from '@/lib/auth';
 import { sanitizeText } from '@/lib/security';
+import { refreshPausedMissionsFor } from '@/lib/mission-repair';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,7 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Fetch profile error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to fetch user profile' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 500 });
   }
 }
 
@@ -209,6 +210,8 @@ export async function PUT(request: Request) {
       },
     });
     if (updateData.sessionsRevokedAt) await setSessionCookie(userId);
+    // A fixed address clears this agent's "Action Needed" on paused missions right away.
+    await refreshPausedMissionsFor(db, userId);
 
     return NextResponse.json({
       success: true,
@@ -220,6 +223,7 @@ export async function PUT(request: Request) {
     });
   } catch (error: any) {
     console.error('Update profile error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to update profile' }, { status: 500 });
+    // Never echo internal error text (database messages) to the client; the worker does the same.
+    return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
   }
 }

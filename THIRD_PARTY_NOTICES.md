@@ -43,15 +43,15 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `@img/sharp-win32-ia32` (platform-specific) | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
 | `@img/sharp-win32-x64` (platform-specific) | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
 | `@neondatabase/serverless` | 1.2.0 | MIT |
-| `@next/env` | 16.4.4 | MIT |
-| `@next/swc-darwin-arm64` (platform-specific) | 16.4.4 | MIT |
-| `@next/swc-darwin-x64` (platform-specific) | 16.4.4 | MIT |
-| `@next/swc-linux-arm64-gnu` (platform-specific) | 16.4.4 | MIT |
-| `@next/swc-linux-arm64-musl` (platform-specific) | 16.4.4 | MIT |
-| `@next/swc-linux-x64-gnu` (platform-specific) | 16.4.4 | MIT |
-| `@next/swc-linux-x64-musl` (platform-specific) | 16.4.4 | MIT |
-| `@next/swc-win32-arm64-msvc` (platform-specific) | 16.4.4 | MIT |
-| `@next/swc-win32-x64-msvc` (platform-specific) | 16.4.4 | MIT |
+| `@next/env` | 16.4.5 | MIT |
+| `@next/swc-darwin-arm64` (platform-specific) | 16.4.5 | MIT |
+| `@next/swc-darwin-x64` (platform-specific) | 16.4.5 | MIT |
+| `@next/swc-linux-arm64-gnu` (platform-specific) | 16.4.5 | MIT |
+| `@next/swc-linux-arm64-musl` (platform-specific) | 16.4.5 | MIT |
+| `@next/swc-linux-x64-gnu` (platform-specific) | 16.4.5 | MIT |
+| `@next/swc-linux-x64-musl` (platform-specific) | 16.4.5 | MIT |
+| `@next/swc-win32-arm64-msvc` (platform-specific) | 16.4.5 | MIT |
+| `@next/swc-win32-x64-msvc` (platform-specific) | 16.4.5 | MIT |
 | `@prisma/adapter-neon` | 7.10.1 | Apache-2.0 |
 | `@prisma/adapter-pg` | 7.10.1 | Apache-2.0 |
 | `@prisma/client` | 7.10.1 | Apache-2.0 |
@@ -182,8 +182,8 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `mysql2` (platform-specific) | 3.24.6 | MIT |
 | `named-placeholders` (platform-specific) | 1.1.6 | MIT |
 | `nanoid` | 3.3.20 | MIT |
-| `next` | 16.4.4 | MIT |
-| `nodemailer` | 10.3.1 | MIT-0 |
+| `next` | 16.4.5 | MIT |
+| `nodemailer` | 10.4.0 | MIT-0 |
 | `nth-check` | 2.1.1 | BSD-2-Clause |
 | `ohash` (platform-specific) | 2.0.12 | MIT |
 | `parse5` | 7.3.0 | MIT |
@@ -237,13 +237,13 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `styled-jsx` | 5.1.6 | MIT |
 | `tslib` | 2.9.1 | 0BSD |
 | `typescript` (platform-specific) | 6.0.3 | Apache-2.0 |
-| `undici` | 8.12.3 | MIT |
+| `undici` | 8.12.4 | MIT |
 | `undici-types` | 7.24.6 | MIT |
 | `valibot` (platform-specific) | 1.4.2 | MIT |
 | `whatwg-encoding` | 3.1.1 | MIT |
 | `whatwg-mimetype` | 4.0.0 | MIT |
 | `which` (platform-specific) | 2.0.2 | ISC |
-| `ws` | 8.22.1 | MIT |
+| `ws` | 8.22.2 | MIT |
 | `xtend` | 4.0.2 | MIT |
 | `zeptomatch` (platform-specific) | 2.1.0 | MIT |
 <!-- table:end -->
@@ -431,7 +431,7 @@ Apache License
    END OF TERMS AND CONDITIONS
 ```
 
-### @emnapi/runtime@1.11.3, @next/swc-darwin-arm64@16.4.4, @next/swc-darwin-x64@16.4.4, @next/swc-linux-arm64-gnu@16.4.4, @next/swc-linux-arm64-musl@16.4.4, @next/swc-linux-x64-gnu@16.4.4, @next/swc-linux-x64-musl@16.4.4, @next/swc-win32-arm64-msvc@16.4.4
+### @emnapi/runtime@1.11.3, @next/swc-darwin-arm64@16.4.5, @next/swc-darwin-x64@16.4.5, @next/swc-linux-arm64-gnu@16.4.5, @next/swc-linux-arm64-musl@16.4.5, @next/swc-linux-x64-gnu@16.4.5, @next/swc-linux-x64-musl@16.4.5, @next/swc-win32-arm64-msvc@16.4.5
 
 MIT. Not installed on the machine that generated this file (platform-specific); see the package for its license text.
 
@@ -760,7 +760,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### @next/env@16.4.4, @next/swc-win32-x64-msvc@16.4.4, @radix-ui/react-compose-refs@1.1.2, @radix-ui/react-use-layout-effect@1.1.1, client-only@0.0.1, pg-types@2.2.0, pgpass@1.0.5, remeda@2.33.4
+### @next/env@16.4.5, @next/swc-win32-x64-msvc@16.4.5, @radix-ui/react-compose-refs@1.1.2, @radix-ui/react-use-layout-effect@1.1.1, client-only@0.0.1, pg-types@2.2.0, pgpass@1.0.5, remeda@2.33.4
 
 MIT. The package ships no separate license file.
 
@@ -3883,7 +3883,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### next@16.4.4
+### next@16.4.5
 
 ```text
 The MIT License (MIT)
@@ -3909,7 +3909,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### nodemailer@10.3.1
+### nodemailer@10.4.0
 
 ```text
 Copyright (c) 2011-2023 Andris Reinman
@@ -4779,7 +4779,7 @@ If the Work includes a "NOTICE" text file as part of its distribution, then any 
 END OF TERMS AND CONDITIONS
 ```
 
-### undici@8.12.3, undici-types@7.24.6
+### undici@8.12.4, undici-types@7.24.6
 
 ```text
 MIT License
@@ -4831,7 +4831,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### ws@8.22.1
+### ws@8.22.2
 
 ```text
 Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com>

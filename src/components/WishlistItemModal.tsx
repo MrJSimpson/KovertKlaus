@@ -11,6 +11,7 @@ import {
   getCategorySuggestedKeys,
   MAX_ITEM_DETAILS,
 } from '@/lib/product-intelligence';
+import { extractProductUrl, NO_LINK_MESSAGE } from '@/lib/product-url';
 
 export interface WishlistItemModalProps {
   isOpen: boolean;
@@ -163,11 +164,17 @@ export function WishlistItemModal({
   /** Fills the form from the pasted store link (`/api/scraper`). Fields it cannot read stay as they are. */
   async function handleGetData() {
     setErrorMessage('');
-    const link = url.trim();
-    if (!link) {
+    if (!url.trim()) {
       setErrorMessage('Paste a link to the item first.');
       return;
     }
+    // Share text ("Take a look at this item… https://…") keeps only the link; a product name gets a hint.
+    const link = extractProductUrl(url);
+    if (!link) {
+      setErrorMessage(NO_LINK_MESSAGE);
+      return;
+    }
+    if (link !== url.trim()) setUrl(link);
     setLookingUp(true);
     try {
       const res = await fetch('/api/scraper', {

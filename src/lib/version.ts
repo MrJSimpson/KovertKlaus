@@ -10,6 +10,6 @@
  * section or the newest announcement drift apart.
  */
 
-export const APP_VERSION = '1.2.0-beta';
+export const APP_VERSION = '1.3.0-beta';
 export const APP_VERSION_LABEL = `v${APP_VERSION}`;
 

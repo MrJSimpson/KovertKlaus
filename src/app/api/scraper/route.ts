@@ -6,6 +6,7 @@ import { logScraperEvent } from '@/lib/logger';
 import { assertProductTitle, describeFetchFailure, fetchProductPage, isUsableProductTitle } from '@/lib/product-fetch';
 import { detectProductCategory, getCategorySuggestedKeys } from '@/lib/product-intelligence';
 import { createSsrfSafeFetch } from '@/lib/ssrf-node-fetch';
+import { extractProductUrl, NO_LINK_MESSAGE } from '@/lib/product-url';
 
 /** Connects only to public addresses, checked at socket time on every hop (see ssrf-node-fetch.ts). */
 const ssrfSafeFetch = createSsrfSafeFetch();
@@ -18,7 +19,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Valid product URL is required' }, { status: 400 });
     }
 
-    const formattedUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
+    // Share text and product names: find the link, or ask for one without logging (src/lib/product-url.ts).
+    const formattedUrl = extractProductUrl(url);
+    if (!formattedUrl) return NextResponse.json({ error: NO_LINK_MESSAGE }, { status: 400 });
 
     // SSRF validation of the URL text (OWASP A10); resolved addresses are checked by ssrfSafeFetch
     const ssrfCheck = isSafePublicUrl(formattedUrl);

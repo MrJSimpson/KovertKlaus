@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0-beta] - 2026-11-18
+
+### Added
+- North Pole logs record refused wishlist adds (the reason only, never the item), so "I added items but the draw is paused" can be checked.
+
+### Fixed
+- Preventative match rules now show both agents' names on the mission page. The list was blank, and the page's draw check ignored the rules; the server-side draw check was not affected.
+- Account Preferences shows "Preferences saved" (or the error) next to the Save button, so it is visible on a phone however far the form is scrolled. Before, the message appeared above the form, out of view.
+- Saving an address or changing a wishlist re-checks the agent's paused missions at once. The mission page and the bell stop asking for something already done, instead of waiting up to a day for the next reminder. The Head Elf sees "Everything is fixed" until the next hourly check runs the draw.
+- Get Data finds the store link in pasted share text ("Take a look at this item… https://…") and keeps only the link. Pasting a product name now says to paste the link instead of "We couldn't read that page".
+- The gifting preferences tab says its hints are not a wishlist: each mission still needs at least one gift on the mission page.
+- Self-hosted: profile errors no longer send internal error text to the browser.
+
+---
+
 ## [1.2.0-beta] - 2026-11-10
 
 ### Added
