@@ -10,6 +10,7 @@ import {
   parsePrice,
   removeWishlistItem,
   updateWishlistItem,
+  wishlistRefusalLog,
   wishlistRules,
 } from './mission-wishlist';
 
@@ -251,4 +252,15 @@ test('Mission wishlist API', async (t) => {
     assert.equal(limited.body.rules?.maxItems, 5);
     assert.equal(limited.body.rules?.maxQuantity, 3);
   });
+});
+
+test('wishlistRefusalLog - logs refused adds with the reason only', () => {
+  const refused = wishlistRefusalLog('POST', { status: 400, body: { error: 'A personalized gift needs a description.' } }, 'u1');
+  assert.deepEqual(refused, {
+    message: 'Wishlist add refused (400): A personalized gift needs a description.',
+    metadata: { userId: 'u1', status: 400, reason: 'A personalized gift needs a description.' },
+  });
+  assert.equal(wishlistRefusalLog('POST', { status: 200, body: { success: true } }, 'u1'), null, 'successful add');
+  assert.equal(wishlistRefusalLog('PATCH', { status: 400, body: { error: 'x' } }, 'u1'), null, 'only adds');
+  assert.equal(wishlistRefusalLog('POST', { status: 500, body: { error: 'x' } }, 'u1'), null, 'server errors are logged elsewhere');
 });

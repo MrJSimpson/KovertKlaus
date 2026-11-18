@@ -418,6 +418,24 @@ export async function deleteMemberWishlistItems(db: PrismaClient, memberId: stri
   await db.item.deleteMany({ where: { wishlistItems: { some: { wishlist: { memberId } } } } });
 }
 
+/**
+ * The WARN entry for a refused wishlist add, or `null` when there is nothing to log.
+ *
+ * Refusals (price over the limit, a personalized gift with no description, a full list) used to
+ * leave no trace, so "I added items but the draw is paused" could not be checked (2026-11-18).
+ * Only the refusal text and status are kept, never the item itself. Each runtime writes the entry
+ * with its own logger options (the worker needs `env` to reach the admin database).
+ *
+ * @param method - HTTP method of the wishlist request
+ * @param result - The handler's result
+ * @param userId - The agent who was refused
+ */
+export function wishlistRefusalLog(method: string, result: WishlistResult, userId: string): { message: string; metadata: Record<string, unknown> } | null {
+  if (method !== 'POST' || result.status < 400 || result.status >= 500) return null;
+  const reason = typeof result.body?.error === 'string' ? result.body.error : 'unknown';
+  return { message: `Wishlist add refused (${result.status}): ${reason.slice(0, 200)}`, metadata: { userId, status: result.status, reason } };
+}
+
 /** After a successful add or remove, re-checks the agent's paused missions (empty-wishlist issues). */
 async function afterListChange(db: PrismaClient, userId: string, result: WishlistResult): Promise<WishlistResult> {
   if (result.status < 300) await refreshPausedMissionsFor(db, userId);
