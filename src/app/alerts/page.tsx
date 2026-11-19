@@ -13,8 +13,8 @@
  * Tier 3 (how): `GET /api/notifications` returns `pinned`, `notifications` (newest 100) and `total`;
  * removing uses `PATCH /api/notifications` (`{ ids }` or `{ all: true }`; the server never removes
  * pinned notices) and drops rows locally first, reloading on failure. Day groups and time labels
- * are local to the viewer (`src/lib/alerts.ts`). "Add my address" opens Account Preferences on its
- * shipping tab here, until the Profile page exists.
+ * are local to the viewer (`src/lib/alerts.ts`). "Add my address" opens the address section of the
+ * Profile page (`/profile#address`).
  */
 
 import Link from 'next/link';
@@ -23,7 +23,6 @@ import { useRouter } from 'next/navigation';
 import { AppShell, ALERTS_CHANGED_EVENT } from '@/components/brand/AppShell';
 import { Icon } from '@/components/brand/Icon';
 import { Illustration } from '@/components/art/Illustration';
-import { AccountPreferencesModal, type PreferencesTab } from '@/components/AccountPreferencesModal';
 import { EMAIL_UNVERIFIED_CODE, USER_ID_KEY } from '@/lib/constants/auth';
 import { fetchJsonWithRetry } from '@/lib/load-retry';
 import { ALERT_ICON, alertFullTime, alertTimeLabel, groupAlerts } from '@/lib/alerts';
@@ -100,7 +99,7 @@ function AlertRow({
 }
 
 /** One pinned notice: a banner with its fix-it button. */
-function PinnedBanner({ alert, onShipping }: { alert: PinnedAlert; onShipping: () => void }) {
+function PinnedBanner({ alert }: { alert: PinnedAlert }) {
   const missionLine = [alert.missionName, alert.kind === 'paused' ? 'You are Head Elf' : null].filter(Boolean).join(' · ');
   return (
     <li className={`kk-banner kk-banner--${alert.tone} border border-current`}>
@@ -111,9 +110,9 @@ function PinnedBanner({ alert, onShipping }: { alert: PinnedAlert; onShipping: (
         <p className="m-0 mt-1 break-words">{alert.message}</p>
         <div className="flex flex-wrap gap-2 mt-2.5">
           {alert.action === 'shipping' ? (
-            <button type="button" onClick={onShipping} className="kk-btn kk-btn--primary kk-btn--sm">
+            <Link href="/profile#address" className="kk-btn kk-btn--primary kk-btn--sm">
               {alert.actionLabel}
-            </button>
+            </Link>
           ) : (
             alert.href && (
               <Link href={alert.href} className="kk-btn kk-btn--primary kk-btn--sm">
@@ -145,15 +144,6 @@ export default function AlertsPage() {
 
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
-
-  const [prefOpen, setPrefOpen] = useState(false);
-  const [prefTab, setPrefTab] = useState<PreferencesTab>('identity');
-  const [prefOpenCount, setPrefOpenCount] = useState(0);
-  function openPreferences(tab: PreferencesTab = 'identity') {
-    setPrefTab(tab);
-    setPrefOpenCount((n) => n + 1);
-    setPrefOpen(true);
-  }
 
   const confirmRef = useRef<HTMLDialogElement>(null);
   const [clearing, setClearing] = useState(false);
@@ -284,7 +274,7 @@ export default function AlertsPage() {
 
   return (
     <>
-      <AppShell active="alerts" onProfile={() => openPreferences()} onSignOut={handleSignOut}>
+      <AppShell active="alerts" onSignOut={handleSignOut}>
         <main className="mx-auto w-full max-w-[800px] px-4 md:px-8 pt-6 md:pt-10 pb-8 md:pb-16 flex flex-col gap-6 md:gap-7">
           {loading ? (
             <div role="status" className="py-20 text-center flex flex-col items-center gap-3">
@@ -339,7 +329,7 @@ export default function AlertsPage() {
                   </h2>
                   <ul className="list-none m-0 p-0 flex flex-col gap-2.5">
                     {pinned.map((p) => (
-                      <PinnedBanner key={p.id} alert={p} onShipping={() => openPreferences('shipping')} />
+                      <PinnedBanner key={p.id} alert={p} />
                     ))}
                   </ul>
                 </section>
@@ -423,14 +413,6 @@ export default function AlertsPage() {
           </div>
         </div>
       </dialog>
-
-      <AccountPreferencesModal
-        key={prefOpenCount}
-        isOpen={prefOpen}
-        onClose={() => setPrefOpen(false)}
-        onProfileUpdated={refresh}
-        initialTab={prefTab}
-      />
     </>
   );
 }

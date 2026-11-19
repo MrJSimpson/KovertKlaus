@@ -193,7 +193,7 @@ export function agentTodo(issues: ReadinessIssue[], userId: string): string | nu
   const mine = issues.filter((i) => 'userId' in i && i.userId === userId).map((i) => i.type);
   if (mine.length === 0) return null;
   const tasks = [
-    mine.includes('MISSING_ADDRESS') ? 'add your shipping address in Account Preferences' : null,
+    mine.includes('MISSING_ADDRESS') ? 'add your shipping address on your Profile page' : null,
     mine.includes('EMPTY_WISHLIST') ? 'add at least one gift to your wishlist for this mission' : null,
     mine.includes('UNVERIFIED_EMAIL') ? 'verify your email address with the link we emailed you' : null,
   ].filter(Boolean);

@@ -5,7 +5,6 @@ import { EMAIL_UNVERIFIED_CODE, USER_ID_KEY } from '@/lib/constants/auth';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AccountPreferencesModal, type PreferencesTab } from '@/components/AccountPreferencesModal';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
 import { answerInvitation, type PendingInvitation } from '@/lib/invitation-client';
@@ -87,18 +86,8 @@ export default function DashboardPage() {
   /** Filter chip (All, Running, I lead, Completed, Cancelled; src/lib/mission-list.ts). */
   const [chip, setChip] = useState<MissionChip>('all');
 
-  // Edit Preferences Modal
-  const [prefModalOpen, setPrefModalOpen] = useState(false);
-  // Each opening remounts the modal (`key`), so it starts on the requested tab.
-  const [prefTab, setPrefTab] = useState<PreferencesTab>('identity');
-  const [prefOpenCount, setPrefOpenCount] = useState(0);
-  function openPreferences(tab: PreferencesTab = 'identity') {
-    setPrefTab(tab);
-    setPrefOpenCount((n) => n + 1);
-    setPrefModalOpen(true);
-  }
   /*
-  // NOTE: Unused state variables in DashboardPage. Address & preference form state is handled directly inside <AccountPreferencesModal>. Commented out per Phase 2 Code Review rules.
+  // NOTE: Unused state variables in DashboardPage. Address and preference form state lives on the Profile page (src/app/profile/page.tsx). Commented out per Phase 2 Code Review rules.
   const [streetAddress, setStreetAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -135,26 +124,27 @@ export default function DashboardPage() {
     };
   }, [signedInUserId, inviteReload]);
 
-  // `?start=1` / `?join=1` / `?profile=1` from other pages ("Start a mission", src/lib/auth-flow.ts): once the
+  // `?start=1` / `?join=1` from other pages ("Start a mission", src/lib/auth-flow.ts): once the
   // agent is loaded, open the matching dialog and drop the parameter so a reload does not reopen it.
   useEffect(() => {
     if (!signedInUserId) return;
     const params = new URLSearchParams(window.location.search);
     const start = params.get('start') === '1';
     const join = params.get('join') === '1';
-    // `?profile=1`: the Profile tab on other pages (src/components/missions/MissionFrame.tsx).
-    const profile = params.get('profile') === '1';
-    if (!start && !join && !profile) return;
+    // `?profile=1` (the Profile tab before 2.0.0-beta had a page): go to the Profile page.
+    if (params.get('profile') === '1') {
+      router.replace('/profile');
+      return;
+    }
+    if (!start && !join) return;
     params.delete('start');
     params.delete('join');
-    params.delete('profile');
     const rest = params.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${rest ? `?${rest}` : ''}`);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (start) setCreateOpModalOpen(true);
-    else if (join) setJoinOpModalOpen(true);
-    else openPreferences();
-  }, [signedInUserId]);
+    else setJoinOpModalOpen(true);
+  }, [signedInUserId, router]);
 
   /** Answers an invitation from its dashboard card. */
   async function handleInvitation(inv: PendingInvitation, accept: boolean) {
@@ -217,7 +207,7 @@ export default function DashboardPage() {
   }
 
   /*
-  // Handle Account Preferences Save
+  // Handle preferences save (pre-2.0; the Profile page saves now)
   async function handleSavePreferences(e: React.FormEvent) {
     e.preventDefault();
     setSavingPref(true);
@@ -279,7 +269,6 @@ export default function DashboardPage() {
     <>
       <AppShell
         active="missions"
-        onProfile={() => openPreferences()}
         onSignOut={handleSignOut}
       >
         <main className="mx-auto max-w-[1200px] px-4 md:px-8 pt-6 md:pt-10 pb-8 md:pb-16 flex flex-col gap-5 md:gap-7">
@@ -440,15 +429,6 @@ export default function DashboardPage() {
           )}
         </main>
       </AppShell>
-
-      {/* MODAL: ACCOUNT PREFERENCES */}
-      <AccountPreferencesModal
-        key={prefOpenCount}
-        isOpen={prefModalOpen}
-        onClose={() => setPrefModalOpen(false)}
-        onProfileUpdated={fetchUserData}
-        initialTab={prefTab}
-      />
 
       {/* MODAL: CREATE OPERATION */}
       <CreateOperationModal

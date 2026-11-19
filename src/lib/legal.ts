@@ -19,7 +19,7 @@
 export const LEGAL_CONTACT_EMAIL = 'privacy@kovertklaus.com';
 
 /** Shown as "Last updated" on both pages. Change it whenever the text changes. */
-export const LEGAL_UPDATED = 'November 1, 2026';
+export const LEGAL_UPDATED = 'November 19, 2026';
 
 /** Minimum age for an account (US COPPA). */
 export const MINIMUM_AGE = 13;
@@ -121,7 +121,7 @@ export const PRIVACY_POLICY: LegalDocument = {
         list(
           'You can view and change your profile and gift dossier at any time in the app.',
           'You can turn mission emails off in your profile. Some emails, such as email verification and password resets, are always sent.',
-          `To get a copy of your information, correct something you cannot change yourself, or delete your account, email ${LEGAL_CONTACT_EMAIL} from the address on your account. You can also delete your account yourself under Account Preferences → Security.`,
+          `To get a copy of your information, correct something you cannot change yourself, or delete your account, email ${LEGAL_CONTACT_EMAIL} from the address on your account. You can also delete your account yourself from your Profile page.`,
           'We answer requests within 30 days. Depending on where you live (for example California or the European Union), you may have further rights under local law; ask us and we will help.'
         ),
       ],
@@ -131,7 +131,7 @@ export const PRIVACY_POLICY: LegalDocument = {
       heading: 'How long we keep it',
       blocks: [
         list(
-          'Your account and dossier stay until you delete your account (Account Preferences → Security) or ask us to.',
+          'Your account and dossier stay until you delete your account (from your Profile page) or ask us to.',
           'A cancelled mission is deleted 90 days after it was cancelled. We keep only an anonymous record of its outcome and the reason, with no names.',
           'A completed mission stays as a read-only record for the agents who took part.',
           'Deleting your account is immediate and permanent: we remove your profile, dossier, Wishlist Manifests, messages, reports, notifications and Coal Citations. So that you have a copy, we keep an encrypted file of your own data for 30 days and email you a link to download it; then it is deleted. It contains nothing about other agents beyond their codenames. Finished missions you ran are deleted with it. If you run a mission that is still open, or names have been drawn in a mission you are in, you can delete your account once that mission is cancelled or finished. Leaving before the draw just removes you from the mission.',
