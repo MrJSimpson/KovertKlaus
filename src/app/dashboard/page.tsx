@@ -182,6 +182,23 @@ export default function DashboardPage() {
     };
   }, [signedInUserId, inviteReload]);
 
+  // `?start=1` / `?join=1` from the public pages ("Start a mission", src/lib/auth-flow.ts): once the
+  // agent is loaded, open the matching dialog and drop the parameter so a reload does not reopen it.
+  useEffect(() => {
+    if (!signedInUserId) return;
+    const params = new URLSearchParams(window.location.search);
+    const start = params.get('start') === '1';
+    const join = params.get('join') === '1';
+    if (!start && !join) return;
+    params.delete('start');
+    params.delete('join');
+    const rest = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${rest ? `?${rest}` : ''}`);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (start) setCreateOpModalOpen(true);
+    else setJoinOpModalOpen(true);
+  }, [signedInUserId]);
+
   /** Answers an invitation; `onDone` runs after it succeeds (the bell uses it to clear the notification). */
   async function handleInvitation(inv: PendingInvitation, accept: boolean, onDone?: () => void) {
     setInviteBusyId(inv.id);
