@@ -4,7 +4,7 @@
  * @file LegalPage.tsx
  * @description Renders a policy page (`/privacy`, `/terms`) from a `LegalDocument`.
  *
- * Tier 1 (what): Header, title, "not commercial yet" notice, table of contents, sections and the
+ * Tier 1 (what): Inside `PublicShell`: title, "not commercial yet" notice, table of contents, sections and the
  * CC BY 4.0 attribution for the source policies.
  * Tier 2 (why): Both policies share one layout, so the text lives in `src/lib/legal.ts` and this
  * component only presents it (owner decision 2026-10-31).
@@ -14,7 +14,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { useTheme } from '@/context/ThemeContext';
+import { PublicShell } from '@/components/brand/PublicShell';
 import { LEGAL_ATTRIBUTION, LEGAL_CONTACT_EMAIL, LEGAL_UPDATED, type LegalBlock, type LegalDocument } from '@/lib/legal';
 
 /** Renders `**bold**` runs and the contact address as a mailto link; everything else is plain text. */
@@ -41,28 +41,13 @@ function Block({ block }: { block: LegalBlock }) {
 }
 
 export function LegalPage({ doc, other }: { doc: LegalDocument; other: { href: string; label: string } }) {
-  const { theme } = useTheme();
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${theme.pageBg}`}>
-      <header className={`border-b transition-colors ${theme.headerBg}`}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between gap-3">
-          <Link href="/" className="text-lg sm:text-xl font-black tracking-tight text-kk-on-header">
-            KOVERT KLAUS
-          </Link>
-          <nav aria-label="Policies" className="flex items-center gap-2">
-            <Link href={other.href} className="min-h-11 inline-flex items-center px-3 text-xs font-bold text-kk-on-header underline-offset-4 hover:underline">
-              {other.label}
-            </Link>
-            <Link href="/" className={`min-h-11 inline-flex items-center whitespace-nowrap text-xs font-bold px-4 rounded-xl ${theme.btnPrimary}`}>
-              Home
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-8 py-10 sm:py-14 text-kk-ink">
-        <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-kk-heading">{doc.title}</h1>
-        <p className="mt-2 text-sm text-kk-muted">Last updated: {LEGAL_UPDATED}</p>
+    <PublicShell>
+      <article className="max-w-3xl text-kk-ink">
+        <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-kk-heading">{doc.title}</h1>
+        <p className="mt-2 text-sm text-kk-muted">
+          Last updated: {LEGAL_UPDATED} · See also the <Link href={other.href}>{other.label}</Link>
+        </p>
 
         <div role="note" className="mt-6 rounded-2xl border border-kk-border bg-kk-inset p-4 sm:p-5 text-sm leading-relaxed">
           <strong className="text-kk-heading">Not a commercial product (yet). </strong>
@@ -84,7 +69,7 @@ export function LegalPage({ doc, other }: { doc: LegalDocument; other: { href: s
 
         {doc.sections.map((s) => (
           <section key={s.id} id={s.id} aria-labelledby={`${s.id}-h`} className="mt-10 scroll-mt-6 space-y-4">
-            <h2 id={`${s.id}-h`} className="text-xl sm:text-2xl font-black text-kk-heading">{s.heading}</h2>
+            <h2 id={`${s.id}-h`} className="font-display text-xl sm:text-2xl font-semibold text-kk-heading">{s.heading}</h2>
             {s.blocks.map((b, i) => (
               <Block key={i} block={b} />
             ))}
@@ -98,7 +83,7 @@ export function LegalPage({ doc, other }: { doc: LegalDocument; other: { href: s
           <a href={LEGAL_ATTRIBUTION.licenseUrl} target="_blank" rel="noreferrer" className="underline">{LEGAL_ATTRIBUTION.license}</a>
           . {LEGAL_ATTRIBUTION.changes}
         </p>
-      </main>
-    </div>
+      </article>
+    </PublicShell>
   );
 }
