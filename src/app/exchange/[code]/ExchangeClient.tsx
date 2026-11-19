@@ -281,6 +281,8 @@ export default function OperationCommandCenterPage() {
 
   // Wishlist Manifest state
   const [userManifest, setUserManifest] = useState<ManifestItem[]>([]);
+  /** Head Elf after the draw: show every agent instead of only their own contacts. */
+  const [showAllAgents, setShowAllAgents] = useState(false);
   const [validationError, setValidationError] = useState('');
 
   // Item Customization & Review Modal State
@@ -937,17 +939,18 @@ export default function OperationCommandCenterPage() {
   // Cancelled missions are read-only (the API refuses every change), so their edit controls are hidden.
   const missionClosed = isMissionClosed(operation?.status);
 
-  // Roster. Before the draw everyone sees every agent. After it, an agent sees only who they can
-  // message: the Head Elf, their target, and their Secret Santa as an anonymous row (the Santa
-  // stays secret). The Head Elf keeps the full roster to manage the mission, with their own
-  // target and Santa marked (they can already see every assignment).
+  // Roster. Before the draw everyone sees every agent. After it, everyone sees only who they deal
+  // with: the Head Elf, their target and their Secret Santa (owner review 2026-11-19). For an agent
+  // the Santa is an anonymous row (the Santa stays secret); the Head Elf can already see every
+  // assignment, so their Santa is named, and "Show all agents" brings back the full roster to manage
+  // the mission (nudge, disenroll).
   const myTargetId = currentAgent?.targetUserId ?? null;
   const mySantaId = isOpsLeader
     ? membersList.find((a) => a.targetUserId === userId)?.userId ?? null
     : null;
-  const rosterNarrowed = Boolean(myTargetId) && !isOpsLeader;
+  const rosterNarrowed = Boolean(myTargetId) && !(isOpsLeader && showAllAgents);
   const rosterAgents = rosterNarrowed
-    ? membersList.filter((a) => a.userId === organizerIdVal || a.userId === myTargetId)
+    ? membersList.filter((a) => a.userId === organizerIdVal || a.userId === myTargetId || (isOpsLeader && a.userId === mySantaId))
     : membersList;
   const assignedTarget = currentAgent?.targetUser;
   // Current timeline stage: colors the status badge and the 4-stage timeline (src/lib/stage-colors.ts).
@@ -1013,7 +1016,7 @@ export default function OperationCommandCenterPage() {
   }
 
   return (
-    <MissionFrame signedIn={Boolean(userId)} onSignOut={handleSignOut}>
+    <MissionFrame signedIn={Boolean(userId)} onSignOut={handleSignOut} code={operation?.code} title={operation?.title}>
       {/* Mission body (the frame supplies the header, and the tab bar on phones) */}
       <main className="mx-auto max-w-[1200px] px-4 md:px-8 pt-4 md:pt-6 pb-10 md:pb-16">
         
@@ -1945,137 +1948,6 @@ export default function OperationCommandCenterPage() {
                   </div>
                 )}
 
-                {/* Elf Agents roster (design canvas "Mission page"): compact rows, real names for the Head Elf only */}
-                <div role="region" aria-labelledby="roster-h" className="kk-card px-5 pt-5 pb-2">
-                  <div className="flex justify-between items-center gap-3 mb-2">
-                    <h2 id="roster-h" className="m-0 font-display text-lg leading-6 font-semibold text-kk-heading">
-                      Elf Agents ({membersList.length})
-                      {isOpsLeader && pendingInviteCount > 0 && <span className="ml-1.5 text-[13px] font-normal text-kk-muted">· {pendingInviteCount} invited</span>}
-                    </h2>
-                    {isOpsLeader && !missionClosed && (
-                      <button type="button" onClick={() => setInviteModalOpen(true)} className="kk-btn kk-btn--secondary kk-btn--sm shrink-0">
-                        <Icon name="send" size={16} />
-                        Invite
-                      </button>
-                    )}
-                  </div>
-                  {isOpsLeader && <p className="m-0 mb-2 text-[13px] leading-5 text-kk-muted">Only you see real names. Agents see codenames.</p>}
-                  {rosterNarrowed && (
-                    <p className="m-0 mb-2 text-[13px] leading-5 text-kk-muted">
-                      Targets are drawn. You now see the agents you can message: your Head Elf, your target and your Secret Santa.
-                    </p>
-                  )}
-
-                  <ul className="list-none m-0 p-0">
-                    {rosterAgents.map((agent) => {
-                      const cardStatus = memberCardStatus(operation, agent);
-                      const carrier = cardStatus === 'SHIPPED' && agent.trackingNumber ? detectCarrier(agent.trackingNumber) : null;
-                      const pill =
-                        cardStatus === 'JOINED'
-                          ? { cls: 'kk-pill--stage1', label: 'Joined' }
-                          : cardStatus === 'SHIPPED'
-                            ? { cls: 'kk-pill--stage3', label: carrier ? `Shipped · ${carrier.badgeLabel}` : 'Shipped' }
-                            : cardStatus === 'HAND_DELIVERY'
-                              ? { cls: 'kk-pill--stage3', label: 'Hand delivery' }
-                              : { cls: 'kk-pill--warning', label: 'No tracking yet' };
-                      const isHead = agent.userId === organizerIdVal;
-                      const showHeadActions = isOpsLeader && !missionClosed;
-                      return (
-                        <li key={agent.id} className="py-3 border-t border-kk-border flex flex-col gap-2">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex flex-col gap-0.5 min-w-0">
-                              <span className="flex flex-wrap items-center gap-2 font-mono font-medium text-sm break-words">
-                                {formatCodename(agent.user?.codename)}
-                                {isHead && <span className="kk-stamp kk-stamp--flat !px-1.5 !py-px !text-[11px]">Head Elf</span>}
-                                {agent.userId === myTargetId && <span className="kk-pill kk-pill--success !text-[12px] !py-0">Your target</span>}
-                                {agent.userId === mySantaId && <span className="kk-pill kk-pill--warning !text-[12px] !py-0">Your Secret Santa</span>}
-                              </span>
-                              {/* Real names reach only the Head Elf (server-side rule), so they can confirm who joined. */}
-                              {isOpsLeader && agent.user?.name && (
-                                <span className="text-[13px] leading-5 text-kk-muted">
-                                  <span className="sr-only">Real name: </span>
-                                  {agent.user.name}
-                                </span>
-                              )}
-                            </div>
-                            <span className={`kk-pill ${pill.cls} shrink-0`}>{pill.label}</span>
-                          </div>
-
-                          {(rosterNarrowed || showHeadActions) && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              {rosterNarrowed && (
-                                <button
-                                  type="button"
-                                  onClick={() => openComms(agent.userId === myTargetId ? 'intel-target' : 'command')}
-                                  className="kk-btn kk-btn--ghost kk-btn--sm"
-                                >
-                                  {agent.userId === myTargetId ? 'Message your target' : 'Message the Head Elf'}
-                                </button>
-                              )}
-                              {showHeadActions && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleAgentAction('nudge_agent', agent)}
-                                  title="Remind this agent about their next deadline (Command message, notification and email)"
-                                  className="kk-btn kk-btn--ghost kk-btn--sm"
-                                >
-                                  Nudge
-                                </button>
-                              )}
-                              {showHeadActions && operation.status === 'COMPLETED' && operation.enforcePenalties !== false && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleAgentAction('issue_demerit', agent)}
-                                  title="Issue Coal Citation for deadline non-compliance"
-                                  className="kk-btn kk-btn--ghost kk-btn--sm"
-                                >
-                                  Issue Coal Citation
-                                </button>
-                              )}
-                              {showHeadActions && !isHead && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleAgentAction('remove_agent', agent)}
-                                  title="Disenroll agent from operation"
-                                  className="kk-btn kk-btn--danger kk-btn--sm ml-auto"
-                                >
-                                  Disenroll
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-
-                  {rosterNarrowed && (
-                    <div className="mt-3 rounded-2xl border-2 border-dashed border-kk-border overflow-hidden text-xs bg-kk-surface">
-                      <div className={`p-4 flex items-center justify-between gap-2 ${theme.infoPanel}`}>
-                        <div>
-                          <span className={`font-bold block text-sm ${theme.textLabel}`}>🎅 Your Secret Santa</span>
-                          <span className={`text-[11px] ${theme.textSubLabel}`}>Their identity stays hidden. You can still message them.</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => openComms('intel-santa')}
-                          className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-inset hover:brightness-95 transition-all cursor-pointer shrink-0"
-                        >
-                          💬 Message
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {isOpsLeader && (
-                    <InvitedAgentsList
-                      operationId={operation.id}
-                      refreshKey={invitesRefreshKey}
-                      onPendingCountChange={setPendingInviteCount}
-                    />
-                  )}
-                </div>
-
                 {/* Mission Messaging: Command, Intel and Debrief */}
                 {intelEnrolled && (
                 <div id="mission-comms" className={`p-6 rounded-3xl border shadow-md scroll-mt-4 ${theme.cardBg}`}>
@@ -2224,6 +2096,143 @@ export default function OperationCommandCenterPage() {
                   })()}
                 </div>
                 )}
+
+                {/* Elf Agents roster (design canvas "Mission page"): compact rows, real names for the Head Elf only */}
+                <div role="region" aria-labelledby="roster-h" className="kk-card px-5 pt-5 pb-2">
+                  <div className="flex justify-between items-center gap-3 mb-2">
+                    <h2 id="roster-h" className="m-0 font-display text-lg leading-6 font-semibold text-kk-heading">
+                      Elf Agents ({membersList.length})
+                      {isOpsLeader && pendingInviteCount > 0 && <span className="ml-1.5 text-[13px] font-normal text-kk-muted">· {pendingInviteCount} invited</span>}
+                    </h2>
+                    {isOpsLeader && !missionClosed && (
+                      <button type="button" onClick={() => setInviteModalOpen(true)} className="kk-btn kk-btn--secondary kk-btn--sm shrink-0">
+                        <Icon name="send" size={16} />
+                        Invite
+                      </button>
+                    )}
+                  </div>
+                  {isOpsLeader && <p className="m-0 mb-2 text-[13px] leading-5 text-kk-muted">Only you see real names. Agents see codenames.</p>}
+                  {rosterNarrowed && (
+                    <p className="m-0 mb-2 text-[13px] leading-5 text-kk-muted">
+                      Targets are drawn. You see the agents you deal with: {isOpsLeader ? 'your target and your Secret Santa' : 'your Head Elf, your target and your Secret Santa'}.
+                    </p>
+                  )}
+                  {isOpsLeader && Boolean(myTargetId) && (
+                    <button type="button" onClick={() => setShowAllAgents((v) => !v)} aria-expanded={showAllAgents} className="kk-btn kk-btn--ghost kk-btn--sm mb-2">
+                      {showAllAgents ? 'Show only my contacts' : `Show all agents (${membersList.length})`}
+                    </button>
+                  )}
+
+                  <ul className="list-none m-0 p-0">
+                    {rosterAgents.map((agent) => {
+                      const cardStatus = memberCardStatus(operation, agent);
+                      const carrier = cardStatus === 'SHIPPED' && agent.trackingNumber ? detectCarrier(agent.trackingNumber) : null;
+                      const pill =
+                        cardStatus === 'JOINED'
+                          ? { cls: 'kk-pill--stage1', label: 'Joined' }
+                          : cardStatus === 'SHIPPED'
+                            ? { cls: 'kk-pill--stage3', label: carrier ? `Shipped · ${carrier.badgeLabel}` : 'Shipped' }
+                            : cardStatus === 'HAND_DELIVERY'
+                              ? { cls: 'kk-pill--stage3', label: 'Hand delivery' }
+                              : { cls: 'kk-pill--warning', label: 'No tracking yet' };
+                      const isHead = agent.userId === organizerIdVal;
+                      const showHeadActions = isOpsLeader && !missionClosed;
+                      return (
+                        <li key={agent.id} className="py-3 border-t border-kk-border flex flex-col gap-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              <span className="flex flex-wrap items-center gap-2 font-mono font-medium text-sm break-words">
+                                {formatCodename(agent.user?.codename)}
+                                {isHead && <span className="kk-stamp kk-stamp--flat !px-1.5 !py-px !text-[11px]">Head Elf</span>}
+                                {agent.userId === myTargetId && <span className="kk-pill kk-pill--success !text-[12px] !py-0">Your target</span>}
+                                {agent.userId === mySantaId && <span className="kk-pill kk-pill--warning !text-[12px] !py-0">Your Secret Santa</span>}
+                              </span>
+                              {/* Real names reach only the Head Elf (server-side rule), so they can confirm who joined. */}
+                              {isOpsLeader && agent.user?.name && (
+                                <span className="text-[13px] leading-5 text-kk-muted">
+                                  <span className="sr-only">Real name: </span>
+                                  {agent.user.name}
+                                </span>
+                              )}
+                            </div>
+                            <span className={`kk-pill ${pill.cls} shrink-0`}>{pill.label}</span>
+                          </div>
+
+                          {((rosterNarrowed && agent.userId !== userId) || showHeadActions) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {rosterNarrowed && agent.userId !== userId && (
+                                <button
+                                  type="button"
+                                  onClick={() => openComms(agent.userId === myTargetId ? 'intel-target' : agent.userId === mySantaId ? 'intel-santa' : 'command')}
+                                  className="kk-btn kk-btn--ghost kk-btn--sm"
+                                >
+                                  {agent.userId === myTargetId ? 'Message your target' : agent.userId === mySantaId ? 'Message your Secret Santa' : 'Message the Head Elf'}
+                                </button>
+                              )}
+                              {showHeadActions && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAgentAction('nudge_agent', agent)}
+                                  title="Remind this agent about their next deadline (Command message, notification and email)"
+                                  className="kk-btn kk-btn--ghost kk-btn--sm"
+                                >
+                                  Nudge
+                                </button>
+                              )}
+                              {showHeadActions && operation.status === 'COMPLETED' && operation.enforcePenalties !== false && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAgentAction('issue_demerit', agent)}
+                                  title="Issue Coal Citation for deadline non-compliance"
+                                  className="kk-btn kk-btn--ghost kk-btn--sm"
+                                >
+                                  Issue Coal Citation
+                                </button>
+                              )}
+                              {showHeadActions && !isHead && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAgentAction('remove_agent', agent)}
+                                  title="Disenroll agent from operation"
+                                  className="kk-btn kk-btn--danger kk-btn--sm ml-auto"
+                                >
+                                  Disenroll
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  {rosterNarrowed && !isOpsLeader && (
+                    <div className="mt-3 rounded-2xl border-2 border-dashed border-kk-border overflow-hidden text-xs bg-kk-surface">
+                      <div className={`p-4 flex items-center justify-between gap-2 ${theme.infoPanel}`}>
+                        <div>
+                          <span className={`font-bold block text-sm ${theme.textLabel}`}>🎅 Your Secret Santa</span>
+                          <span className={`text-[11px] ${theme.textSubLabel}`}>Their identity stays hidden. You can still message them.</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openComms('intel-santa')}
+                          className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-inset hover:brightness-95 transition-all cursor-pointer shrink-0"
+                        >
+                          💬 Message
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {isOpsLeader && (
+                    <InvitedAgentsList
+                      operationId={operation.id}
+                      refreshKey={invitesRefreshKey}
+                      onPendingCountChange={setPendingInviteCount}
+                    />
+                  )}
+                </div>
+
               </div>
 
               {/* POST-EVENT AFTER-ACTION REPORT (AAR) SECTION: spans the full 12-column grid it sits in */}

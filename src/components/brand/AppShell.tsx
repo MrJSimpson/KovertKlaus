@@ -34,6 +34,11 @@ export interface AppShellProps {
   /** Opens the profile (Account Preferences until the Profile page exists). */
   onProfile: () => void;
   onSignOut: () => void;
+  /**
+   * An open mission: a folder tab with its code appears after Missions and is the current tab, as if
+   * the mission's folder were pulled out (owner review 2026-11-19). Missions stays a link back.
+   */
+  openFile?: { label: string; title?: string };
   /** The page renders `<NotificationBell variant="card">` itself on wide screens (`useLayoutMode`). */
   alertsInPage?: boolean;
   alerts?: {
@@ -78,7 +83,7 @@ function ModeToggle() {
   );
 }
 
-export function AppShell({ active, children, onProfile, onSignOut, alerts, alertsInPage = false }: AppShellProps) {
+export function AppShell({ active, children, onProfile, onSignOut, alerts, alertsInPage = false, openFile }: AppShellProps) {
   const mode = useLayoutMode();
   const desktop = mode !== 'phone';
   const alertsTab = mode === 'tablet' || (mode === 'wide' && !alertsInPage);
@@ -95,9 +100,15 @@ export function AppShell({ active, children, onProfile, onSignOut, alerts, alert
         <Wordmark href="/dashboard" onHeader size="md" />
         {desktop && (
           <nav aria-label="Main" className="kk-header__nav kk-header__nav--tabs">
-            <Link href="/dashboard" className="kk-header__link" aria-current={active === 'missions' ? 'page' : undefined}>
+            <Link href="/dashboard" className="kk-header__link" aria-current={active === 'missions' && !openFile ? 'page' : undefined}>
               Missions
             </Link>
+            {openFile && (
+              <span className="kk-header__link kk-header__link--file" aria-current="page" title={openFile.title}>
+                <Icon name="folder" size={16} />
+                {openFile.label}
+              </span>
+            )}
             {alertsTab && bell('tab')}
             <button type="button" onClick={onProfile} className="kk-header__link cursor-pointer" aria-current={active === 'profile' ? 'page' : undefined}>
               Profile
