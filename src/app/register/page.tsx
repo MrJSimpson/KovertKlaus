@@ -1,20 +1,19 @@
-import { AppHomeLanding } from '@/components/landing';
 import type { Metadata } from 'next';
+import { AuthPage } from '@/components/auth/AuthPage';
 
-/** Same landing as `/`, so search engines are pointed at `/` (`src/lib/seo.ts`). */
-export const metadata: Metadata = { alternates: { canonical: '/' } };
+/** Sign-up is not a search result of its own: canonical points at `/` (`src/lib/seo.ts`). */
+export const metadata: Metadata = { alternates: { canonical: '/' }, title: 'Create account | KovertKlaus' };
 
 /**
  * @file page.tsx (/register)
- * @description Landing target for Alpha Clearance approval emails.
+ * @description Create account.
  *
- * Tier 1 (what): Always renders the app landing with its sign-up form, whatever the North Pole
- * "Alt Home" setting is.
- * Tier 2 (why): Invitation and approval emails link to `/register?code=…&email=…`. It is the same page
- * as `/` (one front page since 2026-11-01), opened to the sign-up form.
- * Tier 3 (how): `AppHomeLanding` reads `?code=` / `?email=` on mount, pre-fills the activation
- * code and email, and opens the sign-up form. Static-export safe (query params are read client-side).
+ * Tier 1 (what): Renders `AuthPage` on its Create account tab.
+ * Tier 2 (why): Invitation and approval emails link to `/register?code=…&email=…[&invite=…]`; since
+ * the visual refresh (owner decision 2026-11-18) this is its own page instead of a form on `/`.
+ * Tier 3 (how): `AuthPage` reads the query on mount (static-export safe), pre-fills the email,
+ * sends the code and invite token with the sign-up, and shows the mission briefing for invitations.
  */
 export default function RegisterPage() {
-  return <AppHomeLanding />;
+  return <AuthPage mode="register" />;
 }

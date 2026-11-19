@@ -317,3 +317,53 @@
   .kk-header--public { padding-left: var(--kk-space-4); padding-right: var(--kk-space-4); }
   .kk-header--public .kk-wordmark { font-size: 18px; }
 }
+
+/* Dialog (app addition): native <dialog> as a centred card; a bottom sheet on phones. */
+.kk-dialog {
+  width: min(440px, calc(100vw - 32px)); max-width: none; padding: 0; margin: auto;
+  border: 0; background: transparent; color: var(--kk-ink); overflow: visible;
+}
+.kk-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+.kk-dialog > .kk-card { box-shadow: var(--kk-shadow-raised); }
+@media (max-width: 639px) {
+  .kk-dialog { width: 100vw; margin: auto 0 0; }
+  .kk-dialog > .kk-card {
+    border-radius: var(--kk-radius-lg) var(--kk-radius-lg) 0 0;
+    padding-bottom: max(var(--kk-space-5), calc(env(safe-area-inset-bottom) + var(--kk-space-3)));
+  }
+}
+
+/* Decor band under the public header (Design System SeasonDecor): 40px desktop, 28px phone. */
+.kk-decor--band { height: 40px; border-bottom: 1px solid var(--kk-border); background: var(--kk-surface); }
+@media (max-width: 639px) { .kk-decor--band { height: 28px; } }
+
+/* Klaus/Kovert toggle on the header (app addition, from the phone mockups). */
+.kk-mode-toggle {
+  width: 44px; height: 44px; flex: none; margin-left: var(--kk-space-2);
+  display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--kk-on-header); border-radius: var(--kk-radius-md);
+  background: transparent; color: var(--kk-on-header);
+}
+.kk-mode-toggle:hover { background: rgba(255, 255, 255, 0.08); }
+.kk-header__nav { align-items: center; }
+button.kk-header__link { font-family: inherit; line-height: inherit; }
+
+/* Eyebrow text style (Design System tokens.css typography). */
+.eyebrow { font-family: var(--font-display); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.12em; }
+
+/* Sign in / Create account folder tabs (design canvas "Sign in"): the current tab is the card's
+   surface and joins it; the other is kk-tab, a step behind. */
+.kk-auth-tab {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px;
+  border: 1px solid var(--kk-border); border-bottom: 0;
+  border-radius: var(--kk-radius-lg) var(--kk-radius-lg) 0 0;
+  background: var(--kk-tab); color: var(--kk-ink); font-size: 15px; font-weight: 600; text-decoration: none;
+  box-shadow: inset 0 -6px 8px -6px rgba(0, 0, 0, 0.18);
+}
+.kk-ui a.kk-auth-tab, .kk-ui a.kk-auth-tab:hover { color: var(--kk-ink); }
+.kk-auth-tab:hover { text-decoration: underline; text-underline-offset: 4px; }
+.kk-auth-tab.is-current {
+  min-height: 48px; position: relative; top: 1px; z-index: 1;
+  background: var(--kk-surface); font-weight: 700; box-shadow: none;
+}
+.kk-ui a.kk-auth-tab.is-current { color: var(--kk-heading); }
