@@ -9,13 +9,13 @@ import { Button } from '@/components/ui';
 import { AccountPreferencesModal, type PreferencesTab } from '@/components/AccountPreferencesModal';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
-import { NotificationBell, type PinnedNotice } from '@/components/NotificationBell';
+import type { PinnedNotice } from '@/components/NotificationBell';
 import type { NotificationView } from '@/lib/notifications';
 import { fetchJsonWithRetry } from '@/lib/load-retry';
 import { DEFAULT_HIDE_PREFS, MISSION_CHIPS, chipCounts, chipMatches, filterMissions, type MissionChip } from '@/lib/mission-list';
 import { sentenceDate, type MissionListItem } from '@/lib/mission-card';
 import { formatBudget } from '@/lib/display-format';
-import { AppShell, useLayoutMode } from '@/components/brand/AppShell';
+import { AppShell } from '@/components/brand/AppShell';
 import { Icon } from '@/components/brand/Icon';
 import { Illustration } from '@/components/art/Illustration';
 import { MissionFileCard } from '@/components/missions/MissionFileCard';
@@ -342,7 +342,6 @@ export default function DashboardPage() {
   }
 
   const firstName = user?.name?.trim().split(/\s+/)[0];
-  const layout = useLayoutMode();
 
   return (
     <>
@@ -350,7 +349,6 @@ export default function DashboardPage() {
         active="missions"
         onProfile={() => openPreferences()}
         onSignOut={handleSignOut}
-        alertsInPage={missions.length > 0}
         alerts={{ pinned: pinnedNotices, actionsFor: invitationActions, reloadKey: inviteReload }}
       >
         <main className="mx-auto max-w-[1200px] px-4 md:px-8 pt-6 md:pt-10 pb-8 md:pb-16 flex flex-col gap-5 md:gap-7">
@@ -493,7 +491,7 @@ export default function DashboardPage() {
 
                   <div className="flex flex-wrap gap-6 items-start">
                     {/* Mission files */}
-                    <div className="flex-[999_1_560px] min-w-0 grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(100%,380px),1fr))]">
+                    <div className="w-full min-w-0 grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(100%,380px),1fr))]">
                       {visibleMissions.length === 0 ? (
                         <div className="kk-card text-center flex flex-col items-center gap-2 col-span-full">
                           <h2 className="m-0 font-display text-lg font-semibold text-kk-heading">No missions match</h2>
@@ -504,12 +502,6 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    {/* Wide screens: Alerts as a sidebar card (no Alerts tab then; AppShell `alertsInPage`). */}
-                    {layout === 'wide' && (
-                      <aside className="flex-[1_1_280px] flex flex-col gap-5 min-w-0" aria-label="Alerts">
-                        <NotificationBell variant="card" pinned={pinnedNotices} actionsFor={invitationActions} reloadKey={inviteReload} />
-                      </aside>
-                    )}
                   </div>
                 </>
               )}
