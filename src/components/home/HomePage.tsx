@@ -176,6 +176,10 @@ export function HomePage() {
               </li>
             ))}
           </ol>
+          {/* Owner request 2026-11-19: the stages link to the full walkthrough. */}
+          <Link href="/guides/how-a-mission-runs" className="kk-btn kk-btn--secondary self-start">
+            Read the full guide
+          </Link>
         </section>
 
         {/* Why */}

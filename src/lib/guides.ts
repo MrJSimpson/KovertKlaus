@@ -2,7 +2,7 @@
  * @file guides.ts
  * @description The public how-to guides: their addresses, search text and content.
  *
- * Tier 1 (what): `GUIDES` (White Elephant rules, Secret Santa with exclusions, self-hosting),
+ * Tier 1 (what): `GUIDES` (how a mission runs, White Elephant rules, exclusions, self-hosting),
  * `GUIDES_INDEX` (the `/guides` page), `guideBySlug`, and `GUIDE_FACTS`, the numbers the copy states.
  * Tier 2 (why): Owner decisions 2026-11-10 and 2026-11-19: plain-language guides shipped with the
  * visual refresh so the site can be found this season; addresses under `/guides`; linked from the
@@ -22,6 +22,7 @@ export type Inline = string | { strong: string } | { code: string } | { href: st
 export type GuideBlock =
   | { type: 'p'; text: Inline[] }
   | { type: 'h2'; text: string }
+  | { type: 'h3'; text: string }
   | { type: 'ul'; items: Inline[][] }
   | { type: 'ol'; items: Inline[][] }
   | { type: 'code'; lines: string[] }
@@ -53,6 +54,16 @@ export const GUIDE_FACTS = {
   freezeAfterSteals: 3,
   /** Allowed partners every agent keeps (`draw.ts` feasibility check). */
   minAllowedPartners: 2,
+  /** Agents who must be ready for a Secret Santa draw (`MIN_PARTICIPANTS` in `draw.ts`). */
+  minReadyAgents: 4,
+  /** Carriers whose tracking protects from Coal Citations (`FEATURE_FACTS.carriers`). */
+  carriers: ['USPS', 'FedEx', 'UPS', 'DHL'],
+  /** Days until a cancelled mission is deleted (`PURGE_AFTER_MS` in `mission-cancel.ts`). */
+  cancelledPurgeDays: 90,
+  /** Owner recommendation (2026-11-19): at least this many days between stages. */
+  minDaysBetweenStages: 7,
+  /** So a mission starts this many weeks before Exchange Day (the dates make four equal gaps). */
+  minLeadWeeks: 4,
 } as const;
 
 const START = '/register?next=start';
@@ -62,11 +73,119 @@ export const GUIDES_INDEX = {
   path: '/guides',
   title: 'Gift exchange guides',
   searchTitle: 'Gift exchange guides | KovertKlaus',
-  description: 'Plain-language guides for running a White Elephant, a Secret Santa with exclusions, or your own self-hosted Secret Santa.',
+  description:
+    'Plain-language guides: an online Secret Santa step by step, keeping couples apart, White Elephant rules, and hosting KovertKlaus yourself.',
   lead: 'Short, practical guides for running a gift exchange people actually enjoy.',
 } as const;
 
 export const GUIDES: Guide[] = [
+  {
+    slug: 'how-a-mission-runs',
+    path: '/guides/how-a-mission-runs',
+    title: 'How a Secret Santa mission runs',
+    searchTitle: 'How to run an online Secret Santa, step by step | KovertKlaus',
+    description:
+      'Every stage of an online Secret Santa, from invitations to the draw, shipping and Exchange Day, and what the organizer and each player do.',
+    summary: 'Every stage from the first invite to Exchange Day, and who does what.',
+    lead:
+      'A KovertKlaus Secret Santa runs in four stages: RSVP, Match, Sleigh and Party. Here’s what happens in each one and who does what. The Head Elf is the organizer; Elf Agents are everyone taking part, the Head Elf included.',
+    art: 'rsvp',
+    cta: { label: 'Start a Secret Santa', href: START },
+    blocks: [
+      { type: 'h2', text: 'Before you start (Head Elf)' },
+      {
+        type: 'ul',
+        items: [
+          [{ strong: 'Pick a budget.' }, ' Each item on a wishlist has to fit it.'],
+          [
+            { strong: 'Pick Exchange Day,' },
+            ' when everyone opens their gifts. KovertKlaus sets the other three dates for you, evenly spaced between today and Exchange Day: ',
+            { strong: 'RSVP by' },
+            ' (the last day to join), ',
+            { strong: 'Assignment Day' },
+            ' (the draw) and ',
+            { strong: 'Ship by' },
+            ' (the last day to send gifts).',
+          ],
+        ],
+      },
+      {
+        type: 'note',
+        text: [
+          'We recommend at least 7 days between stages, so everyone has time to do their part. That means starting the mission at least four weeks before Exchange Day.',
+        ],
+      },
+      { type: 'h2', text: '1. RSVP: everyone joins' },
+      { type: 'h3', text: 'Head Elf' },
+      {
+        type: 'ul',
+        items: [
+          ['Start a mission and invite people by email or by sharing the mission code.'],
+          ['People you invite by email join straight away. Anyone using the code needs your approval first.'],
+          ['A Late Pass lets someone join after RSVP closes.'],
+          ['Need to keep couples or family apart? Add blocked pairs (see ', { href: '/guides/secret-santa-exclusions', text: 'Secret Santa with exclusions' }, ').'],
+        ],
+      },
+      { type: 'h3', text: 'Agents' },
+      {
+        type: 'ul',
+        items: [
+          [{ strong: 'Accept a codename.' }, ' Everyone gets one for the mission; reroll it until you like it.'],
+          [{ strong: 'Build your Wishlist Manifest.' }, ' Paste a store link and KovertKlaus fills in the item.'],
+          [{ strong: 'Add your shipping address on your Profile,' }, ' plus sizes, allergies and dislikes if you like.'],
+          [{ strong: 'Verify your email address.' }],
+        ],
+      },
+      { type: 'h2', text: '2. Match: the draw' },
+      {
+        type: 'ul',
+        items: [
+          [
+            { strong: 'On Assignment Day, KovertKlaus draws one gift circle' },
+            ' through every agent. Each agent learns only who they’re buying for (their target), in the app and by email. The Head Elf can also draw early.',
+          ],
+          [{ strong: 'The draw needs at least four agents who are ready:' }, ' at least one gift on their wishlist, a shipping address and a verified email.'],
+          [{ strong: 'If someone isn’t ready, the mission pauses.' }, ' It tells exactly who needs to fix what, and the draw runs once they have.'],
+          [{ strong: 'The Head Elf can swap a target after the draw' }, ' without breaking the circle.'],
+        ],
+      },
+      { type: 'h2', text: '3. Sleigh: shopping and shipping' },
+      {
+        type: 'ul',
+        items: [
+          [
+            { strong: 'Agents:' },
+            ' open your target’s dossier (their wishlist, sizes, dislikes and address), buy a gift, and ship it by the Ship-by date. Then ',
+            { strong: 'add the tracking number' },
+            ' (USPS, FedEx, UPS or DHL).',
+          ],
+          [{ strong: 'Head Elf:' }, ' nudge anyone who is behind. They get a reminder by email.'],
+          [
+            { strong: 'About Coal Citations:' },
+            ' a citation is only for a gift that never shipped and has no tracking by Exchange Day. Tracking protects you, even if the parcel is late.',
+          ],
+        ],
+      },
+      { type: 'h2', text: '4. Party: Exchange Day' },
+      {
+        type: 'ul',
+        items: [
+          [{ strong: 'Open your gift.' }],
+          [{ strong: 'Make one guess' }, ' at who your Secret Santa was.'],
+          [{ strong: 'Post a thank-you' }, ' in the After-Action Report.'],
+          [{ strong: 'Mission Comms' }, ' is open the whole time for messages to the group.'],
+        ],
+      },
+      { type: 'h2', text: 'When plans change' },
+      {
+        type: 'ul',
+        items: [
+          [{ strong: 'Someone can’t take part?' }, ' They can leave before the draw.'],
+          [{ strong: 'Need to call it off?' }, ' Cancelling notifies every agent. A cancelled mission is deleted after 90 days.'],
+        ],
+      },
+    ],
+  },
   {
     slug: 'white-elephant',
     path: '/guides/white-elephant',

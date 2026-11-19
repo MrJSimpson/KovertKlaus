@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { evaluateDrawFeasibility, type ExclusionRuleInput, type FieldAgent } from './draw';
+import { evaluateDrawFeasibility, MIN_PARTICIPANTS, type ExclusionRuleInput, type FieldAgent } from './draw';
+import { FEATURE_FACTS } from './features';
+import { PURGE_AFTER_MS } from './mission-cancel';
+import { calculateAutomaticOperationDates } from './validations/operation';
 import { initializePartyGame } from './whiteElephant';
 import { GUIDE_FACTS, GUIDES, GUIDES_INDEX, guideBySlug } from './guides';
 import { SITEMAP_PATHS } from './seo';
@@ -54,6 +57,30 @@ test('Guides - the partner minimum the guide states is the one the draw enforces
   // Blocking two leaves exactly the stated minimum: allowed.
   assert.strictEqual(GUIDE_FACTS.minAllowedPartners, 2);
   assert.ok(feasible(names, [['a', 'b'], ['a', 'c']]));
+});
+
+test('Guides - the mission walkthrough states the app’s numbers', () => {
+  assert.strictEqual(GUIDE_FACTS.minReadyAgents, MIN_PARTICIPANTS);
+  assert.deepStrictEqual([...GUIDE_FACTS.carriers], [...FEATURE_FACTS.carriers]);
+  assert.strictEqual(GUIDE_FACTS.cancelledPurgeDays * 24 * 60 * 60 * 1000, PURGE_AFTER_MS);
+  const text = JSON.stringify(guideBySlug('how-a-mission-runs'));
+  assert.ok(text.includes('at least four agents'));
+  assert.ok(text.includes(GUIDE_FACTS.carriers.slice(0, -1).join(', ') + ' or ' + GUIDE_FACTS.carriers.at(-1)));
+  assert.ok(text.includes(`after ${GUIDE_FACTS.cancelledPurgeDays} days`));
+  assert.ok(text.includes(`at least ${GUIDE_FACTS.minDaysBetweenStages} days between stages`));
+});
+
+test('Guides - starting four weeks out gives at least 7 days between stages, sooner gives less', () => {
+  const days = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
+  const gaps = (weeksOut: number) => {
+    const exec = new Date(Date.now() + weeksOut * 7 * 86_400_000);
+    const d = calculateAutomaticOperationDates(exec);
+    const today = new Date().toISOString().split('T')[0];
+    return [days(today, d.inviteCutoffDate), days(d.inviteCutoffDate, d.assignmentDate), days(d.assignmentDate, d.shippingDate), days(d.shippingDate, d.executionDate)];
+  };
+  assert.ok(gaps(GUIDE_FACTS.minLeadWeeks).every((g) => g >= GUIDE_FACTS.minDaysBetweenStages - 1), String(gaps(GUIDE_FACTS.minLeadWeeks)));
+  assert.ok(gaps(GUIDE_FACTS.minLeadWeeks + 1).every((g) => g >= GUIDE_FACTS.minDaysBetweenStages));
+  assert.ok(gaps(GUIDE_FACTS.minLeadWeeks - 1).some((g) => g < GUIDE_FACTS.minDaysBetweenStages));
 });
 
 test('Guides - the self-hosting steps match the repository', () => {

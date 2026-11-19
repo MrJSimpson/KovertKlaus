@@ -26,6 +26,7 @@ export const SITEMAP_PATHS = [
   '/',
   '/features',
   '/guides',
+  '/guides/how-a-mission-runs',
   '/guides/white-elephant',
   '/guides/secret-santa-exclusions',
   '/guides/self-hosted-secret-santa',

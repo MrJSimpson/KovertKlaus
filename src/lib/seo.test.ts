@@ -56,6 +56,7 @@ test('SEO: sitemap lists only public pages, as absolute URLs', () => {
     'https://kovertklaus.com',
     'https://kovertklaus.com/features',
     'https://kovertklaus.com/guides',
+    'https://kovertklaus.com/guides/how-a-mission-runs',
     'https://kovertklaus.com/guides/white-elephant',
     'https://kovertklaus.com/guides/secret-santa-exclusions',
     'https://kovertklaus.com/guides/self-hosted-secret-santa',

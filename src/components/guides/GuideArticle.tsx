@@ -44,6 +44,8 @@ function Block({ block }: { block: GuideBlock }) {
   switch (block.type) {
     case 'h2':
       return <h2 className="m-0 mt-4 font-display text-[24px] leading-[30px] font-semibold text-kk-heading">{block.text}</h2>;
+    case 'h3':
+      return <h3 className="m-0 mt-1 font-display text-lg leading-6 font-semibold text-kk-heading">{block.text}</h3>;
     case 'p':
       return (
         <p className="m-0">
@@ -103,7 +105,7 @@ function Block({ block }: { block: GuideBlock }) {
 export function GuideCards({ except, headingLevel = 'h2' }: { except?: string; headingLevel?: 'h2' | 'h3' }) {
   const Heading = headingLevel;
   return (
-    <ul className={`list-none m-0 p-0 grid gap-5 grid-cols-1 ${except ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+    <ul className={`list-none m-0 p-0 grid gap-5 grid-cols-1 ${except ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
       {GUIDES.filter((g) => g.slug !== except).map((g) => (
         <li key={g.slug} className="kk-card relative flex flex-col gap-3 p-5">
           <div className="h-[100px] px-2 py-1 bg-kk-inset rounded-[var(--kk-radius-md)]">
