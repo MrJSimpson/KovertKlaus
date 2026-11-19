@@ -38,6 +38,7 @@ export const PRIVATE_PATHS = [
   '/delete-account',
   '/exchange/',
   '/northpole',
+  '/profile',
   '/operations',
   '/opkits',
   '/reset-password',

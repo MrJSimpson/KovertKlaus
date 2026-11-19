@@ -9,7 +9,7 @@
  * and the word DELETE and calls `POST /api/users/delete-account`.
  * Tier 2 (why): The Privacy Policy promised deletion by email only. Owner decisions (2026-11-01):
  * immediate and permanent; refused while the agent runs an open mission or is in a drawn mission.
- * Tier 3 (how): Linked from Account Preferences and the verify-email page. On success the server has
+ * Tier 3 (how): Linked from the Profile page and the verify-email page. On success the server has
  * cleared the session cookie; the page clears the cached identity and offers the home page.
  */
 

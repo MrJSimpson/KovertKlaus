@@ -1534,7 +1534,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             success: true,
             authenticated: true,
             emailVerified: true,
-            user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints },
+            user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints, missionCount: user.participations.length },
           }, { headers: meHeaders });
         }
 

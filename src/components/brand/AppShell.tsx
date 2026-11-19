@@ -8,8 +8,8 @@
  * Sign out and the mode toggle. Phones: wordmark, Sign out and toggle on top, a fixed bottom tab bar
  * with the same three destinations (Design System `Header` and `BottomTabBar`).
  * Tier 2 (why): Visual refresh (2.0.0-beta, owner decisions 2026-10-31: no Wishlists destination,
- * bottom tab bar on phones, folder tabs on desktop). Alerts is its own page (`/alerts`); Profile
- * opens Account Preferences until it gets one.
+ * bottom tab bar on phones, folder tabs on desktop). Alerts (`/alerts`) and Profile (`/profile`) are
+ * their own pages.
  * Tier 3 (how): The Alerts tab shows the open count from `GET /api/notifications?summary=1`, on every
  * page with header tabs (owner decision 2026-11-19: no separate dashboard Alerts card). The Alerts
  * page fires `ALERTS_CHANGED_EVENT` after removing alerts so the badge updates without a reload. The
@@ -29,8 +29,6 @@ export type AppSection = 'missions' | 'alerts' | 'profile';
 export interface AppShellProps {
   active: AppSection;
   children: ReactNode;
-  /** Opens the profile (Account Preferences until the Profile page exists). */
-  onProfile: () => void;
   onSignOut: () => void;
   /**
    * An open mission: a folder tab with its code appears after Missions and is the current tab, as if
@@ -99,7 +97,7 @@ function ModeToggle() {
   );
 }
 
-export function AppShell({ active, children, onProfile, onSignOut, openFile }: AppShellProps) {
+export function AppShell({ active, children, onSignOut, openFile }: AppShellProps) {
   const mode = useLayoutMode();
   const desktop = mode !== 'phone';
   const alertCount = useAlertCount();
@@ -132,9 +130,9 @@ export function AppShell({ active, children, onProfile, onSignOut, openFile }: A
                 </span>
               )}
             </Link>
-            <button type="button" onClick={onProfile} className="kk-header__link cursor-pointer" aria-current={active === 'profile' ? 'page' : undefined}>
+            <Link href="/profile" className="kk-header__link" aria-current={active === 'profile' ? 'page' : undefined}>
               Profile
-            </button>
+            </Link>
           </nav>
         )}
         <div className="flex items-center gap-1">
@@ -165,10 +163,10 @@ export function AppShell({ active, children, onProfile, onSignOut, openFile }: A
               </span>
             )}
           </Link>
-          <button type="button" onClick={onProfile} className="kk-tabbar__item cursor-pointer" aria-current={active === 'profile' ? 'page' : undefined}>
+          <Link href="/profile" className="kk-tabbar__item" aria-current={active === 'profile' ? 'page' : undefined}>
             <Icon name="user" size={22} />
             Profile
-          </button>
+          </Link>
         </nav>
       )}
     </div>
