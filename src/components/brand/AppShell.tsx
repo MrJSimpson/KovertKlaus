@@ -11,9 +11,8 @@
  * bottom tab bar on phones, folder tabs on desktop). Alerts and Profile get their own pages in later
  * refresh PRs; until then Alerts opens the notification panel and Profile opens Account Preferences.
  * Tier 3 (how): Exactly one `NotificationBell` is mounted, so the alert list loads once: the tab bar
- * item on phones, the header tab on tablets, and on wide screens either the header tab or, when the
- * page shows its own Alerts card (`alertsInPage`, the dashboard), no tab at all (owner request
- * 2026-11-18: alerts in a tab or a card, never both). The tab bar is `position: fixed`; the page reserves `--kk-tabbar-h` plus
+ * item on phones, the header tab wherever the header shows its tabs (owner decision 2026-11-19: the
+ * Alerts tab stays on every page, so the dashboard has no separate Alerts card). The tab bar is `position: fixed`; the page reserves `--kk-tabbar-h` plus
  * the safe area below its content, and nothing else sits on the bottom edge.
  */
 
@@ -34,8 +33,11 @@ export interface AppShellProps {
   /** Opens the profile (Account Preferences until the Profile page exists). */
   onProfile: () => void;
   onSignOut: () => void;
-  /** The page renders `<NotificationBell variant="card">` itself on wide screens (`useLayoutMode`). */
-  alertsInPage?: boolean;
+  /**
+   * An open mission: a folder tab with its code appears after Missions and is the current tab, as if
+   * the mission's folder were pulled out (owner review 2026-11-19). Missions stays a link back.
+   */
+  openFile?: { label: string; title?: string };
   alerts?: {
     pinned?: PinnedNotice[];
     actionsFor?: (n: NotificationView, dismiss: () => void) => ReactNode;
@@ -78,10 +80,9 @@ function ModeToggle() {
   );
 }
 
-export function AppShell({ active, children, onProfile, onSignOut, alerts, alertsInPage = false }: AppShellProps) {
+export function AppShell({ active, children, onProfile, onSignOut, alerts, openFile }: AppShellProps) {
   const mode = useLayoutMode();
   const desktop = mode !== 'phone';
-  const alertsTab = mode === 'tablet' || (mode === 'wide' && !alertsInPage);
   const bell = (variant: 'tab' | 'tabbar') => (
     <NotificationBell variant={variant} pinned={alerts?.pinned} actionsFor={alerts?.actionsFor} reloadKey={alerts?.reloadKey} />
   );
@@ -95,10 +96,16 @@ export function AppShell({ active, children, onProfile, onSignOut, alerts, alert
         <Wordmark href="/dashboard" onHeader size="md" />
         {desktop && (
           <nav aria-label="Main" className="kk-header__nav kk-header__nav--tabs">
-            <Link href="/dashboard" className="kk-header__link" aria-current={active === 'missions' ? 'page' : undefined}>
+            <Link href="/dashboard" className="kk-header__link" aria-current={active === 'missions' && !openFile ? 'page' : undefined}>
               Missions
             </Link>
-            {alertsTab && bell('tab')}
+            {openFile && (
+              <span className="kk-header__link kk-header__link--file" aria-current="page" title={openFile.title}>
+                <Icon name="folder" size={16} />
+                {openFile.label}
+              </span>
+            )}
+            {bell('tab')}
             <button type="button" onClick={onProfile} className="kk-header__link cursor-pointer" aria-current={active === 'profile' ? 'page' : undefined}>
               Profile
             </button>

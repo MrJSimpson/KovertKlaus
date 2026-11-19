@@ -111,3 +111,9 @@ test('Mission list: the viewer summary never carries other members’ targets or
   assert.ok(!(item.repairIssues ?? '').includes('other'), 'agents only see issues that name them');
   assert.equal(item.memberCount, 2);
 });
+
+test('Mission card: a visitor who has not joined sees an invitation, not agent tasks', () => {
+  const c = missionCardView(mission({}, { isMember: false }), NOW);
+  assert.equal(c.stamp.label, 'Recruiting');
+  assert.match(c.status, /^Recruiting until 25 Nov\. Join/);
+});

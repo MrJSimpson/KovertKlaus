@@ -210,3 +210,20 @@
 body:has(.kk-tabbar) .kk-feedback-fab {
   bottom: calc(var(--kk-tabbar-h) + env(safe-area-inset-bottom) + 12px);
 }
+
+/*
+ * Legacy markup inside refreshed pages (visual refresh, until each section is rebuilt): the old
+ * oversized radii and black weights fall back to the Design System's shapes and type. Unlayered so
+ * they beat the Tailwind utilities they correct; scoped to `.kk-ui` (refreshed shells only).
+ */
+.kk-ui .rounded-3xl, .kk-ui .rounded-2xl { border-radius: var(--kk-radius-lg); }
+.kk-ui .rounded-xl { border-radius: var(--kk-radius-md); }
+.kk-ui .font-black, .kk-ui .font-extrabold { font-weight: 700; }
+.kk-ui h1, .kk-ui h2, .kk-ui h3 { font-family: var(--font-display); }
+
+/*
+ * Folder files reserve 34px above themselves for their tab (Design System MissionFile). Tailwind's
+ * `space-y-*` resets children's top margin from the utilities layer, which beats the component
+ * rule, so the tab ran into the card above. Unlayered, so the reservation always holds.
+ */
+.kk-ui .kk-file { margin-top: 34px; }

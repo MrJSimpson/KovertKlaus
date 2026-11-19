@@ -305,6 +305,19 @@ export function missionCardView(m: MissionListItem, now: Date = new Date()): Mis
         tabDate: opened,
       };
     }
+    if (!v.isMember) {
+      return {
+        stamp: { label: 'Recruiting', tone: 'muted' },
+        steps: steps(1),
+        meta: meta({ label: 'RSVP by', value: dataDate(m.inviteCutoffDate) }),
+        lead: null,
+        status: `Recruiting until ${sentenceDate(m.inviteCutoffDate)}. Join to get a codename and build your ${m.isWhiteElephant ? 'gift entry' : 'Wishlist Manifest'}.`,
+        primary: { ...view, variant: 'primary' },
+        secondary: null,
+        cancelled: false,
+        tabDate: opened,
+      };
+    }
     return {
       stamp: roleStamp,
       steps: steps(1),

@@ -174,8 +174,8 @@ export function AfterActionReportSection({
             <span>📸 Operation After-Action Report (AAR)</span>
           </h2>
         </div>
-        <div className="flex items-center gap-2 text-xs text-kk-header-nav font-mono">
-          <span className="w-2 h-2 rounded-full bg-kk-header-nav motion-safe:animate-pulse" />
+        <div className="flex items-center gap-2 text-xs text-kk-muted font-mono">
+          <span className="w-2 h-2 rounded-full bg-kk-stamp motion-safe:animate-pulse" />
           <span>Completed Mission Log</span>
         </div>
       </div>

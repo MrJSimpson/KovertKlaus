@@ -402,3 +402,7 @@ button.kk-tabbar__item { background: transparent; border: 0; font-family: inheri
 }
 .kk-chip[aria-pressed="true"] { background: var(--kk-ink); color: var(--kk-page); border-color: var(--kk-ink); }
 @media (pointer: coarse) { .kk-chip { min-height: 44px; } }
+
+/* Open mission folder tab (app addition, owner review 2026-11-19): the mission's code in mono,
+   with a folder icon, styled like the other folder tabs; it is the current one. */
+.kk-header .kk-header__nav--tabs .kk-header__link--file { gap: 8px; font-family: var(--font-mono); letter-spacing: 0.04em; }
