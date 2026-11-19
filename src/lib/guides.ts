@@ -318,7 +318,7 @@ export const GUIDES: Guide[] = [
     description: 'Run your own Secret Santa and White Elephant app with Docker. Free for you, your family, your company or your club.',
     summary: 'Run KovertKlaus on your own computer or server.',
     lead: 'KovertKlaus is free to run on your own computer or server. Your names, addresses and wishlists stay on a machine you control.',
-    art: 'hero',
+    art: 'server',
     cta: { label: 'Prefer not to host it? Start a mission here', href: START },
     blocks: [
       { type: 'h2', text: 'Who it’s for' },
