@@ -146,7 +146,7 @@ KovertKlaus itself is licensed under [`LICENSE.md`](./LICENSE.md). It depends on
 | `domhandler` | 5.0.3 | BSD-2-Clause |
 | `domutils` | 3.2.2 | BSD-2-Clause |
 | `dotenv` (platform-specific) | 17.4.2 | BSD-2-Clause |
-| `effect` (platform-specific) | 3.20.0 | MIT |
+| `effect` (platform-specific) | 3.22.4 | MIT |
 | `elkjs` (platform-specific) | 0.11.1 | EPL-2.0 |
 | `empathic` (platform-specific) | 2.0.0 | MIT |
 | `encoding-sniffer` | 0.2.1 | MIT |
@@ -2678,7 +2678,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### effect@3.20.0
+### effect@3.22.4
 
 ```text
 MIT License

@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - On self-hosted servers, saving your preferences no longer resets which dossier sections your Head Elf can see.
 
+### Security
+- **`effect` 3.22.4 instead of 3.20.0** (GHSA-7589-6fvf-x4pw, high: a crafted input could make a schema pattern check run very slowly). It comes in through Prisma (`@prisma/config`), whose newest release still pins 3.20.0, so an `overrides` entry lifts it to the patched 3.x line. Prisma's commands and the database sync on start work as before. `npm audit` reports 0 again.
+
 ---
 
 ## [1.3.0-beta] - 2026-11-18
