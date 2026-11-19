@@ -61,7 +61,8 @@ import { checkLoginThrottle, clearLoginFailures, clientIp, loginThrottleKeys, pu
 import { deleteFeedback, listFeedback, submitFeedback, updateFeedbackStatus } from './lib/feedback';
 import { listMissionInvitations, listMyInvitations, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
-import { dismissNotifications, listMyNotifications } from './lib/notifications';
+import { dismissNotifications, listMyNotifications, notifyOnce } from './lib/notifications';
+import { NOTICE } from './lib/notification-copy';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
 import { isRosterLocked, refreshPausedMissionsFor, timelineRepairUpdate, visibleRepairIssues } from './lib/mission-repair';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
@@ -1988,13 +1989,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can broadcast' }, { status: 403 });
 
+            // One key per broadcast (unique per agent), so broadcasts stack instead of replacing each other.
+            const notice = NOTICE.broadcast(ex.id, messageText.trim());
             await db.notification.createMany({
-              data: ex.members.map((m) => ({
-                userId: m.userId,
-                title: `📢 Exchange Broadcast: ${ex.title}`,
-                message: messageText.trim(),
-                exchangeId: ex.id,
-              })),
+              data: ex.members.map((m) => ({ userId: m.userId, exchangeId: ex.id, ...notice })),
             });
 
             try {
@@ -2452,7 +2450,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
         if (request.method === 'GET') {
-          const result = await listMyNotifications(db, activeUserId);
+          const summary = new URL(request.url).searchParams.get('summary') === '1';
+          const result = await listMyNotifications(db, activeUserId, { summary });
           return Response.json(result.body, { status: result.status });
         }
         if (request.method === 'PATCH') {
@@ -2570,24 +2569,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         });
 
         if (member.targetUserId) {
-          const exchangeTitle = member.exchange?.title || 'Operation';
-          const notificationTitle = isLocalDelivery
-            ? `🎁 Hand Delivery Dispatched: ${exchangeTitle}`
-            : `📦 Parcel In Transit (${carrierInfo?.badgeLabel || 'Carrier'}): ${exchangeTitle}`;
-
-          const notificationMsg = isLocalDelivery
-            ? 'Your secret giver has confirmed personal hand delivery / local drop-off for your gift! Keep your eyes peeled.'
-            : `Your secret giver has dispatched your parcel via ${carrierInfo?.carrierName || 'Courier'}! Tracking Number: ${cleanTracking}.`;
-
-          await db.notification.create({
-            data: {
-              userId: member.targetUserId,
-              exchangeId: operationId,
-              title: notificationTitle,
-              message: notificationMsg,
-              isAcknowledged: false,
-            },
-          }).catch(() => {});
+          const delivery = isLocalDelivery
+            ? ({ local: true } as const)
+            : ({ local: false, carrierName: carrierInfo?.carrierName || 'a courier', tracking: cleanTracking || '' } as const);
+          await notifyOnce(db, { userId: member.targetUserId, exchangeId: operationId, ...NOTICE.giftShipped(operationId, delivery) }).catch(() => {});
         }
 
         return Response.json({

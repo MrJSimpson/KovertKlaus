@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { closedMissionGuard } from '@/lib/mission-cancel';
 import { getSessionUserId } from '@/lib/auth';
 import { detectCarrier } from '@/lib/carrier-tracking';
+import { notifyOnce } from '@/lib/notifications';
+import { NOTICE } from '@/lib/notification-copy';
 
 export async function POST(request: Request) {
   try {
@@ -83,24 +85,10 @@ export async function POST(request: Request) {
 
     // Notify Target Operative (if target is assigned)
     if (member.targetUserId) {
-      const exchangeTitle = member.exchange?.title || 'Operation';
-      const notificationTitle = isLocalDelivery
-        ? `🎁 Hand Delivery Dispatched: ${exchangeTitle}`
-        : `📦 Parcel In Transit (${carrierInfo?.badgeLabel || 'Carrier'}): ${exchangeTitle}`;
-
-      const notificationMsg = isLocalDelivery
-        ? 'Your secret giver has confirmed personal hand delivery / local drop-off for your gift! Keep your eyes peeled.'
-        : `Your secret giver has dispatched your parcel via ${carrierInfo?.carrierName || 'Courier'}! Tracking Number: ${cleanTracking}.`;
-
-      await db.notification.create({
-        data: {
-          userId: member.targetUserId,
-          exchangeId: operationId,
-          title: notificationTitle,
-          message: notificationMsg,
-          isAcknowledged: false,
-        },
-      }).catch(() => {});
+      const delivery = isLocalDelivery
+        ? ({ local: true } as const)
+        : ({ local: false, carrierName: carrierInfo?.carrierName || 'a courier', tracking: cleanTracking || '' } as const);
+      await notifyOnce(db, { userId: member.targetUserId, exchangeId: operationId, ...NOTICE.giftShipped(operationId, delivery) }).catch(() => {});
     }
 
     return NextResponse.json({

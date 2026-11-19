@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { executeLinkedListDraw } from './draw';
 import { sendAssignmentEmail, sendMissionCancelledEmail, sendMissionRepairEmail } from './email';
 import { notifyOnce } from './notifications';
+import { NOTICE } from './notification-copy';
 import { purgeCancelledMissions } from './mission-cancel';
 import { READINESS_MEMBERS_INCLUDE, runRepairSweep, type MissionRepairDeps, type RepairOutcome } from './mission-repair';
 import { sendDrawAssignmentEmails } from './manual-draw';
@@ -118,15 +119,7 @@ export async function advanceMissionLifecycle(db: PrismaClient, deps: MissionLif
         data: { status: 'SETUP' },
       });
 
-      await db.notification.create({
-        data: {
-          userId: ex.organizerId,
-          exchangeId: ex.id,
-          title: `🔒 Recruitment Closed: ${ex.title}`,
-          message: `The RSVP cutoff date has arrived. Recruitment is locked and the mission has advanced to the SETUP stage.`,
-          isAcknowledged: false,
-        },
-      }).catch(() => {});
+      await notifyOnce(db, { userId: ex.organizerId, exchangeId: ex.id, ...NOTICE.recruitmentClosed(ex.id) }).catch(() => {});
 
       transitions.push({
         exchangeId: ex.id,
@@ -233,15 +226,7 @@ export async function advanceMissionLifecycle(db: PrismaClient, deps: MissionLif
 
             // Dispatch in-app notifications
             for (const a of assignments) {
-              await db.notification.create({
-                data: {
-                  userId: a.agentId,
-                  exchangeId: ex.id,
-                  title: `🎯 Secret Target Assigned: ${ex.title}`,
-                  message: `Target assignments have been drawn for mission "${ex.title}"! Open your Command Center briefing to inspect your classified target.`,
-                  isAcknowledged: false,
-                },
-              }).catch(() => {});
+              await notifyOnce(db, { userId: a.agentId, exchangeId: ex.id, ...NOTICE.targetAssigned(ex.id) }).catch(() => {});
             }
 
             // Assignment emails, awaited: the cron's waitUntil ends with this sweep, and unfinished sends were dropped
@@ -267,23 +252,12 @@ export async function advanceMissionLifecycle(db: PrismaClient, deps: MissionLif
             currentStatus = 'MATCHED';
           } catch (drawErr) {
             // One notice per mission, refreshed each sweep, instead of a new one every hour.
-            await notifyOnce(db, {
-              userId: ex.organizerId,
-              dedupeKey: `draw-blocked:${ex.id}`,
-              exchangeId: ex.id,
-              title: `⚠️ Target Draw Pending: ${ex.title}`,
-              message: `Automatic target draw could not be completed on Assignment Day (${(drawErr instanceof Error && drawErr.message) || 'Matching constraint conflict'}). Please verify rules in the Command Center.`,
-            }).catch(() => {});
+            const reason = (drawErr instanceof Error && drawErr.message) || 'the exclusion rules leave no valid gift circle';
+            await notifyOnce(db, { userId: ex.organizerId, exchangeId: ex.id, ...NOTICE.drawFailed(ex.id, reason) }).catch(() => {});
           }
         } else {
           // Fewer than 4 members
-          await notifyOnce(db, {
-            userId: ex.organizerId,
-            dedupeKey: `draw-blocked:${ex.id}`,
-            exchangeId: ex.id,
-            title: `⚠️ Insufficient Operatives for Draw: ${ex.title}`,
-            message: `Assignment Day arrived, but mission has only ${ex.members.length} member(s). A minimum of 4 operatives is required to draw.`,
-          }).catch(() => {});
+          await notifyOnce(db, { userId: ex.organizerId, exchangeId: ex.id, ...NOTICE.drawTooFew(ex.id, ex.members.length) }).catch(() => {});
         }
       }
     }
@@ -302,15 +276,7 @@ export async function advanceMissionLifecycle(db: PrismaClient, deps: MissionLif
       });
 
       for (const member of ex.members) {
-        await db.notification.create({
-          data: {
-            userId: member.userId,
-            exchangeId: ex.id,
-            title: `📦 Shipping Deadline Reached: ${ex.title}`,
-            message: `The gift shipping deadline has arrived. Please verify your tracking number or local delivery status.`,
-            isAcknowledged: false,
-          },
-        }).catch(() => {});
+        await notifyOnce(db, { userId: member.userId, exchangeId: ex.id, ...NOTICE.shippingDeadline(ex.id) }).catch(() => {});
       }
 
       transitions.push({
@@ -339,15 +305,7 @@ export async function advanceMissionLifecycle(db: PrismaClient, deps: MissionLif
       });
 
       for (const member of ex.members) {
-        await db.notification.create({
-          data: {
-            userId: member.userId,
-            exchangeId: ex.id,
-            title: `🎉 Exchange Day Has Arrived: ${ex.title}`,
-            message: `Execution Day is here! Mission is live for unwrapping and celebrations.`,
-            isAcknowledged: false,
-          },
-        }).catch(() => {});
+        await notifyOnce(db, { userId: member.userId, exchangeId: ex.id, ...NOTICE.exchangeDay(ex.id) }).catch(() => {});
       }
 
       transitions.push({

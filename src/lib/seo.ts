@@ -32,6 +32,7 @@ export const LANDING_ALIASES = ['/signin', '/register'] as const;
  * robots.txt and exports `NOINDEX` from its layout (robots.txt stops crawling, not indexing).
  */
 export const PRIVATE_PATHS = [
+  '/alerts',
   '/api/',
   '/dashboard',
   '/delete-account',

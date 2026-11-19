@@ -21,6 +21,8 @@ import { issueInviteToken } from '@/lib/invite-token';
 import type { PrismaClient } from '@prisma/client';
 import { isValidEmail } from '@/lib/security';
 import { generateKdmToken } from '@/lib/covertDelivery';
+import { notifyOnce } from '@/lib/notifications';
+import { NOTICE } from '@/lib/notification-copy';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -162,14 +164,8 @@ export async function sendMissionInvitation(
   }
 
   if (targetUser) {
-    await db.notification.create({
-      data: {
-        userId: targetUser.id,
-        title: `📩 Invited to: ${exchange.title}`,
-        message: `${exchange.organizer.name} invited you to join "${exchange.title}". Accept or decline in Active Operations or on the mission page.`,
-        exchangeId: exchange.id,
-      },
-    });
+    // A repeat invitation refreshes the one notice instead of adding another.
+    await notifyOnce(db, { userId: targetUser.id, exchangeId: exchange.id, ...NOTICE.invited(exchange.id, exchange.organizer.name) });
   }
 
   const joinUrl = invitationLink(deps.baseUrl, exchange.code, email, Boolean(targetUser), kdmToken, issueInviteToken(invitation.id));

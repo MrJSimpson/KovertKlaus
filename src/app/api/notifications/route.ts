@@ -2,7 +2,8 @@
  * @file route.ts
  * @description `/api/notifications`: the caller's in-app notifications (self-hosted edition).
  *
- * Tier 1 (what): GET lists the caller's open notifications with a link each. PATCH removes some
+ * Tier 1 (what): GET lists the caller's open notifications with a link each, plus pinned notices
+ * (`?summary=1`: counts and pinned only, for the header badge). PATCH removes some
  * (`{ ids }`) or all (`{ all: true }`) of them.
  * Tier 2 (why): The edge worker serves the same path in SaaS; both delegate to
  * `@/lib/notifications` so the rules live in one place.
@@ -16,12 +17,13 @@ import { dismissNotifications, listMyNotifications } from '@/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
-/** Lists the caller's open notifications. */
-export async function GET() {
+/** Lists the caller's open notifications; `?summary=1` returns only the counts and pinned notices. */
+export async function GET(request: Request) {
   try {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    const result = await listMyNotifications(db, userId);
+    const summary = new URL(request.url).searchParams.get('summary') === '1';
+    const result = await listMyNotifications(db, userId, { summary });
     return NextResponse.json(result.body, { status: result.status });
   } catch (error) {
     console.error('[Notifications] list failed:', error);

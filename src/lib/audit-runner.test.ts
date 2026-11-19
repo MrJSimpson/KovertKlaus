@@ -20,6 +20,10 @@ test('Audit Runner - processExchangeAudit applies penalties, waivers, and transi
       },
     },
     notification: {
+      upsert: async ({ create }: { create: Record<string, unknown> }) => {
+        createdNotifications.push({ data: create } as never);
+        return { id: 'notif-' + createdNotifications.length, ...create };
+      },
       create: async ({ data }: CreateArgs) => {
         createdNotifications.push({ data });
         return { id: 'notif-' + createdNotifications.length, ...data };
@@ -108,9 +112,9 @@ test('Audit Runner - processExchangeAudit applies penalties, waivers, and transi
   // Verify notifications: 1 penalty notification, 1 cleared notification
   assert.strictEqual(createdNotifications.length, 2);
   assert.strictEqual(createdNotifications[0].data.userId, 'user-neglect');
-  assert.strictEqual(String(createdNotifications[0].data.title).includes('Penalty Issued'), true);
+  assert.strictEqual(String(createdNotifications[0].data.title).includes('Coal Citation issued'), true);
   assert.strictEqual(createdNotifications[1].data.userId, 'user-rehabilitated');
-  assert.strictEqual(String(createdNotifications[1].data.title).includes('Demerit Cleared'), true);
+  assert.strictEqual(String(createdNotifications[1].data.title).includes('Coal Citation cleared'), true);
 
   // Verify exchange marked as COMPLETED
   assert.strictEqual(updatedExchanges.length, 1);
@@ -131,6 +135,10 @@ test('Audit Runner - processExchangeAudit bypasses demerits when enforcePenaltie
       },
     },
     notification: {
+      upsert: async ({ create }: { create: Record<string, unknown> }) => {
+        createdNotifications.push({ data: create } as never);
+        return { id: 'notif-' + createdNotifications.length, ...create };
+      },
       create: async ({ data }: CreateArgs) => {
         createdNotifications.push({ data });
         return { id: 'notif-' + createdNotifications.length, ...data };

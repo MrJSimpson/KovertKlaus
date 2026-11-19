@@ -17,6 +17,7 @@ import type { AssignmentEmailParams } from './email/types';
 import { executeLinkedListDraw } from './draw';
 import { CLEAR_REPAIR_FIELDS, manualDrawBlock, READINESS_MEMBERS_INCLUDE } from './mission-repair';
 import { notifyOnce } from './notifications';
+import { NOTICE } from './notification-copy';
 
 /** Statuses after gifts start moving: the draw can never be redone. */
 const POST_DRAW_STATUSES = new Set(['SHIPPED', 'EXECUTED', 'COMPLETED']);
@@ -150,13 +151,7 @@ export async function runManualDraw(
 
   // One notice per agent per mission: a forced re-draw refreshes it instead of adding another.
   for (const a of assignments) {
-    await notifyOnce(db, {
-      userId: a.agentId,
-      dedupeKey: `target-assigned:${ex.id}`,
-      exchangeId: ex.id,
-      title: `🎯 Secret Target Assigned: ${ex.title}`,
-      message: `Target assignments have been drawn for mission "${ex.title}"! Open your Command Center briefing to inspect your classified target.`,
-    }).catch((err) => console.warn('[Manual Draw] Assignment notice failed:', err instanceof Error ? err.message : err));
+    await notifyOnce(db, { userId: a.agentId, exchangeId: ex.id, ...NOTICE.targetAssigned(ex.id) }).catch((err) => console.warn('[Manual Draw] Assignment notice failed:', err instanceof Error ? err.message : err));
   }
 
   if (deps.sendAssignmentEmail) {

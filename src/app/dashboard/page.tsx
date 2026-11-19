@@ -5,12 +5,10 @@ import { EMAIL_UNVERIFIED_CODE, USER_ID_KEY } from '@/lib/constants/auth';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '@/components/ui';
 import { AccountPreferencesModal, type PreferencesTab } from '@/components/AccountPreferencesModal';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
-import type { PinnedNotice } from '@/components/NotificationBell';
-import type { NotificationView } from '@/lib/notifications';
+import { answerInvitation, type PendingInvitation } from '@/lib/invitation-client';
 import { fetchJsonWithRetry } from '@/lib/load-retry';
 import { DEFAULT_HIDE_PREFS, MISSION_CHIPS, chipCounts, chipMatches, filterMissions, type MissionChip } from '@/lib/mission-list';
 import { sentenceDate, type MissionListItem } from '@/lib/mission-card';
@@ -72,22 +70,6 @@ interface UserData {
 
 /** One mission from `GET /api/operations` (with the viewer's card state; src/lib/mission-card.ts). */
 type MissionSummary = MissionListItem & { isLocalOnly?: boolean };
-
-/** One open invitation from `GET /api/invitations`. */
-interface PendingInvitation {
-  id: string;
-  isLatePass: boolean;
-  exchange: {
-    id: string;
-    title: string;
-    code: string;
-    executionDate: string;
-    budgetMin: number | null;
-    budgetMax: number;
-    currency: string;
-    organizer: { name: string };
-  };
-}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -174,26 +156,13 @@ export default function DashboardPage() {
     else openPreferences();
   }, [signedInUserId]);
 
-  /** Answers an invitation; `onDone` runs after it succeeds (the bell uses it to clear the notification). */
-  async function handleInvitation(inv: PendingInvitation, accept: boolean, onDone?: () => void) {
+  /** Answers an invitation from its dashboard card. */
+  async function handleInvitation(inv: PendingInvitation, accept: boolean) {
     setInviteBusyId(inv.id);
     setInviteError('');
     try {
-      const res = accept
-        ? await fetch('/api/invitations/accept', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ operationCode: inv.exchange.code }),
-          })
-        : await fetch('/api/invitations', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ invitationId: inv.id, action: 'decline' }),
-          });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || (accept ? 'Could not join the mission' : 'Could not decline the invitation'));
+      await answerInvitation(inv, accept);
       setInviteReload((n) => n + 1);
-      onDone?.();
       if (accept) router.push(`/exchange/${inv.exchange.code}`);
     } catch (err) {
       setInviteError(err instanceof Error ? err.message : 'Invitation update failed');
@@ -292,43 +261,6 @@ export default function DashboardPage() {
     : [];
   const counts = user ? chipCounts(missions, user.id) : null;
 
-  // Bell notices derived from the profile: a remote Secret Santa mission needs a shipping address.
-  const pinnedNotices: PinnedNotice[] = [];
-  if (
-    user &&
-    (!user.streetAddress || !user.city || !user.state || !user.zipCode) &&
-    user.participations?.some((p) => {
-      const ex = p.exchange || p.mission;
-      return ex && !ex.isLocalOnly && !ex.isWhiteElephant;
-    })
-  ) {
-    pinnedNotices.push({
-      id: 'shipping-address',
-      emoji: '📦',
-      title: 'Action Required: Courier Shipping Address Incomplete',
-      message: 'You are enrolled in a remote Secret Santa mission. Add your Courier Shipping Address so your Secret Santa can deliver your gift.',
-      actionLabel: 'Complete Shipping Address',
-      onAction: () => openPreferences('shipping'),
-    });
-  }
-
-  /** Accept/Decline on an invitation notification while the invitation is still open. */
-  function invitationActions(n: NotificationView, dismiss: () => void) {
-    const inv = invitations.find((i) => i.exchange.id === n.exchangeId);
-    if (!inv) return null;
-    const busy = inviteBusyId === inv.id;
-    return (
-      <>
-        <Button onClick={() => handleInvitation(inv, true, dismiss)} variant="primary" disabled={busy} className="px-3 py-1.5 text-[11px]">
-          {busy ? 'Working...' : '✅ Accept'}
-        </Button>
-        <Button onClick={() => handleInvitation(inv, false, dismiss)} variant="secondary" disabled={busy} className="px-3 py-1.5 text-[11px]">
-          Decline
-        </Button>
-      </>
-    );
-  }
-
   async function handleSignOut() {
     try {
       await fetch('/api/users/me', { method: 'DELETE' });
@@ -349,7 +281,6 @@ export default function DashboardPage() {
         active="missions"
         onProfile={() => openPreferences()}
         onSignOut={handleSignOut}
-        alerts={{ pinned: pinnedNotices, actionsFor: invitationActions, reloadKey: inviteReload }}
       >
         <main className="mx-auto max-w-[1200px] px-4 md:px-8 pt-6 md:pt-10 pb-8 md:pb-16 flex flex-col gap-5 md:gap-7">
           {loading ? (

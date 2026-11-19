@@ -23,6 +23,7 @@ import { db } from '../src/lib/db';
 import { hashPassword } from '../src/lib/password';
 import { generateInviteCode, validatePassword } from '../src/lib/security';
 import { executeLinkedListDraw } from '../src/lib/draw';
+import { NOTICE } from '../src/lib/notification-copy';
 
 /** Every demo account uses this reserved domain (RFC 2606: never resolves, never receives mail). */
 export const DEMO_EMAIL_DOMAIN = 'demo.invalid';
@@ -208,9 +209,17 @@ export async function loadDemoData(password: string, nowMs = Date.now()): Promis
     ],
   });
 
-  await db.notification.create({
-    data: { userId: users.juniper.id, title: '🎯 Target Assigned: Demo: Office Secret Santa', message: 'Your Secret Santa target is ready. Open the mission to see their Wishlist Manifest.', exchangeId: office.id },
-  });
+  // A few alerts across Today / This week / Earlier, so the Alerts page has something to show.
+  const hour = (h: number) => new Date(nowMs - h * 60 * 60 * 1000);
+  const alerts = [
+    { userId: users.juniper.id, exchangeId: office.id, createdAt: hour(1), ...NOTICE.targetAssigned(office.id) },
+    { userId: holly, exchangeId: office.id, createdAt: hour(0.5), ...NOTICE.targetAssigned(office.id) },
+    { userId: holly, exchangeId: recruiting.id, createdAt: hour(2), ...NOTICE.joinRequests(recruiting.id, 2) },
+    { userId: holly, exchangeId: office.id, createdAt: hour(26), ...NOTICE.broadcast(office.id, 'Remember: gifts under $30, and wrap them before Friday!') },
+    { userId: holly, exchangeId: party.id, createdAt: hour(24 * 3), ...NOTICE.exchangeDay(party.id) },
+    { userId: holly, exchangeId: party.id, createdAt: hour(24 * 12), ...NOTICE.recruitmentClosed(party.id) },
+  ];
+  for (const data of alerts) await db.notification.create({ data });
 
   return DEMO_AGENTS.map((a) => `${a.key}@${DEMO_EMAIL_DOMAIN}`);
 }
