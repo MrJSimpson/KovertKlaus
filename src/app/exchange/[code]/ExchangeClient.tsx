@@ -5,8 +5,7 @@ import { EMAIL_UNVERIFIED_CODE, USER_ID_KEY } from '@/lib/constants/auth';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatCodename, formatDateString, getNextMilestoneCountdown } from '@/lib/security';
-import { stageCardClass, stagePillClass, stageState, statusBadgeClass, type MissionStage } from '@/lib/stage-colors';
+import { formatCodename, formatDateString } from '@/lib/security';
 import { useTheme } from '@/context/ThemeContext';
 import { evaluateDrawFeasibility, FieldAgent, ExclusionRuleInput } from '@/lib/draw';
 import { InviteAgentModal } from '@/components/InviteAgentModal';
@@ -31,6 +30,10 @@ import { resolveExchangeCode } from '@/lib/exchange-route';
 import { fetchJsonWithRetry } from '@/lib/load-retry';
 import { memberCardStatus } from '@/lib/member-status';
 import { LegalAgreement } from '@/components/LegalAgreement';
+import { MissionFrame } from '@/components/missions/MissionFrame';
+import { MissionHero } from '@/components/missions/MissionHero';
+import { Icon } from '@/components/brand/Icon';
+import type { MissionListItem } from '@/lib/mission-card';
 import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
 
@@ -132,6 +135,10 @@ interface OperationData {
   exclusionRules?: OperationExclusionRule[];
   reports?: AARReportEntry[];
   afterActionReports?: AARReportEntry[];
+  /** When the mission was opened (mission file tab). */
+  createdAt?: string;
+  /** Fixed cancellation reason (`MissionFailureReason`). */
+  cancelCode?: string | null;
   /** Set once the mission is cancelled (status CANCELLED). */
   cancelledAt?: string | null;
   cancelledBy?: string | null;
@@ -159,7 +166,7 @@ export default function OperationCommandCenterPage() {
   const currentCodeRef = useRef(code);
   currentCodeRef.current = code;
 
-  const { isDarkMode, toggleTheme, theme, systemConfig } = useTheme();
+  const { theme, systemConfig } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   /** HTTP status of a failed load (0 when the server was unreachable); picks the error heading. */
@@ -912,7 +919,6 @@ export default function OperationCommandCenterPage() {
   }
   // Determine User Role & Target in this Operation
   const membersList = operation?.members || operation?.agents || [];
-  const organizerData = operation?.organizer || operation?.opsLeader;
   const organizerIdVal = operation?.organizerId || operation?.opsLeaderId;
   const currentAgent = membersList.find((a) => a.userId === userId);
 
@@ -945,7 +951,43 @@ export default function OperationCommandCenterPage() {
     : membersList;
   const assignedTarget = currentAgent?.targetUser;
   // Current timeline stage: colors the status badge and the 4-stage timeline (src/lib/stage-colors.ts).
-  const missionPhase = getNextMilestoneCountdown(operation);
+
+  // The mission as a dashboard list entry for this viewer, so the hero uses the card's logic.
+  const myRepairIssues = parseRepairIssues(operation?.repairIssues ?? null).flatMap((i) =>
+    'userId' in i && i.userId === userId ? [i.type as 'MISSING_ADDRESS' | 'EMPTY_WISHLIST' | 'UNVERIFIED_EMAIL'] : [],
+  );
+  const heroMission: MissionListItem = {
+    id: operation?.id ?? '',
+    code: operation?.code ?? '',
+    title: operation?.title ?? '',
+    status: operation?.status ?? 'RECRUITING',
+    organizerId: organizerIdVal ?? '',
+    isWhiteElephant: Boolean(operation?.isWhiteElephant),
+    budgetMin: operation?.budgetMin ?? 0,
+    budgetMax: operation?.budgetMax ?? 0,
+    currency: operation?.currency ?? 'USD',
+    maxParticipants: operation?.maxParticipants ?? null,
+    inviteCutoffDate: operation?.inviteCutoffDate ?? '',
+    assignmentDate: operation?.assignmentDate ?? '',
+    shippingDate: operation?.shippingDate ?? null,
+    executionDate: operation?.executionDate ?? '',
+    createdAt: operation?.createdAt ?? '',
+    repairDeadline: operation?.repairDeadline ?? null,
+    cancelledAt: operation?.cancelledAt ?? null,
+    cancelCode: operation?.cancelCode ?? null,
+    cancelReason: operation?.cancelReason ?? null,
+    cancelledFromStatus: operation?.cancelledFromStatus ?? null,
+    memberCount: membersList.length,
+    viewer: {
+      isHeadElf: isOpsLeader,
+      isMember: Boolean(currentAgent),
+      codename: currentAgent?.codename ?? null,
+      wishlistItems: userManifest.length,
+      hasTarget: Boolean(currentAgent?.targetUserId),
+      shippingStatus: currentAgent?.shippingStatus ?? 'PENDING',
+      blocking: myRepairIssues,
+    },
+  };
 
   // Timeline edit rules (server: src/lib/validations/timeline.ts): a date you change must be after
   // today and after the stage before it; a date you leave alone may already be in the past.
@@ -971,73 +1013,9 @@ export default function OperationCommandCenterPage() {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 font-sans ${theme.pageBg}`}>
-      
-      {/* Top Header Navigation */}
-      <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md shrink-0 bg-kk-primary text-kk-on-primary border border-kk-border-strong">
-              🎁
-            </div>
-            <div>
-              <span className="text-lg sm:text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textGoldOnDark}`}>
-                Operation Command Center
-              </span>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            <button
-              onClick={toggleTheme}
-              className={`p-2 min-h-[44px] min-w-[44px] rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center ${theme.btnToggle}`}
-              title={isDarkMode ? 'Switch to Klaus Mode' : 'Switch to Kovert Mode'}
-            >
-              <span className="sm:hidden text-base">{isDarkMode ? '🎅' : '🕶️'}</span>
-              <span className="hidden sm:inline">{isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}</span>
-            </button>
-
-            {userId ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm ${theme.btnPrimary}`}
-                >
-                  <span className="sm:hidden">← Home</span>
-                  <span className="hidden sm:inline">← Dashboard</span>
-                </Link>
-
-                <button
-                  onClick={handleSignOut}
-                  className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
-                >
-                  <span className="sm:hidden">Exit</span>
-                  <span className="hidden sm:inline">Sign Out</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/"
-                  className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm ${theme.btnNeutral}`}
-                >
-                  <span>🏠 Home</span>
-                </Link>
-                <button
-                  onClick={() => { setAuthMode('login'); setAuthError(''); setAuthModalOpen(true); }}
-                  className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnPrimary}`}
-                >
-                  <span>🔑 Sign In</span>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Main Command Center Body */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10">
+    <MissionFrame signedIn={Boolean(userId)} onSignOut={handleSignOut}>
+      {/* Mission body (the frame supplies the header, and the tab bar on phones) */}
+      <main className="mx-auto max-w-[1200px] px-4 md:px-8 pt-4 md:pt-6 pb-10 md:pb-16">
         
         {loading ? (
           <div className="text-center py-20">
@@ -1070,6 +1048,11 @@ export default function OperationCommandCenterPage() {
           </div>
         ) : operation ? (
           <div className="space-y-8">
+            <nav aria-label="Breadcrumb" className="text-[13px] text-kk-muted">
+              {userId ? <Link href="/dashboard">Missions</Link> : <Link href="/">KovertKlaus</Link>}
+              <span aria-hidden="true"> / </span>
+              <span aria-current="page">{operation.title}</span>
+            </nav>
 
             {/* Draw paused for repair: what blocks it and how to fix it before the deadline */}
             {operation.repairDeadline && operation.status !== 'CANCELLED' && (() => {
@@ -1184,67 +1167,24 @@ export default function OperationCommandCenterPage() {
               );
             })()}
 
-            {/* Primary Operation Banner */}
-            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-kk-header text-kk-on-header border-kk-border-strong/50`}>
-              <div>
-                <div className="flex items-center gap-3 mb-2 flex-wrap">
-                  <span className={`text-xs px-3 py-1 rounded-full font-mono font-bold ${theme.badgeCode}`}>
-                    CODE: {operation.code}
-                  </span>
-
-                  <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase ${
-                    operation.isWhiteElephant ? theme.badgeWhiteElephant : theme.badgeSecretSanta
-                  }`}>
-                    {operation.isWhiteElephant ? '🐘 White Elephant' : '🎁 Secret Santa'}
-                  </span>
-
-                  <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase ${statusBadgeClass(missionPhase)}`}>
-                    ● {missionPhase.phaseStatusLabel}
-                  </span>
-
-                  {operation.isLocalOnly && (
-                    <span className={`text-xs px-3 py-1 rounded-full font-bold ${theme.badgeAmber}`}>
-                      📍 Local In-Person Event
-                    </span>
-                  )}
-
-                  <span className="text-xs font-semibold text-kk-header-nav">
-                    Head Elf: <strong className="text-kk-on-header">{organizerData?.name || 'Organizer'} ({formatCodename(organizerCodename, organizerData?.name)})</strong>
-                  </span>
-                </div>
-
-                <h1 className="text-3xl font-black text-kk-on-header">{operation.title}</h1>
-                
-                {operation.description && (
-                  <p className="text-xs mt-1 italic text-kk-on-header/90">
-                    &quot;{operation.description}&quot;
-                  </p>
-                )}
-
-                <div className="text-xs mt-2 space-y-0.5 text-kk-on-header/90">
-                  <p>
-                    Budget Limit: <strong className="text-kk-header-nav font-bold">${operation.budgetMin || 0} – ${operation.budgetMax} {operation.currency}</strong>
-                  </p>
-                  {operation.isLocalOnly && operation.eventLocation && (
-                    <p className="font-bold text-kk-on-header">
-                      📍 Event Location: {operation.eventLocation}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-3 flex-wrap">
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(operation.code);
-                    alert(`Copied Invite Code to clipboard: ${operation.code}`);
-                  }}
-                  className={`px-5 py-3 rounded-2xl font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${theme.btnAmber}`}
-                >
-                  <span>📋 Copy Invite Code ({operation.code})</span>
-                </button>
-              </div>
-            </div>
+            {/* Mission file (visual refresh): stage, dates and status from the dashboard card's logic */}
+            <MissionHero
+              mission={heroMission}
+              description={operation.description}
+              location={operation.isLocalOnly ? operation.eventLocation : null}
+              headElfCodename={organizerCodename}
+              codename={
+                currentAgent?.codename
+                  ? {
+                      value: currentAgent.codename,
+                      canReroll: canRerollCodename,
+                      busy: codenameBusy,
+                      onReroll: () => updateCodename('reroll'),
+                      onAccept: () => updateCodename('accept'),
+                    }
+                  : null
+              }
+            />
 
             {/* Enrollment / Invitation Banner for Non-Enrolled Visitors */}
             {!currentAgent && (
@@ -1363,97 +1303,14 @@ export default function OperationCommandCenterPage() {
               </div>
             )}
 
-            {/* Mission codename: assigned at join, rerollable until accepted or recruiting closes */}
-            {currentAgent && !currentAgent.codenameAccepted && (
-              <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-kk-brand">🕶️ Your codename for this mission</span>
-                    <p className="text-2xl font-black mt-1">{formatCodename(currentAgent.codename)}</p>
-                    <p className="text-xs text-kk-muted mt-1">
-                      {canRerollCodename
-                        ? 'Not a fit? Draw another as often as you like. Once you accept, it stays for the whole mission.'
-                        : 'Recruiting has closed, so this codename is final.'}
-                    </p>
-                  </div>
-                  {canRerollCodename && (
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        type="button"
-                        disabled={codenameBusy}
-                        onClick={() => updateCodename('reroll')}
-                        className={`min-h-[44px] px-4 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50 ${theme.btnSecondary}`}
-                      >
-                        🎲 Draw another
-                      </button>
-                      <button
-                        type="button"
-                        disabled={codenameBusy}
-                        onClick={() => updateCodename('accept')}
-                        className={`min-h-[44px] px-4 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50 ${theme.btnPrimary}`}
-                      >
-                        ✓ Accept codename
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* 4-Stage Operational Timeline Cards */}
-            <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-              <div className={`flex items-center justify-between ${theme.sectionBand}`}>
-                <span className="text-sm font-black uppercase tracking-wider block">
-                  📅 4-Stage Operational Timeline
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
-                {([
-                  { stage: 1, title: 'RSVP Cutoff Date', note: '(Final Headcount)', date: operation.inviteCutoffDate },
-                  { stage: 2, title: 'Secret Santa Match', note: '(Targets Drawn)', date: operation.assignmentDate },
-                  { stage: 3, title: "Santa's Sleigh Departure", note: '(Gifts In-Transit)', date: operation.shippingDate },
-                  { stage: 4, title: 'Holiday Mission Exchange Party', note: '(Unwrapping Day)', date: operation.executionDate },
-                ] as { stage: MissionStage; title: string; note: string; date: string }[]).map((s) => {
-                  const state = stageState(s.stage, missionPhase.stage, missionPhase.isComplete);
-                  const isCurrent = state === 'current';
-                  return (
-                    <div key={s.stage} className={`p-4 rounded-2xl transition-all ${stageCardClass(s.stage, state)}`}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`text-[11px] uppercase font-mono font-extrabold px-2 py-0.5 rounded-full ${isCurrent ? 'bg-kk-surface/25 border border-current' : stagePillClass(s.stage)}`}>
-                          Stage {s.stage}
-                        </span>
-                        <span className="text-[10px] uppercase font-mono font-bold tracking-wider">
-                          {state === 'done' ? '✓ Done' : isCurrent ? '● Now' : 'Upcoming'}
-                        </span>
-                      </div>
-                      <span className="font-bold block text-sm mt-2">{s.title}</span>
-                      <span className={`text-[11px] block mt-0.5 ${isCurrent ? 'opacity-90' : theme.textSubLabel}`}>{s.note}</span>
-                      <strong className="text-base font-black block mt-2">
-                        {formatDateString(s.date)}
-                      </strong>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* OpsLeader Administrative Control Console (Clean High-Contrast Theme) */}
             {isOpsLeader && (
-              <div className={`p-6 rounded-3xl ${theme.consoleCard}`}>
-                <div className={`flex items-center justify-between gap-3 ${theme.sectionBand}`}>
-                  <div>
-                    <span className="font-black tracking-wider uppercase text-lg">
-                      🎖️ Head Elf Administrative Console
-                    </span>
-                    <p className="text-xs font-semibold mt-0.5 text-kk-on-header/90">
-                      As the designated Head Elf, you control enrollment deadlines, operation options, target draws, and compliance logs.
-                    </p>
-                  </div>
-
-                  <span className={`shrink-0 ${theme.consoleBadge}`}>
-                    Head Elf Clearance
-                  </span>
+              <div role="region" className={`p-6 rounded-3xl ${theme.consoleCard}`} aria-labelledby="he-controls-h">
+                <div className="flex flex-col gap-1 pb-4 border-b border-kk-border">
+                  <h2 id="he-controls-h" className="m-0 font-display text-[22px] leading-7 font-semibold text-kk-heading">
+                    Head Elf controls
+                  </h2>
+                  <p className="m-0 text-sm text-kk-muted">Recruiting, the draw, dates and options for this mission. Only you see this.</p>
                 </div>
 
                 {drawSuccessMessage && (
@@ -1607,28 +1464,20 @@ export default function OperationCommandCenterPage() {
                 
                 {/* Secret Santa Target Assignment Card */}
                 {!operation.isWhiteElephant && (
-                  <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                    <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
-                      <h2 className="text-xl font-bold flex items-center gap-2">
-                        🎯 Your Secret Assignment
-                      </h2>
-                      <span className={`text-xs px-3 py-1 rounded-full font-mono font-bold ${
-                        assignedTarget ? theme.badgeSecretSanta : theme.badgeAmber
-                      }`}>
-                        {assignedTarget ? 'TARGET ASSIGNED' : 'AWAITING DRAW'}
-                      </span>
+                  <div role="region" aria-labelledby="dossier-h" className="kk-card kk-file">
+                    <div className="kk-file__tab">
+                      <span id="dossier-h">Target dossier</span>
+                      <span>Eyes only</span>
                     </div>
-
+                    <div className="p-5 flex flex-col gap-4">
                     {assignedTarget ? (
-                      <div className={`p-4 rounded-2xl border space-y-3 ${theme.cardInnerBg}`}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className={`text-xs block ${theme.textSubLabel}`}>Assigned Target Operative:</span>
-                            <span className={`text-xl font-black ${theme.textHeading}`}>
-                              {formatCodename(assignedTarget.codename, assignedTarget.name)}
-                            </span>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap justify-between items-start gap-3">
+                          <div className="flex flex-col gap-1 min-w-0">
+                            <p className="eyebrow m-0 uppercase text-kk-stamp">Your target</p>
+                            <span className="font-mono text-lg font-semibold break-words">{formatCodename(assignedTarget.codename, assignedTarget.name)}</span>
                           </div>
-                          <span className="text-2xl">🎁</span>
+                          <span className="kk-stamp">Assigned</span>
                         </div>
 
                         {assignedTarget.streetAddress && (
@@ -1858,14 +1707,22 @@ export default function OperationCommandCenterPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-6 border-2 border-dashed border-kk-border rounded-2xl">
-                        <p className={`text-xs font-medium ${theme.textSubLabel}`}>
-                          {missionClosed
-                            ? 'This mission was cancelled before targets were drawn.'
-                            : 'Target assignments have not been drawn yet. Stand by for your OpsLeader to initiate the draw!'}
-                        </p>
+                      <div className="flex flex-wrap justify-between items-start gap-3">
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <p className="eyebrow m-0 uppercase text-kk-stamp">Your target</p>
+                          <p className="m-0">
+                            <span className="kk-redact" aria-hidden="true">Hidden name</span>{' '}
+                            <span className="text-kk-muted">
+                              {missionClosed
+                                ? 'This mission was cancelled before targets were drawn.'
+                                : `Hidden until the draw on ${formatDateString(operation.assignmentDate)}. Your Head Elf starts it.`}
+                            </span>
+                          </p>
+                        </div>
+                        <span className="kk-stamp kk-stamp--muted">Awaiting draw</span>
                       </div>
                     )}
+                    </div>
                   </div>
                 )}
 
@@ -1930,8 +1787,8 @@ export default function OperationCommandCenterPage() {
                         const isPersonalized = Boolean(item.properties?.isPersonalized || !item.url);
 
                         return (
-                          <div key={item.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${theme.cardInnerBg}`}>
-                            <div className="flex items-center gap-3 min-w-0">
+                          <div key={item.id} className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.cardInnerBg}`}>
+                            <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
                               {item.thumbnail ? (
                                 // eslint-disable-next-line @next/next/no-img-element -- retailer thumbnails come from any domain; next/image would need a wildcard remotePatterns (open image proxy)
                                 <img src={item.thumbnail} alt={item.title} referrerPolicy="no-referrer" className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
@@ -2008,7 +1865,7 @@ export default function OperationCommandCenterPage() {
                               </div>
                             </div>
                             {!missionClosed && (
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -2088,149 +1945,109 @@ export default function OperationCommandCenterPage() {
                   </div>
                 )}
 
-                <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                  <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      👥 Elf Agents ({membersList.length})
-                      {isOpsLeader && pendingInviteCount > 0 && (
-                        <span className="text-xs font-semibold text-kk-header-nav">· {pendingInviteCount} invited</span>
-                      )}
+                {/* Elf Agents roster (design canvas "Mission page"): compact rows, real names for the Head Elf only */}
+                <div role="region" aria-labelledby="roster-h" className="kk-card px-5 pt-5 pb-2">
+                  <div className="flex justify-between items-center gap-3 mb-2">
+                    <h2 id="roster-h" className="m-0 font-display text-lg leading-6 font-semibold text-kk-heading">
+                      Elf Agents ({membersList.length})
+                      {isOpsLeader && pendingInviteCount > 0 && <span className="ml-1.5 text-[13px] font-normal text-kk-muted">· {pendingInviteCount} invited</span>}
                     </h2>
-                    <div className="flex items-center gap-2">
-                      {isOpsLeader && !missionClosed && (
-                        <button
-                          onClick={() => setInviteModalOpen(true)}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 ${theme.btnAmber}`}
-                        >
-                          <span>✉️ + Invite Elf Agent</span>
-                        </button>
-                      )}
-                      <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full ${statusBadgeClass(missionPhase)}`}>
-                        ● {missionPhase.phaseStatusLabel}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {rosterNarrowed && (
-                      <p className={`text-[11px] ${theme.textSubLabel}`}>
-                        Targets are drawn. You now see the agents you can message: your Head Elf, your target and your Secret Santa.
-                      </p>
+                    {isOpsLeader && !missionClosed && (
+                      <button type="button" onClick={() => setInviteModalOpen(true)} className="kk-btn kk-btn--secondary kk-btn--sm shrink-0">
+                        <Icon name="send" size={16} />
+                        Invite
+                      </button>
                     )}
-                    {rosterAgents.map((agent, i) => (
-                      <div key={agent.id} className="rounded-2xl border-2 border-kk-border overflow-hidden text-xs bg-kk-surface shadow-sm">
-                        {/* Agent info: tinted panel. Actions below sit on the plain card so they stand out. */}
-                        <div className={`p-4 flex items-center justify-between ${theme.infoPanel}`}>
-                          <div className="flex items-center gap-2.5">
-                            <span className={`font-mono text-xs ${theme.textSubLabel}`}>#{i + 1}</span>
-                            <div>
-                              <span className={`font-bold block text-sm ${theme.textLabel}`}>
+                  </div>
+                  {isOpsLeader && <p className="m-0 mb-2 text-[13px] leading-5 text-kk-muted">Only you see real names. Agents see codenames.</p>}
+                  {rosterNarrowed && (
+                    <p className="m-0 mb-2 text-[13px] leading-5 text-kk-muted">
+                      Targets are drawn. You now see the agents you can message: your Head Elf, your target and your Secret Santa.
+                    </p>
+                  )}
+
+                  <ul className="list-none m-0 p-0">
+                    {rosterAgents.map((agent) => {
+                      const cardStatus = memberCardStatus(operation, agent);
+                      const carrier = cardStatus === 'SHIPPED' && agent.trackingNumber ? detectCarrier(agent.trackingNumber) : null;
+                      const pill =
+                        cardStatus === 'JOINED'
+                          ? { cls: 'kk-pill--stage1', label: 'Joined' }
+                          : cardStatus === 'SHIPPED'
+                            ? { cls: 'kk-pill--stage3', label: carrier ? `Shipped · ${carrier.badgeLabel}` : 'Shipped' }
+                            : cardStatus === 'HAND_DELIVERY'
+                              ? { cls: 'kk-pill--stage3', label: 'Hand delivery' }
+                              : { cls: 'kk-pill--warning', label: 'No tracking yet' };
+                      const isHead = agent.userId === organizerIdVal;
+                      const showHeadActions = isOpsLeader && !missionClosed;
+                      return (
+                        <li key={agent.id} className="py-3 border-t border-kk-border flex flex-col gap-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              <span className="flex flex-wrap items-center gap-2 font-mono font-medium text-sm break-words">
                                 {formatCodename(agent.user?.codename)}
+                                {isHead && <span className="kk-stamp kk-stamp--flat !px-1.5 !py-px !text-[11px]">Head Elf</span>}
+                                {agent.userId === myTargetId && <span className="kk-pill kk-pill--success !text-[12px] !py-0">Your target</span>}
+                                {agent.userId === mySantaId && <span className="kk-pill kk-pill--warning !text-[12px] !py-0">Your Secret Santa</span>}
                               </span>
                               {/* Real names reach only the Head Elf (server-side rule), so they can confirm who joined. */}
                               {isOpsLeader && agent.user?.name && (
-                                <span className={`block text-xs ${theme.textSubLabel}`}>
-                                  <span className="sr-only">Real name: </span>{agent.user.name}
+                                <span className="text-[13px] leading-5 text-kk-muted">
+                                  <span className="sr-only">Real name: </span>
+                                  {agent.user.name}
                                 </span>
                               )}
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                                  agent.userId === organizerIdVal ? theme.badgeAmber : theme.badgeSecretSanta
-                                }`}>
-                                  {agent.userId === organizerIdVal ? 'Head Elf' : 'Elf Agent'}
-                                </span>
-                                {agent.userId === myTargetId && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-kk-success text-kk-on-success" title="You are this agent's Secret Santa">
-                                    🎯 Your target
-                                  </span>
-                                )}
-                                {agent.userId === mySantaId && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-kk-warning text-kk-on-warning" title="This agent is your Secret Santa">
-                                    🎅 Your Secret Santa
-                                  </span>
-                                )}
-                                {(() => {
-                                  const cardStatus = memberCardStatus(operation, agent);
-                                  return cardStatus === 'JOINED' ? (
-                                  <span className="text-[10px] font-mono font-bold text-kk-brand">
-                                    ✓ Joined
-                                  </span>
-                                ) : cardStatus === 'SHIPPED' ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] font-mono font-bold text-kk-brand">
-                                      ✓ Shipped
-                                    </span>
-                                    {agent.trackingNumber && (() => {
-                                      const carrier = detectCarrier(agent.trackingNumber);
-                                      return (
-                                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono font-bold ${carrier.badgeColor.bg} ${carrier.badgeColor.border} ${carrier.badgeColor.text}`}>
-                                          {carrier.badgeLabel}
-                                        </span>
-                                      );
-                                    })()}
-                                  </div>
-                                ) : cardStatus === 'HAND_DELIVERY' ? (
-                                  <span className="text-[10px] font-mono font-bold text-kk-brand">
-                                    🤝 Hand Delivery
-                                  </span>
-                                ) : (
-                                  <span className={`text-[10px] font-mono font-bold ${theme.textSubLabel}`}>
-                                    ⏳ Not Shipped Yet
-                                  </span>
-                                );
-                                })()}
-                              </div>
                             </div>
+                            <span className={`kk-pill ${pill.cls} shrink-0`}>{pill.label}</span>
                           </div>
-                        </div>
 
-                        {rosterNarrowed && (
-                          <div className="px-4 py-2 border-t-2 border-kk-border bg-kk-surface flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() => openComms(agent.userId === myTargetId ? 'intel-target' : 'command')}
-                              className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-inset hover:brightness-95 transition-all cursor-pointer"
-                            >
-                              💬 {agent.userId === myTargetId ? 'Message your target' : 'Message the Head Elf'}
-                            </button>
-                          </div>
-                        )}
-
-                        {/* OpsLeader Agent Management Action Bar */}
-                        {isOpsLeader && !missionClosed && (
-                          <div className="px-4 py-3 border-t-2 border-kk-border bg-kk-surface flex items-center gap-2 flex-wrap">
-                            <button
-                              onClick={() => handleAgentAction('nudge_agent', agent)}
-                              title="Remind this agent about their next deadline (Command message, notification and email)"
-                              className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary shadow-sm transition-all cursor-pointer"
-                            >
-                              🔔 Nudge
-                            </button>
-
-                            {operation.status === 'COMPLETED' && operation.enforcePenalties !== false && (
-                              <button
-                                onClick={() => handleAgentAction('issue_demerit', agent)}
-                                title="Issue Coal Citation for deadline non-compliance"
-                                className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-gold text-kk-on-gold border border-kk-border-strong hover:brightness-95 shadow-sm transition-all cursor-pointer"
-                              >
-                                🪨 Issue Coal Citation
-                              </button>
-                            )}
-
-                            {agent.userId !== organizerIdVal && (
-                              <button
-                                onClick={() => handleAgentAction('remove_agent', agent)}
-                                title="Disenroll agent from operation"
-                                className="ml-auto text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-surface text-kk-danger border-2 border-kk-danger/60 hover:bg-kk-danger-soft transition-all cursor-pointer"
-                              >
-                                ❌ Disenroll
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                          {(rosterNarrowed || showHeadActions) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {rosterNarrowed && (
+                                <button
+                                  type="button"
+                                  onClick={() => openComms(agent.userId === myTargetId ? 'intel-target' : 'command')}
+                                  className="kk-btn kk-btn--ghost kk-btn--sm"
+                                >
+                                  {agent.userId === myTargetId ? 'Message your target' : 'Message the Head Elf'}
+                                </button>
+                              )}
+                              {showHeadActions && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAgentAction('nudge_agent', agent)}
+                                  title="Remind this agent about their next deadline (Command message, notification and email)"
+                                  className="kk-btn kk-btn--ghost kk-btn--sm"
+                                >
+                                  Nudge
+                                </button>
+                              )}
+                              {showHeadActions && operation.status === 'COMPLETED' && operation.enforcePenalties !== false && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAgentAction('issue_demerit', agent)}
+                                  title="Issue Coal Citation for deadline non-compliance"
+                                  className="kk-btn kk-btn--ghost kk-btn--sm"
+                                >
+                                  Issue Coal Citation
+                                </button>
+                              )}
+                              {showHeadActions && !isHead && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAgentAction('remove_agent', agent)}
+                                  title="Disenroll agent from operation"
+                                  className="kk-btn kk-btn--danger kk-btn--sm ml-auto"
+                                >
+                                  Disenroll
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
 
                   {rosterNarrowed && (
                     <div className="mt-3 rounded-2xl border-2 border-dashed border-kk-border overflow-hidden text-xs bg-kk-surface">
@@ -2924,6 +2741,6 @@ export default function OperationCommandCenterPage() {
         </div>
       )}
 
-    </div>
+    </MissionFrame>
   );
 }
