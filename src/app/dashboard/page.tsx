@@ -2,31 +2,23 @@
 
 import { EMAIL_UNVERIFIED_CODE, USER_ID_KEY } from '@/lib/constants/auth';
 
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { formatDateString, getNextMilestoneCountdown } from '@/lib/security';
-import { countdownBadgeClass, statusBadgeClass } from '@/lib/stage-colors';
-import { useTheme } from '@/context/ThemeContext';
-import { Card, SectionHeader, Button, Badge, DataRow, FilterContainer, FilterTab } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { AccountPreferencesModal, type PreferencesTab } from '@/components/AccountPreferencesModal';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
 import { NotificationBell, type PinnedNotice } from '@/components/NotificationBell';
-import { WhatsNewButton } from '@/components/WhatsNewButton';
 import type { NotificationView } from '@/lib/notifications';
 import { fetchJsonWithRetry } from '@/lib/load-retry';
-import {
-  filterMissions,
-  getHidePrefsSnapshot,
-  getServerHidePrefsSnapshot,
-  isHiddenFinished,
-  setHidePrefs,
-  subscribeHidePrefs,
-  type HidePrefs,
-  type RoleFilter,
-  type StatusFilter,
-} from '@/lib/mission-list';
+import { DEFAULT_HIDE_PREFS, MISSION_CHIPS, chipCounts, chipMatches, filterMissions, type MissionChip } from '@/lib/mission-list';
+import { sentenceDate, type MissionListItem } from '@/lib/mission-card';
+import { formatBudget } from '@/lib/display-format';
+import { AppShell, useLayoutMode } from '@/components/brand/AppShell';
+import { Icon } from '@/components/brand/Icon';
+import { Illustration } from '@/components/art/Illustration';
+import { MissionFileCard } from '@/components/missions/MissionFileCard';
 
 interface UserData {
   id: string;
@@ -78,25 +70,8 @@ interface UserData {
   }>;
 }
 
-/** One mission from `GET /api/operations`: every mission the agent runs or has joined. */
-interface MissionSummary {
-  id: string;
-  title: string;
-  code: string;
-  status: string;
-  isLocalOnly?: boolean;
-  isWhiteElephant: boolean;
-  budgetMin?: number | null;
-  budgetMax: number;
-  currency: string;
-  inviteCutoffDate: string;
-  assignmentDate: string;
-  shippingDate?: string | null;
-  executionDate: string;
-  /** Set while the draw is paused for repair. */
-  repairDeadline?: string | null;
-  organizerId: string;
-}
+/** One mission from `GET /api/operations` (with the viewer's card state; src/lib/mission-card.ts). */
+type MissionSummary = MissionListItem & { isLocalOnly?: boolean };
 
 /** One open invitation from `GET /api/invitations`. */
 interface PendingInvitation {
@@ -116,7 +91,6 @@ interface PendingInvitation {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isDarkMode, toggleTheme, theme } = useTheme();
   const [loading, setLoading] = useState(true);
   /** Set once a load has been retried, so the loading screen says the servers are waking up. */
   const [wakingUp, setWakingUp] = useState(false);
@@ -128,13 +102,8 @@ export default function DashboardPage() {
   /** Missions the agent asked to join by code (src/lib/join-requests.ts): waiting or declined. */
   const [joinRequests, setJoinRequests] = useState<Array<{ id: string; status: string; exchange: { title: string; code: string } }>>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  // Hide finished missions (remembered per browser; the server render shows everything)
-  const hidePrefs = useSyncExternalStore(subscribeHidePrefs, getHidePrefsSnapshot, getServerHidePrefsSnapshot);
-  function toggleHide(key: keyof HidePrefs) {
-    setHidePrefs({ ...hidePrefs, [key]: !hidePrefs[key] });
-  }
+  /** Filter chip (All, Running, I lead, Completed, Cancelled; src/lib/mission-list.ts). */
+  const [chip, setChip] = useState<MissionChip>('all');
 
   // Edit Preferences Modal
   const [prefModalOpen, setPrefModalOpen] = useState(false);
@@ -168,6 +137,8 @@ export default function DashboardPage() {
   const [inviteError, setInviteError] = useState('');
   const [inviteReload, setInviteReload] = useState(0);
   const signedInUserId = user?.id;
+
+
   useEffect(() => {
     if (!signedInUserId) return;
     let cancelled = false;
@@ -311,10 +282,11 @@ export default function DashboardPage() {
   */
 
   const visibleMissions = user
-    ? filterMissions(missions, user.id, { query: searchQuery, role: roleFilter, status: statusFilter, hide: hidePrefs })
+    ? filterMissions(missions, user.id, { query: searchQuery, role: 'ALL', status: 'ALL', hide: DEFAULT_HIDE_PREFS }).filter((m) =>
+        chipMatches(chip, m, user.id),
+      )
     : [];
-  /** Missions the hide toggles alone are keeping off the list, for the empty-state hint. */
-  const hiddenFinishedCount = missions.filter((m) => isHiddenFinished(m.status, hidePrefs)).length;
+  const counts = user ? chipCounts(missions, user.id) : null;
 
   // Bell notices derived from the profile: a remote Secret Santa mission needs a shipping address.
   const pinnedNotices: PinnedNotice[] = [];
@@ -365,313 +337,182 @@ export default function DashboardPage() {
     }
   }
 
+  const firstName = user?.name?.trim().split(/\s+/)[0];
+  const layout = useLayoutMode();
+
   return (
-    <div className={`min-h-screen transition-colors duration-300 font-sans ${theme.pageBg}`}>
-      
-      {/* Top Header Navigation */}
-      <header className={`border-b sticky top-0 z-40 backdrop-blur-md ${theme.headerBg}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center font-extrabold text-lg sm:text-xl shadow-md shrink-0 bg-kk-primary text-kk-on-primary border border-kk-border-strong">
-              🎁
+    <>
+      <AppShell
+        active="missions"
+        onProfile={() => openPreferences()}
+        onSignOut={handleSignOut}
+        alertsInPage={missions.length > 0}
+        alerts={{ pinned: pinnedNotices, actionsFor: invitationActions, reloadKey: inviteReload }}
+      >
+        <main className="mx-auto max-w-[1200px] px-4 md:px-8 pt-6 md:pt-10 pb-8 md:pb-16 flex flex-col gap-5 md:gap-7">
+          {loading ? (
+            <div role="status" className="py-20 text-center flex flex-col items-center gap-3">
+              <span className="kk-stamp">Opening your files</span>
+              {wakingUp && <p className="m-0 text-kk-muted">Waking up the North Pole servers. This can take up to half a minute.</p>}
             </div>
-            <div>
-              <span className="text-lg sm:text-xl font-black tracking-tight block">KovertKlaus</span>
-              <span className={`text-[10px] sm:text-xs font-bold hidden sm:block ${theme.textGoldOnDark}`}>
-                Operative Dashboard
-              </span>
+          ) : !user ? (
+            <div className="kk-card max-w-xl mx-auto mt-10 flex flex-col items-center text-center gap-3">
+              <h1 className="m-0 font-display text-[28px] leading-[34px] font-bold text-kk-heading">You&apos;re signed out</h1>
+              <p className="m-0 text-kk-muted">Sign in to see your Holiday Missions.</p>
+              <Link href="/signin" className="kk-btn kk-btn--primary">
+                <Icon name="key" />
+                Sign in
+              </Link>
             </div>
-          </Link>
-
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            {user && (
-              <NotificationBell
-                pinned={pinnedNotices}
-                actionsFor={invitationActions}
-                reloadKey={inviteReload}
-                className={`text-xs font-bold px-3 py-2 min-h-[44px] min-w-[44px] justify-center rounded-xl border transition-all ${theme.btnToggle}`}
-              />
-            )}
-            <WhatsNewButton
-              compact
-              className={`text-xs font-bold px-3 py-2 min-h-[44px] min-w-[44px] justify-center rounded-xl border transition-all ${theme.btnToggle}`}
-            />
-            <button
-              onClick={toggleTheme}
-              className={`p-2 min-h-[44px] min-w-[44px] rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center ${theme.btnToggle}`}
-              title={isDarkMode ? 'Switch to Klaus Mode' : 'Switch to Kovert Mode'}
-            >
-              <span className="sm:hidden text-base">{isDarkMode ? '🎅' : '🕶️'}</span>
-              <span className="hidden sm:inline">{isDarkMode ? '🎅 Klaus Mode' : '🕶️ Kovert Mode'}</span>
-            </button>
-
-            <button
-              onClick={handleSignOut}
-              className={`text-xs font-bold px-3 sm:px-4 py-2 min-h-[44px] flex items-center rounded-xl transition-all shadow-sm cursor-pointer ${theme.btnNeutral}`}
-            >
-              <span className="sm:hidden">Exit</span>
-              <span className="hidden sm:inline">Sign Out</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Dashboard Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10 space-y-8">
-        
-        {loading ? (
-          <div className="text-center py-20">
-            <div className="text-4xl animate-bounce mb-3">🎁</div>
-            <p className="text-sm font-semibold">Loading Operative Profile Data...</p>
-            {wakingUp && (
-              <p className={`text-xs mt-2 ${theme.textSubLabel}`}>Waking up the North Pole servers. This can take up to half a minute.</p>
-            )}
-          </div>
-        ) : user ? (
-          <>
-            {/* Operative Welcome Banner */}
-            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 ${theme.cardBg}`}>
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${theme.badgeCode}`}>
-                    OPERATIVE STATUS: ACTIVE
-                  </span>
-                  <span className="text-xs text-kk-muted font-mono">
-                    Coal Citations: <strong className={user.demerits > 0 ? 'text-kk-danger' : 'text-kk-brand'}>{user.demerits}/3</strong>
-                  </span>
+          ) : (
+            <>
+              {/* Heading and main actions */}
+              <div className="flex flex-col md:flex-row md:flex-wrap gap-4 md:items-end md:justify-between">
+                <div className="flex flex-col gap-1 md:gap-1.5">
+                  <p className="eyebrow m-0 uppercase text-kk-muted">{missions.length ? `Welcome back${firstName ? `, ${firstName}` : ''}` : 'Welcome, new agent'}</p>
+                  <h1 className="m-0 font-display font-bold text-kk-heading text-balance text-[28px] leading-[34px] md:text-4xl md:leading-10">Your Holiday Missions</h1>
                 </div>
-
-                <h1 className="text-3xl font-black">
-                  Welcome Back, {user.name}
-                </h1>
-                <p className={`text-xs mt-1 ${theme.textSubLabel}`}>
-                  Logged in as: <strong className={theme.textLabel}>{user.email}</strong> | Full Name: <strong className={theme.textLabel}>{user.name}</strong>
-                </p>
+                <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2.5 md:gap-3">
+                  <button type="button" onClick={() => setCreateOpModalOpen(true)} className="kk-btn kk-btn--primary md:order-2 px-3 md:px-6">
+                    <Icon name="plus" />
+                    <span className="md:hidden">Start</span>
+                    <span className="hidden md:inline">Start a mission</span>
+                  </button>
+                  <button type="button" onClick={() => setJoinOpModalOpen(true)} className="kk-btn kk-btn--ghost md:order-1 px-3 md:px-6">
+                    <Icon name="key" />
+                    <span className="md:hidden">Join</span>
+                    <span className="hidden md:inline">Join a mission</span>
+                  </button>
+                </div>
               </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => openPreferences()}
-                  className={`px-5 py-3 rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer ${theme.btnSecondary}`}
-                >
-                  ⚙️ Account Preferences
-                </button>
-              </div>
-            </div>
-
-            {/* Section 1: Active Operations (Exchanges) */}
-            <Card variant="section" className="space-y-6">
-              <SectionHeader
-                title="🎯 Your Missions"
-                subtitle="Every gift exchange you are organizing or have joined."
-                primaryAction={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button onClick={() => setJoinOpModalOpen(true)} variant="secondary">
-                      🕵️ Join Exchange
-                    </Button>
-                    <Button onClick={() => setCreateOpModalOpen(true)} variant="primary">
-                      + New Exchange
-                    </Button>
-                  </div>
-                }
-              />
 
               {/* Requests to join by code: waiting for (or declined by) the Head Elf */}
-              {joinRequests.length > 0 && (
-                <div className="mb-6 space-y-3">
-                  {joinRequests.map((r) => (
-                    <Card key={r.id} className="border-kk-border-strong">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-kk-gold-ink">
-                            {r.status === 'DECLINED' ? '🚫 Request declined' : '⏳ Waiting for the Head Elf'}
-                          </span>
-                          <h3 className="text-base font-bold">{r.exchange.title}</h3>
-                          <p className="text-xs text-kk-muted">
-                            {r.status === 'DECLINED'
-                              ? 'The Head Elf declined your request. Ask them to invite you by email if this is a mistake.'
-                              : "You asked to join with the mission code. We'll let you know when the Head Elf decides."}
-                          </p>
-                        </div>
-                        <Button onClick={() => router.push(`/exchange/${r.exchange.code}`)} variant="secondary">
-                          View mission
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
+              {joinRequests.map((r) => (
+                <div key={r.id} className={`kk-banner ${r.status === 'DECLINED' ? 'kk-banner--danger' : 'kk-banner--warning'} flex-wrap`}>
+                  <Icon name={r.status === 'DECLINED' ? 'alert' : 'clock'} size={20} />
+                  <span className="flex-1 min-w-[12rem]">
+                    <strong>{r.exchange.title}: </strong>
+                    {r.status === 'DECLINED'
+                      ? 'The Head Elf declined your request. Ask them to invite you by email if this is a mistake.'
+                      : 'Waiting for the Head Elf to approve your request to join.'}
+                  </span>
+                  <Link href={`/exchange/${r.exchange.code}`} className="kk-btn kk-btn--ghost kk-btn--sm">
+                    View mission
+                  </Link>
                 </div>
-              )}
+              ))}
 
               {/* Pending email invitations */}
-              {invitations.length > 0 && (
-                <div className="mb-6 space-y-3">
-                  {inviteError && <p className="text-xs font-bold text-kk-danger">⚠️ {inviteError}</p>}
-                  {invitations.map((inv) => (
-                    <Card key={inv.id} className="border-kk-border-strong">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-kk-gold-ink">
-                            📩 Invitation{inv.isLatePass ? ' · Late Pass' : ''} from {inv.exchange.organizer.name}
-                          </span>
-                          <h3 className="text-base font-bold">{inv.exchange.title}</h3>
-                          <p className="text-xs text-kk-muted">
-                            Budget ${inv.exchange.budgetMin || 0}–${inv.exchange.budgetMax} {inv.exchange.currency} · Exchange Day {formatDateString(inv.exchange.executionDate)} ·{' '}
-                            <Link href={`/exchange/${inv.exchange.code}`} className="underline">View mission</Link>
-                          </p>
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                          <Button onClick={() => handleInvitation(inv, true)} variant="primary" disabled={inviteBusyId === inv.id}>
-                            {inviteBusyId === inv.id ? 'Working...' : '✅ Accept'}
-                          </Button>
-                          <Button onClick={() => handleInvitation(inv, false)} variant="secondary" disabled={inviteBusyId === inv.id}>
-                            Decline
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+              {inviteError && (
+                <div role="alert" className="kk-banner kk-banner--danger">
+                  <Icon name="alert" size={20} />
+                  <span>{inviteError}</span>
                 </div>
               )}
-
-              {/* Mission filters */}
-              {missions.length > 0 && (
-                <div className="flex flex-col lg:flex-row lg:items-center gap-3 text-xs font-semibold">
-                  <input
-                    type="search"
-                    placeholder="Search by mission name or code..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search missions"
-                    className={`w-full lg:max-w-xs border rounded-xl px-4 py-2 text-xs focus:outline-none ${theme.inputBg}`}
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <FilterContainer className="flex-wrap">
-                      <FilterTab active={roleFilter === 'ALL'} onClick={() => setRoleFilter('ALL')}>All Roles</FilterTab>
-                      <FilterTab active={roleFilter === 'HEAD_ELF'} onClick={() => setRoleFilter('HEAD_ELF')}>Head Elf</FilterTab>
-                      <FilterTab active={roleFilter === 'ELF_AGENT'} onClick={() => setRoleFilter('ELF_AGENT')}>Elf Agent</FilterTab>
-                    </FilterContainer>
-                    <FilterContainer className="flex-wrap">
-                      <FilterTab active={statusFilter === 'ALL'} onClick={() => setStatusFilter('ALL')}>All Statuses</FilterTab>
-                      <FilterTab active={statusFilter === 'RECRUITING'} onClick={() => setStatusFilter('RECRUITING')}>Recruiting</FilterTab>
-                      <FilterTab active={statusFilter === 'ASSIGNED'} onClick={() => setStatusFilter('ASSIGNED')}>Assigned</FilterTab>
-                      <FilterTab active={statusFilter === 'COMPLETED'} onClick={() => setStatusFilter('COMPLETED')}>Completed</FilterTab>
-                    </FilterContainer>
-                    <FilterContainer className="flex-wrap">
-                      <FilterTab active={hidePrefs.hideCompleted} onClick={() => toggleHide('hideCompleted')}>Hide Completed</FilterTab>
-                      <FilterTab active={hidePrefs.hideCancelled} onClick={() => toggleHide('hideCancelled')}>Hide Cancelled</FilterTab>
-                    </FilterContainer>
+              {invitations.map((inv) => (
+                <section key={inv.id} className="kk-card flex flex-col md:flex-row md:items-center gap-4 justify-between" aria-label={`Invitation to ${inv.exchange.title}`}>
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <p className="eyebrow m-0 uppercase text-kk-stamp">
+                      Invitation{inv.isLatePass ? ' · Late Pass' : ''} from {inv.exchange.organizer.name}
+                    </p>
+                    <h2 className="m-0 font-display text-[22px] leading-7 font-semibold text-kk-heading break-words">{inv.exchange.title}</h2>
+                    <p className="m-0 text-kk-muted text-sm">
+                      Budget {formatBudget(inv.exchange.budgetMin, inv.exchange.budgetMax, inv.exchange.currency)} · Exchange Day {sentenceDate(inv.exchange.executionDate)} ·{' '}
+                      <Link href={`/exchange/${inv.exchange.code}`}>View mission</Link>
+                    </p>
                   </div>
-                </div>
-              )}
+                  <div className="grid grid-cols-2 md:flex gap-2.5 shrink-0">
+                    <button type="button" onClick={() => handleInvitation(inv, true)} disabled={inviteBusyId === inv.id} className="kk-btn kk-btn--primary">
+                      <Icon name="check" />
+                      {inviteBusyId === inv.id ? 'Working…' : 'Accept'}
+                    </button>
+                    <button type="button" onClick={() => handleInvitation(inv, false)} disabled={inviteBusyId === inv.id} className="kk-btn kk-btn--ghost">
+                      Decline
+                    </button>
+                  </div>
+                </section>
+              ))}
 
-              {/* Mission cards */}
               {missionsError ? (
-                <Card className="text-center py-8">
-                  <div className="text-3xl mb-2">⚠️</div>
-                  <h3 className="text-base font-bold mb-1">Missions Unavailable</h3>
-                  <p className="text-xs text-kk-muted mb-4">{missionsError}</p>
-                  <Button onClick={() => fetchMissions(user.id)} variant="secondary">
-                    Try Again
-                  </Button>
-                </Card>
-              ) : missions.length === 0 ? (
-                <Card className="text-center py-8">
-                  <div className="text-3xl mb-2">🎁</div>
-                  <h3 className="text-base font-bold mb-1">No Missions Yet</h3>
-                  <p className="text-xs text-kk-muted mb-4">
-                    You haven&apos;t joined or created any gift exchanges yet.
-                  </p>
-                  <div className="flex items-center justify-center gap-3">
-                    <Button onClick={() => setCreateOpModalOpen(true)} variant="primary">
-                      + Organize New Exchange
-                    </Button>
-                    <Button onClick={() => setJoinOpModalOpen(true)} variant="secondary">
-                      🕵️ Join via Invite Code
-                    </Button>
-                  </div>
-                </Card>
-              ) : visibleMissions.length === 0 ? (
-                <Card className="text-center py-8">
-                  <div className="text-3xl mb-2">🔍</div>
-                  <h3 className="text-base font-bold mb-1">No Missions Match</h3>
-                  <p className="text-xs text-kk-muted">
-                    {hiddenFinishedCount > 0
-                      ? `${hiddenFinishedCount} finished ${hiddenFinishedCount === 1 ? 'mission is' : 'missions are'} hidden. Turn off Hide Completed or Hide Cancelled, or change the filters.`
-                      : 'No mission matches your search and filters.'}
-                  </p>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {visibleMissions.map((ex) => {
-                    const countdown = getNextMilestoneCountdown(ex);
-                    return (
-                      <Card
-                        key={ex.id}
-                        className="flex flex-col justify-between hover:shadow-xl"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <Badge variant="code">CODE: {ex.code}</Badge>
-                            <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-flex items-center gap-1 ${statusBadgeClass(countdown)}`}>
-                              ● {countdown.phaseStatusLabel}
-                            </span>
-                          </div>
-
-                          <h3 className="text-xl font-black mt-2">
-                            <span className="mr-1.5" title={ex.isWhiteElephant ? 'White Elephant' : 'Secret Santa'}>{ex.isWhiteElephant ? '🐘' : '🎁'}</span>
-                            {ex.title}
-                          </h3>
-                          
-                          <Card variant="inner" className="mt-3 space-y-1.5 text-xs">
-                            <DataRow
-                              label="Budget Range"
-                              value={`$${ex.budgetMin || 0} – $${ex.budgetMax} ${ex.currency}`}
-                              valueVariant="accent"
-                            />
-                            <DataRow
-                              label="Exchange Day"
-                              value={formatDateString(ex.executionDate)}
-                              valueVariant="date"
-                            />
-
-                            <div className="flex justify-between items-center pt-2 border-t border-kk-border">
-                              <span className={`flex items-center gap-1 ${theme.textLabel}`}>
-                                ⏳ {countdown.milestoneLabel}:
-                              </span>
-                              <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${countdownBadgeClass(countdown)}`}>
-                                {countdown.formattedText}
-                              </span>
-                            </div>
-                          </Card>
-                        </div>
-
-                        <div className="mt-6 flex items-center justify-between gap-2 pt-3 border-t border-kk-border">
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={`text-xs ${theme.textLabel}`}>Role:</span>
-                            <Badge variant={ex.organizerId === user.id ? 'opsleader' : 'code'}>
-                              {ex.organizerId === user.id ? '⭐ Head Elf' : '🕵️ Elf Agent'}
-                            </Badge>
-                          </div>
-
-                          <Button
-                            href={`/exchange/${ex.code}`}
-                            variant="primary"
-                            className="px-3 py-2 text-[11px] font-extrabold whitespace-nowrap shrink-0"
-                          >
-                            Command Center →
-                          </Button>
-                        </div>
-                      </Card>
-                    );
-                  })}
+                <div role="alert" className="kk-banner kk-banner--danger flex-wrap">
+                  <Icon name="alert" size={20} />
+                  <span className="flex-1">{missionsError}</span>
+                  <button type="button" onClick={() => fetchMissions(user.id)} className="kk-btn kk-btn--ghost kk-btn--sm">
+                    Try again
+                  </button>
                 </div>
+              ) : missions.length === 0 ? (
+                /* Empty state (design canvas "Dashboard · no missions yet") */
+                <div className="kk-card max-w-[736px] w-full mx-auto flex flex-col items-center text-center gap-3 px-6 md:px-8 py-10 md:py-12">
+                  <div className="w-[200px] md:w-[240px] h-[150px] md:h-[180px]">
+                    <Illustration name="noMissions" />
+                  </div>
+                  <h2 className="m-0 font-display text-[28px] leading-[34px] font-bold text-kk-heading">No missions yet</h2>
+                  <p className="m-0 text-kk-muted max-w-[30em]">Start one for your family, friends or team, or join with an invite code from your Head Elf.</p>
+                  <div className="flex flex-col sm:flex-row flex-wrap gap-2.5 justify-center w-full">
+                    <button type="button" onClick={() => setCreateOpModalOpen(true)} className="kk-btn kk-btn--primary">
+                      <Icon name="plus" />
+                      Start a mission
+                    </button>
+                    <button type="button" onClick={() => setJoinOpModalOpen(true)} className="kk-btn kk-btn--ghost">
+                      <Icon name="key" />
+                      Join with a code
+                    </button>
+                  </div>
+                  <Link href="/#how-it-works" className="text-sm font-semibold">
+                    How a mission runs
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  {/* Filter chips and search */}
+                  <div className="flex flex-col md:flex-row md:flex-wrap gap-3 md:items-center">
+                    <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap" role="group" aria-label="Filter missions">
+                      {MISSION_CHIPS.filter((c) => c.id !== 'cancelled' || (counts?.cancelled ?? 0) > 0).map((c) => (
+                        <button key={c.id} type="button" className="kk-chip" aria-pressed={chip === c.id} onClick={() => setChip(c.id)}>
+                          {c.label}
+                          {counts && counts[c.id] > 0 ? ` (${counts[c.id]})` : ''}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="md:ml-auto relative flex items-center">
+                      <span className="absolute left-3 text-kk-muted" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="11" cy="11" r="7" />
+                          <path d="M20 20l-4-4" />
+                        </svg>
+                      </span>
+                      <span className="sr-only">Search missions</span>
+                      <input type="search" className="kk-field__input w-full md:w-60 pl-10" placeholder="Search missions" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                    </label>
+                  </div>
+
+                  <div className="flex flex-wrap gap-6 items-start">
+                    {/* Mission files */}
+                    <div className="flex-[999_1_560px] min-w-0 grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(100%,380px),1fr))]">
+                      {visibleMissions.length === 0 ? (
+                        <div className="kk-card text-center flex flex-col items-center gap-2 col-span-full">
+                          <h2 className="m-0 font-display text-lg font-semibold text-kk-heading">No missions match</h2>
+                          <p className="m-0 text-kk-muted">Try another filter or clear the search.</p>
+                        </div>
+                      ) : (
+                        visibleMissions.map((m) => <MissionFileCard key={m.id} mission={m} />)
+                      )}
+                    </div>
+
+                    {/* Wide screens: Alerts as a sidebar card (no Alerts tab then; AppShell `alertsInPage`). */}
+                    {layout === 'wide' && (
+                      <aside className="flex-[1_1_280px] flex flex-col gap-5 min-w-0" aria-label="Alerts">
+                        <NotificationBell variant="card" pinned={pinnedNotices} actionsFor={invitationActions} reloadKey={inviteReload} />
+                      </aside>
+                    )}
+                  </div>
+                </>
               )}
-            </Card>
-
-          </>
-        ) : null}
-
-      </main>
+            </>
+          )}
+        </main>
+      </AppShell>
 
       {/* MODAL: ACCOUNT PREFERENCES */}
       <AccountPreferencesModal
@@ -697,7 +538,6 @@ export default function DashboardPage() {
         userId={user?.id}
         onSuccess={() => fetchUserData()}
       />
-
-    </div>
+    </>
   );
 }

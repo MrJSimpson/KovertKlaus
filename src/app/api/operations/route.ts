@@ -8,6 +8,7 @@ import { getPlatformSettings, hostedMissionLimitError, missionJoinError } from '
 import { generateInviteCode } from '@/lib/security';
 import { openJoinGate } from '@/lib/join-throttle';
 import { isMissionInsider, missionPreview } from '@/lib/mission-preview';
+import { MISSION_LIST_MEMBER_SELECT, toMissionListItem } from '@/lib/mission-card';
 import { decideJoinRequest, myJoinRequests, pendingJoinRequests, viewerJoinRequest } from '@/lib/join-requests';
 import { executeTargetSwap } from '@/lib/draw';
 import { runManualDraw } from '@/lib/manual-draw';
@@ -120,15 +121,15 @@ export async function GET(request: Request) {
         organizer: {
           select: { id: true, name: true },
         },
-        members: {
-          select: { id: true, userId: true, role: true, shippingStatus: true },
-        },
+        members: { select: MISSION_LIST_MEMBER_SELECT },
       },
       orderBy: { createdAt: 'desc' },
     });
 
+    // Each card's state for this agent (src/lib/mission-card.ts); other members' targets are stripped there.
+    const data = exchanges.map((ex) => toMissionListItem(ex, activeUserId));
     // Missions the agent asked to join by code and is waiting on (dashboard "Waiting for the Head Elf").
-    return NextResponse.json({ success: true, data: exchanges, joinRequests: await myJoinRequests(db, activeUserId) });
+    return NextResponse.json({ success: true, data, joinRequests: await myJoinRequests(db, activeUserId) });
   } catch (err: unknown) {
     console.error('API Error in GET /api/operations:', err);
     if (isDbConnectionError(err)) return dbUnavailableResponse();

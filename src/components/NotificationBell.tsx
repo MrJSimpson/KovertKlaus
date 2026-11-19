@@ -22,6 +22,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom';
 import { useTheme } from '@/context/ThemeContext';
 import { NOTIFICATION_PAGE_SIZE, pageNotifications, type NotificationView } from '@/lib/notifications';
+import { relativeTime, stripLeadingEmoji } from '@/lib/display-format';
+import { Icon } from '@/components/brand/Icon';
 
 /** A notice the page derives from the agent's state rather than a stored notification. */
 export interface PinnedNotice {
@@ -40,6 +42,14 @@ interface NotificationBellProps {
   /** Change to reload the list (e.g. after accepting an invitation). */
   reloadKey?: number;
   className?: string;
+  /**
+   * `button` (default): the old header bell. `tab`: the "Alerts" folder tab of the signed-in desktop
+   * header. `tabbar`: the "Alerts" item of the phone tab bar; its panel opens upward, above the bar
+   * (visual refresh, 2.0.0-beta, until Alerts gets its own page). `card`: the dashboard's Alerts
+   * card on wide screens: needs-action notices and the latest alerts, with "See all" opening the
+   * panel (owner request 2026-11-18: alerts in a tab *or* a card, never both).
+   */
+  variant?: 'button' | 'tab' | 'tabbar' | 'card';
 }
 
 /** `2026-11-03T…` → `Nov 3, 4:05 PM` in the viewer's time zone. */
@@ -47,7 +57,7 @@ function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, className = '' }: NotificationBellProps) {
+export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, className = '', variant = 'button' }: NotificationBellProps) {
   const { theme } = useTheme();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationView[]>([]);
@@ -83,7 +93,8 @@ export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, class
     if (!open) return;
     const place = () => {
       const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) setAnchor({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
+      // The card opens the panel over itself; the header bell and tab open it underneath.
+      if (rect) setAnchor({ top: variant === 'card' ? Math.max(8, rect.top) : rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
     };
     place();
     const onKey = (e: KeyboardEvent) => {
@@ -101,7 +112,7 @@ export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, class
       document.removeEventListener('pointerdown', onPointer);
       window.removeEventListener('resize', place);
     };
-  }, [open]);
+  }, [open, variant]);
 
   const remove = useCallback(async (ids: string[]) => {
     if (ids.length === 0) return;
@@ -128,29 +139,100 @@ export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, class
 
   return (
     <div ref={containerRef} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className={`relative inline-flex items-center gap-1.5 cursor-pointer ${className}`}
-        title="Notifications"
-        aria-label={count ? `Notifications (${count})` : 'Notifications'}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-      >
-        <span aria-hidden>🔔</span>
-        <span className="hidden sm:inline">Notifications</span>
-        {count > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-kk-primary text-kk-on-primary text-[10px] font-black flex items-center justify-center ring-2 ring-kk-surface">
-            {countLabel}
-          </span>
-        )}
-      </button>
+      {variant === 'button' ? (
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className={`relative inline-flex items-center gap-1.5 cursor-pointer ${className}`}
+          title="Notifications"
+          aria-label={count ? `Notifications (${count})` : 'Notifications'}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+        >
+          <span aria-hidden>🔔</span>
+          <span className="hidden sm:inline">Notifications</span>
+          {count > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-kk-primary text-kk-on-primary text-[10px] font-black flex items-center justify-center ring-2 ring-kk-surface">
+              {countLabel}
+            </span>
+          )}
+        </button>
+      ) : variant === 'card' ? (
+        <section className="kk-card px-5 pt-5 pb-1.5" aria-labelledby="alerts-card-h">
+          <div className="flex justify-between items-center gap-3 mb-1.5">
+            <h2 id="alerts-card-h" className="m-0 font-display text-lg leading-6 font-semibold text-kk-heading">
+              Alerts
+            </h2>
+            {count > 0 && (
+              <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="dialog" className="text-[13px] font-semibold text-kk-accent hover:text-kk-primary-hover underline-offset-[3px] hover:underline cursor-pointer bg-transparent border-0 p-0 min-h-11">
+                See all ({countLabel})
+              </button>
+            )}
+          </div>
+          {count === 0 ? (
+            <p className="m-0 py-3.5 border-t border-kk-border text-sm text-kk-muted">All clear. Nothing needs you right now.</p>
+          ) : (
+            <ul className="list-none m-0 p-0">
+              {pinned.map((p) => (
+                <li key={p.id} className="flex gap-3 py-3.5 border-t border-kk-border">
+                  <span className="text-kk-danger shrink-0 mt-0.5">
+                    <Icon name="alert" size={18} />
+                  </span>
+                  <div className="flex flex-col gap-1 min-w-0 items-start">
+                    <span className="font-semibold break-words">{stripLeadingEmoji(p.title.replace(/^Action Required:\s*/i, ''))}</span>
+                    <span className="text-[13px] leading-5 text-kk-muted break-words">{p.message}</span>
+                    <button type="button" onClick={p.onAction} className="kk-btn kk-btn--ghost kk-btn--sm mt-1">
+                      {p.actionLabel}
+                    </button>
+                  </div>
+                </li>
+              ))}
+              {notifications.slice(0, Math.max(0, 3 - pinned.length)).map((n) => (
+                <li key={n.id} className="flex gap-3 py-3.5 border-t border-kk-border">
+                  <span className="w-2.5 h-2.5 mt-[7px] rounded-full shrink-0 bg-kk-stamp" aria-hidden="true" />
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="font-semibold break-words">{stripLeadingEmoji(n.title)}</span>
+                    <span className="text-[13px] leading-5 text-kk-muted break-words">{n.message}</span>
+                    <span className="font-mono text-xs text-kk-muted">{relativeTime(n.createdAt)}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className={`${variant === 'tab' ? 'kk-header__link' : 'kk-tabbar__item w-full'} cursor-pointer ${className}`}
+          aria-label={count ? `Alerts (${count})` : 'Alerts'}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+        >
+          {variant === 'tabbar' && (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z" />
+              <path d="M10 21h4" />
+            </svg>
+          )}
+          Alerts
+          {count > 0 && (
+            <span className={variant === 'tab' ? 'kk-tab-badge' : 'kk-tabbar__badge'} aria-hidden="true">
+              {countLabel}
+            </span>
+          )}
+        </button>
+      )}
 
       {open && createPortal(
         <div
           ref={panelRef}
           role="dialog"
           aria-label="Notifications"
-          style={{ top: anchor.top, ['--kk-bell-right' as string]: `${anchor.right}px` }}
+          style={
+            variant === 'tabbar'
+              ? { bottom: 'calc(var(--kk-tabbar-h) + env(safe-area-inset-bottom) + 8px)' }
+              : { top: anchor.top, ['--kk-bell-right' as string]: `${anchor.right}px` }
+          }
           className={`fixed left-2 right-2 sm:left-auto sm:right-[var(--kk-bell-right)] sm:w-[26rem] max-h-[75dvh] flex flex-col rounded-3xl border shadow-2xl z-50 overflow-hidden ${theme.cardBg}`}
         >
           <div className="px-4 py-3 border-b border-kk-border flex items-center justify-between gap-2 shrink-0">
