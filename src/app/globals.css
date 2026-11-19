@@ -201,3 +201,12 @@
     animation: none;
   }
 }
+
+/*
+ * While the phone tab bar shows, the Feedback button sits above it (owner report 2026-11-18: it
+ * covered the Profile tab; Design System BottomTabBar: nothing else on the bottom edge). Unlayered
+ * on purpose: the button's own `bottom-[…]` utility would beat a rule in a cascade layer.
+ */
+body:has(.kk-tabbar) .kk-feedback-fab {
+  bottom: calc(var(--kk-tabbar-h) + env(safe-area-inset-bottom) + 12px);
+}

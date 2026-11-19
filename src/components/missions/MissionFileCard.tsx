@@ -2,8 +2,9 @@
  * @file MissionFileCard.tsx
  * @description One Holiday Mission as a mission file on the dashboard (Design System `MissionFile`).
  *
- * Tier 1 (what): Folder tab (code + opened/cancelled date), eyebrow, title, state stamp, four-step
- * timeline, Budget / date / Agents, one status sentence, and one primary plus one secondary link.
+ * Tier 1 (what): Folder tab (opened/cancelled date), eyebrow, title, state stamp, the mission code
+ * with the viewer's codename (gold for the Head Elf; owner request 2026-11-18, replacing the
+ * dashboard's codenames card), four-step timeline, Budget / date / Agents, one status sentence, and one primary plus one secondary link.
  * Tier 2 (why): The visual refresh (2.0.0-beta) shows each agent the next thing *they* need to do
  * in each mission. Cancelled missions use the chosen "void stamp" design (option B, 2026-10-31):
  * the timeline greys out under a CANCELLED stamp and the reason is bold red.
@@ -39,7 +40,7 @@ export function MissionFileCard({ mission }: { mission: MissionListItem }) {
   return (
     <article className="kk-card kk-file" aria-labelledby={`mf-${mission.id}`}>
       <div className="kk-file__tab">
-        <span>Mission file · {mission.code}</span>
+        <span>Mission file</span>
         <span>{card.tabDate}</span>
       </div>
       <div className="kk-file__body">
@@ -52,6 +53,13 @@ export function MissionFileCard({ mission }: { mission: MissionListItem }) {
           </div>
           <span className={`kk-stamp${card.stamp.tone === 'muted' ? ' kk-stamp--muted' : card.stamp.tone === 'danger' ? ' kk-stamp--danger' : ''}`}>{card.stamp.label}</span>
         </div>
+
+        <p className="m-0 -mt-1">
+          <span className={`kk-codename${mission.viewer?.isHeadElf ? ' kk-codename--gold' : ''}`}>
+            <span className="kk-codename__label">{mission.code}</span>
+            {mission.viewer?.codename ? mission.viewer.codename.toUpperCase().replace(/\s+/g, '-') : <span className="sr-only">Mission code</span>}
+          </span>
+        </p>
 
         {card.cancelled ? (
           <div className="relative">

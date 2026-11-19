@@ -10,8 +10,10 @@
  * Tier 2 (why): Visual refresh (2.0.0-beta, owner decisions 2026-10-31: no Wishlists destination,
  * bottom tab bar on phones, folder tabs on desktop). Alerts and Profile get their own pages in later
  * refresh PRs; until then Alerts opens the notification panel and Profile opens Account Preferences.
- * Tier 3 (how): Exactly one `NotificationBell` is mounted (tab or tab bar, by viewport), so the
- * alert list loads once. The tab bar is `position: fixed`; the page reserves `--kk-tabbar-h` plus
+ * Tier 3 (how): Exactly one `NotificationBell` is mounted, so the alert list loads once: the tab bar
+ * item on phones, the header tab on tablets, and on wide screens either the header tab or, when the
+ * page shows its own Alerts card (`alertsInPage`, the dashboard), no tab at all (owner request
+ * 2026-11-18: alerts in a tab or a card, never both). The tab bar is `position: fixed`; the page reserves `--kk-tabbar-h` plus
  * the safe area below its content, and nothing else sits on the bottom edge.
  */
 
@@ -32,6 +34,8 @@ export interface AppShellProps {
   /** Opens the profile (Account Preferences until the Profile page exists). */
   onProfile: () => void;
   onSignOut: () => void;
+  /** The page renders `<NotificationBell variant="card">` itself on wide screens (`useLayoutMode`). */
+  alertsInPage?: boolean;
   alerts?: {
     pinned?: PinnedNotice[];
     actionsFor?: (n: NotificationView, dismiss: () => void) => ReactNode;
@@ -39,17 +43,24 @@ export interface AppShellProps {
   };
 }
 
-const DESKTOP = '(min-width: 768px)';
+const TABLET = '(min-width: 768px)';
+const WIDE = '(min-width: 1024px)';
 
-function subscribeDesktop(cb: () => void) {
-  const mq = window.matchMedia(DESKTOP);
-  mq.addEventListener('change', cb);
-  return () => mq.removeEventListener('change', cb);
+function subscribeViewport(cb: () => void) {
+  const queries = [window.matchMedia(TABLET), window.matchMedia(WIDE)];
+  queries.forEach((q) => q.addEventListener('change', cb));
+  return () => queries.forEach((q) => q.removeEventListener('change', cb));
 }
 
-/** Whether the desktop header (not the phone tab bar) is showing. */
-function useIsDesktop(): boolean {
-  return useSyncExternalStore(subscribeDesktop, () => window.matchMedia(DESKTOP).matches, () => true);
+export type LayoutMode = 'phone' | 'tablet' | 'wide';
+
+/** Phone (< 768px: tab bar), tablet (768–1023px: header tabs), wide (1024px+: room for a sidebar). */
+export function useLayoutMode(): LayoutMode {
+  return useSyncExternalStore(
+    subscribeViewport,
+    () => (window.matchMedia(WIDE).matches ? 'wide' : window.matchMedia(TABLET).matches ? 'tablet' : 'phone'),
+    () => 'wide',
+  );
 }
 
 function ModeToggle() {
@@ -67,8 +78,10 @@ function ModeToggle() {
   );
 }
 
-export function AppShell({ active, children, onProfile, onSignOut, alerts }: AppShellProps) {
-  const desktop = useIsDesktop();
+export function AppShell({ active, children, onProfile, onSignOut, alerts, alertsInPage = false }: AppShellProps) {
+  const mode = useLayoutMode();
+  const desktop = mode !== 'phone';
+  const alertsTab = mode === 'tablet' || (mode === 'wide' && !alertsInPage);
   const bell = (variant: 'tab' | 'tabbar') => (
     <NotificationBell variant={variant} pinned={alerts?.pinned} actionsFor={alerts?.actionsFor} reloadKey={alerts?.reloadKey} />
   );
@@ -85,7 +98,7 @@ export function AppShell({ active, children, onProfile, onSignOut, alerts }: App
             <Link href="/dashboard" className="kk-header__link" aria-current={active === 'missions' ? 'page' : undefined}>
               Missions
             </Link>
-            {bell('tab')}
+            {alertsTab && bell('tab')}
             <button type="button" onClick={onProfile} className="kk-header__link cursor-pointer" aria-current={active === 'profile' ? 'page' : undefined}>
               Profile
             </button>

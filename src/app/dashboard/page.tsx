@@ -9,13 +9,13 @@ import { Button } from '@/components/ui';
 import { AccountPreferencesModal, type PreferencesTab } from '@/components/AccountPreferencesModal';
 import { CreateOperationModal } from '@/components/CreateOperationModal';
 import { JoinOperationModal } from '@/components/JoinOperationModal';
-import type { PinnedNotice } from '@/components/NotificationBell';
+import { NotificationBell, type PinnedNotice } from '@/components/NotificationBell';
 import type { NotificationView } from '@/lib/notifications';
 import { fetchJsonWithRetry } from '@/lib/load-retry';
 import { DEFAULT_HIDE_PREFS, MISSION_CHIPS, chipCounts, chipMatches, filterMissions, type MissionChip } from '@/lib/mission-list';
 import { sentenceDate, type MissionListItem } from '@/lib/mission-card';
-import { formatBudget, relativeTime, stripLeadingEmoji } from '@/lib/display-format';
-import { AppShell } from '@/components/brand/AppShell';
+import { formatBudget } from '@/lib/display-format';
+import { AppShell, useLayoutMode } from '@/components/brand/AppShell';
 import { Icon } from '@/components/brand/Icon';
 import { Illustration } from '@/components/art/Illustration';
 import { MissionFileCard } from '@/components/missions/MissionFileCard';
@@ -138,20 +138,6 @@ export default function DashboardPage() {
   const [inviteReload, setInviteReload] = useState(0);
   const signedInUserId = user?.id;
 
-  // Latest alerts for the sidebar card (the full list opens from the Alerts tab).
-  const [recentAlerts, setRecentAlerts] = useState<NotificationView[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/notifications')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (!cancelled && json) setRecentAlerts(json.notifications || []);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [inviteReload]);
 
   useEffect(() => {
     if (!signedInUserId) return;
@@ -301,8 +287,6 @@ export default function DashboardPage() {
       )
     : [];
   const counts = user ? chipCounts(missions, user.id) : null;
-  /** The agent's codename in each mission they are enrolled in (sidebar card). */
-  const codenames = missions.flatMap((m) => (m.viewer?.codename ? [{ code: m.code, codename: m.viewer.codename, lead: m.organizerId === user?.id }] : []));
 
   // Bell notices derived from the profile: a remote Secret Santa mission needs a shipping address.
   const pinnedNotices: PinnedNotice[] = [];
@@ -354,6 +338,7 @@ export default function DashboardPage() {
   }
 
   const firstName = user?.name?.trim().split(/\s+/)[0];
+  const layout = useLayoutMode();
 
   return (
     <>
@@ -361,6 +346,7 @@ export default function DashboardPage() {
         active="missions"
         onProfile={() => openPreferences()}
         onSignOut={handleSignOut}
+        alertsInPage={missions.length > 0}
         alerts={{ pinned: pinnedNotices, actionsFor: invitationActions, reloadKey: inviteReload }}
       >
         <main className="mx-auto max-w-[1200px] px-4 md:px-8 pt-6 md:pt-10 pb-8 md:pb-16 flex flex-col gap-5 md:gap-7">
@@ -514,59 +500,12 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    {/* Sidebar: latest alerts and codenames */}
-                    <aside className="flex-[1_1_280px] flex flex-col gap-5 min-w-0" aria-label="Alerts and codenames">
-                      <section className="kk-card px-5 pt-5 pb-1.5">
-                        <h2 className="m-0 mb-1.5 font-display text-lg leading-6 font-semibold text-kk-heading">Alerts</h2>
-                        {recentAlerts.length === 0 && pinnedNotices.length === 0 ? (
-                          <p className="m-0 py-3.5 border-t border-kk-border text-sm text-kk-muted">All clear. Nothing needs you right now.</p>
-                        ) : (
-                          <ul className="list-none m-0 p-0">
-                            {/* Needs-action notices first (they are in the Alerts count too). */}
-                            {pinnedNotices.map((p) => (
-                              <li key={p.id} className="flex gap-3 py-3.5 border-t border-kk-border">
-                                <span className="text-kk-danger shrink-0 mt-0.5">
-                                  <Icon name="alert" size={18} />
-                                </span>
-                                <div className="flex flex-col gap-1 min-w-0 items-start">
-                                  <span className="font-semibold break-words">{stripLeadingEmoji(p.title.replace(/^Action Required:\s*/i, ''))}</span>
-                                  <span className="text-[13px] leading-5 text-kk-muted break-words">{p.message}</span>
-                                  {p.actionLabel && p.onAction && (
-                                    <button type="button" onClick={p.onAction} className="kk-btn kk-btn--ghost kk-btn--sm mt-1">
-                                      {p.actionLabel}
-                                    </button>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
-                            {recentAlerts.slice(0, Math.max(0, 3 - pinnedNotices.length)).map((n) => (
-                              <li key={n.id} className="flex gap-3 py-3.5 border-t border-kk-border">
-                                <span className="w-2.5 h-2.5 mt-[7px] rounded-full shrink-0 bg-kk-stamp" aria-hidden="true" />
-                                <div className="flex flex-col gap-0.5 min-w-0">
-                                  <span className="font-semibold break-words">{stripLeadingEmoji(n.title)}</span>
-                                  <span className="text-[13px] leading-5 text-kk-muted break-words">{n.message}</span>
-                                  <span className="font-mono text-xs text-kk-muted">{relativeTime(n.createdAt)}</span>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </section>
-                      {codenames.length > 0 && (
-                        <section className="kk-card p-5 flex flex-col gap-3">
-                          <h2 className="m-0 font-display text-lg leading-6 font-semibold text-kk-heading">Your codenames</h2>
-                          <div className="flex flex-col gap-2 items-start">
-                            {codenames.map((c) => (
-                              <span key={c.code} className={`kk-codename${c.lead ? ' kk-codename--gold' : ''}`}>
-                                <span className="kk-codename__label">{c.code}</span>
-                                {c.codename.toUpperCase().replace(/\s+/g, '-')}
-                              </span>
-                            ))}
-                          </div>
-                          <p className="m-0 text-[13px] leading-5 text-kk-muted">Each mission gives you a new codename.</p>
-                        </section>
-                      )}
-                    </aside>
+                    {/* Wide screens: Alerts as a sidebar card (no Alerts tab then; AppShell `alertsInPage`). */}
+                    {layout === 'wide' && (
+                      <aside className="flex-[1_1_280px] flex flex-col gap-5 min-w-0" aria-label="Alerts">
+                        <NotificationBell variant="card" pinned={pinnedNotices} actionsFor={invitationActions} reloadKey={inviteReload} />
+                      </aside>
+                    )}
                   </div>
                 </>
               )}
