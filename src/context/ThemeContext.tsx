@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { getThemeClasses, ThemeClasses, LightsStrandType } from '@/lib/theme';
 import type { PublicSystemConfigResponse } from '@/lib/config/publicConfig';
 import { DEFAULT_PLATFORM_SETTINGS } from '@/lib/platform-limits';
+import { SEASON_STORAGE_KEY, toThemeSeason } from '@/lib/season';
 
 const THEME_STORAGE_KEY = 'kovertklaus_theme_mode';
 
@@ -83,6 +84,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setMounted(true);
       });
   }, []);
+
+  // 3. Apply the configured season to <html data-season> (kk-tokens.css) and remember it, so the
+  //    boot script in layout.tsx can set it before first paint on the next visit.
+  useEffect(() => {
+    if (!mounted) return;
+    const season = toThemeSeason(systemConfig.activeSeason);
+    document.documentElement.dataset.season = season;
+    try {
+      localStorage.setItem(SEASON_STORAGE_KEY, season);
+    } catch {
+      // Storage blocked (private mode): the season still applies for this page view.
+    }
+  }, [mounted, systemConfig.activeSeason]);
 
   const toggleTheme = () => {
     setIsDarkMode((prev) => {
