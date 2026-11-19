@@ -26,6 +26,7 @@ import { Wordmark } from './Wordmark';
 /** Public pages linked from every footer. Add new public routes here (and to `SITEMAP_PATHS`). */
 export const PUBLIC_FOOTER_LINKS: { href: string; label: string }[] = [
   { href: '/features', label: 'Features' },
+  { href: '/guides', label: 'Guides' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
 ];

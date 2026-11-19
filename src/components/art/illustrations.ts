@@ -6,13 +6,13 @@
  * short description of each piece that carries meaning (the stage art).
  * Tier 2 (why): Original art drawn for KovertKlaus and owned by the project (owner decision
  * 2026-10-31: no third-party illustration packs). Placements chosen by Joshua: home hero, the four
- * how-it-works stages, empty states. Approved on the design canvas 2026-10-31.
+ * how-it-works stages, empty states, and (2026-11-19) `server` for the self-hosting guide. Approved on the design canvas 2026-10-31.
  * Tier 3 (how): Copied from the canvas board "Illustrations". Every ink is a kk-* token
  * (heading, stamp, surface, inset, gold, tab, stage colours), so all 8 themes recolour it. Static
  * markup, no user data; rendered by `Illustration.tsx`.
  */
 
-export type IllustrationName = 'hero' | 'rsvp' | 'match' | 'sleigh' | 'party' | 'noMissions' | 'allClear' | 'emptyManifest';
+export type IllustrationName = 'hero' | 'rsvp' | 'match' | 'sleigh' | 'party' | 'noMissions' | 'allClear' | 'emptyManifest' | 'server';
 
 export const ILLUSTRATIONS: Record<IllustrationName, { viewBox: string; svg: string }> = {
   hero: {
@@ -47,6 +47,11 @@ export const ILLUSTRATIONS: Record<IllustrationName, { viewBox: string; svg: str
     viewBox: '0 0 160 120',
     svg: `<rect x="44" y="20" width="72" height="92" rx="6" style="fill: var(--kk-gold); stroke: var(--kk-heading); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"/><rect x="52" y="34" width="56" height="70" rx="2" style="fill: var(--kk-surface); stroke: var(--kk-heading); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"/><rect x="64" y="14" width="32" height="12" rx="3" style="fill: var(--kk-inset); stroke: var(--kk-heading); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"/><rect x="58" y="46" width="8" height="8" rx="1.5" style="fill: none; stroke: var(--kk-heading); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"/><path d="M72 50 H100" style="fill: none; stroke: var(--kk-heading); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 3 5; opacity: 0.5;"/><rect x="58" y="60" width="8" height="8" rx="1.5" style="fill: none; stroke: var(--kk-heading); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"/><path d="M72 64 H100" style="fill: none; stroke: var(--kk-heading); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 3 5; opacity: 0.5;"/><rect x="58" y="74" width="8" height="8" rx="1.5" style="fill: none; stroke: var(--kk-heading); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"/><path d="M72 78 H100" style="fill: none; stroke: var(--kk-heading); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 3 5; opacity: 0.5;"/><circle cx="116" cy="98" r="14" style="fill: var(--kk-stamp);"/><path d="M116 91 V105 M109 98 H123" style="fill: none; stroke: var(--kk-surface); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round;"/>`,
   },
+  // Drawn 2026-11-19 for the self-hosting guide (owner request), in the canvas pieces' style.
+  server: {
+    viewBox: '0 0 160 120',
+    svg: `<rect x="42" y="102" width="12" height="7" rx="1.5" style="fill: var(--kk-heading);"/><rect x="92" y="102" width="12" height="7" rx="1.5" style="fill: var(--kk-heading);"/><rect x="34" y="22" width="78" height="24" rx="3" style="fill: var(--kk-surface); stroke-width: 3; stroke: var(--kk-heading); stroke-linecap: round; stroke-linejoin: round;"/><rect x="44" y="30" width="26" height="8" rx="1.5" style="fill: var(--kk-heading);"/><circle cx="88" cy="34" r="3" style="fill: var(--kk-inset); stroke-width: 2; stroke: var(--kk-heading); stroke-linecap: round; stroke-linejoin: round;"/><circle cx="100" cy="34" r="3.5" style="fill: var(--kk-stamp);"/><rect x="34" y="50" width="78" height="24" rx="3" style="fill: var(--kk-surface); stroke-width: 3; stroke: var(--kk-heading); stroke-linecap: round; stroke-linejoin: round;"/><rect x="44" y="58" width="26" height="8" rx="1.5" style="fill: var(--kk-heading);"/><circle cx="88" cy="62" r="3" style="fill: var(--kk-inset); stroke-width: 2; stroke: var(--kk-heading); stroke-linecap: round; stroke-linejoin: round;"/><circle cx="100" cy="62" r="3.5" style="fill: var(--kk-gold);"/><rect x="34" y="78" width="78" height="24" rx="3" style="fill: var(--kk-surface); stroke-width: 3; stroke: var(--kk-heading); stroke-linecap: round; stroke-linejoin: round;"/><rect x="44" y="86" width="26" height="8" rx="1.5" style="fill: var(--kk-heading);"/><circle cx="88" cy="90" r="3" style="fill: var(--kk-inset); stroke-width: 2; stroke: var(--kk-heading); stroke-linecap: round; stroke-linejoin: round;"/><circle cx="100" cy="90" r="3.5" style="fill: var(--kk-stamp);"/><path d="M112 32 C 122 30, 130 40, 133 52" style="fill: none; stroke-width: 2; stroke: var(--kk-heading); stroke-linecap: round; stroke-linejoin: round;"/><g transform="rotate(12 134 52)"><path d="M122 60 L128 52 L140 52 L146 60 L146 92 L122 92 Z" style="fill: var(--kk-gold);"/><rect x="122" y="72" width="24" height="7" style="fill: var(--kk-stamp);"/><path d="M122 60 L128 52 L140 52 L146 60 L146 92 L122 92 Z" style="fill: none; stroke-width: 3; stroke: var(--kk-heading); stroke-linecap: round; stroke-linejoin: round;"/><circle cx="134" cy="59" r="2.8" style="fill: var(--kk-surface); stroke-width: 2; stroke: var(--kk-heading); stroke-linecap: round; stroke-linejoin: round;"/></g>`,
+  },
 };
 
 /** Descriptions for art that carries meaning; art without one is decorative (aria-hidden). */
@@ -54,5 +59,6 @@ export const ILLUSTRATION_LABELS: Partial<Record<IllustrationName, string>> = {
   'rsvp': 'A sealed invitation',
   'match': 'An arrow from your dossier to your target’s dossier',
   'sleigh': 'A parcel on a dotted route to a map pin',
-  'party': 'An opened gift with confetti'
+  'party': 'An opened gift with confetti',
+  'server': 'A server with a gift tag'
 };

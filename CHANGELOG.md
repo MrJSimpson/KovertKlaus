@@ -19,9 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sign in and Create account have their own page. Invitation links show a briefing of the mission you were invited to; sign-up asks you to accept the Terms and Privacy Policy, and you can show the password while typing.
 - Alerts have their own page. What needs action (a missing shipping address, a paused draw) is pinned on top and goes away once fixed; everything else is grouped into Today, This week and Earlier, with the mission name on each alert. Remove alerts one at a time or clear them all at once. Alert wording is shorter and clearer, and Head Elf broadcasts and reminders no longer replace each other.
 - Your profile has its own page instead of the Account Preferences window: who you are, shipping address, gift dossier (now with dislikes), notifications, password, your service record and account deletion on one page. A save bar shows how many changes are unsaved, and the page asks before you leave without saving. Changing your password has its own button and asks you to type the new one twice.
+- New guides: how a Secret Santa mission runs from start to finish, how to run a White Elephant (rules and stealing), Secret Santa with exclusions for couples and families, and self-hosting KovertKlaus. They’re linked from every public page’s footer and from the front page, and "How a mission runs" on the front page links to the full walkthrough.
 
 ### Fixed
 - On self-hosted servers, saving your preferences no longer resets which dossier sections your Head Elf can see.
+
+### Security
+- **`effect` 3.22.4 instead of 3.20.0** (GHSA-7589-6fvf-x4pw, high: a crafted input could make a schema pattern check run very slowly). It comes in through Prisma (`@prisma/config`), whose newest release still pins 3.20.0, so an `overrides` entry lifts it to the patched 3.x line. Prisma's commands and the database sync on start work as before. `npm audit` reports 0 again.
 
 ---
 
