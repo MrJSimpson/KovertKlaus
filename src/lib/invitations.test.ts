@@ -71,7 +71,14 @@ function fakeDb(opts: { users?: Array<{ id: string; email: string; name: string 
         return { count: 0 };
       },
     },
-    notification: { create: async ({ data }: any) => notifications.push(data) },
+    notification: {
+      create: async ({ data }: any) => notifications.push(data),
+      upsert: async ({ where, create, update }: any) => {
+        const found = notifications.find((n) => n.userId === where.userId_dedupeKey.userId && n.dedupeKey === where.userId_dedupeKey.dedupeKey);
+        if (found) Object.assign(found, update);
+        else notifications.push({ ...create });
+      },
+    },
     covertInviteToken: { create: async ({ data }: any) => tokens.push(data) },
   };
   return { db: db as any, invitations, notifications, tokens };

@@ -27,6 +27,7 @@ import { getSessionSecret } from '@/lib/security';
 import { comparePassword } from '@/lib/password';
 import { isRosterLocked } from '@/lib/mission-repair';
 import { notifyOnce } from '@/lib/notifications';
+import { NOTICE } from '@/lib/notification-copy';
 import { createAccountExport } from '@/lib/account-export';
 import { isUnverified } from '@/lib/email-verification';
 import type { ExportStore } from '@/lib/export-store';
@@ -260,22 +261,12 @@ export async function deleteAccount(
   // Notices (best effort; the account is already gone).
   const notices: Array<{ userId: string; dedupeKey: string; title: string; message: string }> = [];
   for (const { exchange } of leaving) {
-    notices.push({
-      userId: exchange.organizerId,
-      dedupeKey: `agent-account-deleted:${exchange.id}:${user.id}`,
-      title: `An agent left ${exchange.title}`,
-      message: 'An agent deleted their KovertKlaus account, so they are no longer in this mission. The draw has not happened yet, so nothing else changes.',
-    });
+    notices.push({ userId: exchange.organizerId, ...NOTICE.agentLeft(exchange.id, user.id, exchange.title) });
   }
   for (const ex of closedRun) {
     for (const m of ex.members) {
       if (m.userId === user.id) continue;
-      notices.push({
-        userId: m.userId,
-        dedupeKey: `mission-deleted-account:${ex.id}`,
-        title: `Mission removed: ${ex.title}`,
-        message: 'The Head Elf deleted their KovertKlaus account, so this finished mission and its history were deleted with it.',
-      });
+      notices.push({ userId: m.userId, ...NOTICE.missionRemovedWithAccount(ex.id, ex.title) });
     }
   }
   for (const n of notices) {

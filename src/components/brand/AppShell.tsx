@@ -8,20 +8,19 @@
  * Sign out and the mode toggle. Phones: wordmark, Sign out and toggle on top, a fixed bottom tab bar
  * with the same three destinations (Design System `Header` and `BottomTabBar`).
  * Tier 2 (why): Visual refresh (2.0.0-beta, owner decisions 2026-10-31: no Wishlists destination,
- * bottom tab bar on phones, folder tabs on desktop). Alerts and Profile get their own pages in later
- * refresh PRs; until then Alerts opens the notification panel and Profile opens Account Preferences.
- * Tier 3 (how): Exactly one `NotificationBell` is mounted, so the alert list loads once: the tab bar
- * item on phones, the header tab wherever the header shows its tabs (owner decision 2026-11-19: the
- * Alerts tab stays on every page, so the dashboard has no separate Alerts card). The tab bar is `position: fixed`; the page reserves `--kk-tabbar-h` plus
- * the safe area below its content, and nothing else sits on the bottom edge.
+ * bottom tab bar on phones, folder tabs on desktop). Alerts is its own page (`/alerts`); Profile
+ * opens Account Preferences until it gets one.
+ * Tier 3 (how): The Alerts tab shows the open count from `GET /api/notifications?summary=1`, on every
+ * page with header tabs (owner decision 2026-11-19: no separate dashboard Alerts card). The Alerts
+ * page fires `ALERTS_CHANGED_EVENT` after removing alerts so the badge updates without a reload. The
+ * tab bar is `position: fixed`; the page reserves `--kk-tabbar-h` plus the safe area below its
+ * content, and nothing else sits on the bottom edge.
  */
 
 import Link from 'next/link';
-import { useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useTheme } from '@/context/ThemeContext';
-import { NotificationBell, type PinnedNotice } from '@/components/NotificationBell';
 import { WhatsNewButton } from '@/components/WhatsNewButton';
-import type { NotificationView } from '@/lib/notifications';
 import { Icon } from './Icon';
 import { Wordmark } from './Wordmark';
 
@@ -38,11 +37,31 @@ export interface AppShellProps {
    * the mission's folder were pulled out (owner review 2026-11-19). Missions stays a link back.
    */
   openFile?: { label: string; title?: string };
-  alerts?: {
-    pinned?: PinnedNotice[];
-    actionsFor?: (n: NotificationView, dismiss: () => void) => ReactNode;
-    reloadKey?: number;
-  };
+}
+
+/** Fired on `window` after alerts change on this page, so the Alerts badge reloads. */
+export const ALERTS_CHANGED_EVENT = 'kk:alerts-changed';
+
+/** Open alerts (pinned included) for the badge; reloads on `ALERTS_CHANGED_EVENT`. */
+function useAlertCount(): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const load = () =>
+      fetch('/api/notifications?summary=1')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => {
+          if (!cancelled && json) setCount((json.total ?? 0) + (json.pinnedCount ?? 0));
+        })
+        .catch(() => {});
+    load();
+    window.addEventListener(ALERTS_CHANGED_EVENT, load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(ALERTS_CHANGED_EVENT, load);
+    };
+  }, []);
+  return count;
 }
 
 const TABLET = '(min-width: 768px)';
@@ -80,12 +99,12 @@ function ModeToggle() {
   );
 }
 
-export function AppShell({ active, children, onProfile, onSignOut, alerts, openFile }: AppShellProps) {
+export function AppShell({ active, children, onProfile, onSignOut, openFile }: AppShellProps) {
   const mode = useLayoutMode();
   const desktop = mode !== 'phone';
-  const bell = (variant: 'tab' | 'tabbar') => (
-    <NotificationBell variant={variant} pinned={alerts?.pinned} actionsFor={alerts?.actionsFor} reloadKey={alerts?.reloadKey} />
-  );
+  const alertCount = useAlertCount();
+  const alertBadge = alertCount > 9 ? '9+' : String(alertCount);
+  const alertsLabel = alertCount ? `Alerts (${alertCount})` : 'Alerts';
 
   return (
     <div className="kk-ui min-h-dvh flex flex-col bg-kk-page text-kk-ink font-body text-[15px] leading-6">
@@ -105,7 +124,14 @@ export function AppShell({ active, children, onProfile, onSignOut, alerts, openF
                 {openFile.label}
               </span>
             )}
-            {bell('tab')}
+            <Link href="/alerts" className="kk-header__link" aria-current={active === 'alerts' ? 'page' : undefined} aria-label={alertsLabel}>
+              Alerts
+              {alertCount > 0 && (
+                <span className="kk-tab-badge" aria-hidden="true">
+                  {alertBadge}
+                </span>
+              )}
+            </Link>
             <button type="button" onClick={onProfile} className="kk-header__link cursor-pointer" aria-current={active === 'profile' ? 'page' : undefined}>
               Profile
             </button>
@@ -130,12 +156,17 @@ export function AppShell({ active, children, onProfile, onSignOut, alerts, openF
             <Icon name="folder" size={22} />
             Missions
           </Link>
-          {bell('tabbar')}
+          <Link href="/alerts" className="kk-tabbar__item" aria-current={active === 'alerts' ? 'page' : undefined} aria-label={alertsLabel}>
+            <Icon name="bell" size={22} />
+            Alerts
+            {alertCount > 0 && (
+              <span className="kk-tabbar__badge" aria-hidden="true">
+                {alertBadge}
+              </span>
+            )}
+          </Link>
           <button type="button" onClick={onProfile} className="kk-tabbar__item cursor-pointer" aria-current={active === 'profile' ? 'page' : undefined}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
-            </svg>
+            <Icon name="user" size={22} />
             Profile
           </button>
         </nav>

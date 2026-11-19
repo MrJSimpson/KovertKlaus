@@ -26,6 +26,7 @@ import { memberWishlistCreate } from '@/lib/mission-wishlist';
 import { markInvitationAccepted, normalizeEmail } from '@/lib/invitations';
 import { getPlatformSettings, missionJoinError } from '@/lib/platform-limits';
 import { notifyOnce } from '@/lib/notifications';
+import { NOTICE } from '@/lib/notification-copy';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -71,13 +72,7 @@ async function refreshHeadElfAlert(db: PrismaClient, mission: JoinMission, nowMs
       await db.notification.deleteMany({ where: { userId: mission.organizerId, dedupeKey } });
       return;
     }
-    await notifyOnce(db, {
-      userId: mission.organizerId,
-      dedupeKey,
-      exchangeId: mission.id,
-      title: `🙋 Join ${pending === 1 ? 'request' : 'requests'}: ${mission.title}`,
-      message: `${pending === 1 ? 'An agent has' : `${pending} agents have`} asked to join with the mission code. Approve or decline on the mission page.`,
-    });
+    await notifyOnce(db, { userId: mission.organizerId, exchangeId: mission.id, ...NOTICE.joinRequests(mission.id, pending) });
   } catch (err) {
     console.warn('[JoinRequests] could not refresh the Head Elf alert:', err);
   }
@@ -231,13 +226,8 @@ export async function decideJoinRequest(
   const decided = { decidedAt: new Date(nowMs), decidedById: input.actorId };
   if (input.decision === 'decline') {
     await db.missionJoinRequest.update({ where: { id: request.id }, data: { status: 'DECLINED', ...decided } });
-    await notifyOnce(db, {
-      userId: request.userId,
-      dedupeKey: `join-request-decided:${mission.id}`,
-      exchangeId: null,
-      title: `Request declined: ${mission.title}`,
-      message: 'The Head Elf declined your request to join this mission.',
-    }).catch(() => {});
+    // No mission link: the agent is not in it.
+    await notifyOnce(db, { userId: request.userId, exchangeId: null, ...NOTICE.joinDeclined(mission.id, mission.title) }).catch(() => {});
     await refreshHeadElfAlert(db, mission, nowMs);
     return { status: 200, body: { success: true, message: 'Request declined.' } };
   }
@@ -253,13 +243,7 @@ export async function decideJoinRequest(
   await db.missionJoinRequest.update({ where: { id: request.id }, data: { status: 'APPROVED', ...decided } });
   const user = await db.user.findUnique({ where: { id: request.userId }, select: { email: true } });
   if (user?.email) await markInvitationAccepted(db, mission.id, user.email, request.userId, nowMs);
-  await notifyOnce(db, {
-    userId: request.userId,
-    dedupeKey: `join-request-decided:${mission.id}`,
-    exchangeId: mission.id,
-    title: `✅ You're in: ${mission.title}`,
-    message: 'The Head Elf approved your request. Open the mission to set up your codename and wishlist.',
-  }).catch(() => {});
+  await notifyOnce(db, { userId: request.userId, exchangeId: mission.id, ...NOTICE.joinApproved(mission.id) }).catch(() => {});
   await refreshHeadElfAlert(db, mission, nowMs);
   return { status: 200, body: { success: true, message: 'Agent approved and added to the mission.' } };
 }

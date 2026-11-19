@@ -28,6 +28,7 @@ import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitiz
 import { validateReportInput } from '@/lib/validations/report';
 import { resolveTimelineUpdate } from '@/lib/validations/timeline';
 import { dispatchNudge } from '@/lib/nudge';
+import { NOTICE } from '@/lib/notification-copy';
 import { drawCodename, enrollWithCodename } from '@/lib/codename';
 import { deleteMemberWishlistItems, memberWishlistCreate } from '@/lib/mission-wishlist';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules, toClientExclusionRules } from '@/lib/exclusion-rules';
@@ -403,13 +404,10 @@ export async function POST(request: Request) {
       if (!ex) return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
       if (ex.organizerId !== activeUserId) return NextResponse.json({ error: 'Only Organizer can broadcast to members' }, { status: 403 });
 
+      // One key per broadcast (unique per agent), so broadcasts stack instead of replacing each other.
+      const notice = NOTICE.broadcast(ex.id, messageText.trim());
       await db.notification.createMany({
-        data: ex.members.map((member) => ({
-          userId: member.userId,
-          title: `📢 Exchange Broadcast: ${ex.title}`,
-          message: messageText.trim(),
-          exchangeId: ex.id,
-        })),
+        data: ex.members.map((member) => ({ userId: member.userId, exchangeId: ex.id, ...notice })),
       });
 
       for (const member of ex.members) {

@@ -22,6 +22,7 @@
 
 import type { ExchangeStatus, MissionActor, PrismaClient } from '@prisma/client';
 import { notifyOnce } from '@/lib/notifications';
+import { NOTICE } from '@/lib/notification-copy';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -204,7 +205,7 @@ export async function cancelMission(
   const by = actorLabel(input.actor);
   const byCap = by.charAt(0).toUpperCase() + by.slice(1);
   const actionUrl = `${deps.baseUrl.replace(/\/$/, '')}/exchange/${ex.code}`;
-  const baseMessage = `${byCap} cancelled this mission.${reason ? ` Reason: "${reason}".` : ''} If there is any data you'd like to save, please save it now.`;
+  const baseMessage = `${byCap} cancelled this mission.${reason ? ` Reason: "${reason}".` : ''} Save anything you want to keep now.`;
   const headElfNote = headElfDeletionNote(schedule);
 
   // Head Elf may not be enrolled as a member on older missions; make sure they hear about it too.
@@ -215,13 +216,7 @@ export async function cancelMission(
     const isHeadElf = userId === ex.organizerId;
     const note = input.notes?.[userId];
     const message = [baseMessage, note, isHeadElf ? headElfNote : null].filter(Boolean).join(' ');
-    await notifyOnce(db, {
-      userId,
-      dedupeKey: `mission-cancelled:${ex.id}`,
-      exchangeId: ex.id,
-      title: `🛑 Mission Cancelled: ${ex.title}`,
-      message,
-    }).catch((err) => console.error('[MissionCancel] notification failed:', err));
+    await notifyOnce(db, { userId, exchangeId: ex.id, ...NOTICE.missionCancelled(ex.id, message) }).catch((err) => console.error('[MissionCancel] notification failed:', err));
   }
 
   let emailed = 0;
@@ -301,13 +296,8 @@ async function eraseMission(db: PrismaClient, ex: ErasableMission, deletedBy: Mi
   });
 
   const by = deletedBy === 'SYSTEM' ? 'KovertKlaus automatically' : deletedBy === 'ADMIN' ? 'A KovertKlaus admin' : 'You';
-  await notifyOnce(db, {
-    userId: ex.organizerId,
-    dedupeKey: `mission-deleted:${ex.id}`,
-    exchangeId: null,
-    title: `🗑️ Mission Deleted: ${ex.title}`,
-    message: `${by} permanently deleted this cancelled mission and all of its data. This cannot be undone.`,
-  }).catch((err) => console.error('[MissionCancel] deletion notice failed:', err));
+  // No mission link: the mission is gone.
+  await notifyOnce(db, { userId: ex.organizerId, exchangeId: null, ...NOTICE.missionDeleted(ex.id, by, ex.title) }).catch((err) => console.error('[MissionCancel] deletion notice failed:', err));
 }
 
 /**

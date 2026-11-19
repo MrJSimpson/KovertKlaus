@@ -103,7 +103,7 @@ test('Join - a bare mission code files a request, once, and tells the Head Elf',
 
   await joinMission(w.deps, mission(), { userId: 'noel' }, NOW);
   const alert = w.notes.get('boss|join-requests:m1');
-  assert.match(alert.title, /Join requests: Snowfall/);
+  assert.strictEqual(alert.title, '2 join requests');
   assert.match(alert.message, /2 agents have asked/);
 });
 
@@ -191,7 +191,7 @@ test('Decide - only the Head Elf; approve enrolls and notifies; decline notifies
   assert.strictEqual(ok.status, 200);
   assert.ok(w.members.some((m) => m.userId === 'ivy' && m.codename));
   assert.deepStrictEqual([ivy.status, ivy.decidedById], ['APPROVED', 'boss']);
-  assert.match(w.notes.get('ivy|join-request-decided:m1').title, /You're in: Snowfall/);
+  assert.strictEqual(w.notes.get('ivy|join-request-decided:m1').title, "You're in");
   assert.match(w.notes.get('boss|join-requests:m1').message, /An agent has asked/, 'count refreshed to 1');
   assert.strictEqual((await decideJoinRequest(w.deps, mission(), { actorId: 'boss', requestId: ivy.id, decision: 'decline' }, NOW)).status, 409, 'already decided');
 
