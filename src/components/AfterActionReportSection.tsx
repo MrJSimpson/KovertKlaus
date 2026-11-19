@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { Illustration } from '@/components/art/Illustration';
 import { useTheme } from '@/context/ThemeContext';
 import { formatCodename } from '@/lib/security';
 import {
@@ -163,34 +164,25 @@ export function AfterActionReportSection({
   }
 
   return (
-    <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-      {/* Section Header */}
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.sectionBand}`}>
-        <div>
-          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono tracking-wider ${theme.badgeCode}`}>
-            🏆 Mission Debriefing
-          </span>
-          <h2 className="text-xl sm:text-2xl font-black mt-1 flex items-center gap-2">
-            <span>📸 Operation After-Action Report (AAR)</span>
-          </h2>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-kk-muted font-mono">
-          <span className="w-2 h-2 rounded-full bg-kk-stamp motion-safe:animate-pulse" />
-          <span>Completed Mission Log</span>
-        </div>
+    <div role="region" aria-labelledby="aar-h" className="kk-card kk-file">
+      <div className="kk-file__tab">
+        <span>After-Action Report</span>
+        <span>Mission complete</span>
+      </div>
+      <div className="p-5 sm:p-6">
+      <div className="flex flex-col gap-1 mb-5">
+        <h2 id="aar-h" className="m-0 font-display text-[22px] leading-7 font-semibold text-kk-heading">
+          Thank-yous and gift photos
+        </h2>
+        <p className="m-0 text-sm text-kk-muted">The mission is over. Thank your Secret Santa and share a photo of what you got.</p>
       </div>
 
-      <p className={`text-xs sm:text-sm mb-6 ${theme.textSubLabel}`}>
-        The operation has concluded! All participating elves can share thank-you debriefs and post photos of their received gifts below.
-      </p>
-
       {/* Submit Entry Card */}
-      <form onSubmit={handleSubmit} className="mb-8 p-5 sm:p-6 rounded-2xl bg-kk-surface border border-kk-border space-y-4">
+      <form onSubmit={handleSubmit} className="mb-8 p-4 sm:p-5 rounded-2xl bg-kk-inset border border-kk-border space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-black uppercase tracking-wider text-kk-muted">
-            ✍️ Post Thank You & Gift Photo
+            Post a thank-you
           </h3>
-          <span className="text-[10px] text-kk-muted font-mono">Client-Side WebP Optimized</span>
         </div>
 
         {error && (
@@ -371,20 +363,17 @@ export function AfterActionReportSection({
       <div className="space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-kk-border">
           <h3 className="text-xs font-black uppercase tracking-wider text-kk-muted">
-            Agent Debriefings & Thank-Yous ({reports.length})
+            Thank-yous ({reports.length})
           </h3>
-          <span className="text-[10px] text-kk-muted font-mono">Real-Time Log</span>
         </div>
 
         {reports.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-kk-surface border border-dashed border-kk-border text-center space-y-2">
-            <div className="text-3xl">🎁</div>
-            <p className="text-xs font-bold text-kk-muted">
-              No After-Action Reports posted yet.
-            </p>
-            <p className="text-[10px] text-kk-muted">
-              Be the first elf to post a thank-you note or photo of your received gift!
-            </p>
+          <div className="py-6 flex flex-col items-center text-center gap-2">
+            <div className="w-[150px] h-[112px]">
+              <Illustration name="party" />
+            </div>
+            <p className="m-0 font-display text-lg font-semibold text-kk-heading">No thank-yous yet</p>
+            <p className="m-0 text-[13px] text-kk-muted">Be the first to thank your Secret Santa or post a photo of your gift.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -393,27 +382,20 @@ export function AfterActionReportSection({
               return (
                 <div
                   key={report.id}
-                  className="p-5 rounded-2xl bg-kk-surface border border-kk-border shadow-sm space-y-3 flex flex-col justify-between"
+                  className="p-4 rounded-2xl bg-kk-inset border border-kk-border space-y-3 flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     {/* Author & Timestamp Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-kk-success text-kk-on-success flex items-center justify-center text-xs font-bold font-mono">
-                          🧝
-                        </span>
-                        <span className="font-extrabold text-xs text-kk-ink">
+                        <span className="font-semibold text-sm text-kk-ink">
                           {displayName}
                         </span>
                         {report.badgeAwarded === 'KOVERT_KLAUS' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-kk-success text-kk-on-success border border-kk-on-success/30 text-[9px] font-mono font-bold">
-                            🎅 Kovert Klaus
-                          </span>
+                          <span className="kk-pill kk-pill--success !text-[12px] !py-0">Kovert Klaus</span>
                         )}
                         {report.badgeAwarded === 'VIGILANT_ELF' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong text-[9px] font-mono font-bold">
-                            🕵️ Vigilant Elf
-                          </span>
+                          <span className="kk-pill kk-pill--warning !text-[12px] !py-0">Vigilant Elf</span>
                         )}
                       </div>
                       <span className="text-[10px] text-kk-muted font-mono">
@@ -427,9 +409,7 @@ export function AfterActionReportSection({
 
                     {/* Thank You Message */}
                     {report.thankYouText && (
-                      <p className="text-xs text-kk-muted italic bg-kk-surface p-3 rounded-xl border border-kk-border leading-relaxed">
-                        "{report.thankYouText}"
-                      </p>
+                      <p className="m-0 text-sm leading-relaxed whitespace-pre-wrap break-words">{report.thankYouText}</p>
                     )}
                   </div>
 
@@ -449,7 +429,7 @@ export function AfterActionReportSection({
                         />
                         <div className="absolute inset-0 bg-kk-inset/0 group-hover:bg-kk-inset/30 transition-all flex items-center justify-center">
                           <span className="opacity-0 group-hover:opacity-100 text-kk-ink text-xs font-bold bg-kk-surface/80 px-3 py-1 rounded-full backdrop-blur-xs transition-opacity flex items-center gap-1">
-                            🔍 Zoom Photo
+                            Zoom photo
                           </span>
                         </div>
                       </button>
@@ -469,14 +449,14 @@ export function AfterActionReportSection({
           onClick={() => setLightboxPhoto(null)}
         >
           <div className="max-w-3xl w-full max-h-[90vh] flex flex-col items-center justify-center space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="w-full flex items-center justify-between text-kk-ink text-xs font-bold px-2">
+            <div className="w-full flex items-center justify-between text-white text-sm font-semibold px-2">
               <span>{lightboxPhoto.title}</span>
               <button
                 type="button"
                 onClick={() => setLightboxPhoto(null)}
-                className="text-kk-heading hover:text-kk-ink font-extrabold text-base px-2 py-1 cursor-pointer"
+                className="text-white hover:underline font-semibold text-sm px-2 min-h-11 cursor-pointer"
               >
-                ✕ Close
+                Close
               </button>
             </div>
             <img
@@ -487,6 +467,7 @@ export function AfterActionReportSection({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { detectCarrier, CarrierDetectionResult } from '@/lib/carrier-tracking';
+import { Icon } from '@/components/brand/Icon';
 
 export interface ShippingConfirmationModalProps {
   isOpen: boolean;
@@ -111,28 +112,27 @@ export function ShippingConfirmationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55">
       <div
-        className={`w-full max-w-md rounded-3xl border shadow-2xl p-6 relative overflow-hidden bg-kk-surface border-kk-border text-kk-ink`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ship-h"
+        className="kk-card w-full sm:max-w-md max-h-[92dvh] overflow-y-auto relative shadow-kk-raised rounded-b-none sm:rounded-b-[var(--kk-radius-lg)] pb-[max(24px,calc(env(safe-area-inset-bottom)+12px))] sm:pb-6"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <span>📦 Confirm Gift Shipment</span>
+            <h3 id="ship-h" className="m-0 font-display text-[22px] leading-7 font-semibold text-kk-heading">
+              Confirm your gift is on its way
             </h3>
             {targetCodename && (
               <p className="text-xs text-kk-muted mt-0.5 font-mono">
-                Target Operative: <span className="text-kk-accent font-bold">{targetCodename}</span>
+                Your target: <span className="text-kk-ink font-semibold">{targetCodename}</span>
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-kk-muted hover:text-kk-ink p-1 rounded-lg text-lg"
-          >
-            ✕
+          <button type="button" onClick={onClose} aria-label="Close" className="kk-btn kk-btn--ghost kk-btn--sm !px-0 w-11 shrink-0">
+            <Icon name="close" />
           </button>
         </div>
 
