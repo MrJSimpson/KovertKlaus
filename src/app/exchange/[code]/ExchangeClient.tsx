@@ -33,6 +33,7 @@ import { LegalAgreement } from '@/components/LegalAgreement';
 import { MissionFrame } from '@/components/missions/MissionFrame';
 import { MissionHero } from '@/components/missions/MissionHero';
 import { Icon } from '@/components/brand/Icon';
+import { Illustration } from '@/components/art/Illustration';
 import type { MissionListItem } from '@/lib/mission-card';
 import { INTEL_MESSAGE_MAX_CHARS, type IntelSide, type MessageChannelName, type MessageView } from '@/lib/intel-messages';
 
@@ -1484,230 +1485,112 @@ export default function OperationCommandCenterPage() {
                         </div>
 
                         {assignedTarget.streetAddress && (
-                          <div className={`text-xs border-t border-kk-border pt-2 ${theme.textSubLabel}`}>
-                            <span>Courier Address: </span>
-                            <strong className={theme.textLabel}>{assignedTarget.streetAddress}, {assignedTarget.city}, {assignedTarget.state} {assignedTarget.zipCode}</strong>
-                          </div>
+                          <p className="m-0 -mt-1 text-[13px] text-kk-muted break-words">
+                            Ship to {assignedTarget.streetAddress}, {assignedTarget.city}, {assignedTarget.state} {assignedTarget.zipCode}
+                          </p>
                         )}
 
-                        {/* Target Operative Dossier Intel */}
+                        {/* Dossier intel as pills (design canvas "Target dossier") */}
                         {(assignedTarget.topHalfSize || assignedTarget.bottomHalfSize || assignedTarget.shoeSize || assignedTarget.favoriteColors || assignedTarget.favoriteHobbies || assignedTarget.allergiesDiet) && (
-                          <div className="pt-3 border-t border-kk-border space-y-2">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-kk-muted font-mono block">
-                              📋 Target Operative Dossier Intel
-                            </span>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              {assignedTarget.topHalfSize && (
-                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
-                                  <span className="text-[10px] text-kk-muted block">Shirt / Top:</span>
-                                  <span className="font-bold">{assignedTarget.topHalfSize}</span>
-                                </div>
-                              )}
-                              {assignedTarget.bottomHalfSize && (
-                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
-                                  <span className="text-[10px] text-kk-muted block">Pants / Bottom:</span>
-                                  <span className="font-bold">{assignedTarget.bottomHalfSize}</span>
-                                </div>
-                              )}
-                              {assignedTarget.shoeSize && (
-                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
-                                  <span className="text-[10px] text-kk-muted block">Shoe Size:</span>
-                                  <span className="font-bold">{assignedTarget.shoeSize}</span>
-                                </div>
-                              )}
-                              {assignedTarget.favoriteColors && (
-                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
-                                  <span className="text-[10px] text-kk-muted block">Colors:</span>
-                                  <span className="font-bold">{assignedTarget.favoriteColors}</span>
-                                </div>
-                              )}
-                              {assignedTarget.favoriteHobbies && (
-                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
-                                  <span className="text-[10px] text-kk-muted block">Hobbies:</span>
-                                  <span className="font-bold">{assignedTarget.favoriteHobbies}</span>
-                                </div>
-                              )}
-                              {assignedTarget.allergiesDiet && (
-                                <div className="p-2 rounded-xl bg-kk-surface border border-kk-border text-xs shadow-sm">
-                                  <span className="text-[10px] text-kk-muted block">Diet / Allergies:</span>
-                                  <span className="font-bold text-kk-gold-ink">{assignedTarget.allergiesDiet}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                          <ul className="list-none m-0 p-0 flex flex-wrap gap-2" aria-label="Dossier intel">
+                            {assignedTarget.topHalfSize && <li className="kk-pill kk-pill--neutral">Top: {assignedTarget.topHalfSize}</li>}
+                            {assignedTarget.bottomHalfSize && <li className="kk-pill kk-pill--neutral">Bottom: {assignedTarget.bottomHalfSize}</li>}
+                            {assignedTarget.shoeSize && <li className="kk-pill kk-pill--neutral">Shoe: {assignedTarget.shoeSize}</li>}
+                            {assignedTarget.favoriteColors && <li className="kk-pill kk-pill--neutral">Colors: {assignedTarget.favoriteColors}</li>}
+                            {assignedTarget.favoriteHobbies && <li className="kk-pill kk-pill--neutral">Likes: {assignedTarget.favoriteHobbies}</li>}
+                            {assignedTarget.allergiesDiet && <li className="kk-pill kk-pill--danger">Allergies / diet: {assignedTarget.allergiesDiet}</li>}
+                          </ul>
                         )}
 
-                        {/* Target Operative Wishlist Manifest */}
-                        <div className="pt-3 border-t border-kk-border space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-kk-muted font-mono block">
-                              🎁 Target Wishlist Items ({assignedTarget.wishlistItems?.length || 0})
-                            </span>
-                            <span className="text-[10px] text-kk-muted font-mono">Confidential Intel</span>
-                          </div>
-
-                          {(!assignedTarget.wishlistItems || assignedTarget.wishlistItems.length === 0) ? (
-                            <div className="text-center py-4 border border-dashed border-kk-border rounded-xl">
-                              <p className="text-xs text-kk-muted">Target operative has not added items to their wishlist manifest yet.</p>
-                            </div>
+                        {/* The target's Wishlist Manifest */}
+                        <div>
+                          <h3 className="m-0 mb-1 font-display text-lg leading-6 font-semibold text-kk-heading">
+                            Wishlist Manifest <span className="text-[13px] font-normal text-kk-muted">({assignedTarget.wishlistItems?.length || 0})</span>
+                          </h3>
+                          {!assignedTarget.wishlistItems || assignedTarget.wishlistItems.length === 0 ? (
+                            <p className="m-0 py-3 border-t border-kk-border text-[13px] text-kk-muted">Your target hasn&apos;t added any items yet. Ask them in Intel.</p>
                           ) : (
-                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            <ul className="list-none m-0 p-0 max-h-80 overflow-y-auto">
                               {assignedTarget.wishlistItems.map((item) => {
                                 const isPersonalized = Boolean(item.properties?.isPersonalized || !item.url);
-
                                 return (
-                                  <div
-                                    key={item.id}
-                                    className="p-3 rounded-xl border border-kk-border bg-kk-surface shadow-sm flex items-center justify-between gap-3 text-xs"
-                                  >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      {item.thumbnail ? (
+                                  <li key={item.id} className="py-3 border-t border-kk-border flex justify-between gap-3">
+                                    <div className="flex items-start gap-3 min-w-0">
+                                      {item.thumbnail && (
                                         // eslint-disable-next-line @next/next/no-img-element -- retailer thumbnails come from any domain; next/image would need a wildcard remotePatterns (open image proxy)
-                                        <img
-                                          src={item.thumbnail}
-                                          alt={item.title}
-                                          referrerPolicy="no-referrer"
-                                          className="h-11 w-11 object-cover rounded-lg border border-kk-border flex-shrink-0"
-                                        />
-                                      ) : (
-                                        <div className="h-11 w-11 rounded-lg bg-kk-inset flex items-center justify-center text-base flex-shrink-0">
-                                          {isPersonalized ? '✨' : '🛍️'}
-                                        </div>
+                                        <img src={item.thumbnail} alt="" referrerPolicy="no-referrer" className="h-10 w-10 object-cover rounded-[var(--kk-radius-sm)] border border-kk-border shrink-0" />
                                       )}
-                                      <div className="min-w-0">
-                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                      <div className="min-w-0 flex flex-col gap-1">
+                                        <span className="flex flex-wrap items-center gap-2">
                                           {item.url ? (
-                                            <a
-                                              href={item.url}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                              className="font-bold hover:underline block truncate text-kk-ink"
-                                            >
+                                            <a href={item.url} target="_blank" rel="noreferrer" className="break-words">
                                               {item.title}
                                             </a>
                                           ) : (
-                                            <span className="font-bold block truncate text-kk-ink">
-                                              {item.title}
-                                            </span>
+                                            <span className="break-words">{item.title}</span>
                                           )}
-
-                                          {isPersonalized && (
-                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong flex items-center gap-1 flex-shrink-0">
-                                              ✨ Personalized Gift
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        {item.price && (
-                                          <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>
-                                            ${item.price}
-                                            {(item.quantity ?? 1) > 1 && <span className="ml-1">× {item.quantity}</span>}
-                                          </span>
-                                        )}
-
-                                        {item.description && (
-                                          <p className="text-xs text-kk-muted mt-1 italic line-clamp-2">
-                                            &quot;{item.description}&quot;
-                                          </p>
-                                        )}
-
+                                          {isPersonalized && <span className="kk-pill kk-pill--neutral !text-[12px] !py-0">Personalized</span>}
+                                        </span>
+                                        {item.description && <span className="text-[13px] leading-5 text-kk-muted line-clamp-2">{item.description}</span>}
                                         {item.properties?.details && item.properties.details.length > 0 && (
-                                          <div className="flex flex-wrap items-center gap-1 mt-1">
+                                          <span className="flex flex-wrap gap-1.5">
                                             {item.properties.details.map((d, dIdx) => (
-                                              <span
-                                                key={dIdx}
-                                                className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-kk-inset/70 border-kk-border text-kk-muted flex items-center gap-1"
-                                              >
-                                                <span className="opacity-75">{d.label}:</span>
-                                                <span>{d.value}</span>
+                                              <span key={dIdx} className="kk-pill kk-pill--neutral !text-[12px] !py-0">
+                                                {d.label}: {d.value}
                                               </span>
                                             ))}
-                                          </div>
+                                          </span>
                                         )}
                                       </div>
                                     </div>
-
-                                    {item.url ? (
-                                      <a
-                                        href={item.url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="px-2.5 py-1.5 rounded-lg font-bold text-xs bg-kk-inset text-kk-accent hover:bg-kk-inset border border-kk-border-strong flex-shrink-0 transition-colors"
-                                      >
-                                        View ↗
-                                      </a>
-                                    ) : (
-                                      <span className="px-2.5 py-1.5 rounded-lg font-bold text-[11px] bg-kk-warning text-kk-on-warning border border-kk-border-strong flex-shrink-0">
-                                        ✨ Custom
-                                      </span>
-                                    )}
-                                  </div>
+                                    <span className="shrink-0 font-mono text-[13px] text-kk-muted text-right">
+                                      {item.price ? formatMoney(item.price) : 'No price'}
+                                      {` · qty ${item.quantity ?? 1}`}
+                                    </span>
+                                  </li>
                                 );
                               })}
-                            </div>
+                            </ul>
                           )}
                         </div>
 
-                        {/* Shipping Fulfillment Action Bar */}
-                        <div className="pt-3 border-t border-kk-border space-y-2">
-                          <div className="flex items-center justify-between text-xs font-mono">
-                            <span className={theme.textSubLabel}>Shipment Status:</span>
-                            {currentAgent?.shippingStatus === 'SHIPPED' ? (
-                              <span className="text-kk-brand font-bold flex items-center gap-1">
-                                <span>✓ Dispatched</span>
+                        {/* Shipping */}
+                        {currentAgent?.shippingStatus === 'SHIPPED' && currentAgent.trackingNumber && (() => {
+                          const carrier = detectCarrier(currentAgent.trackingNumber);
+                          return (
+                            <div className="kk-banner kk-banner--success flex-wrap">
+                              <Icon name="package" size={20} />
+                              <span className="flex-1 min-w-[10rem]">
+                                <strong>Shipped.</strong> {carrier.badgeLabel} <span className="font-mono break-all">{carrier.normalizedTracking}</span>
                               </span>
-                            ) : currentAgent?.shippingStatus === 'LOCAL_DELIVERY' ? (
-                              <span className="text-kk-brand font-bold flex items-center gap-1">
-                                <span>🤝 Hand Delivery</span>
-                              </span>
-                            ) : (
-                              <span className="text-kk-gold-ink font-bold flex items-center gap-1">
-                                <span>⏳ Pending Shipment</span>
-                              </span>
-                            )}
+                              {carrier.trackingUrl && (
+                                <a href={carrier.trackingUrl} target="_blank" rel="noreferrer" className="font-semibold">
+                                  Track
+                                </a>
+                              )}
+                            </div>
+                          );
+                        })()}
+                        {currentAgent?.shippingStatus === 'LOCAL_DELIVERY' && (
+                          <div className="kk-banner kk-banner--success">
+                            <Icon name="check" size={20} />
+                            <span>
+                              <strong>Hand delivery.</strong> You logged your doorstep drop.
+                            </span>
                           </div>
-
-                          {currentAgent?.shippingStatus === 'SHIPPED' && currentAgent.trackingNumber && (() => {
-                            const carrier = detectCarrier(currentAgent.trackingNumber);
-                            return (
-                              <div className="p-3 rounded-xl bg-kk-inset/60 border border-kk-border flex items-center justify-between text-xs font-mono">
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${carrier.badgeColor.bg} ${carrier.badgeColor.border} ${carrier.badgeColor.text}`}>
-                                    {carrier.badgeLabel}
-                                  </span>
-                                  <span className="text-kk-ink font-bold">{carrier.normalizedTracking}</span>
-                                </div>
-                                {carrier.trackingUrl && (
-                                  <a
-                                    href={carrier.trackingUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-kk-accent hover:underline flex items-center gap-1 font-bold text-[11px]"
-                                    title="Open carrier tracking portal"
-                                  >
-                                    <span>Track</span>
-                                    <span>↗</span>
-                                  </a>
-                                )}
-                              </div>
-                            );
-                          })()}
-
-                          {!missionClosed && (
-                          <div className="pt-1">
-                            <button
-                              onClick={() => setShippingModalOpen(true)}
-                              className={`w-full py-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
-                                currentAgent?.shippingStatus === 'SHIPPED' || currentAgent?.shippingStatus === 'LOCAL_DELIVERY'
-                                  ? theme.btnSecondary
-                                  : theme.btnPrimary
-                              }`}
-                            >
-                              <span>📦 {currentAgent?.shippingStatus === 'SHIPPED' || currentAgent?.shippingStatus === 'LOCAL_DELIVERY' ? 'Update Shipping Details' : 'Confirm Gift Shipped'}</span>
+                        )}
+                        {!missionClosed && (
+                          <div className="flex flex-wrap gap-3">
+                            <button type="button" onClick={() => setShippingModalOpen(true)} className={`kk-btn ${currentAgent?.shippingStatus === 'PENDING' || !currentAgent?.shippingStatus ? 'kk-btn--primary' : 'kk-btn--ghost'}`}>
+                              <Icon name="package" />
+                              {currentAgent?.shippingStatus === 'SHIPPED' || currentAgent?.shippingStatus === 'LOCAL_DELIVERY' ? 'Update tracking' : 'Add tracking'}
+                            </button>
+                            <button type="button" onClick={() => openComms('intel-target')} className="kk-btn kk-btn--ghost">
+                              <Icon name="send" />
+                              Message target
                             </button>
                           </div>
-                          )}
-                        </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-wrap justify-between items-start gap-3">
@@ -1729,177 +1612,151 @@ export default function OperationCommandCenterPage() {
                   </div>
                 )}
 
-                {/* Wishlist Manifest & Manifest Items Scraper Section */}
-                <div className={`p-6 rounded-3xl border shadow-md ${theme.cardBg}`}>
-                  <div className={theme.sectionBand}>
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      {operation.isWhiteElephant ? '🐘 White Elephant Brought Gift Manifest' : '🎁 My Wishlist Manifest'}
-                    </h2>
+                {/* Wishlist Manifest (visual refresh): a folder file; items as rows like the target dossier */}
+                <div role="region" aria-labelledby="manifest-h" className="kk-card kk-file">
+                  <div className="kk-file__tab">
+                    <span id="manifest-h">{operation.isWhiteElephant ? 'White Elephant gift' : 'Wishlist Manifest'}</span>
+                    <span>
+                      {operation.isWhiteElephant ? (userManifest.length ? 'Added' : 'Not added yet') : `${userManifest.length} of ${maxWishlistItems} items`}
+                    </span>
                   </div>
-                  <p className={`text-xs font-semibold mb-1 ${theme.textAccent}`}>
-                    {operation.isWhiteElephant
-                      ? `Your gift: up to ${formatMoney(itemMax)}.`
-                      : `Up to ${maxWishlistItems} items, ${maxItemQuantity} of each. Each item: up to ${formatMoney(itemMax)} apiece. ${wishlistTotalMax === null ? 'Your list may total more than that.' : `Whole list: up to ${formatMoney(wishlistTotalMax)}.`}`}
-                  </p>
-                  <p className={`text-xs mb-4 ${theme.textSubLabel}`}>
-                    {operation.isWhiteElephant
-                      ? 'Add the 1 gift you are bringing to the White Elephant table. This list is for this mission only.'
-                      : 'This list is for this mission only. Pick Store-bought gift to fill in an item from a store link, or Personalized gift for something handmade or specially crafted.'}
-                  </p>
-
-                  {validationError && (
-                    <div className={`mb-4 p-3 rounded-xl text-xs font-bold border ${theme.alertWarning}`}>
-                      ⚠️ {validationError}
-                    </div>
-                  )}
-
-                  {!missionClosed && (
-                  <div className="mb-6">
-                    <label htmlFor="add-wishlist-item" className={`block text-xs font-bold mb-1 ${theme.textLabel}`}>
-                      Add an item
-                    </label>
-                    <select
-                      id="add-wishlist-item"
-                      value=""
-                      disabled={wishlistFull}
-                      onChange={(e) => {
-                        const kind = e.target.value;
-                        if (kind === 'store' || kind === 'personalized') openAddItem(kind);
-                      }}
-                      className={`w-full sm:w-auto border rounded-2xl px-4 py-3 text-sm font-bold cursor-pointer focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${theme.inputBg}`}
-                    >
-                      <option value="">
-                        {wishlistFull ? (operation.isWhiteElephant ? 'Your White Elephant gift is added' : `Your list is full (${maxWishlistItems} items)`) : 'Add a gift type…'}
-                      </option>
-                      <option value="store">🛍️ Store-bought gift</option>
-                      <option value="personalized">✨ Personalized gift (handmade or specially crafted)</option>
-                    </select>
-                  </div>
-                  )}
-
-                  {/* Manifest Items List */}
-                  {userManifest.length === 0 ? (
-                    <div className="text-center py-8 border-2 border-dashed border-kk-border rounded-2xl">
-                      <p className={`text-xs font-medium ${theme.textSubLabel}`}>
-                        Your Wishlist Manifest is empty. Add a store link above or click <strong>✨ Add Personalized Gift</strong>!
+                  <div className="p-5 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                      <p className="m-0 text-sm font-semibold text-kk-heading">
+                        {operation.isWhiteElephant
+                          ? `Your gift: up to ${formatMoney(itemMax)}.`
+                          : `Up to ${maxWishlistItems} items, ${maxItemQuantity} of each, ${formatMoney(itemMax)} or less apiece. ${wishlistTotalMax === null ? 'No limit on the total.' : `Whole list: up to ${formatMoney(wishlistTotalMax)}.`}`}
+                      </p>
+                      <p className="m-0 text-[13px] leading-5 text-kk-muted">
+                        {operation.isWhiteElephant
+                          ? 'Add the one gift you are bringing to the White Elephant table. This entry is for this mission only.'
+                          : 'This list is for this mission only. Store-bought fills in an item from a store link; Personalized is for something handmade or specially crafted.'}
                       </p>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {userManifest.map((item) => {
-                        const isPersonalized = Boolean(item.properties?.isPersonalized || !item.url);
 
-                        return (
-                          <div key={item.id} className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.cardInnerBg}`}>
-                            <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
-                              {item.thumbnail ? (
-                                // eslint-disable-next-line @next/next/no-img-element -- retailer thumbnails come from any domain; next/image would need a wildcard remotePatterns (open image proxy)
-                                <img src={item.thumbnail} alt={item.title} referrerPolicy="no-referrer" className="h-12 w-12 object-cover rounded-xl border flex-shrink-0" />
-                              ) : (
-                                <div className="h-12 w-12 rounded-xl bg-kk-inset flex items-center justify-center text-xl flex-shrink-0">
-                                  {isPersonalized ? '✨' : '🛍️'}
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {item.url ? (
-                                    <a href={item.url} target="_blank" rel="noreferrer" className="text-sm font-bold hover:underline block max-w-xs truncate">
-                                      {item.title}
-                                    </a>
+                    {validationError && (
+                      <div role="alert" className="kk-banner kk-banner--warning">
+                        <Icon name="alert" size={20} />
+                        <span>{validationError}</span>
+                      </div>
+                    )}
+
+                    {/* Add an item (the dashboard links here: #add-wishlist-item) */}
+                    {!missionClosed && (
+                      <div id="add-wishlist-item" className="scroll-mt-24 flex flex-col gap-2">
+                        {wishlistFull ? (
+                          <p className="m-0 text-[13px] text-kk-muted">
+                            {operation.isWhiteElephant ? 'Your White Elephant gift is added. Edit it below if something changes.' : `Your list is full (${maxWishlistItems} items). Remove one to add another.`}
+                          </p>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row gap-2.5" role="group" aria-label="Add an item">
+                            <button type="button" onClick={() => openAddItem('store')} className="kk-btn kk-btn--secondary">
+                              <Icon name="package" />
+                              Store-bought gift
+                            </button>
+                            <button type="button" onClick={() => openAddItem('personalized')} className="kk-btn kk-btn--ghost">
+                              <Icon name="plus" />
+                              Personalized gift
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {userManifest.length === 0 ? (
+                      <div className="flex flex-col items-center text-center gap-2 py-4">
+                        <div className="w-[150px] h-[112px]">
+                          <Illustration name="emptyManifest" />
+                        </div>
+                        <p className="m-0 font-display text-lg font-semibold text-kk-heading">
+                          {operation.isWhiteElephant ? 'No gift added yet' : 'Your Wishlist Manifest is empty'}
+                        </p>
+                        <p className="m-0 text-[13px] text-kk-muted max-w-[30em]">
+                          {operation.isWhiteElephant ? 'Add the gift you will bring so the Head Elf knows you are ready.' : 'Add at least one Manifest Item so your Secret Santa knows what to get you.'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col">
+                        <ul className="list-none m-0 p-0">
+                          {userManifest.map((item) => {
+                            const isPersonalized = Boolean(item.properties?.isPersonalized || !item.url);
+                            return (
+                              <li key={item.id} className="py-3 border-t border-kk-border flex flex-col sm:flex-row sm:items-start gap-3">
+                                <div className="flex items-start gap-3 min-w-0 flex-1">
+                                  {item.thumbnail ? (
+                                    // eslint-disable-next-line @next/next/no-img-element -- retailer thumbnails come from any domain; next/image would need a wildcard remotePatterns (open image proxy)
+                                    <img src={item.thumbnail} alt="" referrerPolicy="no-referrer" className="h-12 w-12 object-cover rounded-[var(--kk-radius-md)] border border-kk-border shrink-0" />
                                   ) : (
-                                    <span className="text-sm font-bold block max-w-xs truncate">
-                                      {item.title}
+                                    <span className="h-12 w-12 rounded-[var(--kk-radius-md)] bg-kk-inset border border-kk-border grid place-items-center shrink-0 text-kk-stamp" aria-hidden="true">
+                                      <Icon name={isPersonalized ? 'plus' : 'package'} size={20} />
                                     </span>
                                   )}
-
-                                  {isPersonalized && (
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong flex items-center gap-1 flex-shrink-0">
-                                      ✨ Personalized Gift
-                                    </span>
-                                  )}
-                                </div>
-
-                                {item.price ? (
-                                  <span className={`text-xs font-mono font-bold block mt-0.5 ${theme.textAccent}`}>
-                                    {formatMoney(item.price)}
-                                    {(item.quantity ?? 1) > 1 && <span className="ml-1">× {item.quantity} = {formatMoney(item.price * (item.quantity ?? 1))}</span>}
-                                  </span>
-                                ) : null}
-                                {!item.price ? (
-                                  <span className="text-[10px] font-bold mt-1 inline-block px-1.5 py-0.5 rounded-full bg-kk-warning text-kk-on-warning border border-kk-border-strong">
-                                    Needs a price: edit to add one
-                                  </span>
-                                ) : Math.round(item.price * 100) > Math.round(itemMax * 100) ? (
-                                  <span className="text-[10px] font-bold mt-1 inline-block px-1.5 py-0.5 rounded-full bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40">
-                                    Over the {formatMoney(itemMax)} limit: edit or remove
-                                  </span>
-                                ) : null}
-
-                                {item.description && (
-                                  <p className="text-xs text-kk-muted mt-1 italic line-clamp-2 max-w-xs">
-                                    &quot;{item.description}&quot;
-                                  </p>
-                                )}
-
-                                {item.url ? (
-                                  <a
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-[10px] text-kk-muted hover:underline block max-w-xs truncate mt-0.5"
-                                  >
-                                    {item.url}
-                                  </a>
-                                ) : null}
-
-                                {item.properties?.details && item.properties.details.length > 0 && (
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                    {item.properties.details.map((d, dIdx) => (
-                                      <span
-                                        key={dIdx}
-                                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-kk-inset border-kk-border text-kk-muted flex items-center gap-1"
-                                      >
-                                        <span className="opacity-75">{d.label}:</span>
-                                        <span>{d.value}</span>
+                                  <div className="min-w-0 flex flex-col gap-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      {item.url ? (
+                                        <a href={item.url} target="_blank" rel="noreferrer" className="font-semibold break-words">
+                                          {item.title}
+                                        </a>
+                                      ) : (
+                                        <span className="font-semibold break-words">{item.title}</span>
+                                      )}
+                                      {isPersonalized && <span className="kk-pill kk-pill--neutral !text-[12px] !py-0">Personalized</span>}
+                                    </div>
+                                    {item.price ? (
+                                      <span className="font-mono text-[13px] text-kk-muted">
+                                        {formatMoney(item.price)}
+                                        {(item.quantity ?? 1) > 1 && ` × ${item.quantity} = ${formatMoney(item.price * (item.quantity ?? 1))}`}
                                       </span>
-                                    ))}
+                                    ) : null}
+                                    {!item.price ? (
+                                      <span className="kk-pill kk-pill--warning self-start !text-[12px]">Needs a price: edit to add one</span>
+                                    ) : Math.round(item.price * 100) > Math.round(itemMax * 100) ? (
+                                      <span className="kk-pill kk-pill--danger self-start !text-[12px]">Over the {formatMoney(itemMax)} limit: edit or remove</span>
+                                    ) : null}
+                                    {item.description && <p className="m-0 text-[13px] leading-5 text-kk-muted line-clamp-2">{item.description}</p>}
+                                    {item.properties?.details && item.properties.details.length > 0 && (
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {item.properties.details.map((d, dIdx) => (
+                                          <span key={dIdx} className="kk-pill kk-pill--neutral !text-[12px] !py-0">
+                                            {d.label}: {d.value}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                {!missionClosed && (
+                                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-start">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setItemModalMode('edit');
+                                        setItemModalData(item);
+                                        setItemModalOpen(true);
+                                      }}
+                                      className="kk-btn kk-btn--ghost kk-btn--sm"
+                                      aria-label={`Edit ${item.title}`}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button type="button" onClick={() => handleRemoveManifestItem(item.id)} className="kk-btn kk-btn--danger kk-btn--sm" aria-label={`Remove ${item.title}`}>
+                                      Remove
+                                    </button>
                                   </div>
                                 )}
-                              </div>
-                            </div>
-                            {!missionClosed && (
-                            <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setItemModalMode('edit');
-                                  setItemModalData(item);
-                                  setItemModalOpen(true);
-                                }}
-                                className="text-xs text-kk-accent font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-kk-inset transition-colors cursor-pointer"
-                              >
-                                ✏️ Edit Details
-                              </button>
-                              <button
-                                onClick={() => handleRemoveManifestItem(item.id)}
-                                className="text-xs text-kk-danger font-bold hover:underline px-2.5 py-1.5 rounded-lg hover:bg-kk-danger-soft transition-colors cursor-pointer"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {!operation.isWhiteElephant && (
-                        <p className={`text-xs font-bold text-right ${wishlistOverTotal ? 'text-kk-danger' : theme.textSubLabel}`}>
-                          List total: {formatMoney(wishlistTotal)}
-                          {wishlistOverTotal && wishlistTotalMax !== null && ` (over the ${formatMoney(wishlistTotalMax)} total the Head Elf set: remove or lower an item)`}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
+                              </li>
+                            );
+                          })}
+                        </ul>
+                        {!operation.isWhiteElephant && (
+                          <p className={`m-0 pt-3 border-t border-kk-border text-sm text-right font-mono ${wishlistOverTotal ? 'text-kk-danger font-semibold' : 'text-kk-muted'}`}>
+                            List total: {formatMoney(wishlistTotal)}
+                            {wishlistOverTotal && wishlistTotalMax !== null && ` (over the ${formatMoney(wishlistTotalMax)} total the Head Elf set: remove or lower an item)`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
 
@@ -1948,76 +1805,62 @@ export default function OperationCommandCenterPage() {
                   </div>
                 )}
 
-                {/* Mission Messaging: Command, Intel and Debrief */}
+                {/* Mission Comms (visual refresh, design canvas "Mission page"): Command, Intel and Debrief */}
                 {intelEnrolled && (
-                <div id="mission-comms" className={`p-6 rounded-3xl border shadow-md scroll-mt-4 ${theme.cardBg}`}>
-                  <div className={`flex items-center justify-between gap-2 flex-wrap ${theme.sectionBand}`}>
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                      💬 Mission Comms
-                    </h2>
-                    <div className="flex gap-1.5">
-                      {([['command', '📡 Command'], ['intel', '🎯 Intel'], ['debrief', '🎉 Debrief']] as const).map(([tab, label]) => (
-                        <button
-                          key={tab}
-                          type="button"
-                          onClick={() => { setMsgTab(tab); setIntelError(''); }}
-                          className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
-                            msgTab === tab ? theme.badgeAmber : theme.cardInnerBg
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                <div id="mission-comms" role="region" aria-labelledby="comms-h" className="kk-card p-5 flex flex-col gap-3 scroll-mt-24">
+                  <h2 id="comms-h" className="m-0 font-display text-lg leading-6 font-semibold text-kk-heading">
+                    Mission Comms
+                  </h2>
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Channel">
+                    {([['command', 'Command'], ['intel', 'Intel'], ['debrief', 'Debrief']] as const).map(([tab, label]) => (
+                      <button key={tab} type="button" className="kk-chip" aria-pressed={msgTab === tab} onClick={() => { setMsgTab(tab); setIntelError(''); }}>
+                        {label}
+                      </button>
+                    ))}
                   </div>
 
                   {/* Conversation picker */}
                   {msgTab === 'intel' && (
-                    <div className="flex gap-1.5 mb-3">
-                      {([['target', '🎯 My Target'], ['santa', '🎅 My Secret Santa']] as const).map(([side, label]) => (
-                        <button
-                          key={side}
-                          type="button"
-                          onClick={() => setIntelSide(side)}
-                          className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
-                            intelSide === side ? theme.badgeSecretSanta : theme.cardInnerBg
-                          }`}
-                        >
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Conversation">
+                      {([['target', 'My target'], ['santa', 'My Secret Santa']] as const).map(([side, label]) => (
+                        <button key={side} type="button" className="kk-chip" aria-pressed={intelSide === side} onClick={() => setIntelSide(side)}>
                           {label}
                         </button>
                       ))}
                     </div>
                   )}
                   {msgTab === 'command' && isOpsLeader && msgData.commandRecipients.length > 0 && (
-                    <select
-                      value={commandPeer}
-                      onChange={(e) => setCommandWith(e.target.value)}
-                      className={`w-full mb-3 border rounded-xl px-3 py-2 text-xs font-bold focus:outline-none ${theme.inputBg}`}
-                    >
-                      {msgData.commandRecipients.map((r) => (
-                        <option key={r.userId} value={r.userId}>
-                          {formatCodename(r.codename)}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="kk-field">
+                      <label className="kk-field__label" htmlFor="comms-peer">
+                        Agent
+                      </label>
+                      <select id="comms-peer" value={commandPeer} onChange={(e) => setCommandWith(e.target.value)} className="kk-field__input font-mono">
+                        {msgData.commandRecipients.map((r) => (
+                          <option key={r.userId} value={r.userId}>
+                            {formatCodename(r.codename)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   )}
 
                   {(() => {
                     const thread = msgData.messages.filter((m) => m.thread === activeThread);
                     const otherLabel = (m: MessageView) => {
                       if (m.fromMe) return 'You';
-                      if (m.channel === 'intel') return intelSide === 'target' ? 'Your Target' : 'Your Secret Santa';
-                      return `${formatCodename(m.sender?.codename)}${m.sender?.isHeadElf ? ' · Head Elf' : ''}`;
+                      if (m.channel === 'intel') return intelSide === 'target' ? 'From your target' : 'From your Secret Santa';
+                      if (m.sender?.isHeadElf) return 'From your Head Elf';
+                      return `From ${formatCodename(m.sender?.codename)}`;
                     };
                     const missionDone = operation.status === 'COMPLETED';
                     const emptyText =
                       msgTab === 'command'
                         ? isOpsLeader
-                          ? 'Send operational questions or nudges to one agent. Only you and that agent can read the thread.'
+                          ? 'Send questions or nudges to one agent. Only you and that agent can read the thread.'
                           : 'Questions for your Head Elf go here. Only you and the Head Elf can read this thread.'
                         : msgTab === 'intel'
                         ? !(intelSide === 'target' ? msgData.hasTarget : msgData.hasSanta)
-                          ? 'Intel opens once targets are assigned.'
+                          ? 'Intel opens once targets are drawn.'
                           : intelSide === 'target'
                           ? 'Ask your target about sizes or preferences. They will not know it is you.'
                           : 'Messages from your Secret Santa appear here. You can reply without learning who they are.'
@@ -2034,60 +1877,64 @@ export default function OperationCommandCenterPage() {
                         : '';
                     return (
                       <>
-                        <div className={`p-4 rounded-2xl border max-h-64 overflow-y-auto space-y-3 mb-4 ${theme.cardInnerBg}`}>
-                          {thread.length === 0 ? (
-                            <p className="text-xs text-kk-muted">{emptyText}</p>
-                          ) : (
-                            thread.map((log) => (
-                              <div key={log.id} className="text-xs">
-                                <div className="flex items-center justify-between gap-2">
-                                  <strong className={theme.textAccent}>{otherLabel(log)}</strong>
-                                  <span className="text-[10px] text-kk-muted shrink-0">
+                        {thread.length === 0 ? (
+                          <p className="m-0 p-3 rounded-[var(--kk-radius-md)] bg-kk-inset text-[13px] leading-5 text-kk-muted">{emptyText}</p>
+                        ) : (
+                          <ul className="list-none m-0 p-0 flex flex-col gap-2 max-h-80 overflow-y-auto" aria-live="polite">
+                            {thread.map((log) => (
+                              <li
+                                key={log.id}
+                                className={`flex flex-col gap-1 p-3 rounded-[var(--kk-radius-md)] bg-kk-inset ${log.fromMe ? 'border-l-4 border-kk-stamp' : ''}`}
+                              >
+                                <span className="flex justify-between gap-2 text-xs font-semibold tracking-[0.06em] uppercase text-kk-muted">
+                                  <span>{otherLabel(log)}</span>
+                                  <span className="font-mono normal-case tracking-normal shrink-0">
                                     {new Date(log.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </span>
-                                </div>
-                                <p className="text-kk-muted mt-0.5 whitespace-pre-wrap break-words">{log.text}</p>
-                              </div>
-                            ))
-                          )}
-                        </div>
+                                </span>
+                                <span className="whitespace-pre-wrap break-words">{log.text}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
 
                         {msgTab === 'debrief' && msgData.canSendDebrief && msgData.debriefOpenUntil && (
-                          <p className="text-[10px] text-kk-muted mb-2">
-                            Debrief is readable until {formatDateString(msgData.debriefOpenUntil)}.
-                          </p>
+                          <p className="m-0 text-[13px] text-kk-muted">Debrief is readable until {formatDateString(msgData.debriefOpenUntil)}.</p>
                         )}
-                        {closedNote && <p className="text-[10px] text-kk-muted">{closedNote}</p>}
+                        {closedNote && <p className="m-0 text-[13px] text-kk-muted">{closedNote}</p>}
 
                         {activeCanSend && (
-                          <form onSubmit={handleSendIntel} className="space-y-1.5">
+                          <form onSubmit={handleSendIntel} className="flex flex-col gap-1.5">
+                            <label htmlFor="comms-text" className="sr-only">
+                              Message
+                            </label>
                             <div className="flex gap-2">
                               <input
+                                id="comms-text"
                                 type="text"
                                 placeholder={
                                   msgTab === 'intel'
-                                    ? intelSide === 'target' ? 'Message your target anonymously...' : 'Reply to your Secret Santa...'
+                                    ? intelSide === 'target' ? 'Message your target anonymously…' : 'Reply to your Secret Santa…'
                                     : msgTab === 'command'
-                                    ? isOpsLeader ? 'Message this agent...' : 'Message your Head Elf...'
-                                    : 'Message the whole mission...'
+                                    ? isOpsLeader ? 'Message this agent…' : 'Message your Head Elf…'
+                                    : 'Message the whole mission…'
                                 }
                                 value={intelMessageText}
                                 maxLength={INTEL_MESSAGE_MAX_CHARS}
                                 onChange={(e) => setIntelMessageText(e.target.value)}
                                 required
-                                className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none ${theme.inputBg}`}
+                                className="kk-field__input flex-1 min-w-0"
                               />
-                              <button
-                                type="submit"
-                                disabled={sendingIntel}
-                                className={`px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-sm ${theme.btnPrimary}`}
-                              >
-                                {sendingIntel ? 'Sending...' : 'Send'}
+                              <button type="submit" disabled={sendingIntel} className="kk-btn kk-btn--primary px-4">
+                                <Icon name="send" />
+                                {sendingIntel ? 'Sending…' : 'Send'}
                               </button>
                             </div>
-                            <div className="flex items-center justify-between text-[10px]">
-                              <span className="text-kk-danger">{intelError}</span>
-                              <span className="text-kk-muted font-mono">{intelMessageText.length}/{INTEL_MESSAGE_MAX_CHARS}</span>
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="text-kk-danger" role="alert">{intelError}</span>
+                              <span className="text-kk-muted font-mono">
+                                {intelMessageText.length}/{INTEL_MESSAGE_MAX_CHARS}
+                              </span>
                             </div>
                           </form>
                         )}
@@ -2207,20 +2054,17 @@ export default function OperationCommandCenterPage() {
                   </ul>
 
                   {rosterNarrowed && !isOpsLeader && (
-                    <div className="mt-3 rounded-2xl border-2 border-dashed border-kk-border overflow-hidden text-xs bg-kk-surface">
-                      <div className={`p-4 flex items-center justify-between gap-2 ${theme.infoPanel}`}>
-                        <div>
-                          <span className={`font-bold block text-sm ${theme.textLabel}`}>🎅 Your Secret Santa</span>
-                          <span className={`text-[11px] ${theme.textSubLabel}`}>Their identity stays hidden. You can still message them.</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => openComms('intel-santa')}
-                          className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-kk-inset hover:brightness-95 transition-all cursor-pointer shrink-0"
-                        >
-                          💬 Message
-                        </button>
+                    <div className="py-3 border-t border-kk-border flex items-center justify-between gap-3">
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="flex flex-wrap items-center gap-2 font-mono font-medium text-sm">
+                          <span className="kk-redact" aria-hidden="true">Hidden</span>
+                          <span className="kk-pill kk-pill--warning !text-[12px] !py-0">Your Secret Santa</span>
+                        </span>
+                        <span className="text-[13px] leading-5 text-kk-muted">Their identity stays hidden. You can still message them.</span>
                       </div>
+                      <button type="button" onClick={() => openComms('intel-santa')} className="kk-btn kk-btn--ghost kk-btn--sm shrink-0">
+                        Message
+                      </button>
                     </div>
                   )}
 

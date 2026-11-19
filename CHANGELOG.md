@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New front page: what KovertKlaus is, the four mission stages with illustrations, and "Start a mission" / "Join with an invite code".
 - New dashboard: each mission is a mission file showing its stage and the next thing you need to do (build your wishlist, add tracking, fix the draw, …), with filters for running, led and finished missions, your latest alerts and your codenames. On phones, Missions, Alerts and Profile sit in a tab bar at the bottom.
 - Mission page, part 1: the mission file at the top shows your codename, the stage and what's next; your target's dossier, a compact Elf Agents list (real names for the Head Elf only), Head Elf controls and a new invite dialog (a bottom sheet on phones). Buttons, fields and alerts across the app use the new style.
+- Mission page, part 2: your Wishlist Manifest, the target dossier, Mission Comms and the After-Action Report use the new design; adding an item starts from two clear buttons (store-bought or personalized), and the add-item and shipping dialogs open as sheets on phones.
 - Sign in and Create account have their own page. Invitation links show a briefing of the mission you were invited to; sign-up asks you to accept the Terms and Privacy Policy, and you can show the password while typing.
 
 ---
