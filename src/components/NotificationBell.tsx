@@ -40,6 +40,12 @@ interface NotificationBellProps {
   /** Change to reload the list (e.g. after accepting an invitation). */
   reloadKey?: number;
   className?: string;
+  /**
+   * `button` (default): the old header bell. `tab`: the "Alerts" folder tab of the signed-in desktop
+   * header. `tabbar`: the "Alerts" item of the phone tab bar; its panel opens upward, above the bar
+   * (visual refresh, 2.0.0-beta, until Alerts gets its own page).
+   */
+  variant?: 'button' | 'tab' | 'tabbar';
 }
 
 /** `2026-11-03T…` → `Nov 3, 4:05 PM` in the viewer's time zone. */
@@ -47,7 +53,7 @@ function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, className = '' }: NotificationBellProps) {
+export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, className = '', variant = 'button' }: NotificationBellProps) {
   const { theme } = useTheme();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationView[]>([]);
@@ -128,29 +134,57 @@ export function NotificationBell({ pinned = [], actionsFor, reloadKey = 0, class
 
   return (
     <div ref={containerRef} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className={`relative inline-flex items-center gap-1.5 cursor-pointer ${className}`}
-        title="Notifications"
-        aria-label={count ? `Notifications (${count})` : 'Notifications'}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-      >
-        <span aria-hidden>🔔</span>
-        <span className="hidden sm:inline">Notifications</span>
-        {count > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-kk-primary text-kk-on-primary text-[10px] font-black flex items-center justify-center ring-2 ring-kk-surface">
-            {countLabel}
-          </span>
-        )}
-      </button>
+      {variant === 'button' ? (
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className={`relative inline-flex items-center gap-1.5 cursor-pointer ${className}`}
+          title="Notifications"
+          aria-label={count ? `Notifications (${count})` : 'Notifications'}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+        >
+          <span aria-hidden>🔔</span>
+          <span className="hidden sm:inline">Notifications</span>
+          {count > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-kk-primary text-kk-on-primary text-[10px] font-black flex items-center justify-center ring-2 ring-kk-surface">
+              {countLabel}
+            </span>
+          )}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className={`${variant === 'tab' ? 'kk-header__link' : 'kk-tabbar__item w-full'} cursor-pointer ${className}`}
+          aria-label={count ? `Alerts (${count})` : 'Alerts'}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+        >
+          {variant === 'tabbar' && (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z" />
+              <path d="M10 21h4" />
+            </svg>
+          )}
+          Alerts
+          {count > 0 && (
+            <span className={variant === 'tab' ? 'kk-tab-badge' : 'kk-tabbar__badge'} aria-hidden="true">
+              {countLabel}
+            </span>
+          )}
+        </button>
+      )}
 
       {open && createPortal(
         <div
           ref={panelRef}
           role="dialog"
           aria-label="Notifications"
-          style={{ top: anchor.top, ['--kk-bell-right' as string]: `${anchor.right}px` }}
+          style={
+            variant === 'tabbar'
+              ? { bottom: 'calc(var(--kk-tabbar-h) + env(safe-area-inset-bottom) + 8px)' }
+              : { top: anchor.top, ['--kk-bell-right' as string]: `${anchor.right}px` }
+          }
           className={`fixed left-2 right-2 sm:left-auto sm:right-[var(--kk-bell-right)] sm:w-[26rem] max-h-[75dvh] flex flex-col rounded-3xl border shadow-2xl z-50 overflow-hidden ${theme.cardBg}`}
         >
           <div className="px-4 py-3 border-b border-kk-border flex items-center justify-between gap-2 shrink-0">

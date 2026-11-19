@@ -56,6 +56,7 @@ import { rewriteExchangeShellPath } from './lib/exchange-route';
 import { dispatchNudge } from './lib/nudge';
 import { openJoinGate } from './lib/join-throttle';
 import { isMissionInsider, missionPreview } from './lib/mission-preview';
+import { MISSION_LIST_MEMBER_SELECT, toMissionListItem } from './lib/mission-card';
 import { checkLoginThrottle, clearLoginFailures, clientIp, loginThrottleKeys, purgeLoginThrottle, recordLoginFailure, throttledResponseParts, tripLogMessage, type LoginThrottleKeys, type ThrottleCounts } from './lib/login-throttle';
 import { deleteFeedback, listFeedback, submitFeedback, updateFeedbackStatus } from './lib/feedback';
 import { listMissionInvitations, listMyInvitations, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
@@ -1772,12 +1773,14 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             },
             include: {
               organizer: { select: { id: true, name: true } },
-              members: { select: { id: true, userId: true, role: true, shippingStatus: true } },
+              members: { select: MISSION_LIST_MEMBER_SELECT },
             },
             orderBy: { createdAt: 'desc' },
           });
+          // Each card's state for this agent (src/lib/mission-card.ts); other members' targets are stripped there.
+          const data = exchanges.map((ex) => toMissionListItem(ex, activeUserId));
           // Missions the agent asked to join by code and is waiting on (dashboard "Waiting for the Head Elf").
-          return Response.json({ success: true, data: exchanges, joinRequests: await myJoinRequests(db, activeUserId) });
+          return Response.json({ success: true, data, joinRequests: await myJoinRequests(db, activeUserId) });
         }
 
         if (request.method === 'POST') {

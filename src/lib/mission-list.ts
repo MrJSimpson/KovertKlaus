@@ -133,3 +133,58 @@ export function filterMissions<T extends MissionListItem>(missions: T[], userId:
     return !isHiddenFinished(m.status, filters.hide);
   });
 }
+
+/**
+ * Filter chips of the refreshed dashboard (visual refresh, 2.0.0-beta): All, Running, I lead,
+ * Completed, Cancelled. They replace the role/status tabs and the Hide Completed / Hide Cancelled
+ * toggles ("Running" is the list without finished missions).
+ */
+export type MissionChip = 'all' | 'running' | 'lead' | 'completed' | 'cancelled';
+
+export const MISSION_CHIPS: { id: MissionChip; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'running', label: 'Running' },
+  { id: 'lead', label: 'I lead' },
+  { id: 'completed', label: 'Completed' },
+  { id: 'cancelled', label: 'Cancelled' },
+];
+
+/** The fields a chip reads. `finished` = completed by status or date (same rule as the card). */
+export interface ChipMission {
+  status: string;
+  organizerId: string;
+  executionDate?: string | Date | null;
+}
+
+function isFinishedByDate(m: ChipMission, now: Date): boolean {
+  if (!m.executionDate) return false;
+  const end = new Date(m.executionDate);
+  if (Number.isNaN(end.getTime())) return false;
+  end.setHours(23, 59, 59, 999);
+  return now > end;
+}
+
+/** Whether a mission shows under `chip` for this agent. */
+export function chipMatches(chip: MissionChip, m: ChipMission, userId: string, now: Date = new Date()): boolean {
+  const cancelled = m.status === 'CANCELLED';
+  const completed = !cancelled && (m.status === 'COMPLETED' || m.status === 'EXECUTED' || isFinishedByDate(m, now));
+  switch (chip) {
+    case 'all':
+      return true;
+    case 'running':
+      return !cancelled && !completed;
+    case 'lead':
+      return m.organizerId === userId;
+    case 'completed':
+      return completed;
+    case 'cancelled':
+      return cancelled;
+  }
+}
+
+/** How many missions each chip would show. */
+export function chipCounts(missions: ChipMission[], userId: string, now: Date = new Date()): Record<MissionChip, number> {
+  const counts = { all: 0, running: 0, lead: 0, completed: 0, cancelled: 0 } as Record<MissionChip, number>;
+  for (const m of missions) for (const c of MISSION_CHIPS) if (chipMatches(c.id, m, userId, now)) counts[c.id]++;
+  return counts;
+}

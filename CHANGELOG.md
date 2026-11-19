@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Visual refresh, part 1: new fonts (Space Grotesk, Inter, IBM Plex Mono, served from the site), seasonal colour themes that follow the season set in the North Pole, and the briefcase brand mark with matching browser and home-screen icons.
 - The Features, Privacy and Terms pages use the new header and footer.
 - New front page: what KovertKlaus is, the four mission stages with illustrations, and "Start a mission" / "Join with an invite code".
+- New dashboard: each mission is a mission file showing its stage and the next thing you need to do (build your wishlist, add tracking, fix the draw, …), with filters for running, led and finished missions, your latest alerts and your codenames. On phones, Missions, Alerts and Profile sit in a tab bar at the bottom.
 - Sign in and Create account have their own page. Invitation links show a briefing of the mission you were invited to; sign-up asks you to accept the Terms and Privacy Policy, and you can show the password while typing.
 
 ---
