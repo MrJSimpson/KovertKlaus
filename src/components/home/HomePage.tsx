@@ -23,6 +23,7 @@ import type { IllustrationName } from '@/components/art/illustrations';
 import { Icon, type IconName } from '@/components/brand/Icon';
 import { JoinCodeButton } from '@/components/brand/JoinCodeDialog';
 import { PublicShell } from '@/components/brand/PublicShell';
+import { GuideCards } from '@/components/guides/GuideArticle';
 
 const START_HREF = '/register?next=start';
 
@@ -201,6 +202,19 @@ export function HomePage() {
           <Link href={START_HREF} className="kk-btn kk-btn--primary w-full sm:w-auto">
             Start a mission
           </Link>
+        </section>
+
+        {/* Guides (owner decision 2026-11-19: a strip of guide cards above the footer) */}
+        <section className="flex flex-col gap-5" aria-labelledby="guides-h">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 id="guides-h" className="m-0 font-display text-[24px] leading-[30px] font-semibold text-kk-heading">
+              Guides for your exchange
+            </h2>
+            <Link href="/guides" className="font-semibold">
+              All guides
+            </Link>
+          </div>
+          <GuideCards headingLevel="h3" />
         </section>
       </main>
     </PublicShell>
