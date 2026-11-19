@@ -296,16 +296,19 @@
 /* Seasonal decor ------------------------------------------------------ */
 .kk-decor { position: relative; overflow: hidden; height: 48px; }
 .kk-decor::before, .kk-decor::after {
-  content: ""; position: absolute; inset: 0;
+  content: ""; position: absolute; left: 50%; top: 50%;
+  /* An oversized square, turned 30deg, so the pattern runs on a slant like wrapping paper (owner
+     request 2026-11-18); 150vw covers the full band at any angle, and the band clips it. */
+  width: 150vw; height: 150vw; transform: translate(-50%, -50%) rotate(-30deg);
   -webkit-mask-image: var(--decor-mask); mask-image: var(--decor-mask);
   -webkit-mask-size: var(--decor-size); mask-size: var(--decor-size);
 }
 .kk-decor::before { background: var(--kk-decor-1); }
 .kk-decor::after { background: var(--kk-decor-2); -webkit-mask-position: var(--decor-offset); mask-position: var(--decor-offset); opacity: 0.85; }
-:root, [data-season="winter"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M20 13v14M13.9 16.5l12.2 7M13.9 23.5l12.2-7'/%3E%3C/g%3E%3C/svg%3E"); --decor-size: 40px 40px; --decor-offset: 20px 20px; }
-[data-season="spring"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cellipse cx='18' cy='18.5' rx='4.2' ry='5.6' fill='black'/%3E%3C/svg%3E"); --decor-size: 36px 36px; --decor-offset: 18px 18px; }
-[data-season="tropic"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Cpath d='M0 12q6-7 12 0t12 0 12 0 12 0' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E"); --decor-size: 48px 24px; --decor-offset: 24px 12px; }
-[data-season="spooky"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M22 13a7 7 0 1 0 0 14a9 9 0 0 1 0-14z' fill='black'/%3E%3C/svg%3E"); --decor-size: 40px 40px; --decor-offset: 20px 20px; }
+:root, [data-season="winter"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M20 13v14M13.9 16.5l12.2 7M13.9 23.5l12.2-7'/%3E%3C/g%3E%3C/svg%3E"); --decor-size: 24px 24px; --decor-offset: 12px 12px; }
+[data-season="spring"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cellipse cx='18' cy='18.5' rx='4.2' ry='5.6' fill='black'/%3E%3C/svg%3E"); --decor-size: 22px 22px; --decor-offset: 11px 11px; }
+[data-season="tropic"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Cpath d='M0 12q6-7 12 0t12 0 12 0 12 0' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E"); --decor-size: 30px 15px; --decor-offset: 15px 7.5px; }
+[data-season="spooky"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M22 13a7 7 0 1 0 0 14a9 9 0 0 1 0-14z' fill='black'/%3E%3C/svg%3E"); --decor-size: 24px 24px; --decor-offset: 12px 12px; }
 
 @media (prefers-reduced-motion: reduce) {
   .kk-btn { transition: none; }
