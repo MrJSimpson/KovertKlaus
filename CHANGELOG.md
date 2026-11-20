@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [2.0.0-beta] - 2026-11-19
+
 ### Changed
 - Visual refresh, part 1: new fonts (Space Grotesk, Inter, IBM Plex Mono, served from the site), seasonal colour themes that follow the season set in the North Pole, and the briefcase brand mark with matching browser and home-screen icons.
 - The Features, Privacy and Terms pages use the new header and footer.
