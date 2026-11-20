@@ -102,7 +102,7 @@ export const SHARE_IMAGE = {
   url: '/opengraph-image.png',
   width: 1200,
   height: 630,
-  alt: 'KovertKlaus: simple, fun Secret Santa and gift exchanges',
+  alt: 'KovertKlaus: run your Secret Santa like a covert operation. An example mission file at the Match stage.',
 } as const;
 
 /**
