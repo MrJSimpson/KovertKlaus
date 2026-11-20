@@ -1,4 +1,6 @@
 import { evaluateMemberAudit, AuditOutcome } from './demerits';
+import { notifyOnce } from './notifications';
+import { NOTICE } from './notification-copy';
 
 /**
  * Processes demerit audit and auto-rehabilitation for a single exchange.
@@ -58,24 +60,16 @@ export async function processExchangeAudit(db: any, exchange: any): Promise<Audi
 
       // Dispatch automated in-app notifications
       if (outcome.penalized) {
-        await db.notification.create({
-          data: {
-            userId: member.user.id,
-            exchangeId: exchange.id,
-            title: '⚠️ Penalty Issued: Unfulfilled Holiday Mission',
-            message: `You were issued 1 Coal Citation for failing to ship or deliver your assigned gift in mission "${exchange.title}". Current Points: ${outcome.newDemeritCount}. Account Status: ${outcome.newAccountStatus}.`,
-            isAcknowledged: false,
-          },
+        await notifyOnce(db, {
+          userId: member.user.id,
+          exchangeId: exchange.id,
+          ...NOTICE.coalIssued(exchange.id, outcome.newDemeritCount, outcome.newAccountStatus),
         });
       } else if (outcome.demeritCleared) {
-        await db.notification.create({
-          data: {
-            userId: member.user.id,
-            exchangeId: exchange.id,
-            title: '🌟 Demerit Cleared: Mission Completed',
-            message: `You successfully fulfilled your obligation in mission "${exchange.title}". 1 Coal Citation has been removed from your record. Current Points: ${outcome.newDemeritCount}. Account Status: ${outcome.newAccountStatus}.`,
-            isAcknowledged: false,
-          },
+        await notifyOnce(db, {
+          userId: member.user.id,
+          exchangeId: exchange.id,
+          ...NOTICE.coalCleared(exchange.id, outcome.newDemeritCount, outcome.newAccountStatus),
         });
       }
     }

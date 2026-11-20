@@ -8,6 +8,7 @@ import { getPlatformSettings, hostedMissionLimitError, missionJoinError } from '
 import { generateInviteCode } from '@/lib/security';
 import { openJoinGate } from '@/lib/join-throttle';
 import { isMissionInsider, missionPreview } from '@/lib/mission-preview';
+import { MISSION_LIST_MEMBER_SELECT, toMissionListItem } from '@/lib/mission-card';
 import { decideJoinRequest, myJoinRequests, pendingJoinRequests, viewerJoinRequest } from '@/lib/join-requests';
 import { executeTargetSwap } from '@/lib/draw';
 import { runManualDraw } from '@/lib/manual-draw';
@@ -27,6 +28,7 @@ import { EXCHANGE_MEMBERS_INCLUDE, memberCodenameMap, memberWishlistMap, sanitiz
 import { validateReportInput } from '@/lib/validations/report';
 import { resolveTimelineUpdate } from '@/lib/validations/timeline';
 import { dispatchNudge } from '@/lib/nudge';
+import { NOTICE } from '@/lib/notification-copy';
 import { drawCodename, enrollWithCodename } from '@/lib/codename';
 import { deleteMemberWishlistItems, memberWishlistCreate } from '@/lib/mission-wishlist';
 import { exclusionRuleProblemForMission, removeMemberExclusionRules, toClientExclusionRules } from '@/lib/exclusion-rules';
@@ -120,15 +122,15 @@ export async function GET(request: Request) {
         organizer: {
           select: { id: true, name: true },
         },
-        members: {
-          select: { id: true, userId: true, role: true, shippingStatus: true },
-        },
+        members: { select: MISSION_LIST_MEMBER_SELECT },
       },
       orderBy: { createdAt: 'desc' },
     });
 
+    // Each card's state for this agent (src/lib/mission-card.ts); other members' targets are stripped there.
+    const data = exchanges.map((ex) => toMissionListItem(ex, activeUserId));
     // Missions the agent asked to join by code and is waiting on (dashboard "Waiting for the Head Elf").
-    return NextResponse.json({ success: true, data: exchanges, joinRequests: await myJoinRequests(db, activeUserId) });
+    return NextResponse.json({ success: true, data, joinRequests: await myJoinRequests(db, activeUserId) });
   } catch (err: unknown) {
     console.error('API Error in GET /api/operations:', err);
     if (isDbConnectionError(err)) return dbUnavailableResponse();
@@ -402,13 +404,10 @@ export async function POST(request: Request) {
       if (!ex) return NextResponse.json({ error: 'Exchange not found' }, { status: 404 });
       if (ex.organizerId !== activeUserId) return NextResponse.json({ error: 'Only Organizer can broadcast to members' }, { status: 403 });
 
+      // One key per broadcast (unique per agent), so broadcasts stack instead of replacing each other.
+      const notice = NOTICE.broadcast(ex.id, messageText.trim());
       await db.notification.createMany({
-        data: ex.members.map((member) => ({
-          userId: member.userId,
-          title: `📢 Exchange Broadcast: ${ex.title}`,
-          message: messageText.trim(),
-          exchangeId: ex.id,
-        })),
+        data: ex.members.map((member) => ({ userId: member.userId, exchangeId: ex.id, ...notice })),
       });
 
       for (const member of ex.members) {

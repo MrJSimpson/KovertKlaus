@@ -2,7 +2,7 @@
 
 **Stealth Intelligence Gift Exchange Network & Reliability Platform**
 
-**In plain English:** KovertKlaus is a web app for running Secret Santa and White Elephant gift exchanges. It draws names, collects wishlists, reminds people about deadlines, and tracks who sent their gift on time.
+**In plain English:** KovertKlaus is a web app for running Secret Santa and White Elephant gift exchanges. It draws names, collects wishlists, reminds people about deadlines, and tracks who sent their gift on time. New to it? Read [how a Secret Santa mission runs](https://kovertklaus.com/guides/how-a-mission-runs).
 
 ![KovertKlaus dashboard: a Head Elf's three Holiday Missions at the recruiting, shipping and completed stages](./docs/images/dashboard.png)
 

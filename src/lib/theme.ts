@@ -4,9 +4,9 @@
  * Single source of truth for color tokens, card variants, buttons, badges, and alerts across Light & Dark modes.
  * Supports runtime overlaying with database-persisted `ThemePreset` tokens.
  *
- * Aesthetic Matrix (palette values live in `src/app/globals.css`):
- * - Light Mode (Klaus Mode 🎄): classic Christmas. Pine headers, holly red buttons, gold accents, snow frames.
- * - Dark Mode (Kovert Mode ❄️): blue and gold. Indigo dye surfaces, Wheat buttons, Lion and Ecru accents.
+ * Since the visual refresh (2.0.0-beta) the classes point at the Design System's roles (kk-btn,
+ * cards, fields, banners, pills in `src/styles/kk-components.css`); colours come from the season
+ * tokens in `src/styles/kk-tokens.css`.
  */
 
 export type ThemeClasses = ReturnType<typeof getBaseThemeClasses>;
@@ -32,80 +32,84 @@ export type LightsStrandType =
  * @returns Comprehensive dictionary of Tailwind utility class bindings
  */
 function getBaseThemeClasses(isDarkMode: boolean) {
-  const shadow = isDarkMode ? 'shadow-lg shadow-black/30' : 'shadow-md';
-  const btn = 'font-bold px-4 py-2.5 rounded-xl transition-all';
+  // Visual refresh (2.0.0-beta): the class map now points at the Design System's roles, so every
+  // screen not yet rebuilt (dialogs, North Pole, workshop) picks up the new cards, buttons, fields,
+  // banners and pills at once. `isDarkMode` no longer changes anything: the tokens switch per theme.
+  void isDarkMode;
+  const card = 'bg-kk-surface border border-kk-border text-kk-ink shadow-kk-card';
+  const pill = 'rounded-full font-semibold';
 
   return {
     // Page & Structural Layout
     pageBg: 'bg-kk-page text-kk-ink selection:bg-kk-primary selection:text-kk-on-primary',
-    headerBg: 'bg-kk-header border-kk-border-strong/40 text-kk-on-header shadow-md',
-    footerBg: 'bg-kk-header border-kk-border-strong/40 text-kk-on-header',
+    headerBg: 'bg-kk-header border-kk-border text-kk-on-header',
+    footerBg: 'bg-kk-header border-kk-border text-kk-on-header',
 
-    // Section Frames & Container Cards
-    sectionFrame: `bg-kk-surface border-2 border-kk-border text-kk-ink ${shadow}`,
-    cardBg: `bg-kk-surface border-2 border-kk-border text-kk-ink ${shadow}`,
+    // Section Frames & Container Cards (Design System `Card`)
+    sectionFrame: card,
+    cardBg: card,
     cardInnerBg: 'bg-kk-inset border border-kk-border text-kk-ink',
-    modalBg: 'bg-kk-surface border-2 border-kk-border-strong/60 text-kk-ink shadow-2xl',
-    // Colored header band across the top of a p-6 section card (same color as the page header).
-    sectionBand: '-mx-6 -mt-6 mb-5 px-6 py-3.5 rounded-t-[22px] bg-kk-header text-kk-on-header border-b-2 border-kk-border-strong/50',
-    // Info area above an action row: tinted so the plain action row below stands out.
-    infoPanel: 'bg-kk-info text-kk-ink',
+    modalBg: 'bg-kk-surface border border-kk-border text-kk-ink shadow-kk-raised',
+    // Section heading strip across the top of a p-6 card: a quiet inset band (the coloured header
+    // band is replaced by folder tabs in rebuilt screens).
+    sectionBand: '-mx-6 -mt-6 mb-5 px-6 py-3.5 rounded-t-[12px] bg-kk-inset text-kk-heading border-b border-kk-border font-display',
+    infoPanel: 'bg-kk-inset text-kk-ink',
 
-    // Head Elf Console Special Card Styling
-    consoleCard: `bg-kk-surface border-2 border-kk-border-strong text-kk-ink ${shadow}`,
-    consoleHeading: 'text-kk-heading font-black tracking-wider uppercase text-lg',
+    // Head Elf Console
+    consoleCard: `${card} border-kk-border-strong`,
+    consoleHeading: 'font-display text-kk-heading font-bold text-lg',
     consoleText: 'text-kk-muted text-xs font-semibold mt-0.5',
-    consoleBadge: 'bg-kk-gold text-kk-on-gold border border-kk-border-strong font-mono font-bold px-3 py-1 rounded-full shadow-sm',
+    consoleBadge: `bg-kk-gold text-kk-on-gold border border-kk-border font-mono px-3 py-1 ${pill}`,
 
-    // Buttons
-    btnPrimary: `bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary ${shadow} font-black transition-all`,
-    btnSecondary: `bg-kk-secondary hover:bg-kk-secondary-hover text-kk-on-secondary border border-kk-border-strong/50 ${btn} ${shadow}`,
-    btnToggle: 'bg-kk-header border border-kk-border-strong/60 text-kk-header-nav hover:brightness-110 font-semibold transition-all',
-    btnNeutral: 'bg-kk-inset border border-kk-border text-kk-ink hover:border-kk-border-strong font-semibold transition-all',
-    btnEmerald: `bg-kk-secondary hover:bg-kk-secondary-hover text-kk-on-secondary ${btn} ${shadow}`,
-    btnAmber: `bg-kk-gold hover:brightness-95 text-kk-on-gold border border-kk-border-strong ${btn} ${shadow}`,
-    btnSky: `bg-kk-surface hover:bg-kk-inset text-kk-brand border-2 border-kk-border-strong ${btn} ${shadow}`,
-    btnPurple: `bg-kk-surface hover:bg-kk-inset text-kk-accent border-2 border-kk-accent/60 ${btn} ${shadow}`,
+    // Buttons: the four Design System roles (primary, secondary, ghost, danger)
+    btnPrimary: 'kk-btn kk-btn--primary',
+    btnSecondary: 'kk-btn kk-btn--secondary',
+    btnToggle: 'bg-transparent border border-kk-on-header text-kk-on-header hover:bg-white/10 font-semibold transition-all',
+    btnNeutral: 'kk-btn kk-btn--ghost',
+    btnEmerald: 'kk-btn kk-btn--secondary',
+    btnAmber: 'kk-btn kk-btn--secondary',
+    btnSky: 'kk-btn kk-btn--ghost',
+    btnPurple: 'kk-btn kk-btn--ghost',
 
-    // Input Controls
-    inputBg: 'bg-kk-surface border-kk-border text-kk-ink placeholder:text-kk-muted/70 focus:ring-kk-focus font-medium',
-    inputModalBg: 'bg-kk-inset border-kk-border text-kk-ink placeholder:text-kk-muted/70 focus:ring-kk-focus font-medium',
-    inputDisabled: 'bg-kk-inset border-kk-border text-kk-muted font-mono font-bold cursor-not-allowed opacity-100',
+    // Input Controls (Design System `TextField`)
+    inputBg: 'bg-kk-inset border-kk-border-control text-kk-ink placeholder:text-kk-muted focus:ring-kk-focus',
+    inputModalBg: 'bg-kk-inset border-kk-border-control text-kk-ink placeholder:text-kk-muted focus:ring-kk-focus',
+    inputDisabled: 'bg-kk-inset border-kk-border text-kk-muted font-mono cursor-not-allowed opacity-100',
 
     // Tab Navigation Bar Tokens
     tabBarBg: 'bg-kk-inset border-kk-border text-kk-muted',
-    tabActive: 'border-b-2 border-kk-accent text-kk-accent font-extrabold bg-kk-surface shadow-sm',
-    tabInactive: 'border-b-2 border-transparent text-kk-muted hover:text-kk-ink font-bold',
+    tabActive: 'border-b-2 border-kk-stamp text-kk-heading font-bold bg-kk-surface',
+    tabInactive: 'border-b-2 border-transparent text-kk-muted hover:text-kk-ink font-semibold',
 
-    // Badges & Status Pills
-    badgeCode: 'bg-kk-inset text-kk-brand border border-kk-border-strong/60 font-mono font-bold',
-    badgeSecretSanta: 'bg-kk-success text-kk-on-success border border-kk-on-success/30 font-bold',
-    badgeWhiteElephant: 'bg-kk-gold text-kk-on-gold border border-kk-border-strong font-bold',
-    badgeAmber: 'bg-kk-warning text-kk-on-warning border border-kk-border-strong font-bold',
-    badgeRose: 'bg-kk-danger-soft text-kk-on-danger-soft border border-kk-danger/40 font-bold',
+    // Badges & Status Pills (Design System `StatusPill`)
+    badgeCode: `bg-kk-inset text-kk-ink border border-kk-border font-mono ${pill}`,
+    badgeSecretSanta: `bg-kk-success text-kk-on-success ${pill}`,
+    badgeWhiteElephant: `bg-kk-gold text-kk-on-gold ${pill}`,
+    badgeAmber: `bg-kk-warning text-kk-on-warning ${pill}`,
+    badgeRose: `bg-kk-danger-soft text-kk-on-danger-soft ${pill}`,
 
-    // Themed Countdown Badges & Milestone Containers
-    badgeCountdown: 'bg-kk-inset text-kk-accent border border-kk-border-strong/60 font-mono font-bold shadow-sm',
-    badgeCountdownUrgent: 'bg-kk-warning text-kk-on-warning border border-kk-border-strong font-mono font-bold shadow-sm',
-    badgeCountdownToday: 'bg-kk-success text-kk-on-success border border-kk-on-success/30 font-mono font-bold shadow-sm motion-safe:animate-pulse',
+    // Countdown Badges
+    badgeCountdown: 'bg-kk-inset text-kk-ink border border-kk-border font-mono font-semibold',
+    badgeCountdownUrgent: 'bg-kk-warning text-kk-on-warning font-mono font-semibold',
+    badgeCountdownToday: 'bg-kk-success text-kk-on-success font-mono font-semibold motion-safe:animate-pulse',
 
-    // Alerts & Notifications
-    alertError: 'bg-kk-danger-soft border-2 border-kk-danger/50 text-kk-on-danger-soft',
-    alertWarning: 'bg-kk-warning border-2 border-kk-border-strong text-kk-on-warning',
-    alertSuccess: 'bg-kk-success border-2 border-kk-on-success/30 text-kk-on-success',
+    // Alerts & Notifications (Design System `Banner`)
+    alertError: 'bg-kk-danger-soft border border-kk-danger text-kk-on-danger-soft',
+    alertWarning: 'bg-kk-warning border border-kk-border-control text-kk-on-warning',
+    alertSuccess: 'bg-kk-success border border-kk-border text-kk-on-success',
 
     // Text Color Utilities
-    headerNav: 'text-kk-header-nav hover:text-kk-on-header font-semibold',
-    heroSubtext: 'text-kk-muted font-medium',
-    heroGradient: 'text-kk-accent',
-    textAccent: 'text-kk-accent font-bold',
-    textBrand: 'text-kk-brand font-bold',
-    textGoldOnDark: 'text-kk-header-nav font-bold',
-    textHeading: 'text-kk-heading font-black',
+    headerNav: 'text-kk-on-header hover:underline font-semibold',
+    heroSubtext: 'text-kk-muted',
+    heroGradient: 'text-kk-stamp',
+    textAccent: 'text-kk-accent font-semibold',
+    textBrand: 'text-kk-heading font-semibold',
+    textGoldOnDark: 'text-kk-on-header font-semibold',
+    textHeading: 'text-kk-heading font-bold font-display',
     textLabel: 'text-kk-ink font-semibold',
     textSubLabel: 'text-kk-muted font-normal',
     textMuted: 'text-kk-muted',
-    textDate: 'text-kk-heading font-black',
+    textDate: 'text-kk-heading font-semibold font-mono',
   };
 }
 

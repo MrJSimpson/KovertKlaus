@@ -26,6 +26,7 @@ import type { PrismaClient } from '@prisma/client';
 import { evaluateDrawFeasibility } from '@/lib/draw';
 import { cancelMission, type MissionCancelDeps, type MissionFailureReason } from '@/lib/mission-cancel';
 import { notifyOnce } from '@/lib/notifications';
+import { NOTICE } from '@/lib/notification-copy';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -192,7 +193,7 @@ export function agentTodo(issues: ReadinessIssue[], userId: string): string | nu
   const mine = issues.filter((i) => 'userId' in i && i.userId === userId).map((i) => i.type);
   if (mine.length === 0) return null;
   const tasks = [
-    mine.includes('MISSING_ADDRESS') ? 'add your shipping address in Account Preferences' : null,
+    mine.includes('MISSING_ADDRESS') ? 'add your shipping address on your Profile page' : null,
     mine.includes('EMPTY_WISHLIST') ? 'add at least one gift to your wishlist for this mission' : null,
     mine.includes('UNVERIFIED_EMAIL') ? 'verify your email address with the link we emailed you' : null,
   ].filter(Boolean);
@@ -310,13 +311,7 @@ async function sendRepairNotices(
   const deadlineText = formatDay(deadline);
   const actionUrl = `${deps.baseUrl.replace(/\/$/, '')}/exchange/${ex.code}`;
 
-  await notifyOnce(db, {
-    userId: ex.organizerId,
-    dedupeKey: `repair:${ex.id}`,
-    exchangeId: ex.id,
-    title: `⏸️ Mission Paused: ${ex.title}`,
-    message: `The draw is on hold: ${lines.join(' ')} Remove the agent or extend the timeline by ${deadlineText}, or the mission will be cancelled. Recruiting is open again.`,
-  }).catch((err) => console.error('[MissionRepair] Head Elf notice failed:', err));
+  await notifyOnce(db, { userId: ex.organizerId, exchangeId: ex.id, ...NOTICE.missionPaused(ex.id, lines, deadlineText) }).catch((err) => console.error('[MissionRepair] Head Elf notice failed:', err));
 
   const headElf = ex.members.find((m) => m.userId === ex.organizerId)?.user;
   if (headElf?.email && headElf.emailNotifications !== false) {
@@ -328,13 +323,7 @@ async function sendRepairNotices(
   for (const m of ex.members) {
     const todo = agentTodo(issues, m.userId);
     if (!todo) continue;
-    await notifyOnce(db, {
-      userId: m.userId,
-      dedupeKey: `repair-agent:${ex.id}`,
-      exchangeId: ex.id,
-      title: `⚠️ Action Needed: ${ex.title}`,
-      message: `The draw is waiting on you. Please ${todo} by ${deadlineText}. Otherwise the Head Elf may remove you from the mission.`,
-    }).catch((err) => console.error('[MissionRepair] agent notice failed:', err));
+    await notifyOnce(db, { userId: m.userId, exchangeId: ex.id, ...NOTICE.agentActionNeeded(ex.id, todo, deadlineText) }).catch((err) => console.error('[MissionRepair] agent notice failed:', err));
     if (firstNotice && m.userId !== ex.organizerId && m.user.email && m.user.emailNotifications !== false) {
       await deps
         .sendRepairEmail({

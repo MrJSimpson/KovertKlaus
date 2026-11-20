@@ -100,7 +100,7 @@ test('Mission cancel - the Head Elf cancels: status, reason and notices for ever
   assert.strictEqual(exchange.cancelledFromStatus, 'SETUP');
   assert.strictEqual(exchange.cancelReason, 'Not enough time');
   assert.strictEqual(notifications.length, 3);
-  assert.ok(notifications.every((n) => n.message.includes('please save it now') && n.message.includes('The Head Elf')));
+  assert.ok(notifications.every((n) => n.message.includes('Save anything you want to keep now') && n.message.includes('The Head Elf')));
   assert.ok(notifications.find((n) => n.userId === 'boss').message.includes('delete it permanently'));
   assert.ok(!notifications.find((n) => n.userId === 'u2').message.includes('delete it permanently'));
   // Email respects the agent's email preference; the link opens the mission.

@@ -6,7 +6,7 @@ test('Theme Design Token System Test Suite', async (t) => {
   await t.test('getThemeClasses resolves complete token dictionary for Dark Mode (Kovert ❄️)', () => {
     const tokens = getThemeClasses(true);
     assert.ok(tokens.pageBg.includes('bg-kk-page'));
-    assert.ok(tokens.btnPrimary.includes('bg-kk-primary'));
+    assert.ok(tokens.btnPrimary.includes('kk-btn--primary'));
     assert.ok(tokens.consoleCard.includes('border-kk-border-strong'));
     assert.ok(tokens.badgeCountdownToday.includes('animate-pulse'));
     assert.ok(tokens.badgeSecretSanta.includes('bg-kk-success'));
@@ -16,7 +16,7 @@ test('Theme Design Token System Test Suite', async (t) => {
   await t.test('getThemeClasses resolves complete token dictionary for Light Mode (Klaus 🎄)', () => {
     const tokens = getThemeClasses(false);
     assert.ok(tokens.pageBg.includes('bg-kk-page'));
-    assert.ok(tokens.btnPrimary.includes('bg-kk-primary'));
+    assert.ok(tokens.btnPrimary.includes('kk-btn--primary'));
     assert.ok(tokens.headerBg.includes('bg-kk-header'));
     assert.ok(tokens.badgeCountdownToday.includes('bg-kk-success'));
     assert.ok(tokens.badgeSecretSanta.includes('bg-kk-success'));

@@ -56,11 +56,13 @@ import { rewriteExchangeShellPath } from './lib/exchange-route';
 import { dispatchNudge } from './lib/nudge';
 import { openJoinGate } from './lib/join-throttle';
 import { isMissionInsider, missionPreview } from './lib/mission-preview';
+import { MISSION_LIST_MEMBER_SELECT, toMissionListItem } from './lib/mission-card';
 import { checkLoginThrottle, clearLoginFailures, clientIp, loginThrottleKeys, purgeLoginThrottle, recordLoginFailure, throttledResponseParts, tripLogMessage, type LoginThrottleKeys, type ThrottleCounts } from './lib/login-throttle';
 import { deleteFeedback, listFeedback, submitFeedback, updateFeedbackStatus } from './lib/feedback';
 import { listMissionInvitations, listMyInvitations, resendMissionInvitation, sendMissionInvitation, updateInvitation, type InvitationEmail } from './lib/invitations';
 import { listIntelMessages, sendIntelMessage } from './lib/intel-messages';
-import { dismissNotifications, listMyNotifications } from './lib/notifications';
+import { dismissNotifications, listMyNotifications, notifyOnce } from './lib/notifications';
+import { NOTICE } from './lib/notification-copy';
 import { cancelMission, closedMissionGuard, deleteMission, isMissionClosed, MISSION_CLOSED_RESULT } from './lib/mission-cancel';
 import { isRosterLocked, refreshPausedMissionsFor, timelineRepairUpdate, visibleRepairIssues } from './lib/mission-repair';
 import { acceptCodename, drawCodename, enrollWithCodename, rerollCodename } from './lib/codename';
@@ -1532,7 +1534,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             success: true,
             authenticated: true,
             emailVerified: true,
-            user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints },
+            user: { ...user, ...organizerVisibilityAliases(user), demerits: user.penaltyPoints, missionCount: user.participations.length },
           }, { headers: meHeaders });
         }
 
@@ -1772,12 +1774,14 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             },
             include: {
               organizer: { select: { id: true, name: true } },
-              members: { select: { id: true, userId: true, role: true, shippingStatus: true } },
+              members: { select: MISSION_LIST_MEMBER_SELECT },
             },
             orderBy: { createdAt: 'desc' },
           });
+          // Each card's state for this agent (src/lib/mission-card.ts); other members' targets are stripped there.
+          const data = exchanges.map((ex) => toMissionListItem(ex, activeUserId));
           // Missions the agent asked to join by code and is waiting on (dashboard "Waiting for the Head Elf").
-          return Response.json({ success: true, data: exchanges, joinRequests: await myJoinRequests(db, activeUserId) });
+          return Response.json({ success: true, data, joinRequests: await myJoinRequests(db, activeUserId) });
         }
 
         if (request.method === 'POST') {
@@ -1985,13 +1989,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
             if (!ex) return Response.json({ error: 'Exchange not found' }, { status: 404 });
             if (ex.organizerId !== userId) return Response.json({ error: 'Only organizer can broadcast' }, { status: 403 });
 
+            // One key per broadcast (unique per agent), so broadcasts stack instead of replacing each other.
+            const notice = NOTICE.broadcast(ex.id, messageText.trim());
             await db.notification.createMany({
-              data: ex.members.map((m) => ({
-                userId: m.userId,
-                title: `📢 Exchange Broadcast: ${ex.title}`,
-                message: messageText.trim(),
-                exchangeId: ex.id,
-              })),
+              data: ex.members.map((m) => ({ userId: m.userId, exchangeId: ex.id, ...notice })),
             });
 
             try {
@@ -2449,7 +2450,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         if (!activeUserId) return Response.json({ error: 'Authentication required' }, { status: 401 });
 
         if (request.method === 'GET') {
-          const result = await listMyNotifications(db, activeUserId);
+          const summary = new URL(request.url).searchParams.get('summary') === '1';
+          const result = await listMyNotifications(db, activeUserId, { summary });
           return Response.json(result.body, { status: result.status });
         }
         if (request.method === 'PATCH') {
@@ -2567,24 +2569,10 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
         });
 
         if (member.targetUserId) {
-          const exchangeTitle = member.exchange?.title || 'Operation';
-          const notificationTitle = isLocalDelivery
-            ? `🎁 Hand Delivery Dispatched: ${exchangeTitle}`
-            : `📦 Parcel In Transit (${carrierInfo?.badgeLabel || 'Carrier'}): ${exchangeTitle}`;
-
-          const notificationMsg = isLocalDelivery
-            ? 'Your secret giver has confirmed personal hand delivery / local drop-off for your gift! Keep your eyes peeled.'
-            : `Your secret giver has dispatched your parcel via ${carrierInfo?.carrierName || 'Courier'}! Tracking Number: ${cleanTracking}.`;
-
-          await db.notification.create({
-            data: {
-              userId: member.targetUserId,
-              exchangeId: operationId,
-              title: notificationTitle,
-              message: notificationMsg,
-              isAcknowledged: false,
-            },
-          }).catch(() => {});
+          const delivery = isLocalDelivery
+            ? ({ local: true } as const)
+            : ({ local: false, carrierName: carrierInfo?.carrierName || 'a courier', tracking: cleanTracking || '' } as const);
+          await notifyOnce(db, { userId: member.targetUserId, exchangeId: operationId, ...NOTICE.giftShipped(operationId, delivery) }).catch(() => {});
         }
 
         return Response.json({

@@ -52,7 +52,17 @@ test('SEO: robots.txt blocks every private segment and points at the sitemap', (
 test('SEO: sitemap lists only public pages, as absolute URLs', () => {
   assert.deepStrictEqual(buildSitemap(false, SAAS_SITE_URL), []);
   const urls = buildSitemap(true, SAAS_SITE_URL).map((e) => e.url);
-  assert.deepStrictEqual(urls, ['https://kovertklaus.com', 'https://kovertklaus.com/features', 'https://kovertklaus.com/privacy', 'https://kovertklaus.com/terms']);
+  assert.deepStrictEqual(urls, [
+    'https://kovertklaus.com',
+    'https://kovertklaus.com/features',
+    'https://kovertklaus.com/guides',
+    'https://kovertklaus.com/guides/how-a-mission-runs',
+    'https://kovertklaus.com/guides/white-elephant',
+    'https://kovertklaus.com/guides/secret-santa-exclusions',
+    'https://kovertklaus.com/guides/self-hosted-secret-santa',
+    'https://kovertklaus.com/privacy',
+    'https://kovertklaus.com/terms',
+  ]);
   for (const u of urls) {
     assert.ok(!PRIVATE_PATHS.some((p) => new URL(u).pathname.startsWith(p)), u);
   }

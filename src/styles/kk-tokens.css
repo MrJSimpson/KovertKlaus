@@ -1,0 +1,393 @@
+/*
+ * KovertKlaus colour themes: 4 seasons x 2 modes (Design System "KovertKlaus", tokens.css).
+ *
+ * Tier 1 (what): every kk-* colour and shadow for each theme. The season comes from
+ * <html data-season="winter|spring|tropic|spooky">, the mode from the `.dark` class.
+ * Tier 2 (why): a season changes colours and decor only; layout, type and components stay the same
+ * all year (owner decision 2026-10-30). Every text pair meets 4.5:1 and every control border 3:1
+ * (checked by src/lib/theme-tokens.test.ts).
+ * Tier 3 (how): values are copied from the Design System; edit them there first, then here.
+ * Winter is also the fallback (`:root`, `.dark`), so a page without data-season still renders.
+ */
+
+/* winter light */
+:root,
+.light,
+[data-season="winter"] {
+  color-scheme: light;
+  --kk-page: #f2ede3;
+  --kk-surface: #fffdf8;
+  --kk-inset: #f2ede3;
+  --kk-border: #e0d2c5;
+  --kk-border-control: #8c7840;
+  --kk-ink: #1c2618;
+  --kk-muted: #535233;
+  --kk-heading: #1c2618;
+  --kk-primary: #a70006;
+  --kk-primary-hover: #941f1f;
+  --kk-on-primary: #ffffff;
+  --kk-secondary: #34502b;
+  --kk-secondary-hover: #2a4123;
+  --kk-on-secondary: #ffffff;
+  --kk-header: #34502b;
+  --kk-on-header: #ffffff;
+  --kk-tab: #d5d1c8;
+  --kk-gold: #f0d890;
+  --kk-on-gold: #1c2618;
+  --kk-stamp: #a70006;
+  --kk-redact: #1c2618;
+  --kk-focus: #058e27;
+  --kk-success: #ddf3e5;
+  --kk-on-success: #24401c;
+  --kk-warning: #eee0b7;
+  --kk-on-warning: #535233;
+  --kk-danger: #a70006;
+  --kk-danger-soft: #f9e3e3;
+  --kk-on-danger-soft: #941f1f;
+  --kk-stage1: #f0d890;
+  --kk-on-stage1: #1c2618;
+  --kk-stage2: #a70006;
+  --kk-on-stage2: #ffffff;
+  --kk-stage3: #04741f;
+  --kk-on-stage3: #ffffff;
+  --kk-stage4: #34502b;
+  --kk-on-stage4: #ffffff;
+  --kk-decor-1: #c50537;
+  --kk-decor-2: #058e27;
+  --kk-shadow-card: 0 1px 2px rgba(28,24,18,0.06), 0 4px 14px rgba(28,24,18,0.07);
+  --kk-shadow-raised: 0 2px 4px rgba(28,24,18,0.08), 0 12px 32px rgba(28,24,18,0.12);
+}
+
+/* winter dark */
+.dark,
+[data-season="winter"].dark {
+  color-scheme: dark;
+  --kk-page: #062038;
+  --kk-surface: #0b3d69;
+  --kk-inset: #082c4d;
+  --kk-border: #275985;
+  --kk-border-control: #a28b61;
+  --kk-ink: #dbe2ea;
+  --kk-muted: #b7b7bf;
+  --kk-heading: #fde7be;
+  --kk-primary: #fde7be;
+  --kk-primary-hover: #cab48b;
+  --kk-on-primary: #062038;
+  --kk-secondary: #0e4d82;
+  --kk-secondary-hover: #135a96;
+  --kk-on-secondary: #fde7be;
+  --kk-header: #041a2e;
+  --kk-on-header: #fde7be;
+  --kk-tab: #093053;
+  --kk-gold: #a28b61;
+  --kk-on-gold: #062038;
+  --kk-stamp: #e2c275;
+  --kk-redact: #dbe2ea;
+  --kk-focus: #fde7be;
+  --kk-success: #1e3b36;
+  --kk-on-success: #c9d4c4;
+  --kk-warning: #3d3524;
+  --kk-on-warning: #fde7be;
+  --kk-danger: #f2a1a1;
+  --kk-danger-soft: #4a1830;
+  --kk-on-danger-soft: #ffd9d9;
+  --kk-stage1: #e2c275;
+  --kk-on-stage1: #062038;
+  --kk-stage2: #e58a9a;
+  --kk-on-stage2: #062038;
+  --kk-stage3: #7fd1a1;
+  --kk-on-stage3: #062038;
+  --kk-stage4: #bfd7ea;
+  --kk-on-stage4: #062038;
+  --kk-decor-1: #cab48b;
+  --kk-decor-2: #275985;
+  --kk-shadow-card: 0 1px 2px rgba(0,0,0,0.45), 0 10px 28px rgba(0,0,0,0.35);
+  --kk-shadow-raised: 0 2px 6px rgba(0,0,0,0.5), 0 18px 40px rgba(0,0,0,0.45);
+}
+
+/* spring light */
+[data-season="spring"] {
+  color-scheme: light;
+  --kk-page: #f1f4ec;
+  --kk-surface: #fdfefb;
+  --kk-inset: #eef2e6;
+  --kk-border: #d6dfc8;
+  --kk-border-control: #6f8a5c;
+  --kk-ink: #1d2a22;
+  --kk-muted: #4c5a4f;
+  --kk-heading: #1d2a22;
+  --kk-primary: #0f6b4f;
+  --kk-primary-hover: #0b5940;
+  --kk-on-primary: #ffffff;
+  --kk-secondary: #6b3f8a;
+  --kk-secondary-hover: #5a3474;
+  --kk-on-secondary: #ffffff;
+  --kk-header: #0f5a44;
+  --kk-on-header: #ffffff;
+  --kk-tab: #d4d7d0;
+  --kk-gold: #f6d36b;
+  --kk-on-gold: #1d2a22;
+  --kk-stamp: #b0306a;
+  --kk-redact: #1d2a22;
+  --kk-focus: #0f6b4f;
+  --kk-success: #d8f0e2;
+  --kk-on-success: #1f5a3a;
+  --kk-warning: #f7ecc4;
+  --kk-on-warning: #5a4a12;
+  --kk-danger: #b42318;
+  --kk-danger-soft: #fbe4e1;
+  --kk-on-danger-soft: #8f1d13;
+  --kk-stage1: #f6d36b;
+  --kk-on-stage1: #1d2a22;
+  --kk-stage2: #b0306a;
+  --kk-on-stage2: #ffffff;
+  --kk-stage3: #0f6b4f;
+  --kk-on-stage3: #ffffff;
+  --kk-stage4: #6b3f8a;
+  --kk-on-stage4: #ffffff;
+  --kk-decor-1: #e9a6c2;
+  --kk-decor-2: #9fd3b4;
+  --kk-shadow-card: 0 1px 2px rgba(28,24,18,0.06), 0 4px 14px rgba(28,24,18,0.07);
+  --kk-shadow-raised: 0 2px 4px rgba(28,24,18,0.08), 0 12px 32px rgba(28,24,18,0.12);
+}
+
+/* spring dark */
+[data-season="spring"].dark {
+  color-scheme: dark;
+  --kk-page: #0e1a16;
+  --kk-surface: #16271f;
+  --kk-inset: #122019;
+  --kk-border: #2c4537;
+  --kk-border-control: #7a9a72;
+  --kk-ink: #dde8de;
+  --kk-muted: #a9b8ac;
+  --kk-heading: #c9f0d6;
+  --kk-primary: #8fdcb0;
+  --kk-primary-hover: #6fc795;
+  --kk-on-primary: #0e1a16;
+  --kk-secondary: #2a4436;
+  --kk-secondary-hover: #33523f;
+  --kk-on-secondary: #dde8de;
+  --kk-header: #0a1411;
+  --kk-on-header: #c9f0d6;
+  --kk-tab: #12211b;
+  --kk-gold: #e8c86a;
+  --kk-on-gold: #0e1a16;
+  --kk-stamp: #f0a3c4;
+  --kk-redact: #dde8de;
+  --kk-focus: #8fdcb0;
+  --kk-success: #173a2a;
+  --kk-on-success: #bfe8cf;
+  --kk-warning: #3a3418;
+  --kk-on-warning: #f3e6b0;
+  --kk-danger: #f2a1a1;
+  --kk-danger-soft: #3e1a22;
+  --kk-on-danger-soft: #ffd9d9;
+  --kk-stage1: #e8c86a;
+  --kk-on-stage1: #0e1a16;
+  --kk-stage2: #f0a3c4;
+  --kk-on-stage2: #0e1a16;
+  --kk-stage3: #8fdcb0;
+  --kk-on-stage3: #0e1a16;
+  --kk-stage4: #c7b3e6;
+  --kk-on-stage4: #0e1a16;
+  --kk-decor-1: #b0306a;
+  --kk-decor-2: #2c4537;
+  --kk-shadow-card: 0 1px 2px rgba(0,0,0,0.45), 0 10px 28px rgba(0,0,0,0.35);
+  --kk-shadow-raised: 0 2px 6px rgba(0,0,0,0.5), 0 18px 40px rgba(0,0,0,0.45);
+}
+
+/* tropic light */
+[data-season="tropic"] {
+  color-scheme: light;
+  --kk-page: #f5f0e6;
+  --kk-surface: #fffcf5;
+  --kk-inset: #f3ebdb;
+  --kk-border: #e5d6b8;
+  --kk-border-control: #9a7a45;
+  --kk-ink: #1b2a33;
+  --kk-muted: #4a5560;
+  --kk-heading: #0b3a4a;
+  --kk-primary: #0b6e85;
+  --kk-primary-hover: #095a6d;
+  --kk-on-primary: #ffffff;
+  --kk-secondary: #c2410c;
+  --kk-secondary-hover: #a3360a;
+  --kk-on-secondary: #ffffff;
+  --kk-header: #0b5566;
+  --kk-on-header: #ffffff;
+  --kk-tab: #d8d3ca;
+  --kk-gold: #f7c948;
+  --kk-on-gold: #1b2a33;
+  --kk-stamp: #b03a0a;
+  --kk-redact: #1b2a33;
+  --kk-focus: #0b6e85;
+  --kk-success: #d7f0e6;
+  --kk-on-success: #145a43;
+  --kk-warning: #fbeec6;
+  --kk-on-warning: #5c4410;
+  --kk-danger: #b42318;
+  --kk-danger-soft: #fbe4e1;
+  --kk-on-danger-soft: #8f1d13;
+  --kk-stage1: #f7c948;
+  --kk-on-stage1: #1b2a33;
+  --kk-stage2: #c2410c;
+  --kk-on-stage2: #ffffff;
+  --kk-stage3: #0f7a5c;
+  --kk-on-stage3: #ffffff;
+  --kk-stage4: #0b6e85;
+  --kk-on-stage4: #ffffff;
+  --kk-decor-1: #2bb3c0;
+  --kk-decor-2: #f08a5d;
+  --kk-shadow-card: 0 1px 2px rgba(28,24,18,0.06), 0 4px 14px rgba(28,24,18,0.07);
+  --kk-shadow-raised: 0 2px 4px rgba(28,24,18,0.08), 0 12px 32px rgba(28,24,18,0.12);
+}
+
+/* tropic dark */
+[data-season="tropic"].dark {
+  color-scheme: dark;
+  --kk-page: #071d24;
+  --kk-surface: #0d2e38;
+  --kk-inset: #0a252e;
+  --kk-border: #1f4a56;
+  --kk-border-control: #c9a66b;
+  --kk-ink: #dcebef;
+  --kk-muted: #a6bcc2;
+  --kk-heading: #ffd88a;
+  --kk-primary: #ffc073;
+  --kk-primary-hover: #f2a650;
+  --kk-on-primary: #071d24;
+  --kk-secondary: #12404c;
+  --kk-secondary-hover: #175061;
+  --kk-on-secondary: #dcebef;
+  --kk-header: #04141a;
+  --kk-on-header: #ffd88a;
+  --kk-tab: #0a262f;
+  --kk-gold: #f7c948;
+  --kk-on-gold: #071d24;
+  --kk-stamp: #ff9a76;
+  --kk-redact: #dcebef;
+  --kk-focus: #ffc073;
+  --kk-success: #0f3a30;
+  --kk-on-success: #bfe9d8;
+  --kk-warning: #3a3016;
+  --kk-on-warning: #ffd88a;
+  --kk-danger: #f2a1a1;
+  --kk-danger-soft: #42181e;
+  --kk-on-danger-soft: #ffd9d9;
+  --kk-stage1: #f7c948;
+  --kk-on-stage1: #071d24;
+  --kk-stage2: #ff9a76;
+  --kk-on-stage2: #071d24;
+  --kk-stage3: #6fd6b0;
+  --kk-on-stage3: #071d24;
+  --kk-stage4: #7fd3e6;
+  --kk-on-stage4: #071d24;
+  --kk-decor-1: #2bb3c0;
+  --kk-decor-2: #ff9a76;
+  --kk-shadow-card: 0 1px 2px rgba(0,0,0,0.45), 0 10px 28px rgba(0,0,0,0.35);
+  --kk-shadow-raised: 0 2px 6px rgba(0,0,0,0.5), 0 18px 40px rgba(0,0,0,0.45);
+}
+
+/* spooky light */
+[data-season="spooky"] {
+  color-scheme: light;
+  --kk-page: #f4eee6;
+  --kk-surface: #fffaf3;
+  --kk-inset: #f1e7da;
+  --kk-border: #e2d2bf;
+  --kk-border-control: #9a6f45;
+  --kk-ink: #2a1f1a;
+  --kk-muted: #5b4a3f;
+  --kk-heading: #2a1f1a;
+  --kk-primary: #b0450b;        /* DS #b5470b was 4.44:1 on inset as a link colour */
+  --kk-primary-hover: #963a09;
+  --kk-on-primary: #ffffff;
+  --kk-secondary: #4a3b5c;
+  --kk-secondary-hover: #3c2f4b;
+  --kk-on-secondary: #ffffff;
+  --kk-header: #3d2b22;
+  --kk-on-header: #ffffff;
+  --kk-tab: #d7d1ca;
+  --kk-gold: #e8b04a;
+  --kk-on-gold: #2a1f1a;
+  --kk-stamp: #a8420a;
+  --kk-redact: #2a1f1a;
+  --kk-focus: #b5470b;
+  --kk-success: #e2efd9;
+  --kk-on-success: #33562a;
+  --kk-warning: #f6e7c4;
+  --kk-on-warning: #5a4310;
+  --kk-danger: #a3201b;
+  --kk-danger-soft: #f8e1de;
+  --kk-on-danger-soft: #84190f;
+  --kk-stage1: #e8b04a;
+  --kk-on-stage1: #2a1f1a;
+  --kk-stage2: #b5470b;
+  --kk-on-stage2: #ffffff;
+  --kk-stage3: #556b2f;
+  --kk-on-stage3: #ffffff;
+  --kk-stage4: #4a3b5c;
+  --kk-on-stage4: #ffffff;
+  --kk-decor-1: #e07a2e;
+  --kk-decor-2: #7b5a9a;
+  --kk-shadow-card: 0 1px 2px rgba(28,24,18,0.06), 0 4px 14px rgba(28,24,18,0.07);
+  --kk-shadow-raised: 0 2px 4px rgba(28,24,18,0.08), 0 12px 32px rgba(28,24,18,0.12);
+}
+
+/* spooky dark */
+[data-season="spooky"].dark {
+  color-scheme: dark;
+  --kk-page: #14101a;
+  --kk-surface: #201a29;
+  --kk-inset: #1a1522;
+  --kk-border: #3a3047;
+  --kk-border-control: #a0784a;
+  --kk-ink: #e8e0ec;
+  --kk-muted: #b4a9bc;
+  --kk-heading: #ffb066;
+  --kk-primary: #ff9a3c;
+  --kk-primary-hover: #f0832a;
+  --kk-on-primary: #14101a;
+  --kk-secondary: #2e2540;
+  --kk-secondary-hover: #3a2f50;
+  --kk-on-secondary: #e8e0ec;
+  --kk-header: #0e0b12;
+  --kk-on-header: #ffb066;
+  --kk-tab: #1b1622;
+  --kk-gold: #e8b04a;
+  --kk-on-gold: #14101a;
+  --kk-stamp: #ff9a3c;
+  --kk-redact: #e8e0ec;
+  --kk-focus: #ff9a3c;
+  --kk-success: #1e3324;
+  --kk-on-success: #bfe3c6;
+  --kk-warning: #3a2e14;
+  --kk-on-warning: #ffd59a;
+  --kk-danger: #f2a1a1;
+  --kk-danger-soft: #3f1820;
+  --kk-on-danger-soft: #ffd9d9;
+  --kk-stage1: #e8b04a;
+  --kk-on-stage1: #14101a;
+  --kk-stage2: #ff9a3c;
+  --kk-on-stage2: #14101a;
+  --kk-stage3: #a8d672;
+  --kk-on-stage3: #14101a;
+  --kk-stage4: #c3a6ec;
+  --kk-on-stage4: #14101a;
+  --kk-decor-1: #ff9a3c;
+  --kk-decor-2: #8a6bb8;
+  --kk-shadow-card: 0 1px 2px rgba(0,0,0,0.45), 0 10px 28px rgba(0,0,0,0.35);
+  --kk-shadow-raised: 0 2px 6px rgba(0,0,0,0.5), 0 18px 40px rgba(0,0,0,0.45);
+}
+
+/*
+ * Links on page, surface and inset use kk-accent (the Design System's link rule; it names the token
+ * but never defines it, so it is the theme's primary). Repeated on `.light` and `.dark` because a
+ * var() inside a custom property resolves where it is declared, then inherits as a fixed colour.
+ */
+:root,
+.light,
+.dark {
+  --kk-accent: var(--kk-primary);
+}

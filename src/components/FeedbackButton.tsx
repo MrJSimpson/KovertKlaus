@@ -106,7 +106,7 @@ export function FeedbackButton() {
     <>
       <button
         onClick={openForm}
-        className="fixed z-40 right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] inline-flex items-center gap-1.5 px-4 min-h-[44px] rounded-full bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary text-sm font-bold shadow-lg cursor-pointer transition-all"
+        className="kk-feedback-fab fixed z-40 right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] inline-flex items-center gap-1.5 px-4 min-h-[44px] rounded-full bg-kk-primary hover:bg-kk-primary-hover text-kk-on-primary text-sm font-bold shadow-lg cursor-pointer transition-all"
         title="Send feedback to the KovertKlaus team"
       >
         <span aria-hidden>📝</span>

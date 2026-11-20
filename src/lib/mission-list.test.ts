@@ -97,3 +97,16 @@ test('Mission list - filters by search, role, status and hide toggles', () => {
   assert.deepStrictEqual(ids({ hide: { hideCompleted: true, hideCancelled: true } }), ['1', '2']);
   assert.deepStrictEqual(ids({ status: 'COMPLETED', hide: { hideCompleted: true, hideCancelled: false } }), [], 'hide wins over the status filter');
 });
+
+test('Mission chips: running, lead, completed (by status or date) and cancelled', async () => {
+  const { chipCounts, chipMatches } = await import('./mission-list');
+  const now = new Date('2026-12-30T12:00:00Z');
+  const list = [
+    { status: 'RECRUITING', organizerId: 'me', executionDate: '2027-01-05' },
+    { status: 'MATCHED', organizerId: 'boss', executionDate: '2026-12-20' },
+    { status: 'COMPLETED', organizerId: 'boss', executionDate: '2026-12-01' },
+    { status: 'CANCELLED', organizerId: 'me', executionDate: '2026-12-24' },
+  ];
+  assert.deepEqual(chipCounts(list, 'me', now), { all: 4, running: 1, lead: 2, completed: 2, cancelled: 1 });
+  assert.equal(chipMatches('running', list[1], 'me', new Date('2026-12-10T12:00:00Z')), true);
+});

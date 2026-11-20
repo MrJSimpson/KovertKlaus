@@ -22,7 +22,17 @@ export const SAAS_SITE_URL = 'https://kovertklaus.com';
  * Public pages listed in the sitemap. `/signin` and `/register` show the same landing as `/`, so they
  * stay crawlable but point their canonical link at `/` instead of being listed.
  */
-export const SITEMAP_PATHS = ['/', '/features', '/privacy', '/terms'] as const;
+export const SITEMAP_PATHS = [
+  '/',
+  '/features',
+  '/guides',
+  '/guides/how-a-mission-runs',
+  '/guides/white-elephant',
+  '/guides/secret-santa-exclusions',
+  '/guides/self-hosted-secret-santa',
+  '/privacy',
+  '/terms',
+] as const;
 
 /** Crawlable pages that are not in the sitemap (canonical points at `/`). */
 export const LANDING_ALIASES = ['/signin', '/register'] as const;
@@ -32,11 +42,13 @@ export const LANDING_ALIASES = ['/signin', '/register'] as const;
  * robots.txt and exports `NOINDEX` from its layout (robots.txt stops crawling, not indexing).
  */
 export const PRIVATE_PATHS = [
+  '/alerts',
   '/api/',
   '/dashboard',
   '/delete-account',
   '/exchange/',
   '/northpole',
+  '/profile',
   '/operations',
   '/opkits',
   '/reset-password',
@@ -90,7 +102,7 @@ export const SHARE_IMAGE = {
   url: '/opengraph-image.png',
   width: 1200,
   height: 630,
-  alt: 'KovertKlaus: simple, fun Secret Santa and gift exchanges',
+  alt: 'KovertKlaus: run your Secret Santa like a covert operation. An example mission file at the Match stage.',
 } as const;
 
 /**

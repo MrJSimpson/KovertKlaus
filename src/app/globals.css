@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "../styles/kk-tokens.css";
+@import "../styles/kk-components.css" layer(components);
 
 /*
  * `dark:` utilities follow the in-app theme toggle (the `.dark` class ThemeContext sets on <html>),
@@ -8,16 +10,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * KovertKlaus winter palette (semantic tokens).
- *
- * Light, Klaus Mode: the classic Christmas palette (holly reds, pine greens, gold, linen and snow).
- * Dark, Kovert Mode: the blue and gold palette (Indigo dye, Lion, Ecru, Wheat, Alice blue,
- * French gray, Cambridge blue). Page and inset shades are darker steps of Indigo dye; status
- * surfaces (success, warning, danger) are dark tints, so any text token stays readable on them.
- *
- * Components use the `kk-*` color utilities (`bg-kk-surface`, `text-kk-muted`, ...). Each one
- * resolves to the variable below, so one class works in both modes. Every text pairing meets
- * WCAG AA (4.5:1) on the surface it is used on.
+ * Colour tokens. The values live in src/styles/kk-tokens.css (4 seasons x 2 modes, from the Design
+ * System); this file exposes them to Tailwind as `kk-*` utilities (`bg-kk-surface`,
+ * `text-kk-muted`, ...), so one class follows the active season and mode.
  */
 @theme inline {
   --color-kk-page: var(--kk-page);
@@ -69,116 +64,61 @@
   --color-kk-stage4-soft: var(--kk-stage4-soft);
   --color-kk-stage4-accent: var(--kk-stage4-accent);
   --color-kk-info: var(--kk-info);
+  /* Visual refresh tokens (2.0.0-beta). */
+  --color-kk-border-control: var(--kk-border-control);
+  --color-kk-tab: var(--kk-tab);
+  --color-kk-stamp: var(--kk-stamp);
+  --color-kk-redact: var(--kk-redact);
+  --color-kk-decor-1: var(--kk-decor-1);
+  --color-kk-decor-2: var(--kk-decor-2);
+  --shadow-kk-card: var(--kk-shadow-card);
+  --shadow-kk-raised: var(--kk-shadow-raised);
+  /* Fonts (next/font variables set on <html> in layout.tsx). */
+  --font-display: var(--font-space-grotesk), "Segoe UI", system-ui, sans-serif;
+  --font-sans: var(--font-inter), "Segoe UI", system-ui, sans-serif;
+  --font-body: var(--font-inter), "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, Consolas, monospace;
 }
 
 @layer base {
-  /* `.light` lets a section show the light palette inside a dark page (Workshop theme gallery). */
+  /*
+   * Legacy tokens: used only by pages not yet moved to the visual refresh (2.0.0-beta). The shared
+   * colours (page, surface, ink, primary, header, stages, ...) now come from kk-tokens.css per
+   * season; these keep their winter values until the last page stops using them, then go.
+   * `.light` lets a section show the light palette inside a dark page (Workshop theme gallery).
+   */
   :root,
   .light {
-    color-scheme: light;
-    /* Classic Christmas */
-    --kk-page: #f0f0f0;            /* Snow gray */
-    --kk-surface: #ffffff;         /* Snow */
-    --kk-inset: #f0f0f0;
-    --kk-border: #e0d2c5;          /* Linen */
-    --kk-border-strong: #bca875;   /* Antique gold */
-    --kk-ink: #1c2618;             /* Pine, darkened for body text */
-    --kk-muted: #535233;           /* Olive bark */
-    --kk-heading: #1c2618;
-    --kk-accent: #a70006;          /* Holly red */
+    --kk-border-strong: var(--kk-border-control);
     --kk-brand: #34502b;           /* Pine */
-    --kk-primary: #a70006;
-    --kk-primary-hover: #941f1f;   /* Cranberry */
-    --kk-on-primary: #ffffff;
-    --kk-secondary: #34502b;
-    --kk-secondary-hover: #2a4123;
-    --kk-on-secondary: #ffffff;
-    --kk-header: #34502b;
-    --kk-on-header: #ffffff;
     --kk-header-nav: #f0d890;      /* Candle gold */
-    --kk-gold: #f0d890;
-    --kk-on-gold: #1c2618;
     --kk-gold-ink: #6e5c2e;        /* Antique gold, darkened for text */
-    --kk-success: #a7e3c1;         /* Mint */
-    --kk-on-success: #34502b;
-    --kk-warning: #eee0b7;         /* Parchment */
-    --kk-on-warning: #535233;
-    --kk-danger: #a70006;
-    --kk-danger-soft: #f9e3e3;
-    --kk-on-danger-soft: #941f1f;
-    --kk-focus: #058e27;           /* Evergreen */
     --kk-festive-red: #c50537;     /* Berry */
     --kk-festive-green: #058e27;
-    /* Mission stages (timeline + status): solid fill, text on the fill, soft tint, border accent. */
-    --kk-stage1: #f0d890;          /* 1 RSVP: candle gold */
-    --kk-on-stage1: #1c2618;
     --kk-stage1-soft: #faf3dc;
     --kk-stage1-accent: #8c7840;
-    --kk-stage2: #a70006;          /* 2 Match: holly red */
-    --kk-on-stage2: #ffffff;
     --kk-stage2-soft: #f9e3e3;
     --kk-stage2-accent: #a70006;
-    --kk-stage3: #04741f;          /* 3 Sleigh: evergreen, darkened for white text */
-    --kk-on-stage3: #ffffff;
     --kk-stage3-soft: #ddf3e5;
     --kk-stage3-accent: #04741f;
-    --kk-stage4: #34502b;          /* 4 Party: pine */
-    --kk-on-stage4: #ffffff;
     --kk-stage4-soft: #e3e8dc;
     --kk-stage4-accent: #34502b;
     --kk-info: #ebefc9;            /* Info panels above action rows: pale lime */
   }
 
   .dark {
-    color-scheme: dark;
-    /* Blue & Gold */
-    --kk-page: #062038;            /* Indigo dye, night step */
-    --kk-surface: #0b3d69;         /* Indigo dye, dusk step */
-    --kk-inset: #082c4d;
-    --kk-border: #275985;
-    --kk-border-strong: #a28b61;   /* Lion */
-    --kk-ink: #dbe2ea;             /* Alice blue */
-    --kk-muted: #b7b7bf;           /* French gray */
-    --kk-heading: #fde7be;         /* Wheat */
-    --kk-accent: #cab48b;          /* Ecru */
+    --kk-border-strong: var(--kk-border-control);
     --kk-brand: #fde7be;
-    --kk-primary: #fde7be;
-    --kk-primary-hover: #cab48b;
-    --kk-on-primary: #062038;
-    --kk-secondary: #0e4d82;       /* Indigo dye */
-    --kk-secondary-hover: #135a96;
-    --kk-on-secondary: #fde7be;
-    --kk-header: #0e4d82;
-    --kk-on-header: #fde7be;
     --kk-header-nav: #dbe2ea;
-    --kk-gold: #a28b61;
-    --kk-on-gold: #062038;
     --kk-gold-ink: #cab48b;        /* Ecru */
-    --kk-success: #1e3b36;         /* Cambridge blue, night step */
-    --kk-on-success: #c9d4c4;      /* Cambridge blue, light step */
-    --kk-warning: #3d3524;         /* Lion, night step */
-    --kk-on-warning: #fde7be;
-    --kk-danger: #f2a1a1;
-    --kk-danger-soft: #4a1830;
-    --kk-on-danger-soft: #ffd9d9;
-    --kk-focus: #fde7be;
     --kk-festive-red: #cab48b;
     --kk-festive-green: #8c9985;
-    /* Jewel tones on indigo: same meaning as light mode (gold RSVP, red Match, green Sleigh). */
-    --kk-stage1: #e2c275;          /* 1 RSVP: gold */
-    --kk-on-stage1: #062038;
     --kk-stage1-soft: #082c4d;
     --kk-stage1-accent: #e2c275;
-    --kk-stage2: #e58a9a;          /* 2 Match: rose cranberry */
-    --kk-on-stage2: #062038;
     --kk-stage2-soft: #082c4d;
     --kk-stage2-accent: #e58a9a;
-    --kk-stage3: #7fd1a1;          /* 3 Sleigh: mint evergreen */
-    --kk-on-stage3: #062038;
     --kk-stage3-soft: #082c4d;
     --kk-stage3-accent: #7fd1a1;
-    --kk-stage4: #bfd7ea;          /* 4 Party: ice blue */
-    --kk-on-stage4: #062038;
     --kk-stage4-soft: #082c4d;
     --kk-stage4-accent: #bfd7ea;
     --kk-info: #082c4d;
@@ -188,7 +128,7 @@
     background-color: var(--kk-page);
     color: var(--kk-ink);
     accent-color: var(--kk-primary); /* checkboxes, radios, range sliders */
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: var(--font-body);
     min-height: 100dvh;
   }
 
@@ -261,3 +201,29 @@
     animation: none;
   }
 }
+
+/*
+ * While the phone tab bar shows, the Feedback button sits above it (owner report 2026-11-18: it
+ * covered the Profile tab; Design System BottomTabBar: nothing else on the bottom edge). Unlayered
+ * on purpose: the button's own `bottom-[…]` utility would beat a rule in a cascade layer.
+ */
+body:has(.kk-tabbar) .kk-feedback-fab {
+  bottom: calc(var(--kk-tabbar-h) + env(safe-area-inset-bottom) + 12px);
+}
+
+/*
+ * Legacy markup inside refreshed pages (visual refresh, until each section is rebuilt): the old
+ * oversized radii and black weights fall back to the Design System's shapes and type. Unlayered so
+ * they beat the Tailwind utilities they correct; scoped to `.kk-ui` (refreshed shells only).
+ */
+.kk-ui .rounded-3xl, .kk-ui .rounded-2xl { border-radius: var(--kk-radius-lg); }
+.kk-ui .rounded-xl { border-radius: var(--kk-radius-md); }
+.kk-ui .font-black, .kk-ui .font-extrabold { font-weight: 700; }
+.kk-ui h1, .kk-ui h2, .kk-ui h3 { font-family: var(--font-display); }
+
+/*
+ * Folder files reserve 34px above themselves for their tab (Design System MissionFile). Tailwind's
+ * `space-y-*` resets children's top margin from the utilities layer, which beats the component
+ * rule, so the tab ran into the card above. Unlayered, so the reservation always holds.
+ */
+.kk-ui .kk-file { margin-top: 34px; }

@@ -110,7 +110,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     points: [
       `Missions for ${f.minAgents} to ${f.maxAgents} agents. A Head Elf can run up to ${f.maxHostedMissions} missions at once.`,
       'Invite by email or share the mission code. People you invite by email join straight away; anyone using the code needs your approval first. Late Passes let someone join after RSVP closes.',
-      'Four stages: RSVP, Match, Sleigh, Party. A notification bell shows what needs attention, and the Head Elf can nudge agents by email.',
+      'Four stages: RSVP, Match, Sleigh, Party. The Alerts tab shows what needs attention, and the Head Elf can nudge agents by email.',
       'Mission Comms for messages, an After-Action Report for thank-yous, and one guess at who your Secret Santa was.',
       `Cancelling notifies every agent. A cancelled mission is deleted ${f.cancelledPurgeDays} days later, keeping only an anonymous record of what happened.`,
     ],
@@ -146,7 +146,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       `New accounts confirm their email address before opening the dashboard (the link lasts ${f.verifyLinkHours} hours), and an unverified agent can't be drawn in a Secret Santa.`,
       `Forgot your password? A single-use reset link by email, valid for ${f.resetLinkMinutes} minutes.`,
       `Sign-in, sign-up, password resets and mission codes are rate-limited; after ${f.wrongCodesPerHour} wrong mission codes in an hour, you wait.`,
-      'Delete your account yourself any time from Account Preferences; it is immediate and permanent.',
+      'Delete your account yourself any time from your Profile; it is immediate and permanent.',
       'Everything is sent over HTTPS.',
     ],
   },

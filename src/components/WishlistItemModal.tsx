@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Icon } from '@/components/brand/Icon';
 import { useTheme } from '@/context/ThemeContext';
 import {
   ItemDetail,
@@ -289,15 +290,14 @@ export function WishlistItemModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/55 z-50 flex sm:items-center items-end justify-center p-0 sm:p-4 overflow-y-auto">
       <div className={`w-full sm:max-w-xl max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl transition-all my-0 sm:my-8 flex flex-col overflow-hidden ${theme.modalBg}`}>
         
         {/* Header */}
         <div className="p-4 sm:p-6 pb-4 border-b border-kk-border flex items-center justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{isPersonalizedMode ? '✨' : mode === 'add' ? '🎁' : '✏️'}</span>
-              <h3 className="text-lg sm:text-xl font-black">
+              <h3 className="m-0 font-display text-[22px] leading-7 font-semibold text-kk-heading">
                 {isPersonalizedMode
                   ? mode === 'add'
                     ? 'Add a Personalized Gift'
@@ -309,16 +309,12 @@ export function WishlistItemModal({
             </div>
             <span className="text-xs text-kk-muted">
               {isPersonalizedMode
-                ? '✨ Handmade or specially crafted'
+                ? 'Handmade or specially crafted'
                 : categoryLabels[category] || 'Custom Gift Item'}
             </span>
           </div>
-          <button
-            onClick={onClose}
-            className="text-kk-muted hover:text-kk-ink font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 cursor-pointer transition-colors"
-            title="Close"
-          >
-            ✕
+          <button type="button" onClick={onClose} aria-label="Close" className="kk-btn kk-btn--ghost kk-btn--sm !px-0 w-11 shrink-0">
+            <Icon name="close" />
           </button>
         </div>
 
@@ -540,7 +536,7 @@ export function WishlistItemModal({
                         value={detail.label}
                         onChange={(e) => handleDetailChange(idx, 'label', e.target.value)}
                         placeholder="Variable (e.g. Size, Color)"
-                        className={`w-1/3 border rounded-xl px-3 py-1.5 text-base sm:text-xs font-semibold focus:outline-none ${theme.inputModalBg}`}
+                        className={`w-1/3 shrink-0 min-w-[6.5rem] border rounded-xl px-3 py-1.5 text-base sm:text-xs font-semibold focus:outline-none ${theme.inputModalBg}`}
                       />
 
                       <input
@@ -548,7 +544,7 @@ export function WishlistItemModal({
                         value={detail.value}
                         onChange={(e) => handleDetailChange(idx, 'value', e.target.value)}
                         placeholder="Your choice (e.g. Large, Navy)"
-                        className={`flex-1 border rounded-xl px-3 py-1.5 text-base sm:text-xs focus:outline-none ${theme.inputModalBg}`}
+                        className={`flex-1 min-w-0 border rounded-xl px-3 py-1.5 text-base sm:text-xs focus:outline-none ${theme.inputModalBg}`}
                       />
 
                       {details.length > 1 && (

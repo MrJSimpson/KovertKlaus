@@ -45,6 +45,10 @@ test('Mission Lifecycle Engine - advances RECRUITING to SETUP upon inviteCutoffD
       },
     },
     notification: {
+      upsert: async ({ create }: { create: Record<string, unknown> }) => {
+        createdNotifications.push({ data: create } as never);
+        return { id: 'notif-' + createdNotifications.length, ...create };
+      },
       create: async ({ data }: CreateArgs) => {
         createdNotifications.push({ data });
         return { id: 'notif-' + createdNotifications.length, ...data };
@@ -64,7 +68,7 @@ test('Mission Lifecycle Engine - advances RECRUITING to SETUP upon inviteCutoffD
 
   assert.strictEqual(createdNotifications.length, 1);
   assert.strictEqual(createdNotifications[0].data.userId, 'org-1');
-  assert.ok(String(createdNotifications[0].data.title).includes('Recruitment Closed'));
+  assert.ok(String(createdNotifications[0].data.title).includes('Recruiting closed'));
 });
 
 test('Mission Lifecycle Engine - advances SETUP to MATCHED upon assignmentDate with automated draw', async () => {
@@ -110,6 +114,10 @@ test('Mission Lifecycle Engine - advances SETUP to MATCHED upon assignmentDate w
       },
     },
     notification: {
+      upsert: async ({ create }: { create: Record<string, unknown> }) => {
+        createdNotifications.push({ data: create } as never);
+        return { id: 'notif-' + createdNotifications.length, ...create };
+      },
       create: async ({ data }: CreateArgs) => {
         createdNotifications.push({ data });
         return { id: 'notif-' + createdNotifications.length, ...data };
@@ -169,6 +177,7 @@ test('Mission Lifecycle Engine - advances MATCHED to SHIPPED upon shippingDate',
     },
     notification: {
       create: async () => ({}),
+      upsert: async () => ({}),
     },
   };
 
@@ -215,6 +224,7 @@ test('Mission Lifecycle Engine - advances SHIPPED to EXECUTED upon executionDate
     },
     notification: {
       create: async () => ({}),
+      upsert: async () => ({}),
     },
   };
 
@@ -264,7 +274,7 @@ test('Mission Lifecycle Engine - Assignment Day draw waits for every assignment 
       update: echo,
     },
     exchangeMember: { update: echo },
-    notification: { create: async ({ data }: { data: Record<string, unknown> }) => ({ id: 'n', ...data }) },
+    notification: { create: async ({ data }: { data: Record<string, unknown> }) => ({ id: 'n', ...data }), upsert: async ({ create }: { create: Record<string, unknown> }) => ({ id: 'n', ...create }) },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(mockDb),
   };
 

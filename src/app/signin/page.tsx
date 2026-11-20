@@ -1,18 +1,18 @@
-import { AppHomeLanding } from '@/components/landing';
 import type { Metadata } from 'next';
+import { AuthPage } from '@/components/auth/AuthPage';
 
-/** Same landing as `/`, so search engines are pointed at `/` (`src/lib/seo.ts`). */
-export const metadata: Metadata = { alternates: { canonical: '/' } };
+/** Sign-in is not a search result of its own: canonical points at `/` (`src/lib/seo.ts`). */
+export const metadata: Metadata = { alternates: { canonical: '/' }, title: 'Sign in | KovertKlaus' };
 
 /**
  * @file page.tsx (/signin)
- * @description Operative sign-in entry point.
+ * @description Sign in.
  *
- * Tier 1 (what): Renders the app landing with the sign-in form opened.
- * Tier 2 (why): The same page as `/` (owner decision 2026-11-01: one front page), opened straight to
- * the sign-in form, so links and bookmarks to /signin keep working.
- * Tier 3 (how): `AppHomeLanding` opens the login form when the path is `/signin` (or `?signin` is set).
+ * Tier 1 (what): Renders `AuthPage` on its Sign in tab.
+ * Tier 2 (why): Sign in has its own page in the visual refresh (owner decision 2026-11-18); links
+ * and bookmarks to /signin keep working.
+ * Tier 3 (how): A signed-in visitor is sent straight to the dashboard (or `?next=` target).
  */
 export default function SignInPage() {
-  return <AppHomeLanding />;
+  return <AuthPage mode="login" />;
 }

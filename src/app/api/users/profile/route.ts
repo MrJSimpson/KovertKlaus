@@ -48,6 +48,7 @@ export async function GET() {
         accountStatus: true,
         emailNotifications: true,
         createdAt: true,
+        _count: { select: { participations: true } },
       },
     });
 
@@ -55,11 +56,14 @@ export async function GET() {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
+    const { _count, ...profile } = user;
     return NextResponse.json({
       success: true,
       user: {
-        ...user,
+        ...profile,
         demerits: user.penaltyPoints,
+        // Missions joined or led, for the Profile page's Service record.
+        missionCount: _count.participations,
       },
     });
   } catch (error: any) {

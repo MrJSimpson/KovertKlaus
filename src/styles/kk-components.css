@@ -1,0 +1,408 @@
+/*
+ * KovertKlaus components (Design System "KovertKlaus", components/bundle.css).
+ *
+ * Tier 1 (what): the kk-* component classes: Wordmark, Button, Stamp, Redacted, Codename, StatusPill,
+ * StageTimeline, Card/MissionFile, TextField, Banner, BottomTabBar, SaveBar, Header, SeasonDecor.
+ * Tier 2 (why): one set of role-named classes replaces the colour-named class strings in
+ * src/lib/theme.ts as each page moves to the visual refresh (2.0.0-beta).
+ * Tier 3 (how): every colour, space and radius is a token from kk-tokens.css. Differences from the
+ * Design System: no Google Fonts import (fonts are self-hosted with next/font), seasons key off
+ * <html data-season>, and the page link colour applies only inside `.kk-ui` until every page has moved.
+ * Loaded inside `@layer components`, so Tailwind utilities still override a component when needed.
+ */
+
+:root {
+  --kk-space-1: 4px;
+  --kk-space-2: 8px;
+  --kk-space-3: 12px;
+  --kk-space-4: 16px;
+  --kk-space-5: 24px;
+  --kk-space-6: 32px;
+  --kk-space-7: 48px;
+  --kk-space-8: 64px;
+  --kk-radius-sm: 4px;
+  --kk-radius-md: 8px;
+  --kk-radius-lg: 12px;
+  --kk-radius-pill: 999px;
+  /* Self-hosted faces from next/font (layout.tsx); same values as the Tailwind font theme. */
+  --font-display: var(--font-space-grotesk), "Segoe UI", system-ui, sans-serif;
+  --font-body: var(--font-inter), "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, Consolas, monospace;
+}
+
+/* Links. Page and card links: kk-accent, hover kk-primary-hover. :where() keeps these at zero
+   specificity so a component's own link colour (header, wordmark, buttons) always wins. */
+:where(.kk-ui a) { color: var(--kk-accent); text-underline-offset: 3px; }
+:where(.kk-ui a):hover { color: var(--kk-primary-hover); }
+/* On the header the hover never changes colour (red on pine is about 1:1); it underlines instead. */
+.kk-header a, .kk-header a:hover { color: var(--kk-on-header); }
+
+/* Wordmark ------------------------------------------------------------ */
+.kk-wordmark {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em;
+  font-size: 24px; line-height: 1; color: var(--kk-heading); text-decoration: none;
+}
+.kk-wordmark__icon { display: inline-block; width: 1.75em; height: 1.75em; flex: none; color: var(--kk-stamp); }
+.kk-wordmark__icon svg { display: block; width: 100%; height: 100%; }
+.kk-wordmark__second { color: var(--kk-stamp); }
+.kk-wordmark--on-header { color: var(--kk-on-header); }
+.kk-wordmark--on-header .kk-wordmark__icon,
+.kk-wordmark--on-header .kk-wordmark__second { color: var(--kk-on-header); }
+.kk-wordmark--lg { font-size: 40px; }
+.kk-wordmark--sm { font-size: 18px; }
+
+/* Buttons ------------------------------------------------------------- */
+.kk-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--kk-space-2);
+  min-height: 44px; padding: 0 var(--kk-space-5);
+  border: 1px solid transparent; border-radius: var(--kk-radius-md);
+  font-family: var(--font-body); font-size: 15px; font-weight: 600; line-height: 1;
+  cursor: pointer; text-decoration: none; text-align: center;
+  max-width: 100%;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.kk-btn:active { transform: translateY(1px); }
+.kk-btn--primary { background: var(--kk-primary); color: var(--kk-on-primary); }
+.kk-btn--primary:hover { background: var(--kk-primary-hover); }
+.kk-btn--secondary { background: var(--kk-secondary); color: var(--kk-on-secondary); }
+.kk-btn--secondary:hover { background: var(--kk-secondary-hover); }
+.kk-btn--ghost { background: var(--kk-surface); color: var(--kk-ink); border-color: var(--kk-border-control); }
+.kk-btn--ghost:hover { background: var(--kk-inset); }
+.kk-btn--danger { background: var(--kk-surface); color: var(--kk-danger); border-color: var(--kk-danger); }
+.kk-btn--danger:hover { background: var(--kk-danger-soft); color: var(--kk-on-danger-soft); }
+.kk-btn--sm { min-height: 36px; padding: 0 var(--kk-space-4); font-size: 13px; }
+.kk-btn--block { width: 100%; }
+.kk-btn[disabled] { opacity: 0.5; cursor: not-allowed; transform: none; }
+.kk-btn svg { width: 18px; height: 18px; flex: none; }
+
+/* Stamp --------------------------------------------------------------- */
+.kk-stamp {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border: 2px solid currentColor; border-radius: var(--kk-radius-sm);
+  color: var(--kk-stamp);
+  font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  transform: rotate(-3deg);
+  white-space: nowrap; flex: none;
+}
+.kk-stamp--flat { transform: none; }
+.kk-stamp--muted { color: var(--kk-muted); }
+.kk-stamp--danger { color: var(--kk-danger); }
+
+/* Redacted ------------------------------------------------------------ */
+.kk-redact {
+  display: inline-block; vertical-align: -0.15em;
+  height: 1em; min-width: 4em;
+  background: var(--kk-redact); border-radius: 2px;
+  color: transparent; user-select: none;
+}
+.kk-redact--reveal {
+  background: var(--kk-gold); color: var(--kk-on-gold);
+  height: auto; min-width: 0; padding: 0 6px; vertical-align: baseline;
+  user-select: text; font-weight: 600;
+}
+
+/* Codename tag -------------------------------------------------------- */
+.kk-codename {
+  display: inline-flex; align-items: center; gap: var(--kk-space-2);
+  padding: 2px 8px;
+  background: var(--kk-inset); color: var(--kk-ink);
+  border: 1px solid var(--kk-border); border-radius: var(--kk-radius-sm);
+  font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.02em;
+}
+.kk-codename__label { color: var(--kk-muted); font-size: 12px; letter-spacing: 0.12em; }
+.kk-codename--gold { background: var(--kk-gold); color: var(--kk-on-gold); border-color: transparent; }
+.kk-codename--gold .kk-codename__label { color: var(--kk-on-gold); }
+
+/* Status pill --------------------------------------------------------- */
+.kk-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: var(--kk-radius-pill);
+  font-family: var(--font-body); font-size: 13px; line-height: 18px; font-weight: 600;
+}
+.kk-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.kk-pill--stage1 { background: var(--kk-stage1); color: var(--kk-on-stage1); }
+.kk-pill--stage2 { background: var(--kk-stage2); color: var(--kk-on-stage2); }
+.kk-pill--stage3 { background: var(--kk-stage3); color: var(--kk-on-stage3); }
+.kk-pill--stage4 { background: var(--kk-stage4); color: var(--kk-on-stage4); }
+.kk-pill--success { background: var(--kk-success); color: var(--kk-on-success); }
+.kk-pill--warning { background: var(--kk-warning); color: var(--kk-on-warning); }
+.kk-pill--danger { background: var(--kk-danger-soft); color: var(--kk-on-danger-soft); }
+.kk-pill--neutral { background: var(--kk-inset); color: var(--kk-muted); border: 1px solid var(--kk-border); }
+
+/* Stage timeline ------------------------------------------------------ */
+.kk-timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--kk-space-2); list-style: none; margin: 0; padding: 0; }
+.kk-timeline__step { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; position: relative; }
+.kk-timeline__step + .kk-timeline__step::before {
+  content: ""; position: absolute; top: 15px; left: calc(-50% + 12px); width: calc(100% - 32px); height: 2px;
+  background: var(--kk-border-control);
+}
+.kk-timeline__dot {
+  width: 32px; height: 32px; border-radius: var(--kk-radius-pill);
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  border: 2px dashed var(--kk-border-control); color: var(--kk-muted); background: var(--kk-surface);
+}
+.kk-timeline__label { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--kk-muted); }
+.kk-timeline__step.is-done .kk-timeline__dot { border-style: solid; border-color: var(--stage); color: var(--kk-ink); }
+.kk-timeline__step.is-current .kk-timeline__dot { border: 0; background: var(--stage); color: var(--on-stage); box-shadow: 0 0 0 4px var(--kk-inset); }
+.kk-timeline__step.is-current .kk-timeline__label { color: var(--kk-ink); }
+.kk-timeline__step:nth-child(1) { --stage: var(--kk-stage1); --on-stage: var(--kk-on-stage1); }
+.kk-timeline__step:nth-child(2) { --stage: var(--kk-stage2); --on-stage: var(--kk-on-stage2); }
+.kk-timeline__step:nth-child(3) { --stage: var(--kk-stage3); --on-stage: var(--kk-on-stage3); }
+.kk-timeline__step:nth-child(4) { --stage: var(--kk-stage4); --on-stage: var(--kk-on-stage4); }
+
+/* Card and mission file ----------------------------------------------- */
+.kk-card {
+  background: var(--kk-surface); color: var(--kk-ink);
+  border: 1px solid var(--kk-border); border-radius: var(--kk-radius-lg);
+  box-shadow: var(--kk-shadow-card);
+  padding: var(--kk-space-5);
+}
+/* The mission file is a folder: its first label is a tab on the top-left edge, the same colour as
+   the card, covering the card's top border so tab and card read as one piece. The second label (a
+   date) sits above the top-right corner as plain text. The card leaves room above for the tab. */
+.kk-file { position: relative; padding: 0; margin-top: 34px; container-type: inline-size; }
+.kk-file__tab {
+  position: absolute; left: 0; right: 0; bottom: calc(100% - 1px); z-index: 1;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: var(--kk-space-3);
+  padding: 0 var(--kk-space-4) 0 var(--kk-space-4);
+  font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.08em;
+  color: var(--kk-muted); text-transform: uppercase; pointer-events: none;
+}
+.kk-file__tab > span:first-child {
+  padding: 8px 16px 9px; white-space: nowrap;
+  background: var(--kk-surface); color: var(--kk-ink);
+  border: 1px solid var(--kk-border); border-bottom: 0;
+  border-radius: var(--kk-radius-lg) var(--kk-radius-lg) 0 0;
+}
+.kk-file__tab > span:last-child:not(:first-child) { padding: 0 4px 9px; white-space: nowrap; }
+.kk-file__body { padding: var(--kk-space-5); display: flex; flex-direction: column; gap: var(--kk-space-4); }
+.kk-file__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--kk-space-3); }
+.kk-file__eyebrow { font-family: var(--font-display); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--kk-stamp); margin: 0 0 4px; }
+.kk-file__title { font-family: var(--font-display); font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -0.01em; color: var(--kk-heading); margin: 0; text-wrap: balance; }
+.kk-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--kk-space-3); margin: 0; }
+.kk-meta dt { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--kk-muted); }
+.kk-meta dd { margin: 2px 0 0; font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.kk-file__actions { display: flex; flex-wrap: wrap; gap: var(--kk-space-3); }
+/* Narrow card (a phone, or a sidebar): tighter padding and full-width stacked actions. */
+@container (max-width: 440px) {
+  .kk-file__body { padding: var(--kk-space-4); }
+  .kk-file__tab > span:first-child { padding: 8px 12px 9px; }
+  .kk-file__title { font-size: 22px; line-height: 28px; }
+  .kk-file__actions .kk-btn { flex: 1 1 100%; }
+}
+
+/* Text field ---------------------------------------------------------- */
+.kk-field { display: flex; flex-direction: column; gap: 6px; }
+.kk-field__label { font-size: 13px; line-height: 20px; font-weight: 600; color: var(--kk-ink); }
+.kk-field__input {
+  min-height: 44px; padding: 10px 12px;
+  background: var(--kk-inset); color: var(--kk-ink);
+  border: 1px solid var(--kk-border-control); border-radius: var(--kk-radius-md);
+  font-family: var(--font-body); font-size: 16px; line-height: 24px;
+}
+.kk-field__input::placeholder { color: var(--kk-muted); }
+.kk-field__input:focus-visible { outline: 2px solid var(--kk-focus); outline-offset: 1px; }
+.kk-field__help { font-size: 13px; line-height: 20px; color: var(--kk-muted); }
+.kk-field.is-error .kk-field__input { border-color: var(--kk-danger); border-width: 2px; }
+.kk-field.is-error .kk-field__help { color: var(--kk-danger); }
+
+/* Banner -------------------------------------------------------------- */
+.kk-banner { display: flex; gap: var(--kk-space-3); align-items: flex-start; padding: var(--kk-space-3) var(--kk-space-4); border-radius: var(--kk-radius-md); font-size: 15px; line-height: 22px; }
+.kk-banner strong { font-weight: 600; }
+.kk-banner--success { background: var(--kk-success); color: var(--kk-on-success); }
+.kk-banner--warning { background: var(--kk-warning); color: var(--kk-on-warning); }
+.kk-banner--danger { background: var(--kk-danger-soft); color: var(--kk-on-danger-soft); }
+.kk-banner svg { width: 20px; height: 20px; flex: none; margin-top: 1px; }
+
+/* Bottom tab bar (phones) --------------------------------------------- */
+.kk-tabbar {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  background: var(--kk-header); color: var(--kk-on-header);
+  border-top: 1px solid var(--kk-border);
+  box-shadow: var(--kk-shadow-raised);
+  padding: 6px var(--kk-space-2) max(6px, env(safe-area-inset-bottom));
+}
+.kk-tabbar__item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-height: 52px; justify-content: center; position: relative;
+  color: var(--kk-on-header); opacity: 0.78; text-decoration: none;
+  font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: 0.02em;
+  border-radius: var(--kk-radius-md);
+}
+.kk-tabbar__item svg { width: 22px; height: 22px; }
+.kk-tabbar__item[aria-current="page"] { opacity: 1; }
+.kk-tabbar__item[aria-current="page"]::before {
+  content: ""; position: absolute; top: -6px; left: 30%; right: 30%; height: 3px;
+  border-radius: 0 0 3px 3px; background: var(--kk-on-header);
+}
+.kk-tabbar__badge {
+  position: absolute; top: 4px; left: calc(50% + 6px);
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--kk-radius-pill);
+  background: var(--kk-gold); color: var(--kk-on-gold);
+  font-size: 11px; line-height: 18px; font-weight: 700; text-align: center;
+}
+
+/* Save bar ---------------------------------------------------------------
+   Appears only while a form has unsaved changes. On phones it sits directly above the bottom tab
+   bar (never over it); from 768px, where there is no tab bar, it sits 16px above the window edge. */
+:root { --kk-tabbar-h: 64px; }
+.kk-savebar {
+  position: sticky; z-index: 2;
+  bottom: calc(var(--kk-tabbar-h) + env(safe-area-inset-bottom) + 8px);
+  display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--kk-surface); border: 1px solid var(--kk-border-control); border-radius: var(--kk-radius-lg);
+  box-shadow: var(--kk-shadow-raised);
+}
+.kk-savebar__note { margin-right: auto; font-size: 13px; line-height: 20px; color: var(--kk-muted); }
+@media (min-width: 768px) { .kk-savebar { bottom: 16px; } }
+
+/* Desktop header ------------------------------------------------------ */
+.kk-header {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--kk-space-4);
+  padding: 0 var(--kk-space-5); min-height: 60px;
+  background: var(--kk-header); color: var(--kk-on-header);
+}
+.kk-header__nav { display: flex; gap: var(--kk-space-1); }
+.kk-header__link {
+  color: var(--kk-on-header); opacity: 0.8; text-decoration: none;
+  font-size: 14px; font-weight: 600; padding: 8px 12px; border-radius: var(--kk-radius-md);
+}
+.kk-header__link[aria-current="page"] { opacity: 1; box-shadow: inset 0 -2px 0 var(--kk-on-header); border-radius: 0; }
+.kk-header__link:hover { opacity: 1; text-decoration: underline; text-decoration-thickness: 2px; }
+
+/* Folder tabs (signed-in desktop navigation). The active tab is the page colour and joins the
+   page below; inactive tabs are kk-tab, a step behind. Every tab has an outline because in the
+   dark themes the page and header colours are nearly the same (about 1.05:1). */
+.kk-header__nav--tabs { align-self: stretch; align-items: flex-end; gap: 4px; padding-top: 12px; }
+.kk-header .kk-header__nav--tabs .kk-header__link {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px;
+  background: var(--kk-tab); color: var(--kk-ink); opacity: 1;
+  border: 1px solid var(--kk-border-control); border-bottom: 0;
+  border-radius: var(--kk-radius-lg) var(--kk-radius-lg) 0 0;
+  box-shadow: inset 0 -6px 8px -6px rgba(0, 0, 0, 0.18);
+}
+.kk-header .kk-header__nav--tabs .kk-header__link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.kk-header .kk-header__nav--tabs .kk-header__link[aria-current="page"] {
+  background: var(--kk-page); color: var(--kk-heading); font-weight: 700;
+  min-height: 48px; box-shadow: none; position: relative; top: 1px;
+}
+.kk-wordmark:hover { text-decoration: none; }
+
+/* Seasonal decor ------------------------------------------------------ */
+.kk-decor { position: relative; overflow: hidden; height: 48px; }
+.kk-decor::before, .kk-decor::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  /* An oversized square, turned 30deg, so the pattern runs on a slant like wrapping paper (owner
+     request 2026-11-18); 150vw covers the full band at any angle, and the band clips it. */
+  width: 150vw; height: 150vw; transform: translate(-50%, -50%) rotate(-30deg);
+  -webkit-mask-image: var(--decor-mask); mask-image: var(--decor-mask);
+  -webkit-mask-size: var(--decor-size); mask-size: var(--decor-size);
+}
+.kk-decor::before { background: var(--kk-decor-1); }
+.kk-decor::after { background: var(--kk-decor-2); -webkit-mask-position: var(--decor-offset); mask-position: var(--decor-offset); opacity: 0.85; }
+:root, [data-season="winter"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M20 13v14M13.9 16.5l12.2 7M13.9 23.5l12.2-7'/%3E%3C/g%3E%3C/svg%3E"); --decor-size: 24px 24px; --decor-offset: 12px 12px; }
+[data-season="spring"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cellipse cx='18' cy='18.5' rx='4.2' ry='5.6' fill='black'/%3E%3C/svg%3E"); --decor-size: 22px 22px; --decor-offset: 11px 11px; }
+[data-season="tropic"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Cpath d='M0 12q6-7 12 0t12 0 12 0 12 0' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E"); --decor-size: 30px 15px; --decor-offset: 15px 7.5px; }
+[data-season="spooky"] { --decor-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M22 13a7 7 0 1 0 0 14a9 9 0 0 1 0-14z' fill='black'/%3E%3C/svg%3E"); --decor-size: 24px 24px; --decor-offset: 12px 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kk-btn { transition: none; }
+}
+
+/* Public header (app addition): clears the notch, and the wordmark drops to its phone size. */
+.kk-header--public { padding-top: env(safe-area-inset-top); }
+@media (max-width: 639px) {
+  .kk-header--public { padding-left: var(--kk-space-4); padding-right: var(--kk-space-4); }
+  .kk-header--public .kk-wordmark { font-size: 18px; }
+}
+
+/* Dialog (app addition): native <dialog> as a centred card; a bottom sheet on phones. */
+.kk-dialog {
+  width: min(440px, calc(100vw - 32px)); max-width: none; padding: 0; margin: auto;
+  border: 0; background: transparent; color: var(--kk-ink); overflow: visible;
+}
+.kk-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+.kk-dialog > .kk-card { box-shadow: var(--kk-shadow-raised); }
+@media (max-width: 639px) {
+  .kk-dialog { width: 100vw; margin: auto 0 0; }
+  .kk-dialog > .kk-card {
+    border-radius: var(--kk-radius-lg) var(--kk-radius-lg) 0 0;
+    padding-bottom: max(var(--kk-space-5), calc(env(safe-area-inset-bottom) + var(--kk-space-3)));
+  }
+}
+
+/* Decor band under the public header (Design System SeasonDecor): 40px desktop, 28px phone. */
+.kk-decor--band { height: 40px; border-bottom: 1px solid var(--kk-border); background: var(--kk-surface); }
+@media (max-width: 639px) { .kk-decor--band { height: 28px; } }
+
+/* Klaus/Kovert toggle on the header (app addition, from the phone mockups). */
+.kk-mode-toggle {
+  width: 44px; height: 44px; flex: none; margin-left: var(--kk-space-2);
+  display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--kk-on-header); border-radius: var(--kk-radius-md);
+  background: transparent; color: var(--kk-on-header);
+}
+.kk-mode-toggle:hover { background: rgba(255, 255, 255, 0.08); }
+.kk-header__nav { align-items: center; }
+button.kk-header__link { font-family: inherit; line-height: inherit; }
+
+/* Eyebrow text style (Design System tokens.css typography). */
+.eyebrow { font-family: var(--font-display); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.12em; }
+
+/* Sign in / Create account folder tabs (design canvas "Sign in"): the current tab is the card's
+   surface and joins it; the other is kk-tab, a step behind. */
+.kk-auth-tab {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px;
+  border: 1px solid var(--kk-border); border-bottom: 0;
+  border-radius: var(--kk-radius-lg) var(--kk-radius-lg) 0 0;
+  background: var(--kk-tab); color: var(--kk-ink); font-size: 15px; font-weight: 600; text-decoration: none;
+  box-shadow: inset 0 -6px 8px -6px rgba(0, 0, 0, 0.18);
+}
+.kk-ui a.kk-auth-tab, .kk-ui a.kk-auth-tab:hover { color: var(--kk-ink); }
+.kk-auth-tab:hover { text-decoration: underline; text-underline-offset: 4px; }
+.kk-auth-tab.is-current {
+  min-height: 48px; position: relative; top: 1px; z-index: 1;
+  background: var(--kk-surface); font-weight: 700; box-shadow: none;
+}
+.kk-ui a.kk-auth-tab.is-current { color: var(--kk-heading); }
+
+/* Alerts count on the desktop folder tab (app addition; the tab bar uses kk-tabbar__badge). */
+.kk-tab-badge {
+  display: inline-flex; align-items: center; justify-content: center; margin-left: 8px;
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--kk-radius-pill);
+  background: var(--kk-gold); color: var(--kk-on-gold); font-size: 12px; font-weight: 700; line-height: 1;
+}
+button.kk-tabbar__item { background: transparent; border: 0; font-family: inherit; }
+
+/* Signed-in header (app addition): notch clearance; phone padding per the dashboard mockup. */
+.kk-header--app { padding-top: env(safe-area-inset-top); }
+.kk-header--app .kk-header__nav--tabs > div { display: flex; align-items: flex-end; }
+@media (max-width: 767px) {
+  .kk-header--app { padding-left: var(--kk-space-4); padding-right: var(--kk-space-4); min-height: 56px; }
+  .kk-header--app .kk-wordmark { font-size: 18px; }
+}
+
+/* Cancelled mission file (design option B, owner decision 2026-10-31): a large void stamp over the
+   greyed timeline, on the card surface so it stays readable. */
+.kk-stamp--void {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-8deg);
+  font-size: 18px; line-height: 22px; padding: 6px 16px; border-width: 3px; background: var(--kk-surface);
+}
+
+/* Dashboard filter chips (design canvas "Dashboard"): pressed = ink on page, others outlined. */
+.kk-chip {
+  flex: none; min-height: 36px; padding: 0 14px; border-radius: var(--kk-radius-pill);
+  font: 600 13px var(--font-body); cursor: pointer;
+  background: var(--kk-surface); color: var(--kk-ink); border: 1px solid var(--kk-border-control);
+}
+.kk-chip[aria-pressed="true"] { background: var(--kk-ink); color: var(--kk-page); border-color: var(--kk-ink); }
+@media (pointer: coarse) { .kk-chip { min-height: 44px; } }
+
+/* Open mission folder tab (app addition, owner review 2026-11-19): the mission's code in mono,
+   with a folder icon, styled like the other folder tabs; it is the current one. */
+.kk-header .kk-header__nav--tabs .kk-header__link--file { gap: 8px; font-family: var(--font-mono); letter-spacing: 0.04em; }

@@ -17,13 +17,14 @@
 
 import type { PrismaClient } from '@prisma/client';
 import { sendIntelMessage } from '@/lib/intel-messages';
+import { NOTICE, NUDGE_KEY_PREFIX } from '@/lib/notification-copy';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Minimum time between two nudges to the same agent in the same mission. */
 export const NUDGE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
-/** Notification title prefix; also how the cooldown finds the last nudge. */
+/** Title prefix of nudges sent before 2.0.0-beta; the cooldown still finds them by it. */
 export const NUDGE_TITLE_PREFIX = '🔔 Mission Nudge';
 
 /** HTTP-shaped result shared by the worker and the Next route. */
@@ -136,7 +137,8 @@ export async function dispatchNudge(db: PrismaClient, deps: NudgeDeps, member: N
     where: {
       userId: member.userId,
       exchangeId: exchange.id,
-      title: { startsWith: NUDGE_TITLE_PREFIX },
+      // Nudges carry a `nudge:` key since 2.0.0-beta; older ones only the title prefix.
+      OR: [{ dedupeKey: { startsWith: `${NUDGE_KEY_PREFIX}:` } }, { title: { startsWith: NUDGE_TITLE_PREFIX } }],
       createdAt: { gte: new Date(nowMs - NUDGE_COOLDOWN_MS) },
     },
     select: { createdAt: true },
@@ -154,14 +156,7 @@ export async function dispatchNudge(db: PrismaClient, deps: NudgeDeps, member: N
   );
   if (command.status >= 400) return { status: command.status, body: command.body };
 
-  await db.notification.create({
-    data: {
-      userId: member.userId,
-      title: `${NUDGE_TITLE_PREFIX}: ${exchange.title}`,
-      message: text,
-      exchangeId: exchange.id,
-    },
-  });
+  await db.notification.create({ data: { userId: member.userId, exchangeId: exchange.id, ...NOTICE.nudge(exchange.id, text) } });
 
   let emailed = false;
   if (member.user.email && member.user.emailNotifications !== false) {
