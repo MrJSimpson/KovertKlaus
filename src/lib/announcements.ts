@@ -41,6 +41,60 @@ export interface Announcement {
 /** Newest first. */
 export const ANNOUNCEMENTS: Announcement[] = [
   {
+    version: '2.0.0-beta',
+    date: '2026-11-19',
+    title: 'A fresh new look',
+    summary: 'KovertKlaus has a whole new look, and finding your way around is easier, especially on a phone.',
+    highlights: [
+      {
+        emoji: '🎨',
+        title: 'A new look for the season',
+        text: 'New fonts, colours that change with the season, and each mission shown as a mission file.',
+      },
+      {
+        emoji: '📱',
+        title: 'Made for phones',
+        text: 'Missions, Alerts and Profile sit in a tab bar at the bottom of the screen, always one tap away.',
+      },
+      {
+        emoji: '🗂️',
+        title: 'Your next step on every mission',
+        text: 'Each mission file shows which stage it’s in and what you need to do next, like building your wishlist, adding tracking or fixing the draw.',
+      },
+      {
+        emoji: '🎯',
+        title: 'A clearer mission page',
+        text: 'Your Wishlist Manifest, your target’s dossier, Mission Comms and the After-Action Report are easier to read. Adding a gift starts with two clear choices: store-bought or personalized.',
+      },
+      {
+        emoji: '🔔',
+        title: 'Alerts in one place',
+        text: 'Anything that needs you, like a missing address or a paused draw, stays pinned at the top until it’s fixed. Clear the rest one by one or all at once.',
+      },
+      {
+        emoji: '👤',
+        title: 'Your profile, on one page',
+        text: 'Your details, shipping address and gift hints are on one page, now with a place for dislikes. A bar at the bottom shows unsaved changes, and changing your password has its own button.',
+      },
+      {
+        emoji: '🔑',
+        title: 'Easier sign-in',
+        text: 'Sign in and Create account have their own page. Invitation links show a short briefing about the mission you’re joining.',
+      },
+      {
+        emoji: '📚',
+        title: 'New guides',
+        text: 'Learn how a Secret Santa mission runs, how to run a White Elephant, and how to keep couples or family from drawing each other.',
+      },
+      {
+        emoji: '🛡️',
+        title: 'Head Elf privacy settings stay put',
+        text: 'Saving your profile no longer resets which dossier sections your Head Elf can see.',
+        selfHostedOnly: true,
+      },
+    ],
+  },
+  {
     version: '1.3.0-beta',
     date: '2026-11-18',
     title: 'Fixes from your feedback',
