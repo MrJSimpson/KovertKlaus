@@ -3,7 +3,8 @@
  * @description Generates the brand mark file and the site icons from `src/lib/brand-mark.ts`.
  *
  * Tier 1 (what): Writes `public/brand/kovertklaus-mark.svg`, `src/app/icon.svg`,
- * `src/app/apple-icon.png` (180px) and `src/app/favicon.ico` (16, 32, 48px).
+ * `src/app/apple-icon.png` (180px), `src/app/favicon.ico` (16, 32, 48px) and the web manifest's
+ * home-screen icons `public/brand/icon-192.png`, `icon-512.png` and `icon-maskable-512.png`.
  * Tier 2 (why): The old favicon was create-next-app's. Every icon now comes from the one brand mark
  * (visual refresh, 2.0.0-beta), so a change to the mark is one edit plus `npm run brand:icons`.
  * Tier 3 (how): `sharp` (already a dependency) renders the SVG; the ICO holds PNG images, which
@@ -21,6 +22,13 @@ import { brandMarkSvg } from '../src/lib/brand-mark';
 export const ICON_INK_LIGHT = '#a70006';
 export const ICON_INK_DARK = '#e2c275';
 export const ICON_PAPER = '#fffdf8';
+
+/** Home-screen icons for the web manifest: file in `public/brand/`, size, padding (px). */
+export const MANIFEST_ICONS: [file: string, size: number, padding: number][] = [
+  ['icon-192.png', 192, 19],
+  ['icon-512.png', 512, 51],
+  ['icon-maskable-512.png', 512, 112],
+];
 
 /** The browser-tab icon: one ink, switching with the visitor's colour scheme. */
 export function iconSvg(): string {
@@ -70,6 +78,12 @@ async function main() {
 
   const apple = await sharp(Buffer.from(tileSvg(180, 18))).png().toBuffer();
   write(join(root, 'src/app/apple-icon.png'), apple);
+
+  // Web manifest icons (src/app/manifest.ts). Maskable icons may be cropped to a circle, so the mark
+  // stays inside the central 80% safe zone.
+  for (const [file, size, padding] of MANIFEST_ICONS) {
+    write(join(root, 'public/brand', file), await sharp(Buffer.from(tileSvg(size, padding))).png().toBuffer());
+  }
 
   const light = brandMarkSvg('kk-ico-cut', `color="${ICON_INK_LIGHT}"`);
   const sizes = [16, 32, 48];
