@@ -28,20 +28,20 @@
     "seed": "tsx --env-file=.env prisma/seed.ts"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.2.0",
+    "@neondatabase/serverless": "^1.2.1",
     "@prisma/adapter-neon": "^7.10.1",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
-    "next": "^16.4.5",
-    "nodemailer": "^10.4.0",
+    "next": "^16.4.6",
+    "nodemailer": "^10.6.0",
     "pg": "^8.23.1",
     "pg-cloudflare": "^1.4.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "undici": "^8.12.4",
-    "ws": "^8.22.2"
+    "ws": "^8.23.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.5",
@@ -51,12 +51,12 @@
     "@types/react-dom": "^19.3.0",
     "@types/ws": "^8.18.2",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.4.5",
+    "eslint-config-next": "^16.4.6",
     "prisma": "^7.10.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "wrangler": "^4.158.0"
+    "wrangler": "^4.163.0"
   },
   "overrides": {
     "deepmerge-ts": "^8.0.0",
